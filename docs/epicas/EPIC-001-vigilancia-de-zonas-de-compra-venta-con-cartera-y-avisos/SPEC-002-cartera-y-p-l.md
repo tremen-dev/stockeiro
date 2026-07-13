@@ -2,11 +2,12 @@
 id: SPEC-002
 tipo: spec
 epica: EPIC-001
-estado: aprobada
+estado: en-progreso
 aprobada-por: humano
 historial:
   - {estado: borrador, fecha: 2026-07-13, por: sdd-arquitecto}
   - {estado: aprobada, fecha: 2026-07-13, por: humano}
+  - {estado: en-progreso, fecha: 2026-07-13, por: sdd-implementador}
 ---
 # SPEC-002 — Cartera y P/L
 
