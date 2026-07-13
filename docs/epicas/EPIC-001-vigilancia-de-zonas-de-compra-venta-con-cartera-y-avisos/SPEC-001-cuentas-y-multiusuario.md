@@ -2,12 +2,13 @@
 id: SPEC-001
 tipo: spec
 epica: EPIC-001
-estado: en-progreso
+estado: en-revision
 aprobada-por: humano
 historial:
   - {estado: borrador, fecha: 2026-07-13, por: sdd-arquitecto}
   - {estado: aprobada, fecha: 2026-07-13, por: humano}
   - {estado: en-progreso, fecha: 2026-07-13, por: sdd-implementador}
+  - {estado: en-revision, fecha: 2026-07-13, por: sdd-implementador}
 ---
 # SPEC-001 — Cuentas y multiusuario
 

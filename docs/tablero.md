@@ -7,8 +7,8 @@ Actualizado: 2026-07-13
 
 | Spec | Estado | Último cambio |
 |---|---|---|
-| SPEC-001 — cuentas-y-multiusuario | aprobada | 2026-07-13 (humano) |
+| SPEC-001 — cuentas-y-multiusuario | en-revision | 2026-07-13 (sdd-implementador) |
 
 ## Resumen
 
-- aprobada: 1
+- en-revision: 1
