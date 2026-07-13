@@ -19,6 +19,24 @@ export async function makeTestDb() {
       password_hash text NOT NULL,
       created_at timestamptz NOT NULL DEFAULT now()
     );
+    CREATE TABLE symbols (
+      id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
+      ticker text NOT NULL UNIQUE,
+      currency text NOT NULL
+    );
+    CREATE TABLE transactions (
+      id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
+      user_id uuid NOT NULL REFERENCES users(id),
+      symbol_id uuid NOT NULL REFERENCES symbols(id),
+      type text NOT NULL,
+      occurred_on date NOT NULL,
+      quantity numeric,
+      price numeric,
+      gastos numeric,
+      ratio numeric,
+      amount numeric,
+      created_at timestamptz NOT NULL DEFAULT now()
+    );
   `);
   const db = drizzle(client, { schema });
   return { db, client };

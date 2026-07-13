@@ -1,3 +1,4 @@
+import Link from 'next/link';
 import { auth } from '@/lib/auth/config';
 import { logoutAction } from '../(auth)/actions';
 
@@ -12,7 +13,8 @@ export default async function DashboardPage() {
         Sesión iniciada como <strong>{session?.user?.email ?? 'usuario'}</strong>.
       </p>
       <p className="lede">
-        Aquí vivirán tu cartera y tus acciones vigiladas (próximas specs de EPIC-001).
+        <Link href="/cartera">Tu cartera y P/L →</Link> · tus acciones vigiladas llegarán
+        en próximas specs de EPIC-001.
       </p>
       <form action={logoutAction}>
         <button className="btn" type="submit">

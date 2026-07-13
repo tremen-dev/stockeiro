@@ -40,6 +40,24 @@ await sql`CREATE TABLE IF NOT EXISTS users (
   password_hash text NOT NULL,
   created_at timestamptz NOT NULL DEFAULT now()
 )`;
+await sql`CREATE TABLE IF NOT EXISTS symbols (
+  id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
+  ticker text NOT NULL UNIQUE,
+  currency text NOT NULL
+)`;
+await sql`CREATE TABLE IF NOT EXISTS transactions (
+  id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
+  user_id uuid NOT NULL REFERENCES users(id),
+  symbol_id uuid NOT NULL REFERENCES symbols(id),
+  type text NOT NULL,
+  occurred_on date NOT NULL,
+  quantity numeric,
+  price numeric,
+  gastos numeric,
+  ratio numeric,
+  amount numeric,
+  created_at timestamptz NOT NULL DEFAULT now()
+)`;
 await sql.end();
 
 const child = spawn('npx', ['next', 'start', '-p', String(APP_PORT)], {
