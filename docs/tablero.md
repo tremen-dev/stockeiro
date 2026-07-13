@@ -8,9 +8,9 @@ Actualizado: 2026-07-13
 | Spec | Estado | Último cambio |
 |---|---|---|
 | SPEC-001 — cuentas-y-multiusuario | hecho | 2026-07-13 (sdd-verificador) |
-| SPEC-002 — cartera-y-p-l | en-revision | 2026-07-13 (sdd-implementador) |
+| SPEC-002 — cartera-y-p-l | en-progreso | 2026-07-13 (sdd-verificador) |
 
 ## Resumen
 
 - hecho: 1
-- en-revision: 1
+- en-progreso: 1
