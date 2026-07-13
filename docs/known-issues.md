@@ -9,6 +9,7 @@
 
 ## KI-1 — `tablero.mjs` no rellena la tabla `## Specs` inline de cada `_epica.md`
 
+- **Estado: ✅ REPORTADO al mantenedor del plugin (2026-07-13).**
 - **Detectado:** 2026-07-13, durante el cierre de SPEC-001 (rol sdd-documentalista).
 - **Plugin/versión:** `tremen-sdd` 0.1.0
   (`~/.claude/plugins/cache/tremen-sdd/tremen-sdd/0.1.0/scripts/tablero.mjs`).
