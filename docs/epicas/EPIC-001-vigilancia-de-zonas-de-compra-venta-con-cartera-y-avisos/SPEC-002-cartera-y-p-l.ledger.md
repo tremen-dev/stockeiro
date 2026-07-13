@@ -6,7 +6,7 @@ epica: EPIC-001
 # Ledger — SPEC-002 Cartera y P/L
 
 ## Resumen
-- Fase: RED del verificador — falta redondeo monetario y hay deriva de precisión con divisiones periódicas (P/L visible incorrecto). Vuelve a en-progreso.
+- Fase: RED-A/RED-B resueltos por el implementador (P/L actual exacto + redondeo monetario; tests con divisiones periódicas). Devuelto a en-revisión para re-verificación.
 - Rama: `ft/SPEC-002-cartera-y-p-l`
 
 ## Matriz de criterios de aceptación
@@ -67,9 +67,19 @@ ejecutado sobre `src/lib/portfolio/position.ts` (no versionado; salida en el inf
 - **F-SPEC-002-2** (futuro): editar/borrar transacciones (hoy el ledger es inmutable;
   corrección = evento compensatorio). Fuera de alcance de esta spec.
 
+## Respuesta del implementador al RED (2026-07-13)
+- **RED-A resuelto:** `plActual = precio×cantidad − costeBaseTotal` (sin round-trip
+  por el coste medio) → `plActual(100)` da **−1** exacto. Ventas: coste vendido y
+  remanente PROPORCIONALES al total (sin deriva del coste medio). `money.ts`:
+  redondeo explícito a 2 decimales (ROUND_HALF_UP) en la frontera de servicio/UI;
+  totales sumados en precisión completa y redondeados al final.
+- **RED-B resuelto:** añadidos tests con divisiones periódicas (`buy 3 @100 g1`):
+  `tests/position.test.ts` (plActual −1, coste medio 100.33 estable tras venta
+  parcial, venta total 29.00) y `tests/portfolio-service.test.ts` (plActual −1.00,
+  costeMedio 100.33 extremo a extremo). El probe de precisión ya devuelve −1.
+- Gates: **39 unit verdes**, e2e cartera 2/2, `eslint` 0, `tsc` 0, `next build` verde.
+
 ## Cómo retomar (handoff)
-- **Verificado y cerrado:** CA-5, CA-7, CA-8, CA-10, CA-11.
-- **Pendiente (RED):** CA-1, CA-2, CA-3, CA-4, CA-6, CA-9 — resolver RED-A (redondeo +
-  deriva) y RED-B (tests con divisiones periódicas). Luego re-verificar.
-- **Cómo reproducir el defecto:** computar una posición de `buy 3 @100 gastos 1` y
-  pedir `plActual(100)` → devuelve −0.99999999999999999 (esperado −1.00).
+- **Listo para re-verificación:** los 11 CA con Implementado + Test; RED-A/RED-B saldados.
+- **Dónde seguir:** re-lanzar `/sdd-verificador`; reproducir el probe (`buy 3 @100 g1`
+  → `plActual(100)` = −1) y confirmar el redondeo monetario en `portfolioSummary`.
