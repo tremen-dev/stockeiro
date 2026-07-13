@@ -1,0 +1,41 @@
+/* ============================================================
+   footer.css — page footer (meta + stamp line)
+   Anatomy:
+     <footer>
+       <div class="meta">
+         © 2026 Alberto Fojo<br/>
+         <a href="mailto:alberto@tremen.dev">alberto@tremen.dev</a>
+       </div>
+       <span class="stamp-foot">
+         <span class="br">{</span> made with ai · shipped by humans <span class="br">}</span>
+       </span>
+     </footer>
+   ============================================================ */
+
+footer {
+  border-top: 1px solid var(--line);
+  padding: 40px 0 56px;
+  display: flex;
+  justify-content: space-between;
+  align-items: baseline;
+  flex-wrap: wrap;
+  gap: 24px;
+}
+
+footer .meta {
+  font: 500 13px/1.4 var(--font-sans);
+  color: var(--fg-muted);
+}
+footer .meta a {
+  color: var(--fg);
+  text-decoration: none;
+}
+footer .meta a:hover { color: var(--accent); }
+
+footer .stamp-foot {
+  font: 500 11px/1.4 var(--font-mono);
+  letter-spacing: 0.08em;
+  color: var(--fg-dim);
+  text-transform: uppercase;
+}
+footer .stamp-foot .br { color: var(--accent); }

@@ -1,0 +1,28 @@
+---
+tipo: roadmap
+---
+# Roadmap — Stockeiro
+
+> Curado por sdd-producto. Secuencia de épicas, horizonte y criterios de corte.
+> El estado fino por spec vive en el tablero; aquí vive la INTENCIÓN.
+
+## Ahora (en curso)
+- **EPIC-001 — Vigilancia de zonas de compra/venta con cartera y avisos**
+  (estado: borrador). Es el núcleo del producto: sin la vigilancia de zonas + el
+  aviso proactivo + la cartera, no hay app que resuelva el dolor declarado. Todo
+  lo demás depende de esta base, por eso va primero.
+
+## Después (comprometido, sin empezar)
+<!-- Vacío por ahora: se comprometerán épicas cuando EPIC-001 tenga specs en marcha. -->
+
+## Más adelante (idea, sin compromiso)
+- Multi-moneda y fiscalidad (P/L con comisiones, dividendos, splits, ventas parciales).
+- Import automático de posiciones desde el bróker.
+- Canales de aviso adicionales (push móvil / app nativa).
+- Analítica histórica de la cartera y de aciertos de zona.
+
+## Criterios de corte
+<!-- Qué haría subir o bajar una épica de sección. -->
+- Sube a "Ahora" lo que desbloquee un criterio de éxito de EPIC-001.
+- Baja a "Más adelante" todo lo que amplíe alcance antes de validar el núcleo
+  (más instrumentos, tiempo real, operar de verdad): son mejoras, no el problema.

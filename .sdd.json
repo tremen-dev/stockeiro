@@ -1,0 +1,6 @@
+{
+  "idioma": "es",
+  "rutasVigiladas": ["src/", "app/"],
+  "linter": "auto",
+  "gates": { "requireSpec": true, "protegeVerdad": true, "calidad": true }
+}

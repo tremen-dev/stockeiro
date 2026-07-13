@@ -1,0 +1,78 @@
+/* ============================================================
+   cards.css — offering cards (the 3 big ones)
+   Anatomy:
+     <div class="cards">
+       <div class="card">
+         <span class="num">01 / producto</span>
+         <h3>De idea a MVP en <em>semanas</em>, no meses.</h3>
+         <p>SaaS, apps móviles…</p>
+         <a class="link" href="producto.html">ver casos</a>
+       </div>
+       …
+     </div>
+   ============================================================ */
+
+.cards {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 16px;
+}
+
+.card {
+  border: 1px solid var(--line);
+  background: var(--bg-elev);
+  border-radius: var(--radius-card);
+  padding: 32px 28px;
+  min-height: 280px;
+  display: flex;
+  flex-direction: column;
+  position: relative;
+  overflow: hidden;
+  transition: transform .15s ease, border-color .15s ease;
+}
+.card:hover {
+  transform: translateY(-3px);
+  border-color: var(--accent);
+}
+
+.card .num {
+  font: 600 11px/1 var(--font-mono);
+  color: var(--accent);
+  letter-spacing: 0.12em;
+  margin-bottom: 20px;
+}
+
+.card h3 {
+  margin: 0;
+  font: 800 30px/1.05 var(--font-sans);
+  letter-spacing: -0.035em;
+  color: var(--fg);
+}
+.card h3 em {
+  font-style: italic;
+  color: var(--accent);
+}
+
+.card p {
+  margin: 16px 0 0;
+  font: 400 15px/1.55 var(--font-sans);
+  color: var(--fg-muted);
+}
+
+.card .link {
+  margin-top: auto;
+  padding-top: 28px;
+  font: 600 13px/1 var(--font-sans);
+  color: var(--accent);
+  letter-spacing: -0.01em;
+  display: inline-flex;
+  gap: 8px;
+  align-items: center;
+  text-decoration: none;
+  align-self: flex-start;
+}
+.card .link::after {
+  content: '→';
+  font-family: var(--font-mono);
+}
+.card .link:hover { text-decoration: underline; }

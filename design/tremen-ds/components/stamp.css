@@ -1,0 +1,29 @@
+/* ============================================================
+   stamp.css — rotated ember "edición / fecha" sello
+   Anatomy:
+     <div class="stamp">
+       ed. 2026
+       <span>marca registrada del trabajo</span>
+     </div>
+
+   Positioning is the caller's job. Use it absolute inside .hero, etc.
+   ============================================================ */
+
+.stamp {
+  border: 1.5px solid var(--accent);
+  color: var(--accent);
+  padding: 10px 14px;
+  font: 600 11px/1.3 var(--font-mono);
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  text-align: right;
+  transform: rotate(3deg);
+  border-radius: 2px;
+  display: inline-block;
+}
+.stamp span {
+  display: block;
+  color: var(--fg);
+  margin-top: 4px;
+  font-weight: 500;
+}

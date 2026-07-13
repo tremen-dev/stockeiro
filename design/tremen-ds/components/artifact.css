@@ -1,0 +1,98 @@
+/* ============================================================
+   artifact.css — the spec block "code card"
+   Anatomy:
+     <div class="artifact">
+       <div class="artifact-head">
+         <span class="dot"></span>
+         <span class="file">importador-csv.spec.md</span>
+         <span class="right">human-in-the-loop</span>
+       </div>
+       <pre>… content with .c .k .s .ok .br tokens …</pre>
+       <div class="artifact-foot">
+         <span class="pill">· live</span>
+         <span>ai escribiendo · spec firmada hace 4 min</span>
+       </div>
+     </div>
+   ============================================================ */
+
+.artifact {
+  background: var(--bg-elev);
+  border: 1px solid var(--line);
+  border-radius: var(--radius-card);
+  padding: 22px;
+  position: relative;
+  box-shadow:
+    0 1px 0 rgba(255, 255, 255, 0.03) inset,
+    0 24px 60px -28px rgba(0, 0, 0, 0.6),
+    0 0 0 1px rgba(255, 107, 0, 0.07);
+}
+
+/* corner accent — diagonal ember tab top-right */
+.artifact::before {
+  content: '';
+  position: absolute;
+  inset: -1px -1px auto auto;
+  width: 56px; height: 56px;
+  background: linear-gradient(135deg, transparent 50%, var(--accent) 50%);
+  border-top-right-radius: var(--radius-card);
+  opacity: 0.18;
+}
+
+.artifact-head {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding-bottom: 14px;
+  margin-bottom: 14px;
+  border-bottom: 1px dashed var(--line-strong);
+  color: var(--fg-muted);
+  font: 500 12px/1 var(--font-mono);
+  letter-spacing: -0.01em;
+}
+.artifact-head .file { color: var(--fg); }
+.artifact-head .right { margin-left: auto; color: var(--fg-dim); }
+.artifact-head .dot {
+  width: 8px; height: 8px;
+  background: var(--accent);
+  border-radius: 50%;
+  box-shadow: 0 0 10px var(--accent);
+  animation: artifact-pulse 1.8s ease-in-out infinite;
+}
+@keyframes artifact-pulse { 50% { opacity: 0.55; } }
+
+.artifact pre {
+  margin: 0;
+  font: 500 13px/1.7 var(--font-mono);
+  color: var(--fg);
+  letter-spacing: -0.01em;
+  white-space: pre-wrap;
+}
+
+/* spec-block syntax tokens */
+.artifact .c  { color: var(--fg-dim); }    /* comments */
+.artifact .k  { color: var(--accent); }    /* keys */
+.artifact .s  { color: var(--fg-muted); }  /* strings */
+.artifact .ok { color: var(--live); }      /* ✓ pass */
+.artifact .br { color: var(--accent); }    /* braces */
+
+.artifact-foot {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-top: 14px;
+  padding-top: 14px;
+  border-top: 1px dashed var(--line-strong);
+  font: 500 11px/1 var(--font-mono);
+  color: var(--fg-muted);
+  letter-spacing: -0.01em;
+}
+
+/* status pill — ember bg, ember fg */
+.pill {
+  display: inline-flex;
+  gap: 6px;
+  padding: 4px 8px;
+  background: rgba(255, 107, 0, 0.12);
+  color: var(--accent);
+  border-radius: var(--r-pill);
+}

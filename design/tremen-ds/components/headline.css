@@ -1,0 +1,56 @@
+/* ============================================================
+   headline.css — display headlines + section H2
+   Anatomy:
+     <h1 class="headline">
+       Hago software
+       <span class="line2"><span class="br">{</span> <em>tremendo</em> <span class="br">}</span></span>
+       <span class="line3">a 4 manos con <span class="accent">la IA.</span></span>
+     </h1>
+
+     <h2 class="section">
+       Tres formas de trabajar conmigo, una <em>filosofía</em>: ship rápido…
+     </h2>
+   ============================================================ */
+
+h1.headline {
+  font: 900 clamp(64px, 9vw, 160px)/0.88 var(--font-sans);
+  letter-spacing: -0.055em;
+  color: var(--fg);
+  margin: 0;
+  max-width: 1180px;
+}
+h1.headline .accent { color: var(--accent); }
+h1.headline .br {
+  font: 700 clamp(64px, 9vw, 160px)/0.88 var(--font-mono);
+  color: var(--accent);
+  letter-spacing: -0.04em;
+}
+h1.headline .line2,
+h1.headline .line3 { display: block; }
+h1.headline em {
+  font-style: italic;
+  font-weight: 700;
+  color: var(--fg-muted);
+}
+
+/* Section H2 (used inside .offerings, .capabilities, etc.) */
+h2.section {
+  margin: 0 0 48px;
+  font: 800 clamp(40px, 5vw, 72px)/1 var(--font-sans);
+  letter-spacing: -0.04em;
+  color: var(--fg);
+  max-width: 880px;
+}
+h2.section em {
+  font-style: italic;
+  font-weight: 700;
+  color: var(--accent);
+}
+
+/* Lede paragraph that follows a headline */
+.lede {
+  font: 400 20px/1.5 var(--font-sans);
+  color: var(--fg-muted);
+  max-width: 560px;
+}
+.lede strong { color: var(--fg); font-weight: 600; }

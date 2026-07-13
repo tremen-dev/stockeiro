@@ -1,0 +1,54 @@
+/* ============================================================
+   buttons.css — .btn (default outline) + .btn.primary (ember filled)
+   Anatomy:
+     <button class="btn primary">trabajemos juntos <span class="arr">→</span></button>
+     <button class="btn">cómo trabajo</button>
+   ============================================================ */
+
+.btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 10px;
+  padding: 16px 22px;
+  font: 600 15px/1 var(--font-sans);
+  letter-spacing: -0.01em;
+  border: 1px solid var(--line-strong);
+  background: transparent;
+  color: var(--fg);
+  cursor: pointer;
+  border-radius: var(--radius);
+  text-decoration: none;
+  transition: transform .12s ease, background .12s ease,
+              color .12s ease, border-color .12s ease, box-shadow .12s ease;
+}
+.btn .arr { font-family: var(--font-mono); color: var(--accent); }
+
+.btn:hover {
+  transform: translateY(-1px);
+  border-color: var(--fg);
+}
+
+/* primary: filled ember */
+.btn.primary {
+  background: var(--accent);
+  border-color: var(--accent);
+  color: var(--accent-ink);
+}
+.btn.primary .arr { color: var(--accent-ink); }
+.btn.primary:hover {
+  box-shadow: var(--glow-ember);
+  transform: translateY(-1px);
+}
+
+/* tertiary inline link with arrow (used in cards) */
+.btn-link {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  font: 600 13px/1 var(--font-sans);
+  color: var(--accent);
+  letter-spacing: -0.01em;
+  text-decoration: none;
+}
+.btn-link::after { content: '→'; font-family: var(--font-mono); }
+.btn-link:hover { text-decoration: underline; }

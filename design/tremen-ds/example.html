@@ -1,0 +1,62 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>tremen-ds · example</title>
+<link rel="stylesheet" href="components/index.css" />
+</head>
+<body class="v-tremendo">
+
+  <!-- copia este sprite si vas a usar tiles .cap, o linkéalo externamente con
+       <use href="icons.svg#ic-crm"/> -->
+  <svg xmlns="http://www.w3.org/2000/svg" style="position:absolute; width:0; height:0;" aria-hidden="true">
+    <symbol id="ic-crm" viewBox="0 0 24 24" style="fill:none; stroke:currentColor; stroke-width:1.75;">
+      <path d="M3 5 L21 5"/><path d="M6 11 L18 11"/><path d="M9 17 L15 17"/>
+      <rect x="11" y="20" width="2" height="2" fill="currentColor" stroke="none"/>
+    </symbol>
+  </svg>
+
+  <div class="frame">
+
+    <nav class="nav">
+      <span class="lockup"><span class="br">{</span>tu<span class="dev">.marca</span><span class="br">}</span></span>
+      <div class="nav-links">
+        <a href="#" class="active">producto</a>
+        <a href="#">notas</a>
+      </div>
+      <a class="nav-cta" href="#">hablemos →</a>
+    </nav>
+
+    <section style="padding: 64px 0 80px;">
+      <div class="eyebrow-row">
+        <span class="eyebrow">/ ejemplo mínimo · v0.1</span>
+        <span class="dot-row"></span>
+      </div>
+
+      <h1 class="headline">
+        Tu copy<br/>
+        <span class="line2"><span class="br">{</span> <em>aquí</em> <span class="br">}</span></span>
+        <span class="line3">con <span style="color: var(--accent)">acento ember.</span></span>
+      </h1>
+
+      <p class="lede" style="margin-top: 32px;">
+        Esto es lo mínimo para verificar que <strong>tremen-ds</strong> ha
+        cargado bien. Si ves la tipografía Geist, fondo dark cálido y este
+        botón naranja, está todo enchufado.
+      </p>
+
+      <div style="display:flex; gap:12px; margin-top: 24px;">
+        <button class="btn primary">funcionando <span class="arr">→</span></button>
+        <button class="btn">¿qué más hay?</button>
+      </div>
+    </section>
+
+    <footer>
+      <div class="meta">© 2026 — <a href="#">tu nombre</a></div>
+      <span class="stamp-foot"><span class="br">{</span> tremen.dev · design system <span class="br">}</span></span>
+    </footer>
+
+  </div>
+</body>
+</html>

@@ -1,0 +1,129 @@
+/* ============================================================
+   tremen.dev — Design tokens
+   Two variants share a base; each overrides accent + bg warmth.
+   ============================================================ */
+
+@import url('https://fonts.googleapis.com/css2?family=Geist:wght@300;400;500;600;700;800;900&family=Geist+Mono:wght@400;500;600&display=swap');
+
+:root {
+  /* ---------- Type families ---------- */
+  --font-sans: 'Geist', ui-sans-serif, system-ui, -apple-system, 'Helvetica Neue', sans-serif;
+  --font-mono: 'Geist Mono', ui-monospace, 'SF Mono', Menlo, Consolas, monospace;
+
+  /* ---------- Type scale (fluid, 1920 reference) ---------- */
+  --t-display:    clamp(3.5rem, 7vw + 1rem, 9rem);     /* 56 → 144 */
+  --t-headline:   clamp(2.5rem, 4vw + 1rem, 5rem);     /* 40 → 80 */
+  --t-h1:         clamp(2rem, 2.5vw + 1rem, 3.5rem);   /* 32 → 56 */
+  --t-h2:         clamp(1.5rem, 1.5vw + 0.75rem, 2.25rem);
+  --t-h3:         clamp(1.125rem, 0.6vw + 0.85rem, 1.5rem);
+  --t-body-lg:    1.125rem;  /* 18 */
+  --t-body:       1rem;      /* 16 */
+  --t-body-sm:    0.875rem;  /* 14 */
+  --t-mono:       0.875rem;
+  --t-caption:    0.75rem;   /* 12 — labels, eyebrows */
+
+  --lh-tight: 0.95;
+  --lh-snug: 1.1;
+  --lh-body: 1.55;
+  --lh-mono: 1.5;
+
+  --tracking-tight: -0.04em;
+  --tracking-snug: -0.02em;
+  --tracking-normal: 0;
+  --tracking-wide: 0.08em;
+  --tracking-mono: -0.01em;
+
+  /* ---------- Core palette (variant-neutral) ---------- */
+  --ink:        #0A0A0B;     /* deepest */
+  --ink-soft:   #16161A;     /* elevated panel */
+  --ink-line:   #26262C;     /* borders on dark */
+  --bone:       #F5F1EA;     /* warm cream */
+  --paper:      #FAFAF7;     /* off-white */
+  --signal:     #FFD60A;     /* signal yellow — variant A primary accent */
+  --ember:      #FF6B00;     /* ember orange — variant B primary accent */
+  --amber:      #FFB800;
+  --live:       #7CFFB2;     /* "ai is alive" green — use sparingly */
+  --error:      #FF3B30;
+  --muted-50:   rgba(245, 241, 234, 0.50);
+  --muted-30:   rgba(245, 241, 234, 0.30);
+  --muted-12:   rgba(245, 241, 234, 0.12);
+
+  /* ---------- Spacing & radius ---------- */
+  --r-xs: 4px;
+  --r-sm: 6px;
+  --r-md: 10px;
+  --r-lg: 14px;
+  --r-pill: 999px;
+  --r-none: 0px;
+
+  --gutter: clamp(20px, 4vw, 64px);
+  --max-w: 1440px;
+
+  /* ---------- Shadows / glow ---------- */
+  --glow-signal: 0 0 0 1px rgba(255, 214, 10, 0.5), 0 0 24px -4px rgba(255, 214, 10, 0.45);
+  --glow-ember:  0 0 0 1px rgba(255, 107, 0, 0.5), 0 0 30px -4px rgba(255, 107, 0, 0.4);
+  --soft-lift:   0 1px 0 rgba(255,255,255,0.04) inset, 0 8px 24px -12px rgba(0,0,0,0.6);
+}
+
+/* ============================================================
+   THEME — "Tremendo"
+   Warm dark + ember orange. Editorial-confident. Soft corners.
+   ============================================================ */
+.v-tremendo {
+  --bg:           #111110;
+  --bg-elev:      #1A1815;
+  --bg-step:      #221F1A;
+  --fg:           var(--bone);
+  --fg-muted:     rgba(245, 241, 234, 0.66);
+  --fg-dim:       rgba(245, 241, 234, 0.42);
+  --line:         #2A2620;
+  --line-strong:  #3D362C;
+  --accent:       var(--ember);
+  --accent-ink:   #110A04;
+  --accent-glow:  var(--glow-ember);
+  --selection:    var(--ember);
+
+  --radius:       var(--r-md);
+  --radius-card:  var(--r-lg);
+  --grain:        0.10;
+}
+
+/* ============================================================
+   Semantic typography roles
+   ============================================================ */
+.display     { font: 800 var(--t-display)/var(--lh-tight) var(--font-sans); letter-spacing: var(--tracking-tight); }
+.headline    { font: 700 var(--t-headline)/var(--lh-tight) var(--font-sans); letter-spacing: var(--tracking-tight); }
+.h1          { font: 700 var(--t-h1)/var(--lh-snug) var(--font-sans); letter-spacing: var(--tracking-snug); }
+.h2          { font: 600 var(--t-h2)/var(--lh-snug) var(--font-sans); letter-spacing: var(--tracking-snug); }
+.h3          { font: 600 var(--t-h3)/var(--lh-snug) var(--font-sans); }
+.body-lg     { font: 400 var(--t-body-lg)/var(--lh-body) var(--font-sans); }
+.body        { font: 400 var(--t-body)/var(--lh-body) var(--font-sans); }
+.body-sm     { font: 400 var(--t-body-sm)/var(--lh-body) var(--font-sans); }
+.mono        { font: 500 var(--t-mono)/var(--lh-mono) var(--font-mono); letter-spacing: var(--tracking-mono); }
+.mono-sm     { font: 500 var(--t-caption)/var(--lh-mono) var(--font-mono); letter-spacing: var(--tracking-mono); }
+.eyebrow     { font: 500 var(--t-caption)/1 var(--font-mono); letter-spacing: var(--tracking-wide); text-transform: uppercase; }
+
+/* utility */
+.brace       { color: var(--accent); font-family: var(--font-mono); font-weight: 500; }
+.cursor::after {
+  content: '▍';
+  display: inline-block;
+  margin-left: 0.08em;
+  color: var(--accent);
+  animation: blink 1.05s steps(2,end) infinite;
+}
+@keyframes blink { 50% { opacity: 0; } }
+
+/* ============================================================
+   Reset-lite for previews/landing
+   ============================================================ */
+*, *::before, *::after { box-sizing: border-box; }
+html, body { margin: 0; padding: 0; }
+body {
+  background: var(--bg, #0A0A0B);
+  color: var(--fg, #F5F5F0);
+  font-family: var(--font-sans);
+  -webkit-font-smoothing: antialiased;
+  text-rendering: optimizeLegibility;
+}
+::selection { background: var(--selection, #FFD60A); color: #0A0A0B; }

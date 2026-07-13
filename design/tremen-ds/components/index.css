@@ -1,0 +1,26 @@
+/* ============================================================
+   index.css — single import for the whole design system.
+   Drop this in any page:
+
+     <link rel="stylesheet" href="components/index.css" />
+     <body class="v-tremendo"> … </body>
+
+   Includes tokens (colors_and_type.css) + every component partial
+   + the responsive overrides. Source order matters — keep it.
+   ============================================================ */
+
+@import url('../colors_and_type.css');
+
+@import url('_base.css');
+@import url('nav.css');
+@import url('buttons.css');
+@import url('eyebrows.css');
+@import url('headline.css');
+@import url('artifact.css');
+@import url('marquee.css');
+@import url('cards.css');
+@import url('capabilities.css');
+@import url('stamp.css');
+@import url('footer.css');
+
+@import url('../responsive.css');
