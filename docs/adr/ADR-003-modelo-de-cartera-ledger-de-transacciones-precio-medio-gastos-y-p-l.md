@@ -1,13 +1,14 @@
 ---
 id: ADR-003
 tipo: adr
-estado: borrador
+estado: aprobada
 historial:
   - {estado: borrador, fecha: 2026-07-13, por: sdd-arquitecto}
+  - {estado: aprobada, fecha: 2026-07-13, por: humano}
 ---
 # ADR-003: Modelo de cartera: ledger de transacciones, precio medio, gastos y P/L
 
-- Deciders: propone sdd-arquitecto (con dictamen de dominio sdd-cartera); aprueba el humano (gate). Pendiente de aprobación.
+- Deciders: propone sdd-arquitecto (con dictamen de dominio sdd-cartera); aprobado por el humano (gate) el 2026-07-13.
 - Specs relacionadas: SPEC-002 (Cartera y P/L). Consume el patrón de ADR-001 (Drizzle/Neon, aislamiento por userId) y ADR-002 (símbolo compartido).
 
 ## Contexto

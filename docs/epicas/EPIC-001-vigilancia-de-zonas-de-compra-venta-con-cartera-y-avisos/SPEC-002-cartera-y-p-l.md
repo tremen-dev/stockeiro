@@ -2,10 +2,11 @@
 id: SPEC-002
 tipo: spec
 epica: EPIC-001
-estado: borrador
-aprobada-por:
+estado: aprobada
+aprobada-por: humano
 historial:
   - {estado: borrador, fecha: 2026-07-13, por: sdd-arquitecto}
+  - {estado: aprobada, fecha: 2026-07-13, por: humano}
 ---
 # SPEC-002 — Cartera y P/L
 
@@ -108,6 +109,10 @@ Aparcado a propósito, no por descuido:
   su exposición mínima; el pulido de la vista puede ir con la spec de UI.
 
 ## Notas para el gate humano
+Resoluciones del gate (aprobado 2026-07-13 por el humano): los 3 puntos ACEPTADOS
+tal cual — (1) dividendos como ingreso realizado; (2) P/L actual "—" hasta la
+Ingesta; (3) tabla `symbol` compartida ya en esta spec.
+
 - **Dividendos como ingreso realizado** (RN-05, dictamen sdd-cartera): el dividendo
   suma al P/L realizado y NO reduce el coste base (no se modela "return of
   capital"). ¿Lo aceptas para v1?
