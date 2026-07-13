@@ -9,9 +9,9 @@ Actualizado: 2026-07-13
 |---|---|---|
 | SPEC-001 — cuentas-y-multiusuario | hecho | 2026-07-13 (sdd-verificador) |
 | SPEC-002 — cartera-y-p-l | hecho | 2026-07-13 (sdd-verificador) |
-| SPEC-003 — acciones-vigiladas-y-zonas | aprobada | 2026-07-13 (humano) |
+| SPEC-003 — acciones-vigiladas-y-zonas | en-revision | 2026-07-13 (sdd-implementador) |
 
 ## Resumen
 
 - hecho: 2
-- aprobada: 1
+- en-revision: 1
