@@ -2,10 +2,11 @@
 id: SPEC-003
 tipo: spec
 epica: EPIC-001
-estado: borrador
-aprobada-por:
+estado: aprobada
+aprobada-por: humano
 historial:
   - {estado: borrador, fecha: 2026-07-13, por: sdd-arquitecto}
+  - {estado: aprobada, fecha: 2026-07-13, por: humano}
 ---
 # SPEC-003 — Acciones vigiladas y zonas
 
@@ -95,6 +96,10 @@ Aparcado a propósito, no por descuido:
 - **UI final** con estilo tremen-ds: exposición mínima; el pulido va con la spec de UI.
 
 ## Notas para el gate humano
+**Aprobado 2026-07-13 por el humano:** los 4 puntos ACEPTADOS — entrada = precio
+observado dentro de [min,max] inclusive; compra/venta como etiquetas sin exigir
+orden; zonas opcionales; y coherencia de base de precio delegada a la spec de Ingesta.
+
 Resoluciones ya tomadas contigo:
 - **Entrada en zona = precio observado dentro de [min,max] inclusive** (sin intradía,
   "tocar" no es observable; dictamen sdd-mercados). ¿OK?
