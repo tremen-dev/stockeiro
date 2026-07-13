@@ -37,6 +37,17 @@ export async function makeTestDb() {
       amount numeric,
       created_at timestamptz NOT NULL DEFAULT now()
     );
+    CREATE TABLE watched_symbols (
+      id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
+      user_id uuid NOT NULL REFERENCES users(id),
+      symbol_id uuid NOT NULL REFERENCES symbols(id),
+      buy_min numeric,
+      buy_max numeric,
+      sell_min numeric,
+      sell_max numeric,
+      created_at timestamptz NOT NULL DEFAULT now(),
+      UNIQUE (user_id, symbol_id)
+    );
   `);
   const db = drizzle(client, { schema });
   return { db, client };
