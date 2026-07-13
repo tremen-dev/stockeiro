@@ -75,11 +75,14 @@ export function computePosition(entries: LedgerEntry[]): Position {
         const p = d(e.price);
         const g = d(e.gastos);
         if (q.gt(qty)) throw new OversellError(qty, q); // RN-08
-        const avg = qty.isZero() ? new Decimal(0) : costTotal.div(qty);
         const proceeds = p.times(q).minus(g); // RN-05: neto de gastos
-        const costOfSold = avg.times(q);
+        // Coste de lo vendido y coste remanente PROPORCIONALES al total, calculados
+        // directamente desde costTotal (no vía el coste medio) para no arrastrar
+        // deriva de redondeo en el coste del resto (RN-04).
+        const costOfSold = qty.isZero() ? new Decimal(0) : costTotal.times(q).div(qty);
+        const newCostTotal = qty.isZero() ? new Decimal(0) : costTotal.times(qty.minus(q)).div(qty);
         realized = realized.plus(proceeds.minus(costOfSold));
-        costTotal = costTotal.minus(costOfSold); // el coste medio del resto no cambia
+        costTotal = newCostTotal;
         qty = qty.minus(q);
         break;
       }
@@ -120,7 +123,8 @@ export function plActual(
   marketPrice: Decimal.Value | null | undefined,
 ): Decimal | null {
   if (marketPrice === null || marketPrice === undefined) return null;
-  if (pos.cantidadViva.isZero()) return new Decimal(0);
-  const avg = pos.costeBaseTotal.div(pos.cantidadViva);
-  return new Decimal(marketPrice).minus(avg).times(pos.cantidadViva);
+  // P/L actual = precio×cantidad − costeBaseTotal. Equivale a (precio − medio)×cantidad,
+  // pero SIN dividir por el medio y re-multiplicar → evita la deriva de redondeo
+  // (p. ej. daría −1.00 exacto, no −0.999…). Posición cerrada (cantidad 0) → 0.
+  return new Decimal(marketPrice).times(pos.cantidadViva).minus(pos.costeBaseTotal);
 }

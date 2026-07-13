@@ -6,6 +6,7 @@ import {
   OversellError,
   type LedgerEntry,
 } from '@/lib/portfolio/position';
+import { moneyStr } from '@/lib/portfolio/money';
 
 const on = (day: number): string => `2026-01-${String(day).padStart(2, '0')}`;
 
@@ -115,5 +116,37 @@ describe('computePosition — dividendo (CA-8, RN-05)', () => {
     expect(pos.realizadoPL.toString()).toBe('25');
     expect(pos.cantidadViva.toString()).toBe('10');
     expect(pos.costeBaseTotal.toString()).toBe('1000');
+  });
+});
+
+describe('precisión con divisiones periódicas (RED-A/RED-B)', () => {
+  it('CA-6 exacto: buy 3 @100 gastos 1, precio 100 → P/L actual −1 (no −0.999…)', () => {
+    const pos = computePosition([
+      { type: 'buy', occurredOn: on(1), quantity: 3, price: 100, gastos: 1 },
+    ]);
+    expect(plActual(pos, 100)!.toString()).toBe('-1'); // exacto, sin deriva
+    expect(moneyStr(plActual(pos, 100)!)).toBe('-1.00');
+  });
+
+  it('coste medio redondeado estable tras venta parcial (sin deriva perceptible)', () => {
+    const antes = computePosition([
+      { type: 'buy', occurredOn: on(1), quantity: 3, price: 100, gastos: 1 },
+    ]);
+    const despues = computePosition([
+      { type: 'buy', occurredOn: on(1), quantity: 3, price: 100, gastos: 1 },
+      { type: 'sell', occurredOn: on(2), quantity: 1, price: 100 },
+    ]);
+    expect(moneyStr(costeMedio(antes)!)).toBe('100.33');
+    expect(moneyStr(costeMedio(despues)!)).toBe('100.33');
+  });
+
+  it('venta total con división periódica: realizado redondeado correcto', () => {
+    // buy 3 @100 g1 (coste 301) ; sell 3 @110 g0 → proceeds 330 − 301 = 29
+    const pos = computePosition([
+      { type: 'buy', occurredOn: on(1), quantity: 3, price: 100, gastos: 1 },
+      { type: 'sell', occurredOn: on(2), quantity: 3, price: 110 },
+    ]);
+    expect(moneyStr(pos.realizadoPL)).toBe('29.00');
+    expect(pos.isOpen).toBe(false);
   });
 });

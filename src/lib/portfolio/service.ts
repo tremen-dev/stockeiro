@@ -9,7 +9,9 @@ import {
   plActual,
   OversellError,
   type LedgerEntry,
+  type Position,
 } from './position';
+import { moneyStr } from './money';
 import { getOrCreateSymbol, getSymbolByTicker } from './symbols';
 
 type Db = PgDatabase<any, any, any>;
@@ -155,15 +157,20 @@ export interface PositionView {
   isOpen: boolean;
 }
 
-/**
- * CA-10: lista las posiciones del usuario (SOLO las suyas, filtrado por userId).
- * `priceByTicker` aporta precios de mercado; sin precio, plActual = null.
- */
-export async function listPositions(
+interface RawPosition {
+  ticker: string;
+  currency: string;
+  pos: Position;
+  /** P/L actual en Decimal (precisión completa); null = "sin dato". */
+  plActualRaw: Decimal | null;
+}
+
+/** Deriva las posiciones del usuario en precisión COMPLETA (sin redondear todavía). */
+async function rawPositions(
   db: Db,
   userId: string,
-  priceByTicker: Record<string, Decimal.Value> = {},
-): Promise<PositionView[]> {
+  priceByTicker: Record<string, Decimal.Value>,
+): Promise<RawPosition[]> {
   const rows = await db
     .select({ txn: transactions, sym: symbols })
     .from(transactions)
@@ -178,23 +185,40 @@ export async function listPositions(
     bySymbol.set(sym.id, g);
   }
 
-  const views: PositionView[] = [];
+  const out: RawPosition[] = [];
   for (const { ticker, currency, txns } of bySymbol.values()) {
     const pos = computePosition(toEntries(txns));
     const price = priceByTicker[ticker] ?? null;
-    const cm = costeMedio(pos);
-    const actual = plActual(pos, price);
-    views.push({
-      ticker,
-      currency,
-      cantidadViva: pos.cantidadViva.toString(),
-      costeMedio: cm ? cm.toString() : null,
-      realizadoPL: pos.realizadoPL.toString(),
-      plActual: actual ? actual.toString() : null,
-      isOpen: pos.isOpen,
-    });
+    out.push({ ticker, currency, pos, plActualRaw: plActual(pos, price) });
   }
-  return views;
+  return out;
+}
+
+function toView(raw: RawPosition): PositionView {
+  const cm = costeMedio(raw.pos);
+  return {
+    ticker: raw.ticker,
+    currency: raw.currency,
+    cantidadViva: raw.pos.cantidadViva.toString(), // cantidad, no importe monetario
+    costeMedio: cm ? moneyStr(cm) : null,
+    realizadoPL: moneyStr(raw.pos.realizadoPL),
+    plActual: raw.plActualRaw ? moneyStr(raw.plActualRaw) : null,
+    isOpen: raw.pos.isOpen,
+  };
+}
+
+/**
+ * CA-10: lista las posiciones del usuario (SOLO las suyas, filtrado por userId).
+ * Importes redondeados a la unidad monetaria (SPEC-002). `priceByTicker` aporta
+ * precios; sin precio, plActual = null.
+ */
+export async function listPositions(
+  db: Db,
+  userId: string,
+  priceByTicker: Record<string, Decimal.Value> = {},
+): Promise<PositionView[]> {
+  const raws = await rawPositions(db, userId, priceByTicker);
+  return raws.map(toView);
 }
 
 export interface PortfolioSummary {
@@ -213,16 +237,17 @@ export async function portfolioSummary(
   userId: string,
   priceByTicker: Record<string, Decimal.Value> = {},
 ): Promise<PortfolioSummary> {
-  const positions = await listPositions(db, userId, priceByTicker);
-  const realizadoTotal = positions.reduce((acc, p) => acc.plus(p.realizadoPL), new Decimal(0));
-  const priced = positions.filter((p) => p.plActual !== null);
+  const raws = await rawPositions(db, userId, priceByTicker);
+  // Totales sumados en precisión COMPLETA y redondeados al final (no suma de redondeos).
+  const realizadoTotal = raws.reduce((acc, r) => acc.plus(r.pos.realizadoPL), new Decimal(0));
+  const priced = raws.filter((r) => r.plActualRaw !== null);
   const actualTotal = priced.length
-    ? priced.reduce((acc, p) => acc.plus(p.plActual as string), new Decimal(0))
+    ? priced.reduce((acc, r) => acc.plus(r.plActualRaw as Decimal), new Decimal(0))
     : null;
   return {
-    realizadoTotal: realizadoTotal.toString(),
-    actualTotal: actualTotal ? actualTotal.toString() : null,
-    positions,
+    realizadoTotal: moneyStr(realizadoTotal),
+    actualTotal: actualTotal ? moneyStr(actualTotal) : null,
+    positions: raws.map(toView),
   };
 }
 

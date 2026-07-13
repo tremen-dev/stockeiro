@@ -60,16 +60,16 @@ describe('CA-9: el resumen separa P/L realizado y actual (D-6)', () => {
     // Precio de mercado solo para ITX; AAPL sin precio -> plActual null.
     const summary = await portfolioSummary(db, userA, { ITX: 110 });
 
-    expect(summary.realizadoTotal).toBe('80'); // (120-100)*4
-    expect(summary.actualTotal).toBe('60'); // (110-100)*6, solo ITX priced
+    expect(summary.realizadoTotal).toBe('80.00'); // (120-100)*4, redondeo monetario
+    expect(summary.actualTotal).toBe('60.00'); // (110-100)*6, solo ITX priced
     // separados: no es una sola cifra
     expect(summary.realizadoTotal).not.toBe(summary.actualTotal);
 
     const itx = summary.positions.find((p) => p.ticker === 'ITX')!;
     const aapl = summary.positions.find((p) => p.ticker === 'AAPL')!;
-    expect(itx.realizadoPL).toBe('80');
-    expect(itx.plActual).toBe('60');
-    expect(aapl.realizadoPL).toBe('0');
+    expect(itx.realizadoPL).toBe('80.00');
+    expect(itx.plActual).toBe('60.00');
+    expect(aapl.realizadoPL).toBe('0.00');
     expect(aapl.plActual).toBeNull(); // sin precio -> sin dato
   });
 });
@@ -90,5 +90,21 @@ describe('CA-10: aislamiento por usuario (RN-01)', () => {
 
     const asA = await getTransactionForOwner(db, txnA.id, userA);
     expect(asA).not.toBeNull();
+  });
+});
+
+describe('RED-B: precisión con divisiones periódicas (extremo a extremo)', () => {
+  it('3 uds + gastos: P/L actual −1.00 exacto y coste medio 100.33', async () => {
+    await recordBuy(db, userA, 'REC', 'EUR', {
+      quantity: 3,
+      price: 100,
+      gastos: 1,
+      occurredOn: '2026-01-01',
+    });
+    const summary = await portfolioSummary(db, userA, { REC: 100 });
+    const pos = summary.positions.find((p) => p.ticker === 'REC')!;
+    expect(pos.costeMedio).toBe('100.33');
+    expect(pos.plActual).toBe('-1.00'); // no -0.99999…
+    expect(summary.actualTotal).toBe('-1.00');
   });
 });
