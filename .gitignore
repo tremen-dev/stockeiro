@@ -11,6 +11,11 @@ next-env.d.ts
 .env.local
 .env*.local
 
+# e2e ephemeral
+.pg-e2e/
+test-results/
+playwright-report/
+
 # os
 .DS_Store
 Thumbs.db

@@ -1,0 +1,76 @@
+// Launcher del e2e (RED-1): arranca un Postgres real efímero (embedded-postgres),
+// crea el esquema, y lanza `next start` apuntando a él con DB_DRIVER=pg. Playwright
+// usa este comando como webServer y espera a que responda. Al recibir señal de
+// parada, tumba la app y Postgres.
+import EmbeddedPostgres from 'embedded-postgres';
+import postgres from 'postgres';
+import { spawn } from 'node:child_process';
+import { rmSync } from 'node:fs';
+
+const PG_PORT = 54329;
+const APP_PORT = 3200;
+const DB = 'stockeiro_e2e';
+const dir = './.pg-e2e';
+
+try {
+  rmSync(dir, { recursive: true, force: true });
+} catch {
+  // directorio inexistente: nada que limpiar
+}
+
+const pg = new EmbeddedPostgres({
+  databaseDir: dir,
+  user: 'postgres',
+  password: 'postgres',
+  port: PG_PORT,
+  persistent: false,
+});
+
+await pg.initialise();
+await pg.start();
+await pg.createDatabase(DB);
+
+const url = `postgres://postgres:postgres@localhost:${PG_PORT}/${DB}`;
+
+// Esquema (idéntico a src/db/schema.ts / test-db.ts).
+const sql = postgres(url, { ssl: false, max: 1 });
+await sql`CREATE TABLE IF NOT EXISTS users (
+  id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
+  email text NOT NULL UNIQUE,
+  password_hash text NOT NULL,
+  created_at timestamptz NOT NULL DEFAULT now()
+)`;
+await sql.end();
+
+const child = spawn('npx', ['next', 'start', '-p', String(APP_PORT)], {
+  stdio: 'inherit',
+  shell: true,
+  env: {
+    ...process.env,
+    DATABASE_URL: url,
+    DB_DRIVER: 'pg',
+    AUTH_SECRET: 'e2e-secret-please-change-0123456789',
+    AUTH_TRUST_HOST: 'true',
+    NODE_ENV: 'production',
+  },
+});
+
+async function shutdown() {
+  try {
+    child.kill();
+  } catch {
+    // ya terminado
+  }
+  try {
+    await pg.stop();
+  } catch {
+    // ya parado
+  }
+  process.exit(0);
+}
+
+process.on('SIGTERM', shutdown);
+process.on('SIGINT', shutdown);
+child.on('exit', (code) => {
+  pg.stop().finally(() => process.exit(code ?? 0));
+});
