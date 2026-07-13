@@ -20,9 +20,18 @@ tipo: roadmap
 - Import automático de posiciones desde el bróker.
 - Canales de aviso adicionales (push móvil / app nativa).
 - Analítica histórica de la cartera y de aciertos de zona.
+- **F-SPEC-001-1** (deuda técnica de hardening, derivado de SPEC-001): reforzar el
+  aislamiento entre usuarios con Row Level Security (RLS) en Postgres. Hoy el
+  aislamiento vive en capa de app y CA-6 lo cubre; RLS es refuerzo futuro, no bloqueante.
 
 ## Criterios de corte
 <!-- Qué haría subir o bajar una épica de sección. -->
 - Sube a "Ahora" lo que desbloquee un criterio de éxito de EPIC-001.
 - Baja a "Más adelante" todo lo que amplíe alcance antes de validar el núcleo
   (más instrumentos, tiempo real, operar de verdad): son mejoras, no el problema.
+
+## Antes de desplegar
+<!-- Acciones de ops previas a producción; no son épicas ni cambian de sección. -->
+- **F-SPEC-001-2** (ops, derivado de SPEC-001): aprovisionar Neon + `AUTH_SECRET`
+  reales antes de desplegar a producción. Prerequisito de despliegue; ya no bloquea
+  la verificación porque el e2e usa Postgres efímero.
