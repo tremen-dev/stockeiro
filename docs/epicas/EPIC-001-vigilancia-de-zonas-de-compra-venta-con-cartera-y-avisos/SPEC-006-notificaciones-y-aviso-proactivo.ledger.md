@@ -6,11 +6,10 @@ epica: EPIC-001
 # Ledger — SPEC-006 Notificaciones y aviso proactivo
 
 ## Resumen
-- Fase: implementación completa (CA-1..CA-9 con test), pendiente de verificación. Spec en `en-revision`.
+- Fase: GREEN — los 9 CA verificados (unit + probe adversarial). Spec a `hecho`.
 - Rama: `ft/SPEC-006-notificaciones-y-aviso-proactivo`
-- Gates locales del implementador: **10 tests nuevos verdes** (85/85 en la suite, sin
-  regresiones), **9/9 e2e** (paridad del arnés `server.mjs` con la tabla `notifications`),
-  `eslint` 0 errores, `tsc --noEmit` 0, `next build` verde.
+- Gates (verificador): **85/85 vitest**, **9/9 e2e**, `eslint` 0 errores, `tsc` 0,
+  `next build` verde. Probe multi-ciclo (entrada/permanencia/re-arme/fallback) sin findings.
 
 ## Matriz de criterios de aceptación
 <!-- Escritores: sdd-implementador rellena Implementado y Test; sdd-verificador rellena Verif. y Estado. Nunca al revés. -->
@@ -18,15 +17,15 @@ epica: EPIC-001
 <!-- Un CA está ✅ solo cuando Implementado + Test + Verif. aplicables están en verde. Una salvedad se marca ⚠️, nunca ✅. -->
 | CA | Implementado (fichero) | Test (fichero/caso) | Verif. | Estado |
 |---|---|---|---|---|
-| CA-1 | `src/lib/notifications/service.ts` (`notifyCycle`, aviso de entrada) · `src/db/schema.ts` (`notifications`) | `tests/notifications-service.test.ts` › "CA-1: aviso de entrada…" | | 🚧 |
-| CA-2 | `src/lib/notifications/service.ts` (chequeo previo por `zoneTriggerId` + unique) | `tests/notifications-service.test.ts` › "CA-2: idempotencia…" | | 🚧 |
-| CA-3 | `src/lib/notifications/service.ts` (agrupa por usuario → 1 digest que lista todo) | `tests/notifications-service.test.ts` › "CA-3: aviso agregado…" | | 🚧 |
-| CA-4 | `src/lib/notifications/service.ts` (`cycleRef`, unique (userId,cycleRef)) | `tests/notifications-service.test.ts` › "CA-4: se repite por ciclo…" | | 🚧 |
-| CA-5 | `src/lib/notifications/service.ts` (`listNotificationsForUser`, asOf+status) | `tests/notifications-service.test.ts` › "CA-5: registro consultable…" | | 🚧 |
-| CA-6 | `src/lib/notifications/service.ts` (filtrado userId; `getNotificationForOwner`) · `src/lib/data/ownership.ts` | `tests/notifications-service.test.ts` › "CA-6: aislamiento…" | | 🚧 |
-| CA-7 | `src/lib/notifications/service.ts` (`deliver` no lanza → status failed, persiste igual) · `sender.ts`/`fake-sender.ts` | `tests/notifications-service.test.ts` › "CA-7: fallback in-app…" | | 🚧 |
-| CA-8 | `src/lib/triggers/cycle.ts` (`runCronCycle` notifica tras evaluar, mismo `CRON_SECRET`) · `src/app/api/cron/refresh/route.ts` | `tests/notifications-cycle.test.ts` › "CA-8: …ciclo protegido" | | 🚧 |
-| CA-9 | `src/lib/notifications/service.ts` (1 entry por episodio abierto, incluso `failed`) | `tests/notifications-service.test.ts` › "CA-9: ningún disparo sin aviso" | | 🚧 |
+| CA-1 | `src/lib/notifications/service.ts` (`notifyCycle`, aviso de entrada) · `src/db/schema.ts` (`notifications`) | `tests/notifications-service.test.ts` › "CA-1: aviso de entrada…" | Unit (PGlite) verde: emite entry con ticker/precio/asOf al email del usuario; registrado sent. | ✅ |
+| CA-2 | `src/lib/notifications/service.ts` (chequeo previo por `zoneTriggerId` + unique) | `tests/notifications-service.test.ts` › "CA-2: idempotencia…" | Unit + **probe**: episodio abierto no se re-notifica; exactamente 1 entry por episodio a lo largo de varios ciclos. | ✅ |
+| CA-3 | `src/lib/notifications/service.ts` (agrupa por usuario → 1 digest que lista todo) | `tests/notifications-service.test.ts` › "CA-3: aviso agregado…" | Unit verde: 1 solo digest por usuario que lista ITX y AAPL (no uno por acción). | ✅ |
+| CA-4 | `src/lib/notifications/service.ts` (`cycleRef`, unique (userId,cycleRef)) | `tests/notifications-service.test.ts` › "CA-4: se repite por ciclo…" | Unit + **probe**: mismo cycleRef → 1 digest; ciclos posteriores → un recordatorio por ciclo. | ✅ |
+| CA-5 | `src/lib/notifications/service.ts` (`listNotificationsForUser`, asOf+status) | `tests/notifications-service.test.ts` › "CA-5: registro consultable…" | Unit verde: historial por usuario con asOf (Date) y status; incluye entry y digest. | ✅ |
+| CA-6 | `src/lib/notifications/service.ts` (filtrado userId; `getNotificationForOwner`) · `src/lib/data/ownership.ts` | `tests/notifications-service.test.ts` › "CA-6: aislamiento…" | Unit verde: cada uno solo sus avisos; el digest de A lista ITX y NO MSFT; cross-read por id → null. | ✅ |
+| CA-7 | `src/lib/notifications/service.ts` (`deliver` no lanza → status failed, persiste igual) · `sender.ts`/`fake-sender.ts` | `tests/notifications-service.test.ts` › "CA-7: fallback in-app…" | Unit + **probe**: canal caído para un usuario → su aviso queda in-app `failed`; el del otro se envía; lote no aborta. | ✅ |
+| CA-8 | `src/lib/triggers/cycle.ts` (`runCronCycle` notifica tras evaluar, mismo `CRON_SECRET`) · `src/app/api/cron/refresh/route.ts` | `tests/notifications-cycle.test.ts` › "CA-8: …ciclo protegido" | Unit verde: sin secreto → 401 y 0 avisos; con secreto → notifica tras evaluar disparos, en el mismo ciclo. | ✅ |
+| CA-9 | `src/lib/notifications/service.ts` (1 entry por episodio abierto, incluso `failed`) | `tests/notifications-service.test.ts` › "CA-9: ningún disparo sin aviso" | Unit verde: aun con TODOS los envíos fallidos, hay 1 entry por episodio abierto (cobertura CE-2 100%). | ✅ |
 
 Puerto real sin cobertura por diseño: `src/lib/notifications/resend-sender.ts` (`ResendSender`,
 Resend real) NO se ejerce en tests (se usa `FakeNotificationSender`); su validación contra la
@@ -34,9 +33,26 @@ API real es F-SPEC-006-1 (despliegue).
 
 ## Veredicto del verificador
 <!-- GREEN/RED + fecha + resumen. Lo escribe SOLO sdd-verificador. -->
+**GREEN — 2026-07-14.**
+
+Los 9 CA quedan cerrados con Implementado + Test + Verif. en verde. Gates automáticos:
+**85/85 vitest**, **9/9 e2e** (sin regresión; el arnés `server.mjs` crea `notifications`
+en paridad con `schema.ts`/`test-db.ts`), `eslint` 0 errores, `tsc --noEmit` 0,
+`next build` verde. Cada CA está demostrado por tests NO vacíos contra Postgres real.
+
+Un **probe adversarial** (efímero, ejecutado y retirado) recorrió el ciclo de vida
+completo: entra → permanece 3 ciclos (1 aviso de entrada ESTABLE + 1 digest por ciclo) →
+sale (sin nuevo digest) → vuelve a entrar (2º aviso de entrada, re-arme); y con el canal
+caído para un usuario, su aviso queda in-app `failed` mientras el del otro se envía (lote
+no abortado). Sin findings. Confirmado además que el adaptador real `ResendSender` NO se
+importa en ningún test (grep vacío): la salvedad F-SPEC-006-1 es legítima (cobertura del
+adaptador real diferida a despliegue, por diseño). Historial: en-revisión → GREEN 2026-07-14.
 
 ## Evidencia visual
 <!-- Tabla CA → captura en _qa/SPEC-006/. Informe HTML opcional: _qa/SPEC-006/informe.html -->
+n-a — SPEC-006 es de backend (envío + registro de avisos); no introduce UI (la bandeja es
+F-SPEC-007). El aviso al usuario es email (fake en tests). Evidencia = tests contra Postgres
+real + probe adversarial (arriba).
 
 ## Salvedades / follow-ups
 <!-- IDs F-SPEC-006-1, F-SPEC-006-2… con destino (spec futura o EPIC-MEJORA). -->
