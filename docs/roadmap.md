@@ -20,6 +20,12 @@ tipo: roadmap
   "caliente" para seguirla de cerca; no dispara todavía, pero anticipa la entrada. Complementa
   el motor de disparo (SPEC-005) sin sustituirlo. Idea, sin compromiso; requeriría definir el
   umbral (% o distancia) y si genera aviso propio o solo señal en la UI.
+- **Mejoras de la bandeja de avisos** (aparcadas en SPEC-007, para no bloquear el MVP):
+  filtros y paginación del inbox (por tipo/ticker/fecha), archivar/borrar avisos, y
+  actualización en vivo del estado de zona / contador (hoy se refresca al navegar; el tiempo
+  real choca con D-2, por eso es idea, no compromiso).
+- **Preferencias de notificación** (F-SPEC-006-2): silenciar, elegir canal/frecuencia por
+  usuario; reintentos/backoff del proveedor de email y retención del log de avisos.
 - Multi-moneda y fiscalidad (P/L con comisiones, dividendos, splits, ventas parciales).
 - Import automático de posiciones desde el bróker.
 - Canales de aviso adicionales (push móvil / app nativa).

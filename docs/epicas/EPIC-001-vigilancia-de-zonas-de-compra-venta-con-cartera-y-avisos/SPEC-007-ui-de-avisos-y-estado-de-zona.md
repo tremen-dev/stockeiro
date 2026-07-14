@@ -2,10 +2,11 @@
 id: SPEC-007
 tipo: spec
 epica: EPIC-001
-estado: borrador
-aprobada-por:
+estado: aprobada
+aprobada-por: humano (Alberto Fojo) — gate 2026-07-14
 historial:
   - {estado: borrador, fecha: 2026-07-14, por: sdd-arquitecto}
+  - {estado: aprobada, fecha: 2026-07-14, por: humano (Alberto Fojo)}
 ---
 # SPEC-007 — UI de avisos y estado de zona
 
@@ -115,16 +116,21 @@ Aparcado a propósito, no por descuido:
 - **Nuevas reglas de zona o de aviso**: son de SPEC-003/005/006; aquí solo se PRESENTAN.
 
 ## Notas para el gate humano
-Resoluciones que propongo, para tu aprobación:
+Resoluciones tomadas contigo en el gate (2026-07-14):
 
-- **Estado de zona por color de fondo (tu decisión) + etiqueta de texto.** Uso color de fondo de
-  la fila, NO un badge. Propuesta de paleta con tokens del DS: **en zona de compra** = tinte
-  `--live` (verde), **en zona de venta** = tinte `--ember` (ámbar), **fuera** = tinte tenue/apagado,
-  **sin dato** = neutro (fondo por defecto). Añado una etiqueta de texto del estado JUNTO al color
-  para accesibilidad (WCAG: el color no puede ser el único indicador) — es texto inline, no un chip.
-  ¿Conforme con la paleta y con la etiqueta de texto de apoyo?
-- **Contador de no-leídos numérico** en la navegación (p. ej. "Avisos (3)"). El veto de "badge" era
-  para el indicador de zona; aquí propongo un contador numérico. ¿OK, o lo prefieres de otra forma?
-- **Primera navegación compartida**: esta spec introduce una barra/enlace de nav común (hoy cada
-  página va suelta) para alojar el acceso a `/avisos` y el contador. ¿Conforme con introducirla aquí?
-- **Alcance v1 sin filtros/paginación ni archivar**: lista simple + leído/no-leído. ¿Cierras aquí?
+- **Estado de zona por color de fondo + etiqueta de texto.** Color de fondo de la fila, NO badge.
+  Paleta con tokens del DS: **compra** = tinte `--live` (verde), **venta** = tinte `--ember` (ámbar),
+  **fuera** = tinte tenue, **sin dato** = neutro. Etiqueta de texto del estado junto al color por
+  accesibilidad (WCAG; texto inline, no chip). *Resuelto: conforme.*
+- **Contador de no-leídos numérico** en la navegación (p. ej. "Avisos (3)"). *Resuelto: conforme.*
+- **Primera navegación compartida** introducida en esta spec para alojar `/avisos` y el contador.
+  *Resuelto: adelante.*
+- **Alcance v1 sin filtros/paginación ni archivar** (lista + leído/no-leído). *Resuelto: conforme;
+  lo aparcado queda registrado en `docs/roadmap.md` → "Más adelante".*
+
+### Listón de calidad visual (requisito, no opcional)
+La app se **compartirá en un foro de bolsa para captar testers**: aunque es un MVP, la UI debe
+parecer **profesional y vendible**. El implementador aplicará el skill `frontend-design` sobre el
+design system `design/tremen-ds`: jerarquía visual clara, estados cuidados (hover, vacío, foco),
+coherencia entre `/vigiladas`, `/avisos` y la nueva navegación, y responsive. La verificación
+incluye inspección visual de las capturas e2e con este listón (no solo que "funcione").
