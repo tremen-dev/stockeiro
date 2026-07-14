@@ -12,7 +12,7 @@ import {
   type Position,
 } from './position';
 import { moneyStr } from './money';
-import { getOrCreateSymbol, getSymbolByTicker } from './symbols';
+import { getOrCreateSymbol, getSymbolByTicker, type SymbolMarket } from './symbols';
 
 type Db = PgDatabase<any, any, any>;
 
@@ -57,15 +57,19 @@ export interface BuySellInput {
   occurredOn: string;
 }
 
-/** CA-1/CA-2: registra una compra (crea el símbolo si hace falta, ADR-002). */
+/**
+ * CA-1/CA-2 (SPEC-002): registra una compra (crea el símbolo si hace falta, ADR-002).
+ * Con `market` (SPEC-008/ADR-007): identidad (ticker, micCode) y divisa del candidato.
+ */
 export async function recordBuy(
   db: Db,
   userId: string,
   ticker: string,
   currency: string,
   input: BuySellInput,
+  market?: SymbolMarket,
 ): Promise<Transaction> {
-  const sym = await getOrCreateSymbol(db, ticker, currency);
+  const sym = await getOrCreateSymbol(db, ticker, currency, market);
   const [txn] = await db
     .insert(transactions)
     .values({

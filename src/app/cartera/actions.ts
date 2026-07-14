@@ -5,6 +5,7 @@ import { auth } from '@/lib/auth/config';
 import { db } from '@/db/client';
 import { recordBuy, recordSell, NoPositionError } from '@/lib/portfolio/service';
 import { OversellError } from '@/lib/portfolio/position';
+import { readSymbolSelection } from '@/lib/market/symbol-selection';
 
 export type FormState = { error: string } | { ok: true } | undefined;
 
@@ -25,20 +26,24 @@ function readCommon(formData: FormData) {
   };
 }
 
-/** Registrar compra (CA-1/CA-2). Exposición mínima de SPEC-002. */
+/** Registrar compra (CA-1/CA-2). El símbolo se elige del buscador (SPEC-008). */
 export async function addBuyAction(_prev: FormState, formData: FormData): Promise<FormState> {
   const userId = await requireUserId();
   const c = readCommon(formData);
-  if (!c.ticker || !c.quantity || !c.price || !c.occurredOn) {
-    return { error: 'Rellena ticker, cantidad, precio y fecha.' };
+  const selection = readSymbolSelection(formData);
+  if (!selection) return { error: 'Busca y elige una acción de la lista.' };
+  if (!c.quantity || !c.price || !c.occurredOn) {
+    return { error: 'Rellena cantidad, precio y fecha.' };
   }
   try {
-    await recordBuy(db, userId, c.ticker, c.currency, {
-      quantity: c.quantity,
-      price: c.price,
-      gastos: c.gastos,
-      occurredOn: c.occurredOn,
-    });
+    await recordBuy(
+      db,
+      userId,
+      selection.ticker,
+      selection.currency,
+      { quantity: c.quantity, price: c.price, gastos: c.gastos, occurredOn: c.occurredOn },
+      selection.market,
+    );
   } catch {
     return { error: 'Datos inválidos.' };
   }

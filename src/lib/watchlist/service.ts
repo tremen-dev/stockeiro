@@ -3,7 +3,7 @@ import { Decimal } from 'decimal.js';
 import type { PgDatabase } from 'drizzle-orm/pg-core';
 import { watchedSymbols, symbols, type WatchedSymbol } from '@/db/schema';
 import { findByIdForOwner } from '@/lib/data/ownership';
-import { getOrCreateSymbol, getSymbolByTicker } from '@/lib/portfolio/symbols';
+import { getOrCreateSymbol, getSymbolByTicker, type SymbolMarket } from '@/lib/portfolio/symbols';
 
 type Db = PgDatabase<any, any, any>;
 
@@ -41,9 +41,12 @@ function validatePair(min: Decimal.Value | null | undefined, max: Decimal.Value 
 }
 
 /**
- * CA-1/CA-2/CA-4/CA-10: vigila un ticker con zonas opcionales. Crea el símbolo
- * compartido si hace falta (ADR-002). Upsert por (userId, symbolId): si ya se
- * vigila, ACTUALIZA sus zonas en vez de duplicar.
+ * CA-1/CA-2/CA-4/CA-10 (SPEC-003): vigila un ticker con zonas opcionales. Crea el
+ * símbolo compartido si hace falta (ADR-002). Upsert por (userId, symbolId): si ya
+ * se vigila, ACTUALIZA sus zonas en vez de duplicar.
+ *
+ * Con `market` (SPEC-008/ADR-007): la identidad del símbolo es (ticker, micCode) y
+ * la divisa la fija el candidato elegido; sin él, camino legacy por ticker.
  */
 export async function watchSymbol(
   db: Db,
@@ -51,11 +54,12 @@ export async function watchSymbol(
   ticker: string,
   currency: string,
   zones: WatchInput = {},
+  market?: SymbolMarket,
 ): Promise<WatchedSymbol> {
   validatePair(zones.buyMin, zones.buyMax, 'compra');
   validatePair(zones.sellMin, zones.sellMax, 'venta');
 
-  const sym = await getOrCreateSymbol(db, ticker, currency);
+  const sym = await getOrCreateSymbol(db, ticker, currency, market);
   const values = {
     buyMin: str(zones.buyMin),
     buyMax: str(zones.buyMax),
