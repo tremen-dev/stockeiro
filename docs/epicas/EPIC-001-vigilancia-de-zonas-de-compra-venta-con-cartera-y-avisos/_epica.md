@@ -1,9 +1,13 @@
 ---
 id: EPIC-001
 tipo: epica
-estado: borrador
+estado: hecho
 historial:
   - {estado: borrador, fecha: 2026-07-13, por: sdd-producto}
+  - {estado: aprobada, fecha: 2026-07-14, por: humano (Alberto Fojo)}
+  - {estado: en-progreso, fecha: 2026-07-14, por: humano (Alberto Fojo)}
+  - {estado: en-revision, fecha: 2026-07-14, por: humano (Alberto Fojo)}
+  - {estado: hecho, fecha: 2026-07-14, por: humano (Alberto Fojo)}
 ---
 # EPIC-001 — Vigilancia de zonas de compra/venta con cartera y avisos
 

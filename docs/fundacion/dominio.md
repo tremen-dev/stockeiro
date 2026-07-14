@@ -6,7 +6,7 @@
 | Término | Definición | Notas |
 |---|---|---|
 | Acción / Instrumento | Título de renta variable cotizado en bolsa; es el único instrumento que modela el núcleo del producto. | Instrumento = la acción; fondos, cripto, derivados y divisas quedan fuera (D-7). |
-| Símbolo (ticker) | Identificador de una acción en un mercado (p. ej. `ITX`), entidad **global compartida** entre usuarios que las acciones vigiladas y las posiciones referencian, no propiedad de ningún usuario. | Registro compartido de símbolos; la cotización es por símbolo, no por usuario (ADR-002; sdd-mercados). |
+| Símbolo (ticker) | Identificador de una acción en un mercado (p. ej. `ITX`), entidad **global compartida** entre usuarios que las acciones vigiladas y las posiciones referencian, no propiedad de ningún usuario. Su **identidad es (ticker, mic_code)** (ADR-007): un mismo ticker en distintos mercados son símbolos **distintos**, cada uno con su divisa. | Registro compartido de símbolos; la cotización es por símbolo, no por usuario (ADR-002; identidad por mercado en ADR-007; sdd-mercados). |
 | Usuario | Persona con cuenta propia que gestiona sus acciones vigiladas, zonas, cartera y avisos, aislada del resto. | Identidad por email único; aislamiento estricto (RN-01, RN-02, RN-03; D-5). |
 | Acción vigilada (watchlist) | Acción que un usuario sigue y para la que ha definido sus zonas de compra y/o de venta, para que la app la vigile por él. | Las zonas las aporta el usuario, la app no las calcula (D-4). |
 | Zona de compra | **Rango** de precio, no un valor puntual, dentro del cual el usuario considera oportuna la compra de una acción. | Rango, no umbral exacto; su semántica (tocar vs. cerrar dentro) se cierra en spec (D-3; CE-1; R-2; sdd-mercados). |

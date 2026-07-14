@@ -3,7 +3,7 @@
 
 Actualizado: 2026-07-14
 
-## EPIC-001 — vigilancia-de-zonas-de-compra-venta-con-cartera-y-avisos (borrador)
+## EPIC-001 — vigilancia-de-zonas-de-compra-venta-con-cartera-y-avisos (hecho)
 
 | Spec | Estado | Último cambio |
 |---|---|---|
