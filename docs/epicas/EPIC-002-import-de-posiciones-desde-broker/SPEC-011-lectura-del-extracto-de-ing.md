@@ -2,11 +2,13 @@
 id: SPEC-011
 tipo: spec
 epica: EPIC-002
-estado: aprobada
+estado: en-revision
 aprobada-por:
 historial:
   - {estado: borrador, fecha: 2026-07-15, por: sdd-arquitecto}
   - {estado: aprobada, fecha: 2026-07-14, por: humano (Alberto Fojo)}
+  - {estado: en-progreso, fecha: 2026-07-14, por: sdd-implementador}
+  - {estado: en-revision, fecha: 2026-07-14, por: sdd-implementador}
 ---
 # SPEC-011 — Lectura del extracto de ING
 
