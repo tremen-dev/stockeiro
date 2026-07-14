@@ -8,6 +8,13 @@
       "when": 1784030181962,
       "tag": "0000_real_tusk",
       "breakpoints": true
+    },
+    {
+      "idx": 1,
+      "version": "7",
+      "when": 1784037967577,
+      "tag": "0001_symbol_market_identity",
+      "breakpoints": true
     }
   ]
 }
