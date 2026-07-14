@@ -39,10 +39,11 @@ fake** (ADR-004) o sembrando `quote`, y ejerce el motor tras el refresco; no lla
   Dada una acción vigilada con zona de venta [min,max] y sin episodio abierto,
   cuando el ciclo ingiere una cotización dentro de ese rango,
   entonces se registra un disparo de venta (independiente del de compra), con precio y `asOf`.
-- **CA-3 (No re-disparo mientras permanece dentro, RN-13).**
+- **CA-3 (No re-disparo mientras permanece dentro, pero permanencia observable, RN-13).**
   Dada una acción cuya cotización ya disparó su zona (episodio abierto),
   cuando en ciclos sucesivos el precio sigue dentro de la misma zona,
-  entonces NO se genera un disparo nuevo: sigue habiendo exactamente uno para ese episodio.
+  entonces NO se genera un disparo nuevo (sigue habiendo exactamente uno para ese episodio),
+  y ese par sigue apareciendo como "en zona" en la consulta de episodios abiertos (permanencia).
 - **CA-4 (Re-armado tras salir y volver a entrar, RN-13).**
   Dada una acción que disparó y cuyo precio después SALIÓ de la zona (episodio cerrado),
   cuando un ciclo posterior vuelve a entrar en la zona,
@@ -72,11 +73,13 @@ fake** (ADR-004) o sembrando `quote`, y ejerce el motor tras el refresco; no lla
   cuando se persiste y se consulta,
   entonces lleva el `asOf` de la cotización que lo originó, disponible para mostrarse; jamás se
   presenta como dato de tiempo real.
-- **CA-10 (Persistencia y consulta por usuario).**
+- **CA-10 (Consulta de entradas y de permanencia por usuario, RN-13).**
   Dados los disparos generados,
-  cuando la (futura) spec de notificación o la UI los consulta,
-  entonces se pueden listar los disparos de un usuario (p. ej. los abiertos/recientes), filtrados
-  por `userId`, para su consumo posterior.
+  cuando la (futura) spec de notificación consulta el motor,
+  entonces puede obtener, filtrado por `userId`: (a) las **entradas de este ciclo** (episodios
+  abiertos en el ciclo actual) para el aviso individual, y (b) **todas las acciones que
+  permanecen en zona** (episodios abiertos) para el aviso agregado. Ambas consultas alimentan
+  los dos tipos de aviso (CE-2); esta spec expone las consultas, no envía los avisos.
 
 ## Entidades y reglas afectadas
 - **`zone_trigger`** (por usuario, ADR-005): episodio de entrada en zona.
@@ -105,14 +108,16 @@ Aparcado a propósito, no por descuido:
   de la zona vigilada, no de la cartera. Futuro si se pide.
 
 ## Notas para el gate humano
-Decisiones que propongo y que conviene que confirmes (ADR-005 + RN-13):
+Resoluciones tomadas contigo en el gate (2026-07-14):
 
-- **Edge-triggered (RN-13)**: se avisa de la ENTRADA en zona, una vez por episodio; NO se
-  re-dispara mientras el precio siga dentro, y se re-arma al salir y volver a entrar. ¿De acuerdo
-  con esta semántica anti-spam (vs. un aviso cada día que siga en zona)?
+- **Detección deduplicada + permanencia observable (RN-13)**: se registra un disparo por
+  episodio de ENTRADA; mientras siga dentro no se duplica, y se re-arma al salir y volver a
+  entrar. La permanencia (episodios abiertos) queda consultable para que la spec de aviso emita
+  **dos** tipos de notificación: (a) una por cada acción que ENTRA, y (b) una **agregada** con
+  todas las que PERMANECEN en zona. *Resuelto: conforme.*
 - **Evaluación dentro del cron de ingesta (ADR-005)**: mismo ciclo y mismo endpoint protegido,
-  sin un segundo scheduler. ¿Conforme?
+  sin un segundo scheduler. *Resuelto: conforme.*
 - **Cadencia diaria hereda D-2**: un cruce de zona intradía (entra y sale el mismo día) puede no
-  detectarse sin datos intradía. Es coherente con "no tiempo real"; ¿lo aceptas como salvedad?
-- **Solo detección y registro**, sin canal de aviso: el usuario todavía no recibe nada "hacia
-  fuera" hasta la spec de Notificaciones. ¿OK cerrar el alcance aquí?
+  detectarse sin datos intradía; coherente con "no tiempo real". *Resuelto: aceptado como salvedad.*
+- **Solo detección y registro**, sin canal de aviso: el envío de los dos tipos de notificación es
+  de la spec siguiente (CE-2); aquí solo se detecta, persiste y se exponen las consultas.

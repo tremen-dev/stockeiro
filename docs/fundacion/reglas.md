@@ -48,10 +48,13 @@
   zonas y su coste base manual. La serie NO se ajusta por splits/dividendos (esos
   se registran a mano en la cartera, RN-07/RN-05). Cada cotización lleva su `asOf`,
   que se muestra al usuario (D-2). Fuente: sdd-mercados; ADR-002/ADR-004.
-- **RN-13** (Disparo por entrada, no por permanencia): el motor dispara una acción
-  vigilada **al ENTRAR** su cotización en una zona (transición fuera→dentro, RN-11),
-  no cada ciclo mientras permanezca dentro. Un mismo episodio de permanencia en zona
-  genera **un solo** disparo; el disparo se **re-arma** solo cuando la cotización sale
-  de la zona y vuelve a entrar. La zona de compra y la de venta se evalúan de forma
-  independiente. Evita avisos repetidos por el mismo evento (CE-2). Fuente:
-  sdd-mercados; ADR-005.
+- **RN-13** (Disparo por entrada; permanencia observable): el motor registra **un
+  solo** disparo por **episodio de entrada** en zona (transición fuera→dentro, RN-11):
+  mientras la cotización permanezca dentro NO se crean disparos nuevos (idempotencia),
+  y el disparo se **re-arma** solo cuando sale de la zona y vuelve a entrar. La zona de
+  compra y la de venta se evalúan de forma independiente. La **condición de permanencia**
+  (acciones que siguen dentro de su zona) queda **observable** —los episodios abiertos
+  son el estado actual— para que la capa de aviso (CE-2) pueda emitir tanto el aviso de
+  **entrada** (por cada acción que entra) como un aviso **agregado de permanencia** (uno
+  con todas las que siguen en zona). La detección no se duplica; la periodicidad de los
+  avisos la decide la spec de notificación. Fuente: sdd-mercados; ADR-005.

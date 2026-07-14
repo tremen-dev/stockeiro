@@ -45,6 +45,13 @@ de notificación avise al usuario. Dos decisiones no triviales:
    se repite, y vuelve a armarse tras salir. La fila abierta (`closedAt` null) ES el
    estado actual: reevaluar el mismo ciclo es idempotente (no duplica).
 
+   **Entrada vs. permanencia (RN-13).** El modelo de episodios sirve a los DOS tipos de
+   aviso que quiere el producto sin duplicar la detección: (a) "entradas de este ciclo" =
+   episodios cuyo `openedAt` es del ciclo actual → aviso individual por acción; (b)
+   "permanencia" = todos los episodios abiertos → aviso agregado (uno con todas las que
+   siguen en zona). El motor expone ambas consultas por `userId`; la CADENCIA y el formato
+   de cada aviso los decide la spec de notificación (CE-2), no este ADR.
+
 3. **Base de precio y `asOf`.** Se compara la zona contra el último cierre NO ajustado
    (RN-12, la misma base con la que el usuario definió la zona; dictamen sdd-mercados) y
    el disparo lleva el `asOf` de esa cotización (D-2), disponible para mostrarse.
@@ -60,7 +67,9 @@ de notificación avise al usuario. Dos decisiones no triviales:
 - CE-1 sin ventana de desfase: se evalúa con el precio del propio ciclo.
 - Sin spam: un aviso por entrada, no por permanencia (RN-13); re-armado natural.
 - `zone_trigger` es a la vez log de eventos y estado (fila abierta = dentro ahora):
-  simple, idempotente, y ya deja el evento listo para la spec de notificación.
+  simple, idempotente, y ya deja el evento listo para la spec de notificación. Habilita
+  los dos avisos que quiere el producto (entrada individual + permanencia agregada, RN-13)
+  desde la misma tabla, sin re-disparar cada día.
 - Reusa piezas probadas: `entraEnZona`/`zonasEntradas` (SPEC-003) y `quote` (SPEC-004).
 
 ### Negativas / follow-ups
