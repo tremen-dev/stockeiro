@@ -87,6 +87,16 @@ export async function makeTestDb() {
       CONSTRAINT notif_entry_trigger UNIQUE (zone_trigger_id),
       CONSTRAINT notif_digest_cycle UNIQUE (user_id, cycle_ref)
     );
+    CREATE TABLE symbol_aliases (
+      id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
+      user_id uuid NOT NULL REFERENCES users(id),
+      broker_name text NOT NULL,
+      market_label text NOT NULL,
+      symbol_id uuid NOT NULL REFERENCES symbols(id),
+      created_at timestamptz NOT NULL DEFAULT now(),
+      CONSTRAINT symbol_alias_user_broker_market UNIQUE (user_id, broker_name, market_label)
+    );
+    CREATE INDEX symbol_alias_user_idx ON symbol_aliases (user_id);
   `);
   const db = drizzle(client, { schema });
   return { db, client };

@@ -15,6 +15,13 @@
       "when": 1784037967577,
       "tag": "0001_symbol_market_identity",
       "breakpoints": true
+    },
+    {
+      "idx": 2,
+      "version": "7",
+      "when": 1784070243094,
+      "tag": "0002_symbol_aliases",
+      "breakpoints": true
     }
   ]
 }

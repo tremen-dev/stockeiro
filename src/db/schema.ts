@@ -187,3 +187,35 @@ export const notifications = pgTable(
 
 export type Notification = typeof notifications.$inferSelect;
 export type NewNotification = typeof notifications.$inferInsert;
+
+/**
+ * `symbol_aliases` — mapeo RECORDADO por usuario del import (SPEC-012, ADR-009):
+ * (userId, nombre del valor en el bróker, etiqueta de mercado del bróker) → símbolo
+ * canónico resuelto. Aislado por usuario (RN-01): la resolución que confirma un
+ * usuario no la ven ni la reutilizan otros. Estabiliza la identidad entre
+ * re-imports para que la clave de idempotencia (ADR-010, SPEC-013) no cambie y
+ * evita re-preguntar (CA-6). La FUSIÓN manual de eventos corporativos (CA-7) se
+ * expresa como dos alias distintos que apuntan al MISMO `symbolId`.
+ */
+export const symbolAliases = pgTable(
+  'symbol_aliases',
+  {
+    id: uuid('id').defaultRandom().primaryKey(),
+    userId: uuid('user_id')
+      .notNull()
+      .references(() => users.id),
+    brokerName: text('broker_name').notNull(), // nombre del valor tal como lo da el bróker
+    marketLabel: text('market_label').notNull(), // etiqueta de mercado del bróker (p. ej. M.CONTINUO)
+    symbolId: uuid('symbol_id')
+      .notNull()
+      .references(() => symbols.id),
+    createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
+  },
+  (t) => ({
+    uniqUserValor: unique('symbol_alias_user_broker_market').on(t.userId, t.brokerName, t.marketLabel),
+    userIdx: index('symbol_alias_user_idx').on(t.userId),
+  }),
+);
+
+export type SymbolAlias = typeof symbolAliases.$inferSelect;
+export type NewSymbolAlias = typeof symbolAliases.$inferInsert;
