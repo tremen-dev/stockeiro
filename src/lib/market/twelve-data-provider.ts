@@ -1,20 +1,25 @@
-import type { MarketDataProvider, ProviderQuote } from './provider';
+import type { MarketDataProvider, ProviderQuote, QuoteRequest } from './provider';
 
 /**
  * Adaptador REAL de Twelve Data (ADR-002, primer proveedor por su free tier diario).
  *
  * Usa el endpoint `/eod` (end-of-day): último cierre NO ajustado por símbolo (RN-12),
  * con su `datetime` como `asOf` (D-2). Batch de símbolos en una sola llamada
- * (ADR-002: 1 símbolo = 1 llamada por ciclo). Resiliencia por símbolo (CA-6): si el
- * proveedor devuelve error para uno, se omite del resultado y los demás pasan.
+ * (ADR-002: 1 símbolo = 1 llamada por ciclo). Cada símbolo se pide con su `mic_code`
+ * para que el precio venga del mercado correcto (ADR-007): symbol y mic_code van como
+ * listas paralelas alineadas. Resiliencia por símbolo (CA-6): si el proveedor
+ * devuelve error para uno, se omite del resultado y los demás pasan.
  *
  * NO se ejerce en tests (se usa `FakeMarketDataProvider`); requiere
- * `TWELVE_DATA_API_KEY` real, follow-up de despliegue (F-SPEC-004-1).
+ * `TWELVE_DATA_API_KEY` real, follow-up de despliegue (F-SPEC-004-1). El batch con
+ * mic_code para tickers homónimos queda pendiente de verificar contra la API real
+ * (F-SPEC-008-2).
  */
 const BASE_URL = 'https://api.twelvedata.com/eod';
 
 interface TwelveDataEod {
   symbol?: string;
+  mic_code?: string;
   currency?: string;
   datetime?: string;
   close?: string;
@@ -29,12 +34,16 @@ export class TwelveDataProvider implements MarketDataProvider {
     private readonly fetchImpl: typeof fetch = fetch,
   ) {}
 
-  async getQuotes(tickers: string[]): Promise<ProviderQuote[]> {
-    if (tickers.length === 0) return [];
+  async getQuotes(requests: QuoteRequest[]): Promise<ProviderQuote[]> {
+    if (requests.length === 0) return [];
     if (!this.apiKey) throw new Error('TWELVE_DATA_API_KEY no definida (ver .env.example).');
 
     const url = new URL(BASE_URL);
-    url.searchParams.set('symbol', tickers.join(','));
+    url.searchParams.set('symbol', requests.map((r) => r.ticker).join(','));
+    // mic_code alineado con symbol (ADR-007). Solo se envía si algún símbolo lo tiene.
+    if (requests.some((r) => r.micCode)) {
+      url.searchParams.set('mic_code', requests.map((r) => r.micCode ?? '').join(','));
+    }
     url.searchParams.set('apikey', this.apiKey);
 
     const res = await this.fetchImpl(url.toString());
@@ -44,7 +53,7 @@ export class TwelveDataProvider implements MarketDataProvider {
     // Twelve Data devuelve el objeto de un símbolo directamente, o un mapa
     // { "AAPL": {...}, "MSFT": {...} } para varios. Normalizamos a lista.
     const rows: TwelveDataEod[] =
-      tickers.length === 1
+      requests.length === 1
         ? [body as TwelveDataEod]
         : Object.values(body as Record<string, TwelveDataEod>);
 
@@ -52,8 +61,11 @@ export class TwelveDataProvider implements MarketDataProvider {
     for (const row of rows) {
       if (!row || row.status === 'error') continue; // fallo por símbolo -> se omite (CA-6)
       if (!row.symbol || row.close == null || !row.datetime) continue;
+      // Recupera el micCode pedido para este ticker (eco de la petición, ADR-007).
+      const req = requests.find((r) => r.ticker === row.symbol);
       out.push({
-        symbol: row.symbol,
+        ticker: row.symbol,
+        micCode: row.mic_code ?? req?.micCode ?? null,
         price: String(row.close), // último cierre no ajustado (RN-12)
         currency: row.currency ?? 'USD',
         asOf: new Date(row.datetime).toISOString(), // D-2

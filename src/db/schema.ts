@@ -1,4 +1,4 @@
-import { pgTable, uuid, text, timestamp, numeric, date, unique } from 'drizzle-orm/pg-core';
+import { pgTable, uuid, text, timestamp, numeric, date, unique, index } from 'drizzle-orm/pg-core';
 
 /**
  * `users` — identidad mínima y ancla de propiedad (SPEC-001).
@@ -17,13 +17,30 @@ export type NewUser = typeof users.$inferInsert;
 
 /**
  * `symbols` — registro COMPARTIDO de símbolos (ADR-002), no por usuario.
- * Semilla del registro; watchlist/ingesta lo extienden. Un símbolo por ticker.
+ * Semilla del registro; watchlist/ingesta lo extienden.
+ *
+ * Identidad = (`ticker`, `micCode`) (ADR-007): un mismo ticker cotiza en varios
+ * mercados con distinta divisa (p. ej. `SAN` en BME/LSE/NYSE); el `micCode` (MIC
+ * ISO 10383) fija de qué mercado hablamos, y con él se pide la cotización a `/eod`
+ * (coherencia símbolo↔cotización, SPEC-008). `exchange`/`name` son metadatos de la
+ * búsqueda para mostrar al usuario. `micCode` es nullable para los símbolos
+ * sembrados antes de ADR-007 (legacy): en ese caso la identidad recae en `ticker`.
  */
-export const symbols = pgTable('symbols', {
-  id: uuid('id').defaultRandom().primaryKey(),
-  ticker: text('ticker').notNull().unique(),
-  currency: text('currency').notNull(),
-});
+export const symbols = pgTable(
+  'symbols',
+  {
+    id: uuid('id').defaultRandom().primaryKey(),
+    ticker: text('ticker').notNull(),
+    micCode: text('mic_code'), // MIC ISO 10383; null = símbolo legacy (pre ADR-007)
+    exchange: text('exchange'),
+    name: text('name'), // instrument_name del proveedor (p. ej. "Microsoft Corp")
+    currency: text('currency').notNull(),
+  },
+  (t) => ({
+    uniqTickerMic: unique('symbols_ticker_mic').on(t.ticker, t.micCode),
+    tickerIdx: index('symbols_ticker_idx').on(t.ticker),
+  }),
+);
 
 export type Symbol = typeof symbols.$inferSelect;
 

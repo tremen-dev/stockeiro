@@ -18,7 +18,9 @@ async function registrarYEntrar(page: Page, email: string) {
 
 async function vigilar(page: Page, ticker: string, buyMin?: string, buyMax?: string) {
   const form = page.locator('form', { hasText: 'Vigilar una acción' });
-  await form.locator('input[name="ticker"]').fill(ticker);
+  // SPEC-008: elegir del buscador (E2E_FAKE_SYMBOL_SEARCH=1) en vez de teclear el ticker.
+  await form.locator('.symbol-search-input').fill(ticker);
+  await form.locator('.symbol-result', { hasText: ticker }).first().click();
   if (buyMin) await form.locator('input[name="buyMin"]').fill(buyMin);
   if (buyMax) await form.locator('input[name="buyMax"]').fill(buyMax);
   await form.locator('button[type="submit"]').click();

@@ -30,7 +30,7 @@ describe('CA-1: dedupe 1-símbolo-1-llamada (ADR-002)', () => {
     await refreshQuotes(db, provider);
 
     expect(provider.calls).toHaveLength(1); // una sola llamada al proveedor por ciclo
-    const requested = provider.calls[0];
+    const requested = provider.calls[0].map((r) => r.ticker); // peticiones -> tickers (ADR-007)
     expect(requested.filter((t) => t === 'ITX')).toHaveLength(1); // ITX una vez, sin duplicar
     expect(new Set(requested).size).toBe(requested.length); // conjunto sin duplicados
   });

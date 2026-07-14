@@ -21,7 +21,9 @@ async function registrarYEntrar(page: Page, email: string) {
 
 async function comprar(page: Page, { ticker, quantity, price, gastos, fecha }: CompraInput) {
   const form = page.locator('form', { hasText: 'Registrar compra' });
-  await form.locator('input[name="ticker"]').fill(ticker);
+  // SPEC-008: elegir la acción del buscador (E2E_FAKE_SYMBOL_SEARCH=1) en vez de teclearla.
+  await form.locator('.symbol-search-input').fill(ticker);
+  await form.locator('.symbol-result', { hasText: ticker }).first().click();
   await form.locator('input[name="quantity"]').fill(quantity);
   await form.locator('input[name="price"]').fill(price);
   if (gastos) await form.locator('input[name="gastos"]').fill(gastos);

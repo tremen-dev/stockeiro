@@ -38,7 +38,9 @@ test('SPEC-004: la cotización ingerida alimenta el P/L actual y muestra el asOf
 
   // Compra 10 @ 100 (coste medio 100). Sin cotización aún, P/L actual "—".
   const compra = page.locator('form', { hasText: 'Registrar compra' });
-  await compra.locator('input[name="ticker"]').fill('SAN');
+  // SPEC-008: se elige la acción del buscador (E2E_FAKE_SYMBOL_SEARCH=1) en vez de teclear el ticker.
+  await compra.locator('.symbol-search-input').fill('Santander');
+  await compra.locator('.symbol-result', { hasText: 'SAN' }).first().click();
   await compra.locator('input[name="quantity"]').fill('10');
   await compra.locator('input[name="price"]').fill('100');
   await compra.locator('input[name="occurredOn"]').fill('2026-01-02');

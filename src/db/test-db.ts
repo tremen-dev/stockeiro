@@ -21,9 +21,14 @@ export async function makeTestDb() {
     );
     CREATE TABLE symbols (
       id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
-      ticker text NOT NULL UNIQUE,
-      currency text NOT NULL
+      ticker text NOT NULL,
+      mic_code text,
+      exchange text,
+      name text,
+      currency text NOT NULL,
+      CONSTRAINT symbols_ticker_mic UNIQUE (ticker, mic_code)
     );
+    CREATE INDEX symbols_ticker_idx ON symbols (ticker);
     CREATE TABLE transactions (
       id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
       user_id uuid NOT NULL REFERENCES users(id),
