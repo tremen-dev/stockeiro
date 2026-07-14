@@ -21,7 +21,8 @@ Actualizado: 2026-07-14
 | Spec | Estado | Último cambio |
 |---|---|---|
 | SPEC-009 — migracion-a-next-16-y-remediacion-de-cve-de-rsc | hecho | 2026-07-14 (sdd-verificador) |
+| SPEC-010 — bump-de-drizzle-orm-por-cve-de-sql-injection | hecho | 2026-07-14 (sdd-verificador) |
 
 ## Resumen
 
-- hecho: 9
+- hecho: 10
