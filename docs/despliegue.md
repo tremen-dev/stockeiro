@@ -5,6 +5,11 @@
 > pasos en orden. Los `follow-ups` de despliegue de las specs (F-SPEC-001-2, F-SPEC-004-1,
 > F-SPEC-006-1) se cierran aquí.
 
+> **Estado (2026-07-14):** desplegado en <https://stockeiro-lemon.vercel.app> con **Neon +
+> Twelve Data + cron** activos (F-SPEC-001-2 y F-SPEC-004-1 cerradas). **Email (Resend)
+> pendiente** (F-SPEC-006-1): la app funciona con avisos **in-app** (RN-15) hasta activarlo.
+> Para incorporar el email más adelante, ver **§7**.
+
 ## 0. Qué vamos a aprovisionar
 
 | Variable | Servicio | Para qué | Spec |
@@ -149,7 +154,8 @@ vercel --prod     # deploy a producción
 - [ ] Esquema aplicado (`npm run db:migrate` contra Neon).
 - [ ] `AUTH_SECRET`, `AUTH_TRUST_HOST` puestos.
 - [ ] Twelve Data: `TWELVE_DATA_API_KEY`; `CRON_SECRET` generado y puesto.
-- [ ] Resend: dominio verificado, `RESEND_API_KEY`, `RESEND_FROM`.
+- [ ] Resend: dominio verificado, `RESEND_API_KEY`, `RESEND_FROM` — **pendiente por diseño**, se
+  añade cuando se quiera el email (ver **§7**); la app funciona con avisos in-app mientras tanto.
 - [ ] `vercel --prod` verde.
 - [ ] Smoke test (registro + cron manual + email) OK.
 
@@ -164,3 +170,48 @@ vercel --prod     # deploy a producción
 - **Regiones**: alinea la región de Neon con la de las Functions para latencia baja.
 - **Preview deployments**: si quieres que las PR previews funcionen, replica las envs en el
   entorno *Preview* (o usa una BD Neon aparte para preview).
+
+---
+
+## 7. Añadir email (Resend) a un despliegue ya en producción
+
+La app ya está desplegada y **funciona sin email**: cada aviso se registra in-app (fuente de
+verdad y fallback, RN-15) y el usuario lo ve en `/avisos`; solo falta el **envío proactivo por
+correo** (SPEC-006 / ADR-006). El `ResendSender` real ya está en el código detrás del puerto
+`NotificationSender`; activarlo es **solo configuración**, sin tocar código ni volver a verificar.
+
+Pasos para incorporarlo cuando quieras (cierra **F-SPEC-006-1**):
+
+1. **Cuenta + dominio verificado (Resend).** Sigue la **§2**: crea la cuenta, añade tu dominio en
+   *Domains* y publica los registros **DNS** (SPF/DKIM) en tu gestor DNS hasta que Resend lo marque
+   *Verified*. Crea una **API Key**.
+2. **Añade las variables a Vercel** (Production; repite en Preview si lo usas):
+
+   ```bash
+   printf '%s' "re_XXXX_tu_api_key"                 | vercel env add RESEND_API_KEY production
+   printf '%s' "Stockeiro <avisos@tu-dominio.com>"  | vercel env add RESEND_FROM production
+   ```
+
+   Confirma con `vercel env ls production`.
+3. **Redeploy** para que el runtime lea las nuevas variables (las envs se aplican en build/arranque):
+
+   ```bash
+   vercel --prod
+   ```
+
+4. **Verifica el envío** (con datos reales que disparen un aviso):
+   - Registra/usa un usuario, vigila una acción con una zona que la última cotización cumpla.
+   - Dispara el ciclo sin esperar al cron:
+
+     ```bash
+     curl -i -H "Authorization: Bearer $CRON_SECRET" https://TU-APP.vercel.app/api/cron/refresh
+     ```
+
+   - Debe llegar el **email** de entrada en zona y el aviso aparecer en `/avisos`. Señal de éxito
+     adicional: el `status` del aviso pasa de `failed` (in-app, sin email) a `sent`.
+   - Si el email no llega: revisa que el dominio esté *Verified*, que `RESEND_FROM` use ese dominio,
+     el bounce rate (<4 %) y los `vercel logs`. Mientras tanto, el aviso NO se pierde (queda in-app).
+
+> **Nada que revertir si se desactiva:** si quitas `RESEND_API_KEY`, `ResendSender` lanza y el
+> servicio marca el aviso `failed` pero lo conserva in-app (RN-15). El producto sigue usable.
+> **Coste:** free tier de Resend 3.000/mes · 100/día (suficiente para el MVP de testers).
