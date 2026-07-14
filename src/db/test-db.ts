@@ -48,6 +48,14 @@ export async function makeTestDb() {
       created_at timestamptz NOT NULL DEFAULT now(),
       UNIQUE (user_id, symbol_id)
     );
+    CREATE TABLE quotes (
+      id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
+      symbol_id uuid NOT NULL UNIQUE REFERENCES symbols(id),
+      price numeric NOT NULL,
+      currency text NOT NULL,
+      as_of timestamptz NOT NULL,
+      updated_at timestamptz NOT NULL DEFAULT now()
+    );
   `);
   const db = drizzle(client, { schema });
   return { db, client };
