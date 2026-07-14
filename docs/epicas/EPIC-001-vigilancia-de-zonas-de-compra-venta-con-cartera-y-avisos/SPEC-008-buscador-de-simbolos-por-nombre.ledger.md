@@ -23,7 +23,7 @@ epica: EPIC-001
 | CA-6 Coherencia símbolo↔cotización | `src/lib/market/provider.ts` (`QuoteRequest`), `refresh.ts`, `twelve-data-provider.ts` (mic_code→/eod) | `tests/market-mic-code.test.ts` › CA-6 (petición con micCode; dos mercados) | ✅ unit verde (cada mercado su precio/divisa) | ✅ |
 | CA-7 Búsqueda exige sesión (RN-03) | `src/lib/market/search.ts` (`runSymbolSearch`), `symbol-search-action.ts` | `tests/symbol-search.test.ts` › CA-7 sin/con sesión | ✅ unit verde | ✅ |
 | CA-8 Resiliencia del proveedor | `src/lib/market/search.ts` (try/catch), UI estado `error`; `readSymbolSelection` (no guardar sin resolver) | `tests/symbol-search.test.ts` › CA-8 proveedor falla | ✅ unit verde | ✅ |
-| CA-9 Ambos formularios, componente compartido | `src/app/_components/symbol-search.tsx` en `watch-form.tsx` y `portfolio-forms.tsx` | e2e `vigiladas.spec.ts` + `ingesta-cartera.spec.ts` (flujo buscador) | ❌ **REGRESIÓN**: el buscador NO se resetea tras un alta con éxito → no se puede añadir una segunda acción sin pulsar "Cambiar"; rompe `avisos-zona.spec.ts` (2º `vigilar`). Ver V-SPEC-008-1. | 🚧 |
+| CA-9 Ambos formularios, componente compartido | `src/app/_components/symbol-search.tsx` en `watch-form.tsx` y `portfolio-forms.tsx` | e2e `vigiladas.spec.ts` + `ingesta-cartera.spec.ts` + `avisos-zona.spec.ts` (flujo buscador) | ✅ e2e 12/12 en navegador; buscador en ambos formularios y se resetea tras alta (V-SPEC-008-1 cerrado, alta múltiple OK) | ✅ |
 | CA-10 Debounce + umbral | `symbol-search.tsx` (debounce 300ms, MIN 2), `search.ts` (`MIN_QUERY_LENGTH`, red del servidor) | `tests/symbol-search.test.ts` › CA-2 «umbral no consulta» | ✅ unit verde | ✅ |
 
 ## Veredicto del verificador
@@ -49,9 +49,25 @@ El RED lo dispara una **regresión de flujo** en la UI (gate de regresión):
   `resetSignal` que limpie `selected`/`query`. Cubrirlo dejando pasar el 2º `vigilar` del
   e2e ya existente.
 
+## Veredicto del verificador (iteración 2)
+**GREEN — 2026-07-14 (sdd-verificador).** Re-verificación tras cerrar V-SPEC-008-1.
+Gates: `tsc` limpio · `eslint` 0 errores (1 warning preexistente ajeno) · `vitest run`
+**105/105** · e2e Playwright **12/12** (incluido `avisos-zona.spec.ts:52`, el 2º `vigilar`
+que fallaba). El fix (form.reset + remontar `<SymbolSearch key>` al `ok`) resetea el
+buscador y permite altas múltiples; CA-4/CA-9 intactos (compra/vigilancia por buscador
+siguen fijando identidad+divisa reales). Los 10/10 CA quedan ✅. Follow-ups F-SPEC-008-1/2/3
+aceptados (no bloquean: son de otras superficies / despliegue). **Apto para cierre.**
+Nota fuera de alcance: log `[WebServer]` en `app/(auth)/login` durante el arranque,
+preexistente y ajeno a SPEC-008; no afecta a ningún test (login CA-4 pasa).
+
 ## Evidencia visual
 <!-- Tabla CA → captura en _qa/SPEC-008/. Informe HTML opcional: _qa/SPEC-008/informe.html -->
-Pendiente del verificador: los e2e (`tests/e2e/vigiladas.spec.ts`, `ingesta-cartera.spec.ts`,
+e2e 12/12 en Chromium (Playwright): flujo del buscador ejercido en `/vigiladas` (alta con
+zonas + rango inválido + alta múltiple REP/TEF) y `/cartera` (compra por buscador → P/L).
+`_qa/SPEC-008/V-SPEC-008-1-buscador-no-resetea.md` documenta el fallo original (ya cerrado).
+Capturas de flujo en `_qa/SPEC-003/` y `_qa/SPEC-007/` (mismos formularios, ahora con buscador).
+
+Histórico: los e2e (`tests/e2e/vigiladas.spec.ts`, `ingesta-cartera.spec.ts`,
 `avisos-zona.spec.ts`, `cartera.spec.ts`) ya usan el flujo del buscador y el launcher
 `tests/e2e/server.mjs` arranca con `E2E_FAKE_SYMBOL_SEARCH=1` (catálogo determinista sin red).
 Ejecutar `npx playwright test` para capturas de CA-9/CA-3 (desambiguación) y CA-8 (error).
