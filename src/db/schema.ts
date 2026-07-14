@@ -135,3 +135,37 @@ export const zoneTriggers = pgTable('zone_triggers', {
 
 export type ZoneTrigger = typeof zoneTriggers.$inferSelect;
 export type NewZoneTrigger = typeof zoneTriggers.$inferInsert;
+
+/**
+ * `notifications` — avisos emitidos por usuario (ADR-006, SPEC-006). Es el registro
+ * in-app (fuente de verdad y fallback, RN-15): la fila existe aunque el envío externo
+ * falle (`status='failed'`). Idempotencia del envío (RN-14):
+ *  - 'entry' (aviso individual): único por `zoneTriggerId` → uno por episodio de disparo.
+ *  - 'digest' (aviso agregado): único por (`userId`, `cycleRef`) → uno por usuario y ciclo.
+ * Cada aviso lleva su `asOf` (D-2). Los NULL cuentan como distintos en Postgres, así que
+ * las filas 'entry' (cycleRef null) y 'digest' (zoneTriggerId null) conviven sin chocar.
+ */
+export const notifications = pgTable(
+  'notifications',
+  {
+    id: uuid('id').defaultRandom().primaryKey(),
+    userId: uuid('user_id')
+      .notNull()
+      .references(() => users.id),
+    kind: text('kind').notNull(), // 'entry' | 'digest'
+    zoneTriggerId: uuid('zone_trigger_id').references(() => zoneTriggers.id), // 'entry'; null en 'digest'
+    cycleRef: text('cycle_ref'), // 'digest'; null en 'entry'
+    payload: text('payload').notNull(), // resumen legible del aviso
+    channel: text('channel').notNull(), // 'email' | 'in_app'
+    status: text('status').notNull(), // 'sent' | 'failed'
+    asOf: timestamp('as_of', { withTimezone: true }).notNull(), // D-2
+    createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
+  },
+  (t) => ({
+    uniqEntry: unique('notif_entry_trigger').on(t.zoneTriggerId), // 1 entry por episodio
+    uniqDigest: unique('notif_digest_cycle').on(t.userId, t.cycleRef), // 1 digest por (usuario, ciclo)
+  }),
+);
+
+export type Notification = typeof notifications.$inferSelect;
+export type NewNotification = typeof notifications.$inferInsert;

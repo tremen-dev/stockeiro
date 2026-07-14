@@ -88,6 +88,20 @@ await sql`CREATE TABLE IF NOT EXISTS zone_triggers (
   opened_at timestamptz NOT NULL DEFAULT now(),
   closed_at timestamptz
 )`;
+await sql`CREATE TABLE IF NOT EXISTS notifications (
+  id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
+  user_id uuid NOT NULL REFERENCES users(id),
+  kind text NOT NULL,
+  zone_trigger_id uuid REFERENCES zone_triggers(id),
+  cycle_ref text,
+  payload text NOT NULL,
+  channel text NOT NULL,
+  status text NOT NULL,
+  as_of timestamptz NOT NULL,
+  created_at timestamptz NOT NULL DEFAULT now(),
+  CONSTRAINT notif_entry_trigger UNIQUE (zone_trigger_id),
+  CONSTRAINT notif_digest_cycle UNIQUE (user_id, cycle_ref)
+)`;
 await sql.end();
 
 const child = spawn('npx', ['next', 'start', '-p', String(APP_PORT)], {
