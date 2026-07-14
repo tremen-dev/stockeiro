@@ -164,9 +164,15 @@ export interface NotificationView {
   status: string;
   asOf: Date;
   createdAt: Date;
+  readAt: Date | null;
+  /** SPEC-007: derivado de readAt para la UI. */
+  isRead: boolean;
 }
 
-/** CA-5/CA-6: historial de avisos de un usuario (SOLO suyos, RN-01), con asOf y estado. */
+/**
+ * CA-5/CA-6 (SPEC-006) + SPEC-007: historial de avisos de un usuario (SOLO suyos, RN-01),
+ * con asOf, estado y leído/no-leído, ordenado por fecha (recientes primero).
+ */
 export async function listNotificationsForUser(db: Db, userId: string): Promise<NotificationView[]> {
   const rows = await db
     .select({
@@ -176,14 +182,48 @@ export async function listNotificationsForUser(db: Db, userId: string): Promise<
       status: notifications.status,
       asOf: notifications.asOf,
       createdAt: notifications.createdAt,
+      readAt: notifications.readAt,
     })
     .from(notifications)
     .where(eq(notifications.userId, userId))
     .orderBy(desc(notifications.createdAt));
-  return rows as NotificationView[];
+  return rows.map((r) => ({ ...r, isRead: r.readAt !== null })) as NotificationView[];
 }
 
 /** CA-6: acceso a un aviso por id SOLO si es del usuario (aislamiento RN-01). */
 export function getNotificationForOwner(db: Db, id: string, userId: string): Promise<Notification | null> {
   return findByIdForOwner(db, notifications, id, userId);
+}
+
+/** SPEC-007 CA-10: número de avisos NO leídos del usuario (RN-01). */
+export async function countUnread(db: Db, userId: string): Promise<number> {
+  const rows = await db
+    .select({ id: notifications.id })
+    .from(notifications)
+    .where(and(eq(notifications.userId, userId), isNull(notifications.readAt)));
+  return rows.length;
+}
+
+/**
+ * SPEC-007 CA-8: marca un aviso como leído. Idempotente (solo escribe si estaba sin leer)
+ * y AISLADO: el filtro por `userId` hace que marcar un aviso ajeno no tenga efecto (RN-01).
+ * Devuelve true si cambió algo.
+ */
+export async function markNotificationRead(db: Db, id: string, userId: string): Promise<boolean> {
+  const updated = await db
+    .update(notifications)
+    .set({ readAt: new Date() })
+    .where(and(eq(notifications.id, id), eq(notifications.userId, userId), isNull(notifications.readAt)))
+    .returning({ id: notifications.id });
+  return updated.length > 0;
+}
+
+/** SPEC-007 CA-9: marca TODOS los avisos no leídos del usuario como leídos (solo los suyos). */
+export async function markAllRead(db: Db, userId: string): Promise<number> {
+  const updated = await db
+    .update(notifications)
+    .set({ readAt: new Date() })
+    .where(and(eq(notifications.userId, userId), isNull(notifications.readAt)))
+    .returning({ id: notifications.id });
+  return updated.length;
 }

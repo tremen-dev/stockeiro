@@ -13,7 +13,8 @@ Actualizado: 2026-07-14
 | SPEC-004 — ingesta-de-cotizaciones | hecho | 2026-07-14 (sdd-verificador) |
 | SPEC-005 — motor-de-disparo-por-zonas | hecho | 2026-07-14 (sdd-verificador) |
 | SPEC-006 — notificaciones-y-aviso-proactivo | hecho | 2026-07-14 (sdd-verificador) |
+| SPEC-007 — ui-de-avisos-y-estado-de-zona | hecho | 2026-07-14 (sdd-verificador) |
 
 ## Resumen
 
-- hecho: 6
+- hecho: 7
