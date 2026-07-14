@@ -12,7 +12,9 @@ Actualizado: 2026-07-14
 | SPEC-003 — acciones-vigiladas-y-zonas | hecho | 2026-07-13 (sdd-verificador) |
 | SPEC-004 — ingesta-de-cotizaciones | hecho | 2026-07-14 (sdd-verificador) |
 | SPEC-005 — motor-de-disparo-por-zonas | hecho | 2026-07-14 (sdd-verificador) |
+| SPEC-006 — notificaciones-y-aviso-proactivo | borrador | 2026-07-14 (sdd-arquitecto) |
 
 ## Resumen
 
 - hecho: 5
+- borrador: 1

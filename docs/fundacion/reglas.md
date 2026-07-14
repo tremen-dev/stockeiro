@@ -58,3 +58,16 @@
   **entrada** (por cada acción que entra) como un aviso **agregado de permanencia** (uno
   con todas las que siguen en zona). La detección no se duplica; la periodicidad de los
   avisos la decide la spec de notificación. Fuente: sdd-mercados; ADR-005.
+- **RN-14** (Tipos de aviso e idempotencia del envío): el aviso de **entrada** (individual)
+  se emite **exactamente una vez por episodio de disparo** (RN-13); no se reenvía mientras
+  el episodio siga abierto. El aviso de **permanencia** (agregado) es un resumen periódico,
+  **uno por usuario y ciclo**, con todas las acciones cuyo episodio sigue abierto; se repite
+  cada ciclo como recordatorio pero no se duplica dentro del mismo ciclo. Esta idempotencia
+  del ENVÍO es distinta de la del disparo (RN-13): aquí se deduplica la emisión del aviso.
+  Cada aviso se registra con su `asOf` (D-2). Fuente: producto (gate humano); ADR-006.
+- **RN-15** (Canal proactivo con registro y fallback): el aviso se entrega por un canal
+  **proactivo** que no exige abrir la app (email transaccional en v1) y se **registra
+  siempre in-app** como fuente de verdad y fallback: un fallo de entrega del canal externo
+  **no pierde** el aviso (queda in-app) ni aborta los avisos de otros usuarios (resiliencia
+  por usuario, RN-01). Objetivo CE-2: 100 % de disparos con aviso registrado. Fuente:
+  ADR-006; cierra R-4.
