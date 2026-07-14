@@ -16,6 +16,14 @@ Actualizado: 2026-07-14
 | SPEC-007 — ui-de-avisos-y-estado-de-zona | hecho | 2026-07-14 (sdd-verificador) |
 | SPEC-008 — buscador-de-simbolos-por-nombre | hecho | 2026-07-14 (sdd-verificador) |
 
+## EPIC-002 — import-de-posiciones-desde-broker (aprobada)
+
+| Spec | Estado | Último cambio |
+|---|---|---|
+| SPEC-011 — lectura-del-extracto-de-ing | aprobada | 2026-07-14 (humano (Alberto Fojo)) |
+| SPEC-012 — resolucion-de-identidad-e-importacion-asistida | aprobada | 2026-07-14 (humano (Alberto Fojo)) |
+| SPEC-013 — registro-idempotente-en-la-cartera | aprobada | 2026-07-14 (humano (Alberto Fojo)) |
+
 ## EPIC-INFRA (aprobada)
 
 | Spec | Estado | Último cambio |
@@ -26,3 +34,4 @@ Actualizado: 2026-07-14
 ## Resumen
 
 - hecho: 10
+- aprobada: 3
