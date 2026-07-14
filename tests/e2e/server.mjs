@@ -77,6 +77,17 @@ await sql`CREATE TABLE IF NOT EXISTS quotes (
   as_of timestamptz NOT NULL,
   updated_at timestamptz NOT NULL DEFAULT now()
 )`;
+await sql`CREATE TABLE IF NOT EXISTS zone_triggers (
+  id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
+  user_id uuid NOT NULL REFERENCES users(id),
+  watched_symbol_id uuid NOT NULL REFERENCES watched_symbols(id),
+  symbol_id uuid NOT NULL REFERENCES symbols(id),
+  zone_kind text NOT NULL,
+  price numeric NOT NULL,
+  as_of timestamptz NOT NULL,
+  opened_at timestamptz NOT NULL DEFAULT now(),
+  closed_at timestamptz
+)`;
 await sql.end();
 
 const child = spawn('npx', ['next', 'start', '-p', String(APP_PORT)], {

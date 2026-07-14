@@ -16,6 +16,10 @@ tipo: roadmap
 <!-- Vacío por ahora: se comprometerán épicas cuando EPIC-001 tenga specs en marcha. -->
 
 ## Más adelante (idea, sin compromiso)
+- **Zonas calientes**: una acción a un X% de entrar en su zona (aún FUERA) se marca como
+  "caliente" para seguirla de cerca; no dispara todavía, pero anticipa la entrada. Complementa
+  el motor de disparo (SPEC-005) sin sustituirlo. Idea, sin compromiso; requeriría definir el
+  umbral (% o distancia) y si genera aviso propio o solo señal en la UI.
 - Multi-moneda y fiscalidad (P/L con comisiones, dividendos, splits, ventas parciales).
 - Import automático de posiciones desde el bróker.
 - Canales de aviso adicionales (push móvil / app nativa).
