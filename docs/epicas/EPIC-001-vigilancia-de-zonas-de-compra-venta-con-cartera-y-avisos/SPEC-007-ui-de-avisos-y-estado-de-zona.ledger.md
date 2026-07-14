@@ -6,12 +6,10 @@ epica: EPIC-001
 # Ledger — SPEC-007 UI de avisos y estado de zona
 
 ## Resumen
-- Fase: implementación completa (CA-1..CA-11 con test), pendiente de verificación. Spec en `en-revision`.
+- Fase: GREEN — los 11 CA verificados (unit + e2e + inspección visual). Spec a `hecho`.
 - Rama: `ft/SPEC-007-ui-de-avisos-y-estado-de-zona`
-- Gates locales del implementador: **12 tests nuevos** (6 unit + 6 e2e); **91/91 unit**,
-  **12/12 e2e**, `eslint` 0 errores, `tsc` 0, `next build` verde. UI con `design/tremen-ds`:
-  nav compartida, tabla de datos, color de fondo por estado de zona, bandeja de avisos.
-  Capturas inspeccionadas (nivel profesional para testers).
+- Gates (verificador): **91/91 unit**, **12/12 e2e**, `eslint` 0 errores, `tsc` 0,
+  `next build` verde. Capturas inspeccionadas: nivel profesional, coherente y accesible.
 
 ## Matriz de criterios de aceptación
 <!-- Escritores: sdd-implementador rellena Implementado y Test; sdd-verificador rellena Verif. y Estado. Nunca al revés. -->
@@ -19,20 +17,34 @@ epica: EPIC-001
 <!-- Un CA está ✅ solo cuando Implementado + Test + Verif. aplicables están en verde. Una salvedad se marca ⚠️, nunca ✅. -->
 | CA | Implementado (fichero) | Test (fichero/caso) | Verif. | Estado |
 |---|---|---|---|---|
-| CA-1 | `src/lib/watchlist/zone-status.ts` (`zoneStatusForUser`) · `src/app/vigiladas/page.tsx` (clase `zone-*` + etiqueta) · `globals.css` (tintes) | `tests/zone-status.test.ts` › "CA-1/CA-3…" · **e2e** avisos-zona.spec.ts (📸 ca1-vigiladas-estado-zona.png) | | 🚧 |
-| CA-2 | `zone-status.ts` (leftJoin quotes → `state='none'`, price null) · `vigiladas/page.tsx` | `tests/zone-status.test.ts` › "CA-2: sin cotización → neutro" · **e2e** (TEF neutro) | | 🚧 |
-| CA-3 | `zone-status.ts` (`stateOf`: buy/sell/both) · `vigiladas/page.tsx` (LABEL) | `tests/zone-status.test.ts` › "CA-1/CA-3… ambas y fuera" | | 🚧 |
-| CA-4 | `zone-status.ts` (asOf de la quote) · `vigiladas/page.tsx` (columna A fecha) | `tests/zone-status.test.ts` (asOf) · **e2e** (2026-07-13 visible) | | 🚧 |
-| CA-5 | `zone-status.ts` (filtro `userId`) | `tests/zone-status.test.ts` › "CA-5: aislamiento" | | 🚧 |
-| CA-6 | `src/lib/notifications/service.ts` (`listNotificationsForUser` + readAt/isRead) · `src/app/avisos/page.tsx` | `tests/notifications-read.test.ts` › "CA-10/CA-6…" · **e2e** (2 items) | | 🚧 |
-| CA-7 | `avisos/page.tsx` (empty state `.empty`) | **e2e** avisos-zona.spec.ts › "estado vacío" | | 🚧 |
-| CA-8 | `notifications/service.ts` (`markNotificationRead` idempotente + userId) · `src/app/avisos/actions.ts` | `tests/notifications-read.test.ts` › "CA-8…" · **e2e** (marcar leído baja contador) | | 🚧 |
-| CA-9 | `notifications/service.ts` (`markAllRead`) · `avisos/actions.ts` (`markAllReadAction`) | `tests/notifications-read.test.ts` › "CA-9/CA-11…" · **e2e** ("Todo al día") | | 🚧 |
-| CA-10 | `notifications/service.ts` (`countUnread`) · `src/app/app-nav.tsx` (`.nav-count`) | `tests/notifications-read.test.ts` › "CA-10…" · **e2e** (nav-count 2→1→0) | | 🚧 |
-| CA-11 | `notifications/service.ts` (filtros userId; `getNotificationForOwner`) · `ownership.ts` | `tests/notifications-read.test.ts` › "CA-8/CA-9/CA-11 aislamiento" | | 🚧 |
+| CA-1 | `src/lib/watchlist/zone-status.ts` (`zoneStatusForUser`) · `src/app/vigiladas/page.tsx` (clase `zone-*` + etiqueta) · `globals.css` (tintes) | `tests/zone-status.test.ts` › "CA-1/CA-3…" · **e2e** avisos-zona.spec.ts (📸 ca1-vigiladas-estado-zona.png) | Unit + **e2e/captura inspeccionada:** REP con fondo verde `zone-buy` + etiqueta "En zona de compra" (color NO único indicador). Reutiliza `entraEnZona` (RN-11). | ✅ |
+| CA-2 | `zone-status.ts` (leftJoin quotes → `state='none'`, price null) · `vigiladas/page.tsx` | `tests/zone-status.test.ts` › "CA-2: sin cotización → neutro" · **e2e** (TEF neutro) | Unit + e2e: TEF sin cotización → `zone-none`, "Sin cotización", precio "—"; no rompe. | ✅ |
+| CA-3 | `zone-status.ts` (`stateOf`: buy/sell/both) · `vigiladas/page.tsx` (LABEL) | `tests/zone-status.test.ts` › "CA-1/CA-3… ambas y fuera" | Unit: buy/sell/both/out clasificados; both con inBuy&&inSell. | ✅ |
+| CA-4 | `zone-status.ts` (asOf de la quote) · `vigiladas/page.tsx` (columna A fecha) | `tests/zone-status.test.ts` (asOf) · **e2e** (2026-07-13 visible) | Unit + captura: asOf de la cotización mostrado (2026-07-13, D-2). | ✅ |
+| CA-5 | `zone-status.ts` (filtro `userId`) | `tests/zone-status.test.ts` › "CA-5: aislamiento" | Unit: cada usuario solo ve el estado de sus acciones (RN-01). | ✅ |
+| CA-6 | `src/lib/notifications/service.ts` (`listNotificationsForUser` + readAt/isRead) · `src/app/avisos/page.tsx` | `tests/notifications-read.test.ts` › "CA-10/CA-6…" · **e2e** (2 items) | Unit + e2e: lista de avisos con tipo/asOf/estado y leído/no-leído, por userId. | ✅ |
+| CA-7 | `avisos/page.tsx` (empty state `.empty`) | **e2e** avisos-zona.spec.ts › "estado vacío" | e2e: usuario sin avisos → "Aún no tienes avisos" (no tabla rota). | ✅ |
+| CA-8 | `notifications/service.ts` (`markNotificationRead` idempotente + userId) · `src/app/avisos/actions.ts` | `tests/notifications-read.test.ts` › "CA-8…" · **e2e** (marcar leído baja contador) | Unit + e2e: marca leído; repetir no falla; un ajeno no puede marcarlo (RN-01). | ✅ |
+| CA-9 | `notifications/service.ts` (`markAllRead`) · `avisos/actions.ts` (`markAllReadAction`) | `tests/notifications-read.test.ts` › "CA-9/CA-11…" · **e2e** ("Todo al día") | Unit + e2e: marca todos los propios → contador 0; no toca los de otro. | ✅ |
+| CA-10 | `notifications/service.ts` (`countUnread`) · `src/app/app-nav.tsx` (`.nav-count`) | `tests/notifications-read.test.ts` › "CA-10…" · **e2e** (nav-count 2→1→0) | Unit + **e2e/captura:** contador en la nav (2→1→0) al marcar leído; solo sus avisos. | ✅ |
+| CA-11 | `notifications/service.ts` (filtros userId; `getNotificationForOwner`) · `ownership.ts` | `tests/notifications-read.test.ts` › "CA-8/CA-9/CA-11 aislamiento" | Unit: B no ve ni marca los avisos de A; contadores independientes (RN-01). | ✅ |
 
 ## Veredicto del verificador
 <!-- GREEN/RED + fecha + resumen. Lo escribe SOLO sdd-verificador. -->
+**GREEN — 2026-07-14.**
+
+Los 11 CA cerrados con Implementado + Test + Verif. en verde. Gates: **91/91 vitest**,
+**12/12 e2e** (sin regresión; las auto-regresiones de logout y de símbolo compartido se
+resolvieron), `eslint` 0 errores, `tsc` 0, `next build` verde.
+
+Inspección visual de `_qa/SPEC-007/` (una a una) contra el listón "profesional/vendible":
+- `/vigiladas`: fila REP con fondo verde `zone-buy` + punto + **etiqueta de texto "En zona de
+  compra"** (accesible: el color NO es el único indicador), fila TEF neutra "Sin cotización",
+  precio y asOf. Tabla, cabeceras mono, nav con activo subrayado. Coherente y pulido.
+- `/avisos`: contador ámbar en la nav, aviso no-leído con acento y "no leído" (texto, no solo
+  color), aviso leído atenuado, "Marcar leído"/"Marcar todos". Feed limpio.
+Reutiliza `entraEnZona` (RN-11) para el estado; `countUnread`/`markNotificationRead`/`markAllRead`
+filtran por `userId` (RN-01), confirmado por unit. Sin findings. Historial: en-revisión → GREEN 2026-07-14.
 
 ## Evidencia visual
 <!-- Tabla CA → captura en _qa/SPEC-007/. Informe HTML opcional: _qa/SPEC-007/informe.html -->
