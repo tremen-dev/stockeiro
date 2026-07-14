@@ -2,10 +2,11 @@
 id: SPEC-006
 tipo: spec
 epica: EPIC-001
-estado: borrador
-aprobada-por:
+estado: aprobada
+aprobada-por: humano (Alberto Fojo) — gate 2026-07-14
 historial:
   - {estado: borrador, fecha: 2026-07-14, por: sdd-arquitecto}
+  - {estado: aprobada, fecha: 2026-07-14, por: humano (Alberto Fojo)}
 ---
 # SPEC-006 — Notificaciones y aviso proactivo
 

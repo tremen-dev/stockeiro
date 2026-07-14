@@ -1,13 +1,14 @@
 ---
 id: ADR-006
 tipo: adr
-estado: borrador
+estado: aprobada
 historial:
   - {estado: borrador, fecha: 2026-07-14, por: sdd-arquitecto}
+  - {estado: aprobada, fecha: 2026-07-14, por: humano (Alberto Fojo)}
 ---
 # ADR-006: Canal de aviso — email (Resend) tras un puerto, con registro in-app y fallback
 
-- Deciders: propone sdd-arquitecto (con búsqueda de opciones de canal, 2026-07-14); pendiente de aprobación del humano (gate). Cierra el riesgo R-4 (entrega de notificación) de EPIC-001.
+- Deciders: propone sdd-arquitecto (con búsqueda de opciones de canal, 2026-07-14); aprobado por el humano (Alberto Fojo, gate) el 2026-07-14. Cierra el riesgo R-4 (entrega de notificación) de EPIC-001.
 - Specs relacionadas: la origina **SPEC-006** (Notificaciones / aviso proactivo). Consume los disparos de **SPEC-005** (`zone_triggers`) y el ciclo de cron de **SPEC-004/ADR-005**.
 
 ## Contexto
