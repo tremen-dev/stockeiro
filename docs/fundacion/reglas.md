@@ -42,3 +42,9 @@
   zona) **entra** en una zona si `min ≤ precio ≤ max` (inclusive). La detección es
   idéntica para compra y venta. Sin datos intradía, "tocar" no aplica (dictamen
   sdd-mercados). Afecta a CE-1.
+- **RN-12** (Base de precio = último cierre NO ajustado): la cotización que se
+  ingiere, se compara contra zonas (RN-11) y alimenta el P/L actual (RN-06) es el
+  **último precio de cierre NO ajustado**, coherente con cómo el usuario define
+  zonas y su coste base manual. La serie NO se ajusta por splits/dividendos (esos
+  se registran a mano en la cartera, RN-07/RN-05). Cada cotización lleva su `asOf`,
+  que se muestra al usuario (D-2). Fuente: sdd-mercados; ADR-002/ADR-004.
