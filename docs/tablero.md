@@ -16,6 +16,12 @@ Actualizado: 2026-07-14
 | SPEC-007 — ui-de-avisos-y-estado-de-zona | hecho | 2026-07-14 (sdd-verificador) |
 | SPEC-008 — buscador-de-simbolos-por-nombre | hecho | 2026-07-14 (sdd-verificador) |
 
+## EPIC-INFRA (aprobada)
+
+| Spec | Estado | Último cambio |
+|---|---|---|
+| SPEC-009 — migracion-a-next-16-y-remediacion-de-cve-de-rsc | hecho | 2026-07-14 (sdd-verificador) |
+
 ## Resumen
 
-- hecho: 8
+- hecho: 9
