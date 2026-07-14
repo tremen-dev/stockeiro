@@ -11,12 +11,22 @@ async function registrarYEntrar(page: Page, email: string) {
   await page.waitForURL('**/dashboard');
 }
 
+/**
+ * SPEC-008: busca la acción por nombre y elige un candidato del desplegable (ya no
+ * se teclea el ticker). Requiere el servidor con `E2E_FAKE_SYMBOL_SEARCH=1`.
+ */
+async function elegirAccion(form: ReturnType<Page['locator']>, query: string, ticker: string) {
+  await form.locator('.symbol-search-input').fill(query);
+  await form.locator('.symbol-result', { hasText: ticker }).first().click();
+  await expect(form.locator('.symbol-chip-tk')).toContainText(ticker);
+}
+
 test('SPEC-003: vigilar un ticker con zonas aparece en la lista', async ({ page }) => {
   await registrarYEntrar(page, 'vig1@example.com');
   await page.goto('/vigiladas');
 
   const form = page.locator('form', { hasText: 'Vigilar una acción' });
-  await form.locator('input[name="ticker"]').fill('ITX');
+  await elegirAccion(form, 'Inditex', 'ITX');
   await form.locator('input[name="buyMin"]').fill('20');
   await form.locator('input[name="buyMax"]').fill('25');
   await form.locator('input[name="sellMin"]').fill('35');
@@ -35,7 +45,7 @@ test('SPEC-003: rango inválido (min > max) se rechaza con error', async ({ page
   await page.goto('/vigiladas');
 
   const form = page.locator('form', { hasText: 'Vigilar una acción' });
-  await form.locator('input[name="ticker"]').fill('AAPL');
+  await elegirAccion(form, 'Apple', 'AAPL');
   await form.locator('input[name="buyMin"]').fill('30');
   await form.locator('input[name="buyMax"]').fill('10'); // min > max
   await form.locator('button[type="submit"]').click();

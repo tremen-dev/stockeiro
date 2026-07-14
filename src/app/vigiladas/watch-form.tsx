@@ -2,6 +2,7 @@
 
 import { useActionState } from 'react';
 import { watchAction, type FormState } from './actions';
+import { SymbolSearch } from '@/app/_components/symbol-search';
 
 export function WatchForm() {
   const [state, action, pending] = useActionState<FormState, FormData>(watchAction, undefined);
@@ -9,10 +10,7 @@ export function WatchForm() {
   return (
     <form action={action} className="card auth-form">
       <strong>Vigilar una acción</strong>
-      <label>
-        Ticker
-        <input name="ticker" required placeholder="ITX" />
-      </label>
+      <SymbolSearch helpText="Elige la acción y su mercado para vigilarla." />
       <label>
         Zona de compra (min / max)
         <span style={{ display: 'flex', gap: 8 }}>
@@ -27,7 +25,6 @@ export function WatchForm() {
           <input name="sellMax" inputMode="decimal" placeholder="max" />
         </span>
       </label>
-      <input type="hidden" name="currency" value="EUR" />
       {state && 'error' in state ? <p className="auth-error">{state.error}</p> : null}
       <button className="btn primary" type="submit" disabled={pending}>
         {pending ? 'Guardando…' : 'Vigilar'}

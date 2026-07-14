@@ -42,9 +42,14 @@ await sql`CREATE TABLE IF NOT EXISTS users (
 )`;
 await sql`CREATE TABLE IF NOT EXISTS symbols (
   id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
-  ticker text NOT NULL UNIQUE,
-  currency text NOT NULL
+  ticker text NOT NULL,
+  mic_code text,
+  exchange text,
+  name text,
+  currency text NOT NULL,
+  CONSTRAINT symbols_ticker_mic UNIQUE (ticker, mic_code)
 )`;
+await sql`CREATE INDEX IF NOT EXISTS symbols_ticker_idx ON symbols (ticker)`;
 await sql`CREATE TABLE IF NOT EXISTS transactions (
   id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
   user_id uuid NOT NULL REFERENCES users(id),
@@ -115,6 +120,8 @@ const child = spawn('npx', ['next', 'start', '-p', String(APP_PORT)], {
     AUTH_SECRET: 'e2e-secret-please-change-0123456789',
     AUTH_TRUST_HOST: 'true',
     NODE_ENV: 'production',
+    // SPEC-008: el buscador usa el catálogo fake (determinista, sin red) en e2e.
+    E2E_FAKE_SYMBOL_SEARCH: '1',
   },
 });
 
