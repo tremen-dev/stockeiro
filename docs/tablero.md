@@ -11,9 +11,9 @@ Actualizado: 2026-07-14
 | SPEC-002 — cartera-y-p-l | hecho | 2026-07-13 (sdd-verificador) |
 | SPEC-003 — acciones-vigiladas-y-zonas | hecho | 2026-07-13 (sdd-verificador) |
 | SPEC-004 — ingesta-de-cotizaciones | hecho | 2026-07-14 (sdd-verificador) |
-| SPEC-005 — motor-de-disparo-por-zonas | borrador | 2026-07-14 (sdd-arquitecto) |
+| SPEC-005 — motor-de-disparo-por-zonas | aprobada | 2026-07-14 (humano (Alberto Fojo)) |
 
 ## Resumen
 
 - hecho: 4
-- borrador: 1
+- aprobada: 1

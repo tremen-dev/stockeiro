@@ -1,13 +1,14 @@
 ---
 id: ADR-005
 tipo: adr
-estado: borrador
+estado: aprobada
 historial:
   - {estado: borrador, fecha: 2026-07-14, por: sdd-arquitecto}
+  - {estado: aprobada, fecha: 2026-07-14, por: humano (Alberto Fojo)}
 ---
 # ADR-005: Evaluación de disparos dentro del ciclo de refresco con episodios edge-triggered
 
-- Deciders: propone sdd-arquitecto; pendiente de aprobación del humano (gate). Dominio: sdd-mercados (base de precio y semántica de zona).
+- Deciders: propone sdd-arquitecto; aprobado por el humano (Alberto Fojo, gate) el 2026-07-14, con el matiz de permanencia observable (RN-13) para habilitar aviso individual + agregado. Dominio: sdd-mercados (base de precio y semántica de zona).
 - Specs relacionadas: la origina **SPEC-005** (Motor de disparo por zonas). Consume la ingesta de **SPEC-004** (tabla `quote`), el predicado de zona de **SPEC-003** (`entraEnZona`/`zonasEntradas`) y las zonas de `watched_symbols`. La consumirá la spec de **Notificaciones** (CE-2).
 
 ## Contexto
