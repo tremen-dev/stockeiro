@@ -48,3 +48,10 @@
   zonas y su coste base manual. La serie NO se ajusta por splits/dividendos (esos
   se registran a mano en la cartera, RN-07/RN-05). Cada cotización lleva su `asOf`,
   que se muestra al usuario (D-2). Fuente: sdd-mercados; ADR-002/ADR-004.
+- **RN-13** (Disparo por entrada, no por permanencia): el motor dispara una acción
+  vigilada **al ENTRAR** su cotización en una zona (transición fuera→dentro, RN-11),
+  no cada ciclo mientras permanezca dentro. Un mismo episodio de permanencia en zona
+  genera **un solo** disparo; el disparo se **re-arma** solo cuando la cotización sale
+  de la zona y vuelve a entrar. La zona de compra y la de venta se evalúan de forma
+  independiente. Evita avisos repetidos por el mismo evento (CE-2). Fuente:
+  sdd-mercados; ADR-005.
