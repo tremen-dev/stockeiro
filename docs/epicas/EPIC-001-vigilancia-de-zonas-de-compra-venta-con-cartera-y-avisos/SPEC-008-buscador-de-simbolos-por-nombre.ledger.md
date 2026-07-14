@@ -82,5 +82,15 @@ Ejecutar `npx playwright test` para capturas de CA-9/CA-3 (desambiguación) y CA
   identidad de mercado completa. `test-db.ts` y `tests/e2e/server.mjs` en sincronía.
 - **Contrato cambiado (deliberado)**: `MarketDataProvider.getQuotes(string[])` →
   `getQuotes(QuoteRequest[])` con micCode. Tests de SPEC-004 adaptados (no es regresión).
-- **Qué falta**: verificación adversarial (verificador) + e2e Playwright para evidencia
-  visual de CA-9/CA-3/CA-8. Nada de código pendiente.
+- **Qué falta**: re-verificación del verificador tras la corrección del RED.
+
+### Corrección iteración 1 (2026-07-14, sdd-implementador) — V-SPEC-008-1
+- **Causa**: `SymbolSearch` conservaba `selected` tras un alta con éxito → chip pegado,
+  buscador oculto, imposible añadir una 2ª acción sin "Cambiar".
+- **Fix**: en `watch-form.tsx` y `portfolio-forms.tsx` (BuyForm), al pasar `state` a
+  `{ok:true}` (useActionState) se hace `form.reset()` y se remonta `<SymbolSearch key=…>`
+  con una key incremental → el buscador queda limpio y listo para otra alta. `SellForm`
+  intacto (no usa buscador).
+- **Evidencia**: `npx playwright test` = **12/12 verde** (incluido el 2º `vigilar` de
+  `avisos-zona.spec.ts` que antes fallaba); `vitest run` = **105/105**; `tsc` limpio;
+  `next build` OK.
