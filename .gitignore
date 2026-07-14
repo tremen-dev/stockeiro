@@ -16,6 +16,9 @@ next-env.d.ts
 test-results/
 playwright-report/
 
+# vercel
+.vercel/
+
 # os
 .DS_Store
 Thumbs.db
