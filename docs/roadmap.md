@@ -13,7 +13,14 @@ tipo: roadmap
   lo demás depende de esta base, por eso va primero.
 
 ## Después (comprometido, sin empezar)
-<!-- Vacío por ahora: se comprometerán épicas cuando EPIC-001 tenga specs en marcha. -->
+- **EPIC-002 — Import de posiciones desde bróker** (estado: borrador). Con EPIC-001
+  ya `hecho`, el cuello de botella para que un usuario real use la app con datos
+  verdaderos es la carga inicial de la cartera: teclear años de operativa a mano no
+  se hace. El import (fichero de bróker → transacciones) es la palanca de adopción
+  sobre el núcleo ya entregado. Arranca por el export real de ING
+  (`examples/historico.xls`); coste en EUR neto manda; identidad resuelta con
+  confirmación humana en eventos corporativos (no re-escala splits); idempotente por
+  clave derivada. Pendiente de gate humano para pasar a `aprobada`.
 
 ## Más adelante (idea, sin compromiso)
 - **Zonas calientes**: una acción a un X% de entrar en su zona (aún FUERA) se marca como
@@ -27,7 +34,12 @@ tipo: roadmap
 - **Preferencias de notificación** (F-SPEC-006-2): silenciar, elegir canal/frecuencia por
   usuario; reintentos/backoff del proveedor de email y retención del log de avisos.
 - Multi-moneda y fiscalidad (P/L con comisiones, dividendos, splits, ventas parciales).
-- Import automático de posiciones desde el bróker.
+- Import por **conexión** con el bróker (API, sin fichero) y **otros formatos/brókers**
+  (CSV, PDF): evolución de EPIC-002, que en v1 solo lee el `.xls` de ING. La conexión
+  a la cuenta real choca con la visión ("la app no opera"); idea, sin compromiso.
+- Ajuste automático por **eventos corporativos** (re-escalar cantidades/precios en
+  splits/contrasplits): EPIC-002 lo delega en confirmación humana; automatizarlo
+  requiere una fuente de eventos fiable. Idea, sin compromiso.
 - Canales de aviso adicionales (push móvil / app nativa).
 - Analítica histórica de la cartera y de aciertos de zona.
 - **F-SPEC-001-1** (deuda técnica de hardening, derivado de SPEC-001): reforzar el

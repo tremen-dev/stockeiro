@@ -22,3 +22,6 @@ playwright-report/
 # os
 .DS_Store
 Thumbs.db
+
+# datos reales (extractos de broker) — NUNCA commitear
+examples/
