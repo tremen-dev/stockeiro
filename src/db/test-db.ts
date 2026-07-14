@@ -77,6 +77,7 @@ export async function makeTestDb() {
       channel text NOT NULL,
       status text NOT NULL,
       as_of timestamptz NOT NULL,
+      read_at timestamptz,
       created_at timestamptz NOT NULL DEFAULT now(),
       CONSTRAINT notif_entry_trigger UNIQUE (zone_trigger_id),
       CONSTRAINT notif_digest_cycle UNIQUE (user_id, cycle_ref)

@@ -159,6 +159,7 @@ export const notifications = pgTable(
     channel: text('channel').notNull(), // 'email' | 'in_app'
     status: text('status').notNull(), // 'sent' | 'failed'
     asOf: timestamp('as_of', { withTimezone: true }).notNull(), // D-2
+    readAt: timestamp('read_at', { withTimezone: true }), // null = no leído (SPEC-007)
     createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
   },
   (t) => ({
