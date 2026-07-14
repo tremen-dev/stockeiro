@@ -2,13 +2,14 @@
 id: SPEC-012
 tipo: spec
 epica: EPIC-002
-estado: en-revision
+estado: hecho
 aprobada-por:
 historial:
   - {estado: borrador, fecha: 2026-07-15, por: sdd-arquitecto}
   - {estado: aprobada, fecha: 2026-07-14, por: humano (Alberto Fojo)}
   - {estado: en-progreso, fecha: 2026-07-14, por: sdd-implementador}
   - {estado: en-revision, fecha: 2026-07-14, por: sdd-implementador}
+  - {estado: hecho, fecha: 2026-07-14, por: sdd-verificador}
 ---
 # SPEC-012 — Resolucion de identidad e importacion asistida
 
