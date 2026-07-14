@@ -58,6 +58,17 @@ await sql`CREATE TABLE IF NOT EXISTS transactions (
   amount numeric,
   created_at timestamptz NOT NULL DEFAULT now()
 )`;
+await sql`CREATE TABLE IF NOT EXISTS watched_symbols (
+  id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
+  user_id uuid NOT NULL REFERENCES users(id),
+  symbol_id uuid NOT NULL REFERENCES symbols(id),
+  buy_min numeric,
+  buy_max numeric,
+  sell_min numeric,
+  sell_max numeric,
+  created_at timestamptz NOT NULL DEFAULT now(),
+  UNIQUE (user_id, symbol_id)
+)`;
 await sql.end();
 
 const child = spawn('npx', ['next', 'start', '-p', String(APP_PORT)], {

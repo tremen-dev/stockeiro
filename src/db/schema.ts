@@ -1,4 +1,4 @@
-import { pgTable, uuid, text, timestamp, numeric, date } from 'drizzle-orm/pg-core';
+import { pgTable, uuid, text, timestamp, numeric, date, unique } from 'drizzle-orm/pg-core';
 
 /**
  * `users` — identidad mínima y ancla de propiedad (SPEC-001).
@@ -56,3 +56,32 @@ export const transactions = pgTable('transactions', {
 
 export type Transaction = typeof transactions.$inferSelect;
 export type NewTransaction = typeof transactions.$inferInsert;
+
+/**
+ * `watched_symbols` — acciones vigiladas por usuario con sus zonas (SPEC-003).
+ * Zonas opcionales e independientes (RN-10): cada par (min,max) puede ser null.
+ * Una entrada por (userId, symbolId). Referencia el símbolo compartido (ADR-002).
+ */
+export const watchedSymbols = pgTable(
+  'watched_symbols',
+  {
+    id: uuid('id').defaultRandom().primaryKey(),
+    userId: uuid('user_id')
+      .notNull()
+      .references(() => users.id),
+    symbolId: uuid('symbol_id')
+      .notNull()
+      .references(() => symbols.id),
+    buyMin: numeric('buy_min'),
+    buyMax: numeric('buy_max'),
+    sellMin: numeric('sell_min'),
+    sellMax: numeric('sell_max'),
+    createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
+  },
+  (t) => ({
+    uniqUserSymbol: unique('watched_user_symbol').on(t.userId, t.symbolId),
+  }),
+);
+
+export type WatchedSymbol = typeof watchedSymbols.$inferSelect;
+export type NewWatchedSymbol = typeof watchedSymbols.$inferInsert;

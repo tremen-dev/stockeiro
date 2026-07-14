@@ -10,9 +10,11 @@ Stockeiro es un gestor de inversiones en bolsa a largo plazo (Next.js) que
 zona de compra/venta definida por el usuario y mantiene su cartera con P/L actual
 y realizado (ver `vision.md`, FOUNDATION D-1..D-7). Estado: **EPIC-001** (núcleo:
 vigilancia + avisos + cartera) en curso. **SPEC-001 (Cuentas y multiusuario)
-HECHA y verificada GREEN** (8/8 CA; ver su ledger). El resto de specs de
-EPIC-001 (Cartera/P/L, Zonas, Ingesta, Motor de disparo, Notificaciones, UI) aún
-**sin crear** — el desglose de `_epica.md` es orientativo, no autoritativo.
+HECHA GREEN** (8/8 CA) y **SPEC-002 (Cartera y P/L) HECHA GREEN** (11/11 CA:
+ledger de transacciones, P/L actual/realizado con `decimal.js` y redondeo
+monetario, `/cartera`). **SPEC-003 (Acciones vigiladas y zonas)** en `borrador`
+(cierra la definición de "zona", R-2). Faltan por crear: Ingesta, Motor de
+disparo, Notificaciones y UI — el desglose de `_epica.md` es orientativo.
 
 ## Stack y arquitectura (resumen as-built)
 

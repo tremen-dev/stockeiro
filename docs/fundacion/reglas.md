@@ -32,3 +32,13 @@
   única divisa; no hay conversión automática de divisa (el coste del cambio, si lo
   hay, se registra dentro de los **gastos**). Multi-moneda avanzada queda fuera
   (FOUNDATION "Fuera").
+- **RN-10** (Zona = rango de precio): una zona de compra o de venta es un **rango
+  [min, max]** con min ≤ max, no un valor puntual (D-3). Las zonas de una acción
+  vigilada son **opcionales e independientes**: se puede vigilar sin zona, con solo
+  una, o con ambas. Compra y venta son **etiquetas**; no se exige que una esté por
+  debajo de la otra.
+- **RN-11** (Entrada en zona): el precio observado del ciclo (cierre/último, con su
+  `asOf`, en la MISMA base ajustada/no-ajustada con la que el usuario definió la
+  zona) **entra** en una zona si `min ≤ precio ≤ max` (inclusive). La detección es
+  idéntica para compra y venta. Sin datos intradía, "tocar" no aplica (dictamen
+  sdd-mercados). Afecta a CE-1.
