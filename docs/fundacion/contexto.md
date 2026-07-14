@@ -40,8 +40,9 @@ Lo realmente montado (decisión en **ADR-001**; ingesta en **ADR-002**):
 - **Design system**: `design/tremen-ds` como capa de UI.
 - **Scheduler** previsto: Vercel Cron para el refresco diario (ADR-001/ADR-002),
   aún no implementado.
-- Env real: `.env.example` → `DATABASE_URL`, `AUTH_SECRET`; `TWELVE_DATA_API_KEY`
-  para specs de ingesta.
+- Env real: `.env.example` → `DATABASE_URL` (+ `DB_DRIVER`), `AUTH_SECRET`
+  (+ `AUTH_TRUST_HOST`); ingesta (SPEC-004): `TWELVE_DATA_API_KEY` y `CRON_SECRET`
+  (protege `/api/cron/refresh`). Provisión de producción en roadmap → "Antes de desplegar".
 
 ## Decisiones clave hasta hoy
 <!-- Referencias a ADR-NNN, no duplicar su contenido. -->

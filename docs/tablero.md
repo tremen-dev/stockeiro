@@ -10,9 +10,9 @@ Actualizado: 2026-07-14
 | SPEC-001 — cuentas-y-multiusuario | hecho | 2026-07-13 (sdd-verificador) |
 | SPEC-002 — cartera-y-p-l | hecho | 2026-07-13 (sdd-verificador) |
 | SPEC-003 — acciones-vigiladas-y-zonas | hecho | 2026-07-13 (sdd-verificador) |
-| SPEC-004 — ingesta-de-cotizaciones | borrador | 2026-07-14 (sdd-arquitecto) |
+| SPEC-004 — ingesta-de-cotizaciones | en-revision | 2026-07-14 (sdd-implementador) |
 
 ## Resumen
 
 - hecho: 3
-- borrador: 1
+- en-revision: 1

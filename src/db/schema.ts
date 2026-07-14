@@ -85,3 +85,25 @@ export const watchedSymbols = pgTable(
 
 export type WatchedSymbol = typeof watchedSymbols.$inferSelect;
 export type NewWatchedSymbol = typeof watchedSymbols.$inferInsert;
+
+/**
+ * `quotes` — última cotización COMPARTIDA por símbolo (ADR-004, SPEC-004). Una
+ * fila por símbolo (`symbolId` único): el refresco hace upsert, no acumula
+ * histórico. `price` es el último cierre NO ajustado (RN-12) y `asOf` su fecha de
+ * referencia (D-2), que se muestra al usuario. La leen todos los usuarios que
+ * referencian el símbolo (P/L actual, RN-06).
+ */
+export const quotes = pgTable('quotes', {
+  id: uuid('id').defaultRandom().primaryKey(),
+  symbolId: uuid('symbol_id')
+    .notNull()
+    .unique()
+    .references(() => symbols.id),
+  price: numeric('price').notNull(),
+  currency: text('currency').notNull(),
+  asOf: timestamp('as_of', { withTimezone: true }).notNull(),
+  updatedAt: timestamp('updated_at', { withTimezone: true }).notNull().defaultNow(),
+});
+
+export type Quote = typeof quotes.$inferSelect;
+export type NewQuote = typeof quotes.$inferInsert;

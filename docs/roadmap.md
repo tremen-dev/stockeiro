@@ -35,3 +35,11 @@ tipo: roadmap
 - **F-SPEC-001-2** (ops, derivado de SPEC-001): aprovisionar Neon + `AUTH_SECRET`
   reales antes de desplegar a producción. Prerequisito de despliegue; ya no bloquea
   la verificación porque el e2e usa Postgres efímero.
+- **Ops-ingesta** (derivado de SPEC-004): aprovisionar en Vercel (Settings →
+  Environment Variables) `TWELVE_DATA_API_KEY` (Twelve Data, ADR-002) y `CRON_SECRET`
+  (protege `/api/cron/refresh`, ADR-004). No bloquean la verificación (los tests usan
+  proveedor fake + Postgres efímero); son prerequisito de producción, junto a
+  F-SPEC-001-2. Ver checklist de env en `.env.example`.
+  - `CRON_SECRET` no se pide a ningún proveedor: se genera (`openssl rand -hex 32`) y
+    se define en Vercel; Vercel Cron lo reenvía como `Authorization: Bearer <CRON_SECRET>`
+    en cada disparo. Tras cambiar variables, hacer redeploy.

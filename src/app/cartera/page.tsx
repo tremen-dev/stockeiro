@@ -2,13 +2,21 @@ import Link from 'next/link';
 import { auth } from '@/lib/auth/config';
 import { db } from '@/db/client';
 import { portfolioSummary } from '@/lib/portfolio/service';
+import { getPriceMap, getQuoteViews } from '@/lib/market/quotes';
 import { BuyForm, SellForm } from './portfolio-forms';
 
-// Exposición mínima de la cartera (SPEC-002). Sin ingesta aún, el P/L actual se
-// muestra "—" (RN-06/D-6): sin cotización no se calcula ni se mezcla con el realizado.
+// Exposición de la cartera (SPEC-002) alimentada por la Ingesta (SPEC-004): el P/L
+// actual usa el último cierre no ajustado ingerido (RN-06/RN-12). Sin cotización
+// para un símbolo, ese P/L actual sigue "—" (D-6): no se calcula ni se mezcla.
 export default async function CarteraPage() {
   const session = await auth();
-  const summary = await portfolioSummary(db, session!.user.id);
+  // Precios ingeridos por la ingesta diaria (CA-4). Sin cotización -> plActual "—".
+  const priceByTicker = await getPriceMap(db);
+  const summary = await portfolioSummary(db, session!.user.id, priceByTicker);
+  const quotes = await getQuoteViews(db);
+  const asOf = quotes.length
+    ? new Date(Math.max(...quotes.map((q) => q.asOf.getTime()))).toISOString().slice(0, 10)
+    : null;
   const dash = (v: string | null) => (v === null ? '—' : v);
 
   return (
@@ -19,7 +27,11 @@ export default async function CarteraPage() {
         <p>
           P/L realizado total: <strong>{summary.realizadoTotal}</strong> · P/L actual total:{' '}
           <strong>{dash(summary.actualTotal)}</strong>{' '}
-          <em>(sin cotización aún; llega con la Ingesta)</em>
+          {asOf ? (
+            <em>(cotizaciones a fecha {asOf})</em>
+          ) : (
+            <em>(sin cotización aún; se ingiere a diario)</em>
+          )}
         </p>
       </section>
 
