@@ -107,3 +107,31 @@ export const quotes = pgTable('quotes', {
 
 export type Quote = typeof quotes.$inferSelect;
 export type NewQuote = typeof quotes.$inferInsert;
+
+/**
+ * `zone_triggers` — episodios de entrada en zona por usuario (ADR-005, SPEC-005).
+ * Un episodio por (acción vigilada, tipo de zona) mientras el precio permanece
+ * dentro: `closedAt` null = dentro AHORA (estado actual + idempotencia, RN-13); al
+ * salir de la zona se cierra. El conjunto de filas es el log de disparos que la
+ * spec de notificación (CE-2) consumirá — tanto entradas como permanencia.
+ */
+export const zoneTriggers = pgTable('zone_triggers', {
+  id: uuid('id').defaultRandom().primaryKey(),
+  userId: uuid('user_id')
+    .notNull()
+    .references(() => users.id),
+  watchedSymbolId: uuid('watched_symbol_id')
+    .notNull()
+    .references(() => watchedSymbols.id),
+  symbolId: uuid('symbol_id')
+    .notNull()
+    .references(() => symbols.id),
+  zoneKind: text('zone_kind').notNull(), // 'buy' | 'sell'
+  price: numeric('price').notNull(), // precio que originó el disparo (RN-12, no ajustado)
+  asOf: timestamp('as_of', { withTimezone: true }).notNull(), // asOf de la cotización (D-2)
+  openedAt: timestamp('opened_at', { withTimezone: true }).notNull().defaultNow(),
+  closedAt: timestamp('closed_at', { withTimezone: true }), // null = episodio abierto (en zona)
+});
+
+export type ZoneTrigger = typeof zoneTriggers.$inferSelect;
+export type NewZoneTrigger = typeof zoneTriggers.$inferInsert;

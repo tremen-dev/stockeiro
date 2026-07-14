@@ -56,6 +56,17 @@ export async function makeTestDb() {
       as_of timestamptz NOT NULL,
       updated_at timestamptz NOT NULL DEFAULT now()
     );
+    CREATE TABLE zone_triggers (
+      id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
+      user_id uuid NOT NULL REFERENCES users(id),
+      watched_symbol_id uuid NOT NULL REFERENCES watched_symbols(id),
+      symbol_id uuid NOT NULL REFERENCES symbols(id),
+      zone_kind text NOT NULL,
+      price numeric NOT NULL,
+      as_of timestamptz NOT NULL,
+      opened_at timestamptz NOT NULL DEFAULT now(),
+      closed_at timestamptz
+    );
   `);
   const db = drizzle(client, { schema });
   return { db, client };

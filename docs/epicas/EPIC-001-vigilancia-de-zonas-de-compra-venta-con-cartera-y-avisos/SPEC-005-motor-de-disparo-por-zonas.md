@@ -2,11 +2,13 @@
 id: SPEC-005
 tipo: spec
 epica: EPIC-001
-estado: aprobada
+estado: en-revision
 aprobada-por: humano (Alberto Fojo) — gate 2026-07-14
 historial:
   - {estado: borrador, fecha: 2026-07-14, por: sdd-arquitecto}
   - {estado: aprobada, fecha: 2026-07-14, por: humano (Alberto Fojo)}
+  - {estado: en-progreso, fecha: 2026-07-14, por: sdd-implementador}
+  - {estado: en-revision, fecha: 2026-07-14, por: sdd-implementador}
 ---
 # SPEC-005 — Motor de disparo por zonas
 
