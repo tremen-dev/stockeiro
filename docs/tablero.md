@@ -20,7 +20,7 @@ Actualizado: 2026-07-14
 
 | Spec | Estado | Último cambio |
 |---|---|---|
-| SPEC-011 — lectura-del-extracto-de-ing | aprobada | 2026-07-14 (humano (Alberto Fojo)) |
+| SPEC-011 — lectura-del-extracto-de-ing | hecho | 2026-07-14 (sdd-verificador) |
 | SPEC-012 — resolucion-de-identidad-e-importacion-asistida | aprobada | 2026-07-14 (humano (Alberto Fojo)) |
 | SPEC-013 — registro-idempotente-en-la-cartera | aprobada | 2026-07-14 (humano (Alberto Fojo)) |
 
@@ -33,5 +33,5 @@ Actualizado: 2026-07-14
 
 ## Resumen
 
-- hecho: 10
-- aprobada: 3
+- hecho: 11
+- aprobada: 2

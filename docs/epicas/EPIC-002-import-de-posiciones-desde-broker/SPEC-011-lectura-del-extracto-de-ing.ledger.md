@@ -20,16 +20,40 @@ epica: EPIC-002
 <!-- Un CA está ✅ solo cuando Implementado + Test + Verif. aplicables están en verde. Una salvedad se marca ⚠️, nunca ✅. -->
 | CA | Implementado (fichero) | Test (fichero/caso) | Verif. | Estado |
 |---|---|---|---|---|
-| CA-1 (parseo COMPRA/VENTA) | `src/lib/import/ing-xls-reader.ts` (bucle de operaciones); `statement-reader.ts` (modelo) | `tests/ing-statement-reader.test.ts` › CA-1 (+ test real opcional: 250 ops) | | ❌ |
-| CA-2 (encoding sin mojibake) | `ing-xls-reader.ts` (SheetJS decodifica cp1252) | `tests/ing-statement-reader.test.ts` › CA-2 (sintético + real opcional) | | ❌ |
-| CA-3 (metadatos cabecera) | `ing-xls-reader.ts` (`metadato()`) | `tests/ing-statement-reader.test.ts` › CA-3 | | ❌ |
-| CA-4 (solo COMPRA/VENTA) | `ing-xls-reader.ts` (`SIDE_BY_OP`, `continue`) | `tests/ing-statement-reader.test.ts` › CA-4 | | ❌ |
-| CA-5 (precisión decimal) | `ing-xls-reader.ts` (`parseDecimal` con `Decimal`, valor `.w`) | `tests/ing-statement-reader.test.ts` › CA-5 | | ❌ |
-| CA-6 (detrás del puerto) | `statement-reader.ts` (interfaz); `ing-xls-reader.ts` (`implements`) | `tests/ing-statement-reader.test.ts` › CA-6 | | ❌ |
-| CA-7 (fallo legible) | `ing-xls-reader.ts` (`ExtractoIllegibleError`: hoja/cabecera/fecha/bytes) | `tests/ing-statement-reader.test.ts` › CA-7 (4 casos) | | ❌ |
+| CA-1 (parseo COMPRA/VENTA) | `src/lib/import/ing-xls-reader.ts` (bucle de operaciones); `statement-reader.ts` (modelo) | `tests/ing-statement-reader.test.ts` › CA-1 (+ test real opcional: 250 ops) | verde: asierta objeto exacto (side buy/sell, occurredOn ISO, campos); test real leyó 250 ops del fichero presente | ✅ |
+| CA-2 (encoding sin mojibake) | `ing-xls-reader.ts` (SheetJS decodifica cp1252) | `tests/ing-statement-reader.test.ts` › CA-2 (sintético + real opcional) | verde: sintético preserva `COMPAÑÍA/Ñ`; real cp1252 sin `�` (corrió aquí). Ver nota CI en veredicto (F-SPEC-011-2) | ✅ |
+| CA-3 (metadatos cabecera) | `ing-xls-reader.ts` (`metadato()`) | `tests/ing-statement-reader.test.ts` › CA-3 | verde: asierta cuenta/titular/fecha exactos | ✅ |
+| CA-4 (solo COMPRA/VENTA) | `ing-xls-reader.ts` (`SIDE_BY_OP`, `continue`) | `tests/ing-statement-reader.test.ts` › CA-4 | verde: fixture con DIVIDENDO+blanco+pie → solo 2 buy/sell | ✅ |
+| CA-5 (precisión decimal) | `ing-xls-reader.ts` (`parseDecimal` con `Decimal`, valor `.w`) | `tests/ing-statement-reader.test.ts` › CA-5 | verde: `importeEur='13736.86'` (no `...859999999999`), `0.0142`, `175270`, `280.093` | ✅ |
+| CA-6 (detrás del puerto) | `statement-reader.ts` (interfaz); `ing-xls-reader.ts` (`implements`) | `tests/ing-statement-reader.test.ts` › CA-6 | verde: adaptador asignable al puerto; fn de dominio tipada al puerto corre con un fake | ✅ |
+| CA-7 (fallo legible) | `ing-xls-reader.ts` (`ExtractoIllegibleError`: hoja/cabecera/fecha/bytes) | `tests/ing-statement-reader.test.ts` › CA-7 (4 casos) | verde: 4 casos lanzan `ExtractoIllegibleError`; fecha inválida no deja salida parcial | ✅ |
 
 ## Veredicto del verificador
-<!-- GREEN/RED + fecha + resumen. Lo escribe SOLO sdd-verificador. -->
+**GREEN** — 2026-07-15 (sdd-verificador).
+
+Gates automáticos (ejecutados de forma independiente): `tsc --noEmit` limpio;
+`eslint src/lib/import tests/ing-statement-reader.test.ts` sin errores; suite completa
+**118/118** (22 ficheros), sin regresiones. Los 13 tests de SPEC-011 en verde,
+incluidos los tests reales opcionales (250 ops y sin mojibake) que **corrieron** aquí
+(el fichero real está presente en local).
+
+CA-1..CA-7 todos **✅** con test no vacío. Auditoría adversarial superada:
+- **Alcance estricto** respetado — `src/lib/import/` no importa DB, símbolos ni
+  persistencia (grep limpio); lectura pura → modelo. NO invade SPEC-012/013/ADR-011.
+- **CA-5 precisión real**: se asierta el valor decimal exacto (`13736.86`, no el
+  arrastre float), con `decimal.js` sobre el valor formateado. El `comma-stripping`
+  del formato en-US real (`"13,736.86"`) queda probado porque el test de 250 ops
+  parsea el fichero real sin lanzar.
+- **CA-7 sin salida parcial**: los 4 casos de fallo lanzan `ExtractoIllegibleError`.
+- **Privacidad**: el `.xls` real no está versionado (gitignored, confirmado); fixture
+  sintético por código; el recuento 250 se cubre con test real opcional (salta en CI).
+
+**F-SPEC-011-2** (hardening de test, no bloqueante): la decodificación **cp1252** de
+CA-2 solo se ejercita a fondo con el fichero real (gitignored); en CI el test real se
+salta y CA-2 se apoya en el fixture sintético (que SÍ prueba acentos/Ñ end-to-end, pero
+no la ruta cp1252 concreta). Sugerencia: commitear un **micro-fixture cp1252** (unos
+bytes, sin datos personales) para endurecer CA-2 en CI. Destino: EPIC-MEJORA o al
+implementar SPEC-012/013. No afecta al veredicto: CA-2 está demostrado (local + sintético).
 
 ## Evidencia visual
 <!-- Tabla CA → captura en _qa/SPEC-011/. Informe HTML opcional: _qa/SPEC-011/informe.html -->
