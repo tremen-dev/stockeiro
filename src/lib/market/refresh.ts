@@ -1,7 +1,7 @@
 import { inArray } from 'drizzle-orm';
 import type { PgDatabase } from 'drizzle-orm/pg-core';
 import { symbols, transactions, watchedSymbols } from '@/db/schema';
-import type { MarketDataProvider } from './provider';
+import { quoteKey, type MarketDataProvider } from './provider';
 import { upsertQuote } from './quotes';
 
 type Db = PgDatabase<any, any, any>;
@@ -9,6 +9,7 @@ type Db = PgDatabase<any, any, any>;
 export interface UniverseSymbol {
   symbolId: string;
   ticker: string;
+  micCode: string | null;
 }
 
 /**
@@ -28,7 +29,7 @@ export async function symbolUniverse(db: Db): Promise<UniverseSymbol[]> {
   if (ids.size === 0) return [];
 
   const rows = await db.select().from(symbols).where(inArray(symbols.id, [...ids]));
-  return rows.map((s) => ({ symbolId: s.id, ticker: s.ticker }));
+  return rows.map((s) => ({ symbolId: s.id, ticker: s.ticker, micCode: s.micCode }));
 }
 
 export interface RefreshResult {
@@ -48,18 +49,22 @@ export async function refreshQuotes(db: Db, provider: MarketDataProvider): Promi
   const requested = universe.map((u) => u.ticker);
   if (universe.length === 0) return { requested, updated: [], skipped: [] };
 
-  const bySymbol = new Map(universe.map((u) => [u.ticker, u.symbolId]));
-  const quotesFromProvider = await provider.getQuotes(requested);
-  const returned = new Map(quotesFromProvider.map((q) => [q.symbol, q]));
+  // Se pide por (ticker, micCode) para desambiguar el mercado (ADR-007). El universo
+  // ya es distinct por símbolo, así que no hay duplicados (dedupe, ADR-002).
+  const requests = universe.map((u) => ({ ticker: u.ticker, micCode: u.micCode }));
+  const quotesFromProvider = await provider.getQuotes(requests);
+  const returned = new Map(quotesFromProvider.map((q) => [quoteKey(q.ticker, q.micCode), q]));
 
   const updated: string[] = [];
-  for (const ticker of requested) {
-    const q = returned.get(ticker);
-    const symbolId = bySymbol.get(ticker);
-    if (!q || !symbolId) continue; // proveedor no lo resolvió -> se salta (CA-6)
-    await upsertQuote(db, symbolId, { price: q.price, currency: q.currency, asOf: q.asOf });
-    updated.push(ticker);
+  const skipped: string[] = [];
+  for (const u of universe) {
+    const q = returned.get(quoteKey(u.ticker, u.micCode));
+    if (!q) {
+      skipped.push(u.ticker); // proveedor no lo resolvió -> se salta (CA-6)
+      continue;
+    }
+    await upsertQuote(db, u.symbolId, { price: q.price, currency: q.currency, asOf: q.asOf });
+    updated.push(u.ticker);
   }
-  const skipped = requested.filter((t) => !updated.includes(t));
   return { requested, updated, skipped };
 }
