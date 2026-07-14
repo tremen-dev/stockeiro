@@ -40,7 +40,10 @@ export async function makeTestDb() {
       gastos numeric,
       ratio numeric,
       amount numeric,
-      created_at timestamptz NOT NULL DEFAULT now()
+      import_key text,
+      importe_eur numeric,
+      created_at timestamptz NOT NULL DEFAULT now(),
+      CONSTRAINT transactions_user_import_key UNIQUE (user_id, import_key)
     );
     CREATE TABLE watched_symbols (
       id uuid PRIMARY KEY DEFAULT gen_random_uuid(),

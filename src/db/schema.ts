@@ -53,23 +53,34 @@ export type Symbol = typeof symbols.$inferSelect;
  *  - dividend: amount
  * Toda fila lleva `userId` (aislamiento RN-01).
  */
-export const transactions = pgTable('transactions', {
-  id: uuid('id').defaultRandom().primaryKey(),
-  userId: uuid('user_id')
-    .notNull()
-    .references(() => users.id),
-  symbolId: uuid('symbol_id')
-    .notNull()
-    .references(() => symbols.id),
-  type: text('type').notNull(), // 'buy' | 'sell' | 'split' | 'dividend'
-  occurredOn: date('occurred_on').notNull(),
-  quantity: numeric('quantity'),
-  price: numeric('price'),
-  gastos: numeric('gastos'),
-  ratio: numeric('ratio'),
-  amount: numeric('amount'),
-  createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
-});
+export const transactions = pgTable(
+  'transactions',
+  {
+    id: uuid('id').defaultRandom().primaryKey(),
+    userId: uuid('user_id')
+      .notNull()
+      .references(() => users.id),
+    symbolId: uuid('symbol_id')
+      .notNull()
+      .references(() => symbols.id),
+    type: text('type').notNull(), // 'buy' | 'sell' | 'split' | 'dividend'
+    occurredOn: date('occurred_on').notNull(),
+    quantity: numeric('quantity'),
+    price: numeric('price'),
+    gastos: numeric('gastos'),
+    ratio: numeric('ratio'),
+    amount: numeric('amount'),
+    // Import desde bróker (SPEC-013). Sólo en filas importadas; el alta manual las deja null.
+    importKey: text('import_key'), // clave derivada de idempotencia (ADR-010), única por usuario
+    importeEur: numeric('importe_eur'), // importe EUR del extracto, metadato (ADR-011)
+    createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
+  },
+  (t) => ({
+    // Idempotencia del import (ADR-010): re-importar no duplica. NULL distingue las
+    // filas manuales (import_key null) → no chocan entre sí en Postgres.
+    uniqUserImportKey: unique('transactions_user_import_key').on(t.userId, t.importKey),
+  }),
+);
 
 export type Transaction = typeof transactions.$inferSelect;
 export type NewTransaction = typeof transactions.$inferInsert;
