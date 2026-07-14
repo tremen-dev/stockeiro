@@ -22,6 +22,13 @@
       "when": 1784070243094,
       "tag": "0002_symbol_aliases",
       "breakpoints": true
+    },
+    {
+      "idx": 3,
+      "version": "7",
+      "when": 1784071387059,
+      "tag": "0003_import_idempotency",
+      "breakpoints": true
     }
   ]
 }
