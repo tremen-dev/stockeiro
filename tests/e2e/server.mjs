@@ -61,8 +61,21 @@ await sql`CREATE TABLE IF NOT EXISTS transactions (
   gastos numeric,
   ratio numeric,
   amount numeric,
-  created_at timestamptz NOT NULL DEFAULT now()
+  import_key text,
+  importe_eur numeric,
+  created_at timestamptz NOT NULL DEFAULT now(),
+  CONSTRAINT transactions_user_import_key UNIQUE (user_id, import_key)
 )`;
+await sql`CREATE TABLE IF NOT EXISTS symbol_aliases (
+  id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
+  user_id uuid NOT NULL REFERENCES users(id),
+  broker_name text NOT NULL,
+  market_label text NOT NULL,
+  symbol_id uuid NOT NULL REFERENCES symbols(id),
+  created_at timestamptz NOT NULL DEFAULT now(),
+  CONSTRAINT symbol_alias_user_broker_market UNIQUE (user_id, broker_name, market_label)
+)`;
+await sql`CREATE INDEX IF NOT EXISTS symbol_alias_user_idx ON symbol_aliases (user_id)`;
 await sql`CREATE TABLE IF NOT EXISTS watched_symbols (
   id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
   user_id uuid NOT NULL REFERENCES users(id),
