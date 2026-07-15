@@ -29,7 +29,7 @@ Actualizado: 2026-07-15
 
 | Spec | Estado | Último cambio |
 |---|---|---|
-| SPEC-015 — proveedor-de-cotizaciones-con-cobertura-del-mercado-real | aprobada | 2026-07-15 (humano (Alberto Fojo)) |
+| SPEC-015 — proveedor-de-cotizaciones-con-cobertura-del-mercado-real | hecho | 2026-07-15 (sdd-verificador) |
 | SPEC-016 — diagnostico-visible-del-simbolo-sin-cotizacion | aprobada | 2026-07-15 (humano (Alberto Fojo)) |
 
 ## EPIC-INFRA (aprobada)
@@ -41,5 +41,5 @@ Actualizado: 2026-07-15
 
 ## Resumen
 
-- hecho: 14
-- aprobada: 2
+- hecho: 15
+- aprobada: 1
