@@ -1,9 +1,10 @@
 ---
 id: EPIC-003
 tipo: epica
-estado: borrador
+estado: aprobada
 historial:
   - {estado: borrador, fecha: 2026-07-15, por: sdd-producto}
+  - {estado: aprobada, fecha: 2026-07-15, por: humano (Alberto Fojo)}
 ---
 # EPIC-003 — Continuidad del valor a traves de eventos corporativos
 
