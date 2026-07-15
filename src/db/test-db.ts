@@ -64,6 +64,12 @@ export async function makeTestDb() {
       as_of timestamptz NOT NULL,
       updated_at timestamptz NOT NULL DEFAULT now()
     );
+    CREATE TABLE quote_diagnostics (
+      id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
+      symbol_id uuid NOT NULL UNIQUE REFERENCES symbols(id),
+      reason text NOT NULL,
+      attempted_at timestamptz NOT NULL DEFAULT now()
+    );
     CREATE TABLE zone_triggers (
       id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
       user_id uuid NOT NULL REFERENCES users(id),

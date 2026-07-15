@@ -1,6 +1,7 @@
 import { auth } from '@/lib/auth/config';
 import { db } from '@/db/client';
 import { zoneStatusForUser, type ZoneState } from '@/lib/watchlist/zone-status';
+import { failReasonText } from '@/lib/market/fail-reason-text';
 import { AppNav } from '../app-nav';
 import { WatchForm } from './watch-form';
 import { removeAction } from './actions';
@@ -15,6 +16,11 @@ const LABEL: Record<ZoneState, string> = {
   out: 'Fuera de zona',
   none: 'Sin cotización',
 };
+
+// SPEC-016 (CE-F2): "sin cotización" ya no es mudo. Si el símbolo NO se puede cotizar, se
+// dice y se explica por qué; si simplemente no ha corrido el ciclo, se dice eso otro. Antes
+// ambos casos se veían igual — por eso el defecto de cobertura pasó semanas sin detectarse.
+const SIN_DATO_AUN = 'Aún sin datos: se ingiere en el próximo ciclo diario';
 
 export default async function VigiladasPage() {
   const session = await auth();
@@ -66,6 +72,15 @@ export default async function VigiladasPage() {
                         <span className="dot" aria-hidden="true" />
                         {LABEL[r.state]}
                       </span>
+                      {r.state === 'none' && (
+                        <p
+                          className={r.failReason ? 'quote-fail' : 'quote-pending'}
+                          data-testid={r.failReason ? 'fail-reason' : 'sin-datos-aun'}
+                          data-reason={r.failReason ?? undefined}
+                        >
+                          {r.failReason ? `⚠ No se vigila: ${failReasonText(r.failReason)}` : SIN_DATO_AUN}
+                        </p>
+                      )}
                     </td>
                     <td className="num">{r.price ?? <span className="muted">—</span>}</td>
                     <td className="num muted">{r.asOf ? r.asOf.toISOString().slice(0, 10) : '—'}</td>

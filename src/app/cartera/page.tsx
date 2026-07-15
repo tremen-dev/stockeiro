@@ -2,7 +2,8 @@ import Link from 'next/link';
 import { auth } from '@/lib/auth/config';
 import { db } from '@/db/client';
 import { portfolioSummary } from '@/lib/portfolio/service';
-import { getPriceMap, getQuoteViews } from '@/lib/market/quotes';
+import { getDiagnosticMap, getPriceMap, getQuoteViews } from '@/lib/market/quotes';
+import { failReasonText } from '@/lib/market/fail-reason-text';
 import { AppNav } from '../app-nav';
 import { BuyForm, SellForm } from './portfolio-forms';
 
@@ -18,6 +19,9 @@ export default async function CarteraPage() {
     ? new Date(Math.max(...quotes.map((q) => q.asOf.getTime()))).toISOString().slice(0, 10)
     : null;
   const dash = (v: string | null) => (v === null ? '—' : v);
+  // SPEC-016: el P/L actual sigue siendo "—" cuando no hay precio (RN-06: no se inventa),
+  // pero deja de ser un guion MUDO — se acompaña del motivo si el símbolo no se puede cotizar.
+  const diagnosticos = await getDiagnosticMap(db);
 
   return (
     <>
@@ -69,7 +73,18 @@ export default async function CarteraPage() {
                     <td className="num">{p.cantidadViva}</td>
                     <td className="num">{dash(p.costeMedio)}</td>
                     <td className="num">{p.realizadoPL}</td>
-                    <td className="num">{dash(p.plActual)}</td>
+                    <td className="num">
+                      {dash(p.plActual)}
+                      {p.plActual === null && diagnosticos[p.ticker] && (
+                        <span
+                          className="quote-fail"
+                          data-testid="fail-reason"
+                          data-reason={diagnosticos[p.ticker].reason}
+                        >
+                          ⚠ {failReasonText(diagnosticos[p.ticker].reason)}
+                        </span>
+                      )}
+                    </td>
                   </tr>
                 ))}
               </tbody>

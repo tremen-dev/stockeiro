@@ -84,7 +84,10 @@ describe('CA-6: resiliencia por símbolo (ADR-004)', () => {
     const result = await refreshQuotes(db, provider);
 
     expect(result.updated).toEqual(['ITX']);
-    expect(result.skipped).toEqual(['AAPL']);
+    // SPEC-016: `skipped` deja de ser una lista pelada de tickers — lleva el MOTIVO.
+    // Lo que este CA prueba sigue igual: AAPL se salta y los demás se actualizan.
+    expect(result.skipped.map((s) => s.ticker)).toEqual(['AAPL']);
+    expect(result.skipped[0].reason).toBeTruthy();
 
     const [itx] = await db.select().from(symbols).where(eq(symbols.ticker, 'ITX'));
     const [aapl] = await db.select().from(symbols).where(eq(symbols.ticker, 'AAPL'));

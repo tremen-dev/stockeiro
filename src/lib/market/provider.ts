@@ -52,12 +52,46 @@ export function quoteKey(ticker: string, micCode?: string | null): string {
   return micCode ? `${ticker}:${micCode}` : ticker;
 }
 
+/**
+ * Motivo CLASIFICADO por el que un símbolo no se pudo cotizar (SPEC-016, ADR-012 pto. 6).
+ * Es vocabulario del DOMINIO, no el texto del proveedor: la UI muestra esto, nunca un
+ * `{"code":403,"message":"...upgrade your plan"}`. El texto crudo, si acaso, va al log.
+ */
+export type QuoteFailureReason =
+  /** El plan/proveedor no sirve ese mercado (p. ej. BME en el free tier de Twelve Data). */
+  | 'mercado_no_cubierto'
+  /** El proveedor no conoce el símbolo (deslistado, ilíquido, ticker erróneo). */
+  | 'simbolo_desconocido'
+  /** El símbolo no tiene operating MIC canónico: no se puede cotizar sin adivinar (ADR-012). */
+  | 'sin_identidad_de_mercado'
+  /** Caída/límite del proveedor: es transitorio, no un problema del símbolo. */
+  | 'proveedor_no_disponible';
+
+/** Un símbolo que NO se pudo cotizar, con su motivo (SPEC-016). */
+export interface ProviderFailure {
+  ticker: string;
+  micCode?: string | null;
+  reason: QuoteFailureReason;
+}
+
+/**
+ * Resultado de pedir cotizaciones: lo resuelto Y lo no resuelto **con su motivo**.
+ * Antes se devolvía solo `ProviderQuote[]` y lo que faltaba se descartaba en silencio —
+ * por eso el defecto de cobertura de EPIC-FIX pasó semanas sin detectarse. El puerto ya
+ * no se traga el motivo (ADR-012 pto. 6).
+ */
+export interface QuotesResult {
+  quotes: ProviderQuote[];
+  failures: ProviderFailure[];
+}
+
 export interface MarketDataProvider {
   /**
    * Pide las cotizaciones de `requests` en UNA operación (ADR-002: 1 símbolo = 1
    * llamada por ciclo). Cada petición lleva su `micCode` para desambiguar el mercado
-   * (ADR-007). Devuelve solo los que se pudieron resolver; los que fallan se omiten
-   * del resultado (CA-6 de SPEC-004), nunca hacen fallar a los demás.
+   * (ADR-007/ADR-012). Devuelve lo resuelto en `quotes` y lo NO resuelto en `failures`
+   * **con su motivo clasificado** (SPEC-016): un símbolo que falla nunca hace fallar a
+   * los demás (CA-6 de SPEC-004), pero tampoco desaparece sin explicación.
    */
-  getQuotes(requests: QuoteRequest[]): Promise<ProviderQuote[]>;
+  getQuotes(requests: QuoteRequest[]): Promise<QuotesResult>;
 }
