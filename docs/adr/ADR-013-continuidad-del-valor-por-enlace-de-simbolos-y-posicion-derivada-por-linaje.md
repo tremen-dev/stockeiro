@@ -1,13 +1,14 @@
 ---
 id: ADR-013
 tipo: adr
-estado: borrador
+estado: aprobada
 historial:
   - {estado: borrador, fecha: 2026-07-15, por: sdd-arquitecto}
+  - {estado: aprobada, fecha: 2026-07-15, por: humano (Alberto Fojo)}
 ---
 # ADR-013: Continuidad del valor por enlace de simbolos y posicion derivada por linaje
 
-- Deciders: propone **sdd-arquitecto**; aprueba el **humano** (gate). Origina EPIC-003, aprobada en el gate del 2026-07-15 con dos decisiones de producto: **alcance solo continuidad con sucesor** y **la app aplica RN-07 con confirmación**.
+- Deciders: propone **sdd-arquitecto**; **aprobado por el humano (Alberto Fojo) el 2026-07-15**. Origina EPIC-003, aprobada el mismo día con dos decisiones de producto: **alcance solo continuidad con sucesor** y **la app aplica RN-07 con confirmación**. Matices resueltos en este gate: (1) las **zonas de las vigiladas se re-escalan ÷r y se enseñan en el antes/después** (pto. 7) — confirmado frente a la alternativa de vaciarlas; (2) la **divisa distinta se queda fuera** y su salida es **cerrar la posición y abrir otra** (F-ADR-013-2); (3) el **ratio lo teclea el usuario**, sin red automática (F-ADR-013-1).
 - Specs relacionadas: origina **SPEC-017** (evento y posición por linaje), **SPEC-018** (declararla desde la cartera) y **SPEC-019** (unificar el import). **Reinterpreta ADR-003** (modelo de cartera) extendiendo su modelo de eventos; **no lo supersede**. Consume **ADR-007**/**ADR-012** (identidad del símbolo) y **ADR-004** (universo de refresco). Toca `fusionarValor` de **ADR-009**.
 
 ## Contexto
@@ -141,9 +142,15 @@ el desempate: **si CE-1 (el P/L vuelve) y CE-3 (la historia no se falsea) chocan
   entradas de varios símbolos hay que garantizar un orden total estable; la query ya ordena
   por `occurredOn, createdAt, id`, así que basta con preservarlo al concatenar. **Detalle
   fino que la spec debe fijar y probar.**
-- **Divisa distinta = no se puede continuar** (punto 5). Si una empresa se muda de BME (EUR)
-  a NASDAQ (USD), el usuario se queda sin salida dentro de este alcance. Es coherente con
-  RN-09, pero es una limitación real: **F-ADR-013-2**, a reevaluar si aparece el caso.
+- **Divisa distinta = no se puede continuar** (punto 5). Si una empresa se muda de BME (EUR) a
+  NASDAQ (USD), no hay continuidad posible sin romper RN-09. **F-ADR-013-2 — limitación
+  ACEPTADA en el gate (2026-07-15)**: la salida es **cerrar la posición y abrir otra**, que ya
+  se puede hacer hoy con `recordSell` + `recordBuy`, sin código nuevo.
+  **Consecuencia honesta de esa salida**, para que no sorprenda después: cerrar materializa un
+  **P/L realizado de una venta que no ocurrió** (la empresa se mudó, el usuario no vendió). Es
+  correcto según D-6 —realizado y actual nunca se mezclan— pero el realizado deja de reflejar
+  solo operaciones reales. Se acepta porque el caso es raro y el alcance de la épica es
+  *continuidad*, no *mudanza de divisa*. Reevaluable si aparece el caso de verdad.
 
 ## Alternativas consideradas
 
