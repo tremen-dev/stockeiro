@@ -1,3 +1,4 @@
+import Link from 'next/link';
 import { auth } from '@/lib/auth/config';
 import { db } from '@/db/client';
 import { portfolioSummary } from '@/lib/portfolio/service';
@@ -22,9 +23,14 @@ export default async function CarteraPage() {
     <>
       <AppNav active="cartera" />
       <main className="page">
-        <div className="page-head">
-          <span className="eyebrow">Cartera</span>
-          <h1 className="headline">Tu cartera</h1>
+        <div className="page-head page-head-row">
+          <div>
+            <span className="eyebrow">Cartera</span>
+            <h1 className="headline">Tu cartera</h1>
+          </div>
+          <Link href="/cartera/importar" className="btn" data-testid="importar-cta">
+            Importar extracto
+          </Link>
         </div>
 
         <section className="lede">

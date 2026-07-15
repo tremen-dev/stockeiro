@@ -354,3 +354,54 @@
   cursor: pointer;
 }
 .symbol-chip-change:hover { border-color: var(--fg); }
+
+/* ── Import desde bróker (SPEC-014) ───────────────────────────────────── */
+.page-head-row { display: flex; justify-content: space-between; align-items: flex-end; gap: 16px; flex-wrap: wrap; }
+
+.import-wizard { display: grid; gap: 20px; margin-top: 8px; }
+
+.import-steps { display: flex; gap: 8px; list-style: none; padding: 0; margin: 0; flex-wrap: wrap; }
+.import-steps li {
+  display: flex; align-items: center; gap: 8px;
+  color: var(--fg-dim); font: 600 14px/1 var(--font-sans);
+  padding: 8px 14px; border: 1px solid var(--line); border-radius: 999px;
+}
+.import-steps li.done { color: var(--fg); border-color: var(--line-strong); }
+.import-steps li[aria-current="step"] { border-color: var(--ember); color: var(--fg); }
+.import-step-n {
+  display: inline-grid; place-items: center; width: 20px; height: 20px;
+  border-radius: 50%; background: var(--bg-elev); border: 1px solid var(--line-strong); font-size: 12px;
+}
+
+.import-valores { list-style: none; padding: 0; margin: 0; display: grid; gap: 12px; }
+.import-valor { display: grid; gap: 10px; }
+.import-valor-head { display: flex; justify-content: space-between; align-items: center; gap: 12px; flex-wrap: wrap; }
+.import-valor-mkt { color: var(--fg-dim); margin-left: 8px; font-size: 13px; }
+
+.import-ok, .import-pending {
+  padding: 4px 12px; border-radius: 999px; font-size: 13px; font-weight: 600; white-space: nowrap;
+  border: 1px solid currentColor;
+}
+.import-ok { color: #7CFFB2; }
+.import-pending { color: var(--ember); }
+
+.import-warn { color: var(--ember); font-size: 13px; margin: 0; }
+.import-hint { color: var(--fg-dim); font-size: 13px; }
+.import-candidatos { display: flex; gap: 8px; flex-wrap: wrap; align-items: center; }
+.import-resolver { display: grid; gap: 10px; }
+.import-fuse { display: flex; gap: 8px; align-items: center; color: var(--fg-dim); font-size: 13px; flex-wrap: wrap; }
+.import-fuse select {
+  background: var(--bg-elev); border: 1px solid var(--line-strong); color: var(--fg);
+  border-radius: 8px; padding: 6px 8px; font: inherit;
+}
+.import-actions { display: flex; justify-content: flex-end; gap: 12px; align-items: center; flex-wrap: wrap; }
+
+.import-buckets { display: grid; grid-template-columns: repeat(3, 1fr); gap: 12px; }
+.import-bucket { display: grid; gap: 4px; text-align: center; }
+.import-bucket-n { font: 700 28px/1 var(--font-sans); color: var(--fg); }
+.import-avisos { list-style: none; padding: 0; margin: 0; display: grid; gap: 8px; }
+
+@media (max-width: 720px) {
+  .import-buckets { grid-template-columns: 1fr; }
+  .import-valor-head { align-items: flex-start; }
+}

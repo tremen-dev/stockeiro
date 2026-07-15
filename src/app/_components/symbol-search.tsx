@@ -15,8 +15,21 @@ type Status = 'idle' | 'loading' | 'empty' | 'error';
  * El usuario busca por nombre o ticker; al elegir un candidato, la identidad de
  * mercado (ticker, micCode, exchange, name, currency) queda en campos ocultos que
  * la server action lee. Sin selección no hay campos → no se puede guardar (CA-8).
+ *
+ * `onSelect` (opcional, SPEC-014): si se pasa, al elegir un candidato se invoca el
+ * callback y el picker se resetea para volver a usarse (flujo cliente del import),
+ * en vez de quedar fijado con campos ocultos de formulario. Sin él, comportamiento
+ * original (chip + inputs ocultos). No rompe a los consumidores existentes.
  */
-export function SymbolSearch({ helpText }: { helpText?: string }) {
+export function SymbolSearch({
+  helpText,
+  onSelect,
+  placeholder,
+}: {
+  helpText?: string;
+  onSelect?: (m: SymbolMatch) => void;
+  placeholder?: string;
+}) {
   const [query, setQuery] = useState('');
   const [results, setResults] = useState<SymbolMatch[]>([]);
   const [selected, setSelected] = useState<SymbolMatch | null>(null);
@@ -51,6 +64,15 @@ export function SymbolSearch({ helpText }: { helpText?: string }) {
   }, [query, selected]);
 
   function choose(m: SymbolMatch) {
+    if (onSelect) {
+      // Flujo cliente (import): notifica y resetea el picker para reutilizarlo.
+      onSelect(m);
+      setSelected(null);
+      setOpen(false);
+      setResults([]);
+      setQuery('');
+      return;
+    }
     setSelected(m);
     setOpen(false);
     setResults([]);
@@ -100,7 +122,7 @@ export function SymbolSearch({ helpText }: { helpText?: string }) {
           id="symbol-q"
           className="symbol-search-input"
           autoComplete="off"
-          placeholder="Busca por nombre o ticker (p. ej. Microsoft)"
+          placeholder={placeholder ?? 'Busca por nombre o ticker (p. ej. Microsoft)'}
           value={query}
           onChange={(e) => setQuery(e.target.value)}
           onFocus={() => {
