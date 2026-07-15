@@ -29,6 +29,13 @@
       "when": 1784071387059,
       "tag": "0003_import_idempotency",
       "breakpoints": true
+    },
+    {
+      "idx": 4,
+      "version": "7",
+      "when": 1784108141061,
+      "tag": "0004_backfill_operating_mic",
+      "breakpoints": true
     }
   ]
 }

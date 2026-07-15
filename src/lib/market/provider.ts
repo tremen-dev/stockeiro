@@ -25,11 +25,20 @@ export interface QuoteRequest {
 export interface ProviderQuote {
   /** Ticker tal como se pidió (normalizado por el dominio antes de llamar). */
   ticker: string;
-  /** MIC del mercado que cotizó el precio (eco de la petición, ADR-007). */
+  /**
+   * MIC del mercado que cotizó el precio, en **operating MIC canónico** (eco de la
+   * petición, ADR-007/ADR-012). El adaptador traduce el dialecto del proveedor.
+   */
   micCode?: string | null;
   /** Último cierre NO ajustado (RN-12), como string decimal. */
   price: string;
-  currency: string;
+  /**
+   * Divisa **informativa**: no todos los proveedores la devuelven (Marketstack no,
+   * verificado 2026-07-15). La divisa de la cotización es la **del símbolo** (RN-09,
+   * fijada al elegir el candidato en la búsqueda, ADR-007): el refresco usa esa, no
+   * esta. Se conserva porque algún adaptador sí la aporta.
+   */
+  currency?: string;
   /** Fecha de referencia del precio (D-2), ISO 8601. */
   asOf: string;
 }

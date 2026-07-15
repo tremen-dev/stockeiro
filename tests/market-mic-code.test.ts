@@ -19,14 +19,14 @@ const q = (price: string, currency: string) => ({ price, currency, asOf: '2026-0
 
 describe('CA-6: coherencia símbolo↔cotización — se pide por (ticker, micCode) (ADR-007)', () => {
   it('la petición al proveedor incluye el micCode del símbolo', async () => {
-    const san = await getOrCreateSymbol(db, 'SAN', 'EUR', { micCode: 'XMAD', exchange: 'BME', name: 'Banco Santander' });
+    const san = await getOrCreateSymbol(db, 'SAN', 'EUR', { micCode: 'BMEX', exchange: 'BME', name: 'Banco Santander' });
     await db.insert(watchedSymbols).values({ userId: userA, symbolId: san.id });
 
-    const provider = new FakeMarketDataProvider({ 'SAN:XMAD': q('4.20', 'EUR') });
+    const provider = new FakeMarketDataProvider({ 'SAN:BMEX': q('4.20', 'EUR') });
     await refreshQuotes(db, provider);
 
     expect(provider.calls).toHaveLength(1);
-    expect(provider.calls[0]).toContainEqual({ ticker: 'SAN', micCode: 'XMAD' });
+    expect(provider.calls[0]).toContainEqual({ ticker: 'SAN', micCode: 'BMEX' });
 
     const [quote] = await db.select().from(quotes).where(eq(quotes.symbolId, san.id));
     expect(quote.price).toBe('4.20');
@@ -34,7 +34,7 @@ describe('CA-6: coherencia símbolo↔cotización — se pide por (ticker, micCo
   });
 
   it('el mismo ticker en dos mercados recibe cada uno el precio y divisa de SU mercado', async () => {
-    const sanMad = await getOrCreateSymbol(db, 'SAN', 'EUR', { micCode: 'XMAD', exchange: 'BME', name: 'Santander' });
+    const sanMad = await getOrCreateSymbol(db, 'SAN', 'EUR', { micCode: 'BMEX', exchange: 'BME', name: 'Santander' });
     const sanNyc = await getOrCreateSymbol(db, 'SAN', 'USD', { micCode: 'XNYS', exchange: 'NYSE', name: 'Santander ADR' });
     expect(sanMad.id).not.toBe(sanNyc.id); // símbolos distintos (identidad por mercado)
 
@@ -42,7 +42,7 @@ describe('CA-6: coherencia símbolo↔cotización — se pide por (ticker, micCo
     await db.insert(watchedSymbols).values({ userId: userA, symbolId: sanNyc.id });
 
     const provider = new FakeMarketDataProvider({
-      'SAN:XMAD': q('4.20', 'EUR'),
+      'SAN:BMEX': q('4.20', 'EUR'),
       'SAN:XNYS': q('4.55', 'USD'),
     });
     await refreshQuotes(db, provider);

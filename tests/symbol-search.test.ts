@@ -5,7 +5,7 @@ import type { SymbolMatch } from '@/lib/market/search-provider';
 
 const match = (over: Partial<SymbolMatch>): SymbolMatch => ({
   ticker: 'MSFT',
-  micCode: 'XNGS',
+  micCode: 'XNAS',
   exchange: 'NASDAQ',
   name: 'Microsoft Corp',
   currency: 'USD',
@@ -15,9 +15,9 @@ const match = (over: Partial<SymbolMatch>): SymbolMatch => ({
 });
 
 const CATALOG: SymbolMatch[] = [
-  match({ ticker: 'MSFT', micCode: 'XNGS', name: 'Microsoft Corp', currency: 'USD' }),
+  match({ ticker: 'MSFT', micCode: 'XNAS', name: 'Microsoft Corp', currency: 'USD' }),
   // Mismo ticker en dos mercados con distinta divisa (desambiguación, CA-3).
-  match({ ticker: 'SAN', micCode: 'XMAD', exchange: 'BME', name: 'Banco Santander SA', currency: 'EUR' }),
+  match({ ticker: 'SAN', micCode: 'BMEX', exchange: 'BME', name: 'Banco Santander SA', currency: 'EUR' }),
   match({ ticker: 'SAN', micCode: 'XNYS', exchange: 'NYSE', name: 'Banco Santander SA', currency: 'USD' }),
   // No-acción: debe descartarse (D-7).
   match({ ticker: 'BTC', micCode: 'XXXX', name: 'Bitcoin', currency: 'USD', type: 'crypto' }),
@@ -34,7 +34,7 @@ describe('CA-1: buscar por nombre resuelve el ticker', () => {
     expect(msft).toBeDefined();
     expect(msft).toMatchObject({
       ticker: 'MSFT',
-      micCode: 'XNGS',
+      micCode: 'XNAS',
       exchange: 'NASDAQ',
       name: 'Microsoft Corp',
       currency: 'USD',
@@ -74,7 +74,7 @@ describe('CA-3: desambiguación por mercado', () => {
     const results = await searchSymbols(provider, 'Santander');
     const san = results.filter((r) => r.ticker === 'SAN');
     expect(san).toHaveLength(2);
-    expect(new Set(san.map((r) => r.micCode))).toEqual(new Set(['XMAD', 'XNYS']));
+    expect(new Set(san.map((r) => r.micCode))).toEqual(new Set(['BMEX', 'XNYS']));
     expect(new Set(san.map((r) => r.currency))).toEqual(new Set(['EUR', 'USD']));
   });
 });

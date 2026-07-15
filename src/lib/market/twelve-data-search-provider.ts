@@ -1,4 +1,5 @@
 import type { SymbolSearchProvider, SymbolMatch } from './search-provider';
+import { toOperatingMic } from './mic';
 
 /**
  * Adaptador REAL de Twelve Data para búsqueda (ADR-007), endpoint `/symbol_search`
@@ -47,10 +48,16 @@ export class TwelveDataSymbolSearchProvider implements SymbolSearchProvider {
     const out: SymbolMatch[] = [];
     for (const r of body.data ?? []) {
       if (!r.symbol || !r.mic_code) continue; // sin identidad de mercado -> se omite
+      // ADR-012: Twelve Data devuelve el MIC de SEGMENTO (XNGS, XMAD…). La identidad
+      // canónica del dominio es el OPERATING MIC (XNAS, BMEX…), así que se normaliza
+      // AQUÍ, en el adaptador. Un mercado que no sabemos mapear se omite: sin identidad
+      // canónica no se podría cotizar y no se adivina (CA-3/CA-10).
+      const micCode = toOperatingMic(r.mic_code);
+      if (!micCode) continue;
       const instrumentType = r.instrument_type ?? '';
       out.push({
         ticker: r.symbol,
-        micCode: r.mic_code,
+        micCode,
         exchange: r.exchange ?? '',
         name: r.instrument_name ?? '',
         currency: r.currency ?? 'USD',

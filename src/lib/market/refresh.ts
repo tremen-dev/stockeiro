@@ -10,6 +10,8 @@ export interface UniverseSymbol {
   symbolId: string;
   ticker: string;
   micCode: string | null;
+  /** Divisa del símbolo: es la VERDAD de la cotización (RN-09), no la que diga el proveedor. */
+  currency: string;
 }
 
 /**
@@ -29,7 +31,7 @@ export async function symbolUniverse(db: Db): Promise<UniverseSymbol[]> {
   if (ids.size === 0) return [];
 
   const rows = await db.select().from(symbols).where(inArray(symbols.id, [...ids]));
-  return rows.map((s) => ({ symbolId: s.id, ticker: s.ticker, micCode: s.micCode }));
+  return rows.map((s) => ({ symbolId: s.id, ticker: s.ticker, micCode: s.micCode, currency: s.currency }));
 }
 
 export interface RefreshResult {
@@ -63,7 +65,10 @@ export async function refreshQuotes(db: Db, provider: MarketDataProvider): Promi
       skipped.push(u.ticker); // proveedor no lo resolvió -> se salta (CA-6)
       continue;
     }
-    await upsertQuote(db, u.symbolId, { price: q.price, currency: q.currency, asOf: q.asOf });
+    // La divisa es la DEL SÍMBOLO (RN-09), no la que devuelva el proveedor: la fijó el
+    // candidato elegido en la búsqueda (ADR-007). Marketstack ni siquiera la devuelve, y
+    // fiarse del proveedor permitía guardar USD (SAN@NYSE) en un símbolo EUR (ADR-012).
+    await upsertQuote(db, u.symbolId, { price: q.price, currency: u.currency, asOf: q.asOf });
     updated.push(u.ticker);
   }
   return { requested, updated, skipped };

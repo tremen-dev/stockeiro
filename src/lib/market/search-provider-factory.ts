@@ -7,13 +7,15 @@ import { FakeSymbolSearchProvider } from './fake-search-provider';
  * cuando `E2E_FAKE_SYMBOL_SEARCH=1` (nunca en producción): hace el buscador demoable
  * en local y permite un E2E determinista sin red.
  */
+// ADR-012: el puerto devuelve el MIC CANÓNICO (operating), no el de segmento — el
+// adaptador real normaliza XMAD→BMEX y XNGS→XNAS, así que el fake refleja ese contrato.
 const E2E_CATALOG = [
-  { ticker: 'ITX', micCode: 'XMAD', exchange: 'BME', name: 'Industria de Diseño Textil SA (Inditex)', currency: 'EUR', country: 'Spain', type: 'stock' },
-  { ticker: 'SAN', micCode: 'XMAD', exchange: 'BME', name: 'Banco Santander SA', currency: 'EUR', country: 'Spain', type: 'stock' },
-  { ticker: 'AAPL', micCode: 'XNGS', exchange: 'NASDAQ', name: 'Apple Inc', currency: 'USD', country: 'United States', type: 'stock' },
-  { ticker: 'MSFT', micCode: 'XNGS', exchange: 'NASDAQ', name: 'Microsoft Corp', currency: 'USD', country: 'United States', type: 'stock' },
-  { ticker: 'REP', micCode: 'XMAD', exchange: 'BME', name: 'Repsol SA', currency: 'EUR', country: 'Spain', type: 'stock' },
-  { ticker: 'TEF', micCode: 'XMAD', exchange: 'BME', name: 'Telefónica SA', currency: 'EUR', country: 'Spain', type: 'stock' },
+  { ticker: 'ITX', micCode: 'BMEX', exchange: 'BME', name: 'Industria de Diseño Textil SA (Inditex)', currency: 'EUR', country: 'Spain', type: 'stock' },
+  { ticker: 'SAN', micCode: 'BMEX', exchange: 'BME', name: 'Banco Santander SA', currency: 'EUR', country: 'Spain', type: 'stock' },
+  { ticker: 'AAPL', micCode: 'XNAS', exchange: 'NASDAQ', name: 'Apple Inc', currency: 'USD', country: 'United States', type: 'stock' },
+  { ticker: 'MSFT', micCode: 'XNAS', exchange: 'NASDAQ', name: 'Microsoft Corp', currency: 'USD', country: 'United States', type: 'stock' },
+  { ticker: 'REP', micCode: 'BMEX', exchange: 'BME', name: 'Repsol SA', currency: 'EUR', country: 'Spain', type: 'stock' },
+  { ticker: 'TEF', micCode: 'BMEX', exchange: 'BME', name: 'Telefónica SA', currency: 'EUR', country: 'Spain', type: 'stock' },
 ];
 
 /**
