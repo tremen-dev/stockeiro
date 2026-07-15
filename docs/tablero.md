@@ -25,6 +25,11 @@ Actualizado: 2026-07-15
 | SPEC-013 — registro-idempotente-en-la-cartera | hecho | 2026-07-14 (sdd-verificador) |
 | SPEC-014 — ui-del-import-desde-broker | hecho | 2026-07-15 (sdd-verificador) |
 
+## EPIC-FIX (aprobada)
+
+| Spec | Estado | Último cambio |
+|---|---|---|
+
 ## EPIC-INFRA (aprobada)
 
 | Spec | Estado | Último cambio |

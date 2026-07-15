@@ -7,26 +7,41 @@ tipo: roadmap
 > El estado fino por spec vive en el tablero; aquí vive la INTENCIÓN.
 
 ## Ahora (en curso)
-- **EPIC-001 — Vigilancia de zonas de compra/venta con cartera y avisos**
-  (estado: borrador). Es el núcleo del producto: sin la vigilancia de zonas + el
-  aviso proactivo + la cartera, no hay app que resuelva el dolor declarado. Todo
-  lo demás depende de esta base, por eso va primero.
+- **EPIC-FIX — Defectos en producción** (estado: borrador; épica *bucket*).
+  Sube a "Ahora" porque hay un defecto que **rompe la promesa central del producto**:
+  la vigilancia (CE-1) y el P/L actual (CE-3) **no funcionan para el mercado principal
+  del usuario**. El free tier de Twelve Data no cubre BME/M.CONTINUO y la cartera real
+  es ~82% mercado continuo español; además el fallo es **silencioso** (el usuario solo
+  ve "sin cotización"). La app está desplegada, así que lleva desde el despliegue sin
+  cumplir lo prometido. Nada de lo demás importa hasta que esto funcione.
+  Pendiente de gate humano para pasar a `aprobada`.
+
+## Entregado
+> Lo que ya cumple su promesa. El detalle por spec vive en `docs/tablero.md`.
+
+- **EPIC-001 — Vigilancia de zonas con cartera y avisos** (`hecho`). El núcleo:
+  vigiladas + zonas, ingesta, motor de disparo, avisos, cartera con P/L y UI.
+  ⚠️ Su promesa está **parcialmente incumplida en producción** por el defecto de
+  cobertura de mercado → lo restaura EPIC-FIX.
+- **EPIC-002 — Import de posiciones desde bróker** (`hecho`). Lee el `.xls` de ING,
+  resuelve identidad con fusión manual, registra idempotente y lo expone en
+  `/cartera/importar`. Coste en EUR neto; sin re-escalar splits.
+- **EPIC-INFRA — Infraestructura y mantenimiento** (bucket, `aprobada`). Parcheo de
+  CVE y línea mantenida de Next.js (ADR-008).
 
 ## Después (comprometido, sin empezar)
-- **EPIC-002 — Import de posiciones desde bróker** (estado: borrador). Con EPIC-001
-  ya `hecho`, el cuello de botella para que un usuario real use la app con datos
-  verdaderos es la carga inicial de la cartera: teclear años de operativa a mano no
-  se hace. El import (fichero de bróker → transacciones) es la palanca de adopción
-  sobre el núcleo ya entregado. Arranca por el export real de ING
-  (`examples/historico.xls`); coste en EUR neto manda; identidad resuelta con
-  confirmación humana en eventos corporativos (no re-escala splits); idempotente por
-  clave derivada. Pendiente de gate humano para pasar a `aprobada`.
+<!-- Vacío: no se compromete nada nuevo hasta que EPIC-FIX restaure la promesa. -->
 
 ## Más adelante (idea, sin compromiso)
+- **Observabilidad del ciclo diario**: registrar el resultado de cada ejecución del cron
+  (ingeridos / saltados / avisos) y **alertar si falla**. Hoy solo se sabe mirando logs o
+  viendo un `asOf` viejo — así se tardó en detectar el defecto de cobertura. Idea nacida
+  de EPIC-FIX; el aviso *al usuario* (CE-F2) sí entra en EPIC-FIX, esto es el aviso *al
+  operador*.
 - **Zonas calientes**: una acción a un X% de entrar en su zona (aún FUERA) se marca como
   "caliente" para seguirla de cerca; no dispara todavía, pero anticipa la entrada. Complementa
-  el motor de disparo (SPEC-005) sin sustituirlo. Idea, sin compromiso; requeriría definir el
-  umbral (% o distancia) y si genera aviso propio o solo señal en la UI.
+  el motor de disparo (SPEC-005) sin sustituirlo. Requeriría definir el umbral (% o distancia)
+  y si genera aviso propio o solo señal en la UI.
 - **Mejoras de la bandeja de avisos** (aparcadas en SPEC-007, para no bloquear el MVP):
   filtros y paginación del inbox (por tipo/ticker/fecha), archivar/borrar avisos, y
   actualización en vivo del estado de zona / contador (hoy se refresca al navegar; el tiempo
@@ -39,7 +54,8 @@ tipo: roadmap
   a la cuenta real choca con la visión ("la app no opera"); idea, sin compromiso.
 - Ajuste automático por **eventos corporativos** (re-escalar cantidades/precios en
   splits/contrasplits): EPIC-002 lo delega en confirmación humana; automatizarlo
-  requiere una fuente de eventos fiable. Idea, sin compromiso.
+  requiere una fuente de eventos fiable. *(El proveedor que entra por EPIC-FIX expone
+  `split_factor`/`dividend`, lo que lo haría más viable — pero sigue sin compromiso.)*
 - Canales de aviso adicionales (push móvil / app nativa).
 - Analítica histórica de la cartera y de aciertos de zona.
 - **F-SPEC-001-1** (deuda técnica de hardening, derivado de SPEC-001): reforzar el
@@ -48,20 +64,29 @@ tipo: roadmap
 
 ## Criterios de corte
 <!-- Qué haría subir o bajar una épica de sección. -->
-- Sube a "Ahora" lo que desbloquee un criterio de éxito de EPIC-001.
-- Baja a "Más adelante" todo lo que amplíe alcance antes de validar el núcleo
-  (más instrumentos, tiempo real, operar de verdad): son mejoras, no el problema.
+- Sube a "Ahora" lo que **restaure una promesa incumplida** de una épica entregada
+  (defecto en producción) — tiene prioridad sobre cualquier alcance nuevo.
+- Sube a "Ahora" lo que desbloquee un criterio de éxito aún no entregado.
+- Baja a "Más adelante" todo lo que amplíe alcance antes de que lo entregado funcione
+  de verdad (más instrumentos, tiempo real, operar): son mejoras, no el problema.
 
-## Antes de desplegar
-<!-- Acciones de ops previas a producción; no son épicas ni cambian de sección. -->
-- **F-SPEC-001-2** (ops, derivado de SPEC-001): aprovisionar Neon + `AUTH_SECRET`
-  reales antes de desplegar a producción. Prerequisito de despliegue; ya no bloquea
-  la verificación porque el e2e usa Postgres efímero.
-- **Ops-ingesta** (derivado de SPEC-004): aprovisionar en Vercel (Settings →
-  Environment Variables) `TWELVE_DATA_API_KEY` (Twelve Data, ADR-002) y `CRON_SECRET`
-  (protege `/api/cron/refresh`, ADR-004). No bloquean la verificación (los tests usan
-  proveedor fake + Postgres efímero); son prerequisito de producción, junto a
-  F-SPEC-001-2. Ver checklist de env en `.env.example`.
-  - `CRON_SECRET` no se pide a ningún proveedor: se genera (`openssl rand -hex 32`) y
-    se define en Vercel; Vercel Cron lo reenvía como `Authorization: Bearer <CRON_SECRET>`
-    en cada disparo. Tras cambiar variables, hacer redeploy.
+## Ops y despliegue (estado)
+<!-- Acciones de ops; no son épicas ni cambian de sección. El runbook es docs/despliegue.md. -->
+**La app está desplegada** en <https://stockeiro-lemon.vercel.app> desde 2026-07-14, con
+Neon + Twelve Data + cron diario activos. El esquema **se migra solo en el build**
+(`vercel.json`: `buildCommand = db:migrate && build`), así que una spec con cambio de
+esquema no necesita paso manual.
+
+- ✅ **F-SPEC-001-2** (Neon + `AUTH_SECRET`) — **cerrada**.
+- ✅ **F-SPEC-004-1** (`TWELVE_DATA_API_KEY` + `CRON_SECRET` + Vercel Cron) — **cerrada**.
+  ⚠️ Aprovisionada, pero el **free tier no cubre BME** → es el defecto que ataca EPIC-FIX.
+- ⏳ **F-SPEC-006-1** (Resend: `RESEND_API_KEY` + dominio verificado) — **pendiente por
+  diseño**. Sin ella los avisos quedan **in-app** (RN-15) y no sale email; el ciclo no
+  falla. Se activa cuando se quiera (runbook §7).
+- ⏳ **F-SPEC-011-1** (el build debe alcanzar `cdn.sheetjs.com`; `xlsx` viene del CDN por
+  los CVE del paquete npm) — registrado en el runbook §6.
+- ⏳ **F-SPEC-012-1** (validar el mapeo mercado→MIC contra el proveedor real) — **lo
+  absorbe EPIC-FIX**: es la misma raíz (operating MIC vs segment MIC).
+- ⚠️ **Preview comparte la BD de producción**: `DATABASE_URL` está definida para
+  `Production, Preview` con un único valor, y el build migra en **todos** los entornos →
+  **una PR migraría producción**. Arreglo: BD Neon aparte para Preview (runbook §6).
