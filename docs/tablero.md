@@ -1,7 +1,7 @@
 <!-- GENERADO por tremen-sdd (scripts/tablero.mjs). NO EDITAR A MANO. -->
 # Tablero
 
-Actualizado: 2026-07-14
+Actualizado: 2026-07-15
 
 ## EPIC-001 — vigilancia-de-zonas-de-compra-venta-con-cartera-y-avisos (hecho)
 
@@ -23,6 +23,7 @@ Actualizado: 2026-07-14
 | SPEC-011 — lectura-del-extracto-de-ing | hecho | 2026-07-14 (sdd-verificador) |
 | SPEC-012 — resolucion-de-identidad-e-importacion-asistida | hecho | 2026-07-14 (sdd-verificador) |
 | SPEC-013 — registro-idempotente-en-la-cartera | hecho | 2026-07-14 (sdd-verificador) |
+| SPEC-014 — ui-del-import-desde-broker | hecho | 2026-07-15 (sdd-verificador) |
 
 ## EPIC-INFRA (aprobada)
 
@@ -33,4 +34,4 @@ Actualizado: 2026-07-14
 
 ## Resumen
 
-- hecho: 13
+- hecho: 14

@@ -22,21 +22,46 @@ epica: EPIC-002
 <!-- Un CA está ✅ solo cuando Implementado + Test + Verif. aplicables están en verde. Una salvedad se marca ⚠️, nunca ✅. -->
 | CA | Implementado (fichero) | Test (fichero/caso) | Verif. | Estado |
 |---|---|---|---|---|
-| CA-1 (entrada al import) | `cartera/page.tsx` (botón); `cartera/importar/page.tsx` | `tests/e2e/importar.spec.ts` › test 1 (importar-cta → /cartera/importar) | | ❌ |
-| CA-2 (subida y lectura) | `importar/actions.ts` (`readStatementAction`); `import-wizard.tsx` | `importar.spec.ts` › test 1 (summary "6") | | ❌ |
-| CA-3 (fichero inválido) | `importar/actions.ts` (catch `ExtractoIllegibleError`) | `importar.spec.ts` › CA-3 (read-error visible) | | ❌ |
-| CA-4 (resolución asistida) | `import-wizard.tsx` (`SymbolSearch onSelect`); `actions.ts` (`confirmSelectionAction`) | `importar.spec.ts` › test 1 (APPLE COMPUTER → AAPL) | | ❌ |
-| CA-5 (fusión manual) | `import-wizard.tsx` (fuse-select); `actions.ts` (`fuseAction`) | `importar.spec.ts` › test 1 (REPSOL YPF + fuse-warn) | | ❌ |
-| CA-6 (pendientes visibles) | `import-wizard.tsx` (badge pendiente) | `importar.spec.ts` › test 1 (DESCONOCIDO pendiente) | | ❌ |
-| CA-7 (previsualizar sin escribir) | `actions.ts` (`previewAction`); `import-wizard.tsx` (buckets) | `importar.spec.ts` › test 1 (count-crear/pendientes) | | ❌ |
-| CA-8 (confirmar → cartera) | `actions.ts` (`confirmImportAction`+revalidate) | `importar.spec.ts` › test 1 (result + filas ITX/REP/AAPL) | | ❌ |
-| CA-9 (idempotencia visible) | `actions.ts` (`previewAction` re-import) | `importar.spec.ts` › test 1 (0 crear / 4 saltar) | | ❌ |
-| CA-10 (aviso sobreventa) | `register.ts` (`detectarSobreventa`, reusado); `import-wizard.tsx` (avisos) | `importar.spec.ts` › test 1 (avisos SANTANDER) | | ❌ |
-| CA-11 (acceso protegido) | `src/proxy.ts` (sesión) — sin cambios | `importar.spec.ts` › CA-11 (redirige a /login) | | ❌ |
-| CA-12 (coherencia responsive) | `globals.css` (import-*, media 720px) | `importar.spec.ts` › test 1 (viewport móvil + screenshot) | | ❌ |
+| CA-1 (entrada al import) | `cartera/page.tsx` (botón); `cartera/importar/page.tsx` | `tests/e2e/importar.spec.ts` › test 1 (importar-cta → /cartera/importar) | verde: navega a /cartera/importar | ✅ |
+| CA-2 (subida y lectura) | `importar/actions.ts` (`readStatementAction`); `import-wizard.tsx` | `importar.spec.ts` › test 1 (summary "6") | verde: lee el .xls y muestra 6 ops/valores | ✅ |
+| CA-3 (fichero inválido) | `importar/actions.ts` (catch `ExtractoIllegibleError`) | `importar.spec.ts` › CA-3 (read-error visible) | verde: error legible, sigue en paso 1 | ✅ |
+| CA-4 (resolución asistida) | `import-wizard.tsx` (`SymbolSearch onSelect`); `actions.ts` (`confirmSelectionAction`) | `importar.spec.ts` › test 1 (APPLE COMPUTER → AAPL) | verde: pick manual por buscador → resuelto | ✅ |
+| CA-5 (fusión manual) | `import-wizard.tsx` (fuse-select); `actions.ts` (`fuseAction`) | `importar.spec.ts` › test 1 (REPSOL YPF + fuse-warn) | verde: fusión + aviso de split | ✅ |
+| CA-6 (pendientes visibles) | `import-wizard.tsx` (badge pendiente) | `importar.spec.ts` › test 1 (DESCONOCIDO pendiente) | verde: badge pendiente visible | ✅ |
+| CA-7 (previsualizar sin escribir) | `actions.ts` (`previewAction`); `import-wizard.tsx` (buckets) | `importar.spec.ts` › test 1 (count-crear/pendientes) | verde: buckets 4/1 antes de confirmar | ✅ |
+| CA-8 (confirmar → cartera) | `actions.ts` (`confirmImportAction`+revalidate) | `importar.spec.ts` › test 1 (result + filas ITX/REP/AAPL) | verde: creadas y cartera muestra ITX/REP/AAPL | ✅ |
+| CA-9 (idempotencia visible) | `actions.ts` (`previewAction` re-import) | `importar.spec.ts` › test 1 (0 crear / 4 saltar) | verde: re-import 0-crear / 4-saltar | ✅ |
+| CA-10 (aviso sobreventa) | `register.ts` (`detectarSobreventa`, reusado); `import-wizard.tsx` (avisos) | `importar.spec.ts` › test 1 (avisos SANTANDER) | verde: aviso de sobreventa mostrado | ✅ |
+| CA-11 (acceso protegido) | `src/proxy.ts` (sesión) — sin cambios | `importar.spec.ts` › CA-11 (redirige a /login) | verde: sin sesión redirige a /login | ✅ |
+| CA-12 (coherencia responsive) | `globals.css` (import-*, media 720px) | `importar.spec.ts` › test 1 (viewport móvil + screenshot) | verde: móvil 390px sin romper (_qa/SPEC-014/mobile.png) | ✅ |
 
 ## Veredicto del verificador
-<!-- GREEN/RED + fecha + resumen. Lo escribe SOLO sdd-verificador. -->
+**GREEN** — 2026-07-15 (sdd-verificador).
+
+Gates automáticos (independientes): `tsc --noEmit` limpio; `eslint` sin errores; suite
+unit **142/142**; `next build` OK (ruta `/cartera/importar` presente); suite Playwright
+**15/15** (3 de import + cartera/vigiladas/avisos/ingesta/auth **sin regresión** — el
+refactor del factory de búsqueda no rompió SPEC-008/002/003/007).
+
+CA-1..CA-12 todos **✅** con aserto E2E no vacío; el flujo REAL de navegador pasa de
+principio a fin: subir fixture sintético → summary 6 → resolver (auto + pick manual
+APPLE→AAPL + fusión REPSOL YPF→REP con aviso) → dejar 1 pendiente → previsualizar
+(4 a crear / 1 pendiente / aviso de sobreventa SANTANDER) → confirmar → cartera muestra
+ITX/REP/AAPL → re-import (0 a crear / 4 a saltar). Evidencia: `_qa/SPEC-014/preview.png`,
+`_qa/SPEC-014/mobile.png`.
+
+Auditoría adversarial superada:
+- **Alcance**: `actions.ts` ORQUESTA (delega en `ing-xls-reader`/`identity`/`register`),
+  no reimplementa dominio; el binario del extracto se procesa en memoria
+  (`arrayBuffer→Uint8Array→read`) y **no se persiste**.
+- **Sesión/aislamiento (RN-01/RN-03)**: cada server action resuelve la sesión y rechaza
+  sin ella; escritura/lectura por `userId`. CA-11 (redirect) verificado en navegador.
+- **Lenguaje ubicuo**: la UI usa cartera/posición/símbolo/importar/pendiente/sobreventa.
+
+**Salvedad aceptada (no bloquea)**: los valores con UN único candidato se auto-confirman
+para no obligar a confirmar lo obvio en extractos grandes. CE-3 se cumple: el usuario ve
+cada resolución (y puede cambiarla) y **confirma el import completo** tras la
+previsualización; nada se escribe sin esa confirmación final. Documentado en salvedades.
 
 ## Evidencia visual
 - `_qa/SPEC-014/preview.png` — paso de previsualización (a-crear/pendientes/avisos).
