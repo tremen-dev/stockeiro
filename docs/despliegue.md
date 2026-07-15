@@ -3,12 +3,16 @@
 > Runbook para poner Stockeiro en producción en **Vercel**, con **Neon** (Postgres),
 > **Twelve Data** (cotizaciones) y **Resend** (email). Pensada para repetirse: sigue los
 > pasos en orden. Los `follow-ups` de despliegue de las specs (F-SPEC-001-2, F-SPEC-004-1,
-> F-SPEC-006-1) se cierran aquí.
+> F-SPEC-006-1, F-SPEC-011-1, F-SPEC-012-1) se cierran aquí.
 
-> **Estado (2026-07-14):** desplegado en <https://stockeiro-lemon.vercel.app> con **Neon +
-> Twelve Data + cron** activos (F-SPEC-001-2 y F-SPEC-004-1 cerradas). **Email (Resend)
-> pendiente** (F-SPEC-006-1): la app funciona con avisos **in-app** (RN-15) hasta activarlo.
-> Para incorporar el email más adelante, ver **§7**.
+> **Estado (2026-07-15):** desplegado en <https://stockeiro-lemon.vercel.app> con **Neon +
+> Twelve Data + cron** activos (F-SPEC-001-2 y F-SPEC-004-1 cerradas). El esquema se migra
+> **automáticamente en el build** (§1.1). **EPIC-002 (import desde bróker)** ya está en `main`:
+> sus migraciones (`0002_symbol_aliases`, `0003_import_idempotency`) se aplican solas al
+> desplegar. Pendientes:
+> - **Email (Resend)** — F-SPEC-006-1: la app funciona con avisos **in-app** (RN-15); ver **§7**.
+> - **F-SPEC-011-1**: el build debe alcanzar `cdn.sheetjs.com` (dependencia `xlsx`); ver **§6**.
+> - **F-SPEC-012-1**: validar el mapeo mercado→MIC del import contra Twelve Data real; ver **§5**.
 
 ## 0. Qué vamos a aprovisionar
 
@@ -48,17 +52,29 @@ openssl rand -hex 32      # CRON_SECRET
 
 ### 1.1 Materializar el esquema en Neon
 
-La app **no** corre migraciones al desplegar; se aplican una vez con Drizzle
-(migración versionada en `drizzle/`):
+**El deploy migra solo.** `vercel.json` define:
+
+```json
+"buildCommand": "npm run db:migrate && npm run build"
+```
+
+Es decir, **cada** deploy (incluido `vercel --prod`) ejecuta `drizzle-kit migrate` con el
+`DATABASE_URL` de ese entorno **antes** de construir, aplicando las migraciones versionadas
+de `drizzle/`. Es **idempotente** (Drizzle lleva registro de lo ya aplicado) y si la
+migración falla, el `&&` corta: **el build falla y no se despliega** — se queda la versión
+anterior. **No hay paso manual** tras una spec que cambie el esquema: basta desplegar.
+
+Solo necesitas migrar a mano si quieres tocar la BD **fuera** de un deploy (p. ej. preparar
+Neon antes del primer despliegue, o depurar):
 
 ```bash
 # con la connection string real de Neon:
 DATABASE_URL="postgresql://…?sslmode=require" npm run db:migrate
 ```
 
-- `npm run db:generate` regenera la migración desde `src/db/schema.ts` si cambia el esquema.
+- `npm run db:generate` regenera la migración desde `src/db/schema.ts` si cambia el esquema
+  (esto sí es manual, y su fichero `drizzle/NNNN_*.sql` se commitea).
 - Alternativa rápida sin ficheros de migración: `DATABASE_URL=… npx drizzle-kit push`.
-- Repite este paso tras cada cambio de esquema (nueva spec con tabla/columna).
 
 ---
 
@@ -151,13 +167,20 @@ vercel --prod     # deploy a producción
 ## 5. Checklist rápido
 
 - [ ] Neon creado y `DATABASE_URL` en Vercel.
-- [ ] Esquema aplicado (`npm run db:migrate` contra Neon).
+- [ ] Esquema: **automático en el build** (`db:migrate` en `buildCommand`, §1.1). Solo manual si
+  migras fuera de un deploy.
+- [ ] Entorno *Preview* con **BD Neon aparte** (o sin `DATABASE_URL` de producción) — si no, una
+  PR migraría producción (§6).
 - [ ] `AUTH_SECRET`, `AUTH_TRUST_HOST` puestos.
 - [ ] Twelve Data: `TWELVE_DATA_API_KEY`; `CRON_SECRET` generado y puesto.
 - [ ] Resend: dominio verificado, `RESEND_API_KEY`, `RESEND_FROM` — **pendiente por diseño**, se
   añade cuando se quiera el email (ver **§7**); la app funciona con avisos in-app mientras tanto.
-- [ ] `vercel --prod` verde.
+- [ ] `vercel --prod` verde (build alcanza `cdn.sheetjs.com`, §6).
 - [ ] Smoke test (registro + cron manual + email) OK.
+- [ ] Import (EPIC-002): subir un extracto en `/cartera/importar` y comprobar la resolución
+  contra Twelve Data **real** — cierra **F-SPEC-012-1** (la tabla `MARKET_MAP` etiqueta→MIC de
+  `src/lib/import/market-map.ts` es **provisional**: se diseñó por familia de MIC para tolerar
+  sub-MICs, pero solo está verificada con el proveedor *fake*).
 
 ---
 
@@ -165,11 +188,19 @@ vercel --prod     # deploy a producción
 
 - **Rotación de secretos**: si regeneras `CRON_SECRET`/`AUTH_SECRET`, actualiza la env en Vercel
   y **redeploy** (las envs se leen en build/arranque).
-- **Migraciones**: el deploy NO migra solo. Tras una spec que cambie el esquema, ejecuta el paso
-  1.1 contra Neon **antes** o justo después del deploy, o la app dará error de tabla/columna.
+- **Migraciones**: el deploy **SÍ migra solo** — `vercel.json` corre `npm run db:migrate`
+  dentro del `buildCommand` (ver **§1.1**). Tras una spec que cambie el esquema no hay paso
+  manual: basta desplegar. Si la migración falla, el build falla y no se despliega.
+- **Preview deployments** ⚠️: el `buildCommand` corre en **todos** los entornos, así que un
+  deploy de *Preview* **también migra** la BD a la que apunte su `DATABASE_URL`. Si el entorno
+  *Preview* comparte la Neon de producción, **una PR migraría producción**. Usa una **BD Neon
+  aparte para Preview** (no es una recomendación estética: con `db:migrate` en el build es lo
+  que separa producción de las PRs).
+- **Dependencia del build con el CDN de SheetJS** (F-SPEC-011-1): `xlsx` es dependencia de
+  producción instalada desde `https://cdn.sheetjs.com/...` (el paquete de npm está congelado
+  y con CVEs; SPEC-011). El build de Vercel debe poder alcanzar ese host: si no, `npm install`
+  falla **antes** de migrar y no se despliega.
 - **Regiones**: alinea la región de Neon con la de las Functions para latencia baja.
-- **Preview deployments**: si quieres que las PR previews funcionen, replica las envs en el
-  entorno *Preview* (o usa una BD Neon aparte para preview).
 
 ---
 
