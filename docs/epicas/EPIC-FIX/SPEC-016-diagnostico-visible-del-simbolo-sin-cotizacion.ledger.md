@@ -19,21 +19,116 @@ epica: EPIC-FIX
 <!-- Un CA está ✅ solo cuando Implementado + Test + Verif. aplicables están en verde. Una salvedad se marca ⚠️, nunca ✅. -->
 | CA | Implementado (fichero) | Test (fichero/caso) | Verif. | Estado |
 |---|---|---|---|---|
-| CA-1 (motivo propagado y CLASIFICADO) | `market/provider.ts` (`QuoteFailureReason`, `ProviderFailure`, `QuotesResult`); `marketstack-provider.ts` (`classify`); `fail-reason-text.ts` | `tests/quote-diagnostics.test.ts` › CA-1 (2 casos) + e2e (el texto crudo no llega a la UI) | | ❌ |
-| CA-2 (se persiste el último diagnóstico) | `db/schema.ts` (`quote_diagnostics`); `market/quotes.ts` (`upsertDiagnostic`); `refresh.ts` | `quote-diagnostics.test.ts` › CA-2 (motivo + attemptedAt; 1 fila por símbolo) | | ❌ |
-| CA-3 (distinguir "sin datos aún" de "no se puede cotizar") | `zone-status.ts` (`failReason`); `vigiladas/page.tsx` | `quote-diagnostics.test.ts` › CA-3 + `e2e/diagnostico-cotizacion.spec.ts` › CA-3/CA-4 | | ❌ |
-| CA-4 (visible en /vigiladas) | `vigiladas/page.tsx`; `globals.css` (`.quote-fail`/`.quote-pending`) | `quote-diagnostics.test.ts` › CA-4 + e2e › CA-3/CA-4 (`data-reason`, screenshot) | | ❌ |
-| CA-5 (visible en /cartera junto al "—") | `cartera/page.tsx`; `market/quotes.ts` (`getDiagnosticMap`) | `quote-diagnostics.test.ts` › CA-5/CA-6 + e2e › CA-5/CA-6 (screenshot) | | ❌ |
-| CA-6 (RN-06 intacto) | sin cambios en `portfolio/position.ts` ni `service.ts` | `quote-diagnostics.test.ts` › CA-5/CA-6 (plActual null, actualTotal null, realizado aparte) | | ❌ |
-| CA-7 (la resiliencia no se rompe) | `refresh.ts` (se salta y sigue) | `quote-diagnostics.test.ts` › CA-7; `market-refresh.test.ts` › CA-6 (SPEC-004) sigue verde | | ❌ |
-| CA-8 (el diagnóstico se limpia al resolverse) | `market/quotes.ts` (`clearDiagnostic`); `refresh.ts` | `quote-diagnostics.test.ts` › CA-8 (desaparece y la fila vuelve a la normalidad) | | ❌ |
-| CA-9 (aislamiento RN-01) | `zone-status.ts` (filtra por `userId`) | `quote-diagnostics.test.ts` › CA-9 | | ❌ |
+| CA-1 (motivo propagado y CLASIFICADO) | `market/provider.ts` (`QuoteFailureReason`, `ProviderFailure`, `QuotesResult`); `marketstack-provider.ts` (`classify`); `fail-reason-text.ts` | `tests/quote-diagnostics.test.ts` › CA-1 (2 casos) + e2e (el texto crudo no llega a la UI) | Vocabulario y traducción CORRECTOS: el fixture es la respuesta real del free tier (casa con ADR-012, incl. el artefacto `**symbol**`) y el aserto es `toEqual` estricto, no de adorno. `FAIL_REASON_TEXT` no filtra texto de proveedor (aserto negativo `/plan\|403\|upgrade/i` en unit **y** en e2e). **PERO** el motivo puede atribuirse al MERCADO EQUIVOCADO cuando un ticker está en dos mercados: **F-SPEC-016-3**, reproducido (ver Veredicto) | ⚠️ |
+| CA-2 (se persiste el último diagnóstico) | `db/schema.ts` (`quote_diagnostics`); `market/quotes.ts` (`upsertDiagnostic`); `refresh.ts` | `quote-diagnostics.test.ts` › CA-2 (motivo + attemptedAt; 1 fila por símbolo) | Verificado. `upsertDiagnostic` es upsert por `symbol_id` (UNIQUE) → el 2º ciclo actualiza y el test lo prueba (`toHaveLength(1)`). `attemptedAt` persistido y asertado. Esquema concordante en los **4** sitios (schema.ts / 0005 / test-db.ts / e2e-server.mjs): comparados campo a campo, sin drift | ✅ |
+| CA-3 (distinguir "sin datos aún" de "no se puede cotizar") | `zone-status.ts` (`failReason`); `vigiladas/page.tsx` | `quote-diagnostics.test.ts` › CA-3 + `e2e/diagnostico-cotizacion.spec.ts` › CA-3/CA-4 | Verificado en unit **y en navegador**. Los dos estados son distinguibles por `data-testid` distinto (`sin-datos-aun` vs `fail-reason`) y el e2e asserta la ausencia del otro (`toHaveCount(0)`) en ambos sentidos — no basta con que aparezca el propio | ✅ |
+| CA-4 (visible en /vigiladas) | `vigiladas/page.tsx`; `globals.css` (`.quote-fail`/`.quote-pending`) | `quote-diagnostics.test.ts` › CA-4 + e2e › CA-3/CA-4 (`data-reason`, screenshot) | Verificado en navegador (Playwright, 17/17). El estado de zona sigue `none` (RN-11/SPEC-007 intacto) y el motivo lo acompaña sin sustituirlo. Captura: `vigiladas-motivo.png` | ✅ |
+| CA-5 (visible en /cartera junto al "—") | `cartera/page.tsx`; `market/quotes.ts` (`getDiagnosticMap`) | `quote-diagnostics.test.ts` › CA-5/CA-6 + e2e › CA-5/CA-6 (screenshot) | Verificado en navegador. El e2e asserta el "—" **y** el motivo a la vez: el guion no se sustituye por el motivo. Captura: `cartera-motivo.png` | ✅ |
+| CA-6 (RN-06 intacto) | sin cambios en `portfolio/position.ts` ni `service.ts` | `quote-diagnostics.test.ts` › CA-5/CA-6 (plActual null, actualTotal null, realizado aparte) | Verificado por lectura y por test. `git diff` confirma **cero cambios** en `portfolio/`: el motivo es DECORACIÓN (`{dash(p.plActual)}` y aparte el `<span>`), no un dato que entre en el cálculo. `plActual`/`actualTotal` null y `realizadoPL` '0.00' sin contaminar (D-6) | ✅ |
+| CA-7 (la resiliencia no se rompe) | `refresh.ts` (se salta y sigue) | `quote-diagnostics.test.ts` › CA-7; `market-refresh.test.ts` › CA-6 (SPEC-004) sigue verde | Verificado. **El test de SPEC-004 se REFORZÓ, no se relajó**: el `git diff` muestra que `toEqual(['AAPL'])` conserva la igualdad estricta de array (`.map(s => s.ticker)`) y **añade** `expect(skipped[0].reason).toBeTruthy()`. Suite completa 26 ficheros / 166 tests sin regresión | ✅ |
+| CA-8 (el diagnóstico se limpia al resolverse) | `market/quotes.ts` (`clearDiagnostic`); `refresh.ts` | `quote-diagnostics.test.ts` › CA-8 (desaparece y la fila vuelve a la normalidad) | Verificado. `clearDiagnostic` se llama en el camino de éxito de `refresh.ts` (l. 89) y el test comprueba las dos caras: el diagnóstico desaparece **y** `state !== 'none'`. Sin fantasmas por esta vía (ver Observación 2) | ✅ |
+| CA-9 (aislamiento RN-01) | `zone-status.ts` (filtra por `userId`) | `quote-diagnostics.test.ts` › CA-9 | Verificado. `zoneStatusForUser` parte `FROM watchedSymbols WHERE userId = ?`, así que el `leftJoin` de diagnóstico solo puede aflorar símbolos propios. Que la tabla sea compartida por símbolo NO filtra: en `/cartera`, `getDiagnosticMap` se resuelve en servidor (RSC) y solo se indexa por los tickers del propio usuario; el mapa no se serializa al cliente | ✅ |
 
 ## Veredicto del verificador
 <!-- GREEN/RED + fecha + resumen. Lo escribe SOLO sdd-verificador. -->
 
+### 🔴 RED — 2026-07-15 (sdd-verificador), commit 1d901ab
+
+**8 de 9 CA cerrados con evidencia sólida. CA-1 ⚠️ por un defecto REPRODUCIDO en el adaptador.**
+
+Gates todos en verde: `tsc --noEmit` 0 · `eslint` 0 errores (1 warning **preexistente**,
+confirmado: `LedgerEntry` en `tests/position.test.ts` viene del commit `2059d48` de 2026-07-14,
+SPEC-002 — no es de esta spec) · `vitest` **26 ficheros / 166 tests** · `build` OK ·
+`playwright` **17/17** (incluidos los 2 nuevos de SPEC-016).
+
+La calidad general es alta y las tres decisiones de diseño del implementador se sostienen bajo
+auditoría: el cambio de contrato del puerto está **explícitamente autorizado** por ADR-012 pto. 6
+("*`getQuotes` pasa a poder informar, por símbolo, por qué no hubo precio… El detalle de forma y
+de UI lo fija SPEC-016*") y **no se ha excedido**: `git diff` confirma cero cambios en `portfolio/`,
+disparos y avisos. La tabla propia está bien justificada (un símbolo nunca cotizado no tiene fila
+en `quotes`). Y `refresh.ts:80` (`failed.get(key) ?? 'proveedor_no_disponible'`) es un acierto:
+hace **estructuralmente imposible** saltarse un símbolo sin motivo, que es justo CE-F2.
+
+#### F-SPEC-016-3 — `MarketstackProvider` atribuye el fallo al MERCADO EQUIVOCADO (bloqueante)
+
+`marketstack-provider.ts:112` empareja la fila de error **solo por ticker**:
+
+```js
+const [t] = String(row.symbol ?? '').split('.');   // descarta el MIC que acaba de parsear
+const req = askable.find((r) => r.ticker === t);   // ← devuelve el PRIMER SAN, sea cual sea su mercado
+```
+
+El camino de ÉXITO (l. 124) sí empareja por `ticker` **y** `micCode`. La incoherencia dentro de la
+misma función indica descuido, no decisión.
+
+**Reproducido** (sonda sobre el adaptador REAL, no un fake — mismo ticker en dos mercados, que es
+el escenario que ADR-012 usa como ejemplo estrella: `SAN.BMEX` 11,984 € vs `SAN.XNYS` 13,63 $):
+
+- Petición: `[{SAN,BMEX}, {SAN,XNYS}]` · Respuesta: `SAN.XNYS` error 404 + `SAN.BMEX` close 11.984
+- **Obtenido**: `quotes=[SAN:BMEX 11.984]` y `failures=[{SAN:BMEX simbolo_desconocido}, {SAN:XNYS simbolo_desconocido}]`
+- **Esperado**: `failures=[{SAN:XNYS simbolo_desconocido}]`
+
+Dos consecuencias:
+1. **Se viola el invariante de `QuotesResult`**: `SAN:BMEX` sale a la vez en `quotes` y en
+   `failures` — "resuelto" y "no resuelto" al mismo tiempo. Hoy `refresh.ts` lo tolera **por
+   suerte** (consulta `returned` antes que `failed`), no por diseño; cualquier consumidor futuro
+   que recorra `failures` (p. ej. el alerting al operador que la spec deja para EPIC-MEJORA)
+   daría por fallido un símbolo que cotizó bien.
+2. **El motivo puede ser FALSO**: si el que falla es el mercado no cubierto (403) y no es el
+   primero de la lista, el usuario lee *"El proveedor no reconoce este símbolo (puede estar
+   deslistado)"* cuando la verdad es *"no cubre este mercado"*. En la spec cuyo producto **es**
+   el motivo, un motivo mentiroso es el defecto que la spec vino a matar, reaparecido un nivel
+   más abajo.
+
+**Por qué es bloqueante y no salvedad**: el disparador no es hipotético. "El mismo ticker en dos
+mercados" es escenario de dominio de primera clase, ya modelado y probado
+(`tests/market-mic-code.test.ts:35`, un usuario vigilando `SAN@BMEX` y `SAN@XNYS` a la vez), y es
+la razón de ser de ADR-007. Ese test solo pasa hoy porque inyecta el **fake**, que sí empareja por
+`quoteKey` completo; el adaptador real no. Y el arreglo es de una línea. Una salvedad se acepta
+cuando es cara o estructural — no cuando es un `find` al que le falta un `&&`.
+
+**Arreglo propuesto** (lo decide el implementador): emparejar por identidad completa, aprovechando
+el MIC que la fila de error **ya trae** (`symbol: "SAN.BMEX"`), y traducirlo con el
+`fromProviderMic` que ya existe. Lo que no case por MIC debe caer al barrido final de `pedidos`,
+que ya cubre "pedido sin respuesta". Añadir el test que falta: mismo ticker en dos mercados contra
+`MarketstackProvider`, con el fallo en el **segundo** de los pedidos.
+
+#### Sobre las salvedades declaradas por el implementador
+
+- **F-SPEC-016-1** (el e2e siembra `quote_diagnostics` por SQL en vez de correr el ciclo):
+  **legítima, y basta para CA-4/CA-5**. Esos CA hablan de *lo que el usuario ve dado un
+  diagnóstico*, y eso se prueba en navegador de punta a punta. El tramo ciclo→BD que el e2e se
+  salta está cubierto en unit con el adaptador real (`market-operating-mic.test.ts:183`,
+  `quote-diagnostics.test.ts` CA-2). No es un hueco encubierto: es reparto de responsabilidades
+  entre niveles. Se mantiene como mejora.
+- **F-SPEC-016-2** (`proveedor_no_disponible` sin test propio): **legítima**, riesgo bajo — es el
+  `default` de `classify()` y además el fallback de `refresh.ts:80`, ambos ejercitados de refilón.
+
+#### Observaciones (no bloquean)
+
+1. `getDiagnosticMap` trae los diagnósticos de **todos** los símbolos del sistema para luego usar
+   solo los del usuario. No filtra nada al cliente (RSC, ver CA-9), pero es trabajo de más que
+   crecerá con la base de símbolos. Candidato a EPIC-MEJORA.
+2. Un símbolo que sale del universo (se deja de vigilar) conserva su fila de diagnóstico; si se
+   vuelve a vigilar antes del siguiente ciclo, se muestra el motivo del intento anterior. Es
+   información cierta y fechada (`attemptedAt`), y CA-8 solo exige la limpieza vía ciclo → fuera
+   de alcance, pero conviene tenerlo presente.
+3. La UI no muestra `attemptedAt` aunque se persiste (CA-2 solo exige persistirlo, CA-4 no lo
+   pide). Con el motivo ya visible, enseñar "intentado el X" reforzaría D-2. Mejora, no defecto.
+
+#### Qué NO hay que tocar al arreglar
+
+Los 8 CA restantes están cerrados con evidencia; el arreglo debe limitarse a
+`marketstack-provider.ts` + su test. En particular, **no** hay que retocar `refresh.ts:80` ni el
+contrato de `QuotesResult`: son correctos.
+
 ## Evidencia visual
 <!-- Tabla CA → captura en _qa/SPEC-016/. Informe HTML opcional: _qa/SPEC-016/informe.html -->
+
+| CA | Captura | Qué demuestra |
+|---|---|---|
+| CA-3 / CA-4 | `_qa/SPEC-016/vigiladas-motivo.png` | `/vigiladas`: el motivo (`data-reason=mercado_no_cubierto`) acompaña al estado de zona, que sigue "Sin cotización" (RN-11). Distinguible de "aún sin datos" |
+| CA-5 / CA-6 | `_qa/SPEC-016/cartera-motivo.png` | `/cartera`: el P/L actual sigue "—" (RN-06) **con** el motivo al lado — el guion deja de ser mudo sin inventar dato |
 
 ## Decisiones de diseño (la spec dejaba la forma abierta)
 
