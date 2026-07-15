@@ -19,7 +19,7 @@ beforeEach(async () => {
 });
 
 /** Crea un símbolo compartido y devuelve su id (identidad ticker,micCode). */
-async function symbolId(ticker: string, currency: string, micCode = 'XMAD'): Promise<string> {
+async function symbolId(ticker: string, currency: string, micCode = 'BMEX'): Promise<string> {
   const s = await getOrCreateSymbol(db, ticker, currency, { micCode, exchange: 'X', name: ticker });
   return s.id;
 }

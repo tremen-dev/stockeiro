@@ -43,7 +43,7 @@ const op = (
 
 const match = (over: Partial<SymbolMatch>): SymbolMatch => ({
   ticker: 'MSFT',
-  micCode: 'XNGS',
+  micCode: 'XNAS',
   exchange: 'NASDAQ',
   name: 'Microsoft Corp',
   currency: 'USD',
@@ -54,36 +54,38 @@ const match = (over: Partial<SymbolMatch>): SymbolMatch => ({
 
 const valor = (nombreBroker: string, etiquetaMercado: string) => ({ nombreBroker, etiquetaMercado });
 
-describe('CA-1: filtro por mercado (etiqueta → MIC/bolsa)', () => {
-  it('mismo nombre en dos mercados: solo se ofrece el de la etiqueta (sub-MIC NASDAQ ok)', async () => {
+describe('CA-1: filtro por mercado (etiqueta → operating MIC)', () => {
+  it('mismo nombre en dos mercados: solo se ofrece el de la etiqueta', async () => {
+    // ADR-012: el puerto entrega el MIC CANÓNICO (operating). La normalización de
+    // sub-MICs (XNGS→XNAS) la hace el adaptador de búsqueda, no este filtro.
     const provider = new FakeSymbolSearchProvider([
-      match({ ticker: 'MSFT', micCode: 'XNGS', exchange: 'NASDAQ', name: 'Microsoft Corp' }),
-      match({ ticker: 'MSFT', micCode: 'XMAD', exchange: 'BME', name: 'Microsoft Corp', currency: 'EUR' }),
+      match({ ticker: 'MSFT', micCode: 'XNAS', exchange: 'NASDAQ', name: 'Microsoft Corp' }),
+      match({ ticker: 'MSFT', micCode: 'BMEX', exchange: 'BME', name: 'Microsoft Corp', currency: 'EUR' }),
     ]);
     const r = await resolverValor(db, userA, provider, valor('MICROSOFT', 'NASDAQ'));
     expect(r.estado).toBe('suggested');
     expect(r.candidatos).toHaveLength(1);
-    expect(r.candidatos![0].micCode).toBe('XNGS'); // XNGS aceptado como familia NASDAQ; XMAD excluido
+    expect(r.candidatos![0].micCode).toBe('XNAS'); // el candidato de BMEX se excluye
   });
 });
 
 describe('CA-2: búsqueda por nombre vía puerto', () => {
-  it('resuelve INDITEX → ITX/XMAD consultando el proveedor', async () => {
+  it('resuelve INDITEX → ITX/BMEX consultando el proveedor', async () => {
     const provider = new FakeSymbolSearchProvider([
-      match({ ticker: 'ITX', micCode: 'XMAD', exchange: 'BME', name: 'Inditex SA', currency: 'EUR' }),
+      match({ ticker: 'ITX', micCode: 'BMEX', exchange: 'BME', name: 'Inditex SA', currency: 'EUR' }),
     ]);
     const r = await resolverValor(db, userA, provider, valor('INDITEX', 'M.CONTINUO'));
     expect(provider.calls).toContain('INDITEX');
     expect(r.estado).toBe('suggested');
-    expect(r.candidatos![0]).toMatchObject({ ticker: 'ITX', micCode: 'XMAD', currency: 'EUR' });
+    expect(r.candidatos![0]).toMatchObject({ ticker: 'ITX', micCode: 'BMEX', currency: 'EUR' });
   });
 });
 
 describe('CA-3: ambiguo o sin coincidencia → sin resolver (no auto-asigna)', () => {
   it('varios candidatos del mismo mercado → ambiguous sin symbolId', async () => {
     const provider = new FakeSymbolSearchProvider([
-      match({ ticker: 'SAN', micCode: 'XMAD', exchange: 'BME', name: 'Banco Santander', currency: 'EUR' }),
-      match({ ticker: 'SAN.P', micCode: 'XMAD', exchange: 'BME', name: 'Banco Santander pref', currency: 'EUR' }),
+      match({ ticker: 'SAN', micCode: 'BMEX', exchange: 'BME', name: 'Banco Santander', currency: 'EUR' }),
+      match({ ticker: 'SAN.P', micCode: 'BMEX', exchange: 'BME', name: 'Banco Santander pref', currency: 'EUR' }),
     ]);
     const r = await resolverValor(db, userA, provider, valor('SANTANDER', 'M.CONTINUO'));
     expect(r.estado).toBe('ambiguous');
@@ -101,11 +103,11 @@ describe('CA-3: ambiguo o sin coincidencia → sin resolver (no auto-asigna)', (
 
 describe('CA-4: la selección del usuario fija la identidad', () => {
   it('confirmar crea el símbolo (ticker,micCode,currency) y persiste el alias', async () => {
-    const chosen = match({ ticker: 'ITX', micCode: 'XMAD', exchange: 'BME', name: 'Inditex SA', currency: 'EUR' });
+    const chosen = match({ ticker: 'ITX', micCode: 'BMEX', exchange: 'BME', name: 'Inditex SA', currency: 'EUR' });
     const { symbolId } = await confirmarSeleccion(db, userA, valor('INDITEX', 'M.CONTINUO'), chosen);
 
     const [sym] = await db.select().from(symbols).where(eq(symbols.id, symbolId));
-    expect(sym).toMatchObject({ ticker: 'ITX', micCode: 'XMAD', currency: 'EUR' });
+    expect(sym).toMatchObject({ ticker: 'ITX', micCode: 'BMEX', currency: 'EUR' });
 
     const [alias] = await db
       .select()
@@ -119,11 +121,11 @@ describe('CA-4: la selección del usuario fija la identidad', () => {
 describe('CA-5: lo no resuelto no pasa a registro', () => {
   it('particiona en resueltas (con symbolId) y pendientes', async () => {
     const provider = new FakeSymbolSearchProvider([
-      match({ ticker: 'ITX', micCode: 'XMAD', exchange: 'BME', name: 'Inditex SA', currency: 'EUR' }),
+      match({ ticker: 'ITX', micCode: 'BMEX', exchange: 'BME', name: 'Inditex SA', currency: 'EUR' }),
     ]);
     const ops = [op('INDITEX', 'M.CONTINUO'), op('NOEXISTE', 'NASDAQ')];
     // Confirmar solo INDITEX; NOEXISTE queda sin resolver.
-    await confirmarSeleccion(db, userA, valor('INDITEX', 'M.CONTINUO'), match({ ticker: 'ITX', micCode: 'XMAD', currency: 'EUR', name: 'Inditex SA' }));
+    await confirmarSeleccion(db, userA, valor('INDITEX', 'M.CONTINUO'), match({ ticker: 'ITX', micCode: 'BMEX', currency: 'EUR', name: 'Inditex SA' }));
 
     const resoluciones = await resolverValores(db, userA, provider, ops);
     const { resueltas, pendientes } = particionar(ops, resoluciones);
@@ -135,7 +137,7 @@ describe('CA-5: lo no resuelto no pasa a registro', () => {
 
 describe('CA-6: resolución recordada, sin re-preguntar', () => {
   it('tras confirmar, re-resolver da remembered sin consultar al proveedor', async () => {
-    await confirmarSeleccion(db, userA, valor('INDITEX', 'M.CONTINUO'), match({ ticker: 'ITX', micCode: 'XMAD', currency: 'EUR', name: 'Inditex SA' }));
+    await confirmarSeleccion(db, userA, valor('INDITEX', 'M.CONTINUO'), match({ ticker: 'ITX', micCode: 'BMEX', currency: 'EUR', name: 'Inditex SA' }));
     const provider = new FakeSymbolSearchProvider([match({ ticker: 'ITX', name: 'Inditex SA' })]);
     const r = await resolverValor(db, userA, provider, valor('INDITEX', 'M.CONTINUO'));
     expect(r.estado).toBe('remembered');
@@ -146,7 +148,7 @@ describe('CA-6: resolución recordada, sin re-preguntar', () => {
 
 describe('CA-7: fusión manual de eventos corporativos (sin re-escalar)', () => {
   it('dos nombres al mismo símbolo → mismo symbolId y aviso de fusión (split)', async () => {
-    const phm = match({ ticker: 'PHM', micCode: 'XMAD', exchange: 'BME', name: 'Pharma Mar', currency: 'EUR' });
+    const phm = match({ ticker: 'PHM', micCode: 'BMEX', exchange: 'BME', name: 'Pharma Mar', currency: 'EUR' });
     const a = await confirmarSeleccion(db, userA, valor('PHARMAMAR', 'M.CONTINUO'), phm);
     expect(a.fused).toBe(false); // primer alias, aún no hay fusión
 
@@ -159,7 +161,7 @@ describe('CA-7: fusión manual de eventos corporativos (sin re-escalar)', () => 
   });
 
   it('fusionarValor apunta un valor a un símbolo ya resuelto, con aviso', async () => {
-    const { symbolId } = await confirmarSeleccion(db, userA, valor('PHARMAMAR', 'M.CONTINUO'), match({ ticker: 'PHM', micCode: 'XMAD', currency: 'EUR', name: 'Pharma Mar' }));
+    const { symbolId } = await confirmarSeleccion(db, userA, valor('PHARMAMAR', 'M.CONTINUO'), match({ ticker: 'PHM', micCode: 'BMEX', currency: 'EUR', name: 'Pharma Mar' }));
     const f = await fusionarValor(db, userA, valor('PHARMA MAR', 'M.CONTINUO'), symbolId);
     expect(f).toEqual({ symbolId, fused: true });
   });
@@ -168,8 +170,8 @@ describe('CA-7: fusión manual de eventos corporativos (sin re-escalar)', () => 
 describe('CA-8: independiente por defecto', () => {
   it('dos nombres distintos se resuelven por separado, sin fusión automática', async () => {
     const provider = new FakeSymbolSearchProvider([
-      match({ ticker: 'ITX', micCode: 'XMAD', exchange: 'BME', name: 'Inditex SA', currency: 'EUR' }),
-      match({ ticker: 'SAN', micCode: 'XMAD', exchange: 'BME', name: 'Banco Santander', currency: 'EUR' }),
+      match({ ticker: 'ITX', micCode: 'BMEX', exchange: 'BME', name: 'Inditex SA', currency: 'EUR' }),
+      match({ ticker: 'SAN', micCode: 'BMEX', exchange: 'BME', name: 'Banco Santander', currency: 'EUR' }),
     ]);
     const ops = [op('INDITEX', 'M.CONTINUO'), op('SANTANDER', 'M.CONTINUO')];
     expect(distinctValores(ops)).toHaveLength(2);
@@ -203,8 +205,8 @@ describe('CA-10: aislamiento y acceso (RN-01/RN-03)', () => {
   });
 
   it('el alias recordado de un usuario no lo ve otro', async () => {
-    await confirmarSeleccion(db, userA, valor('INDITEX', 'M.CONTINUO'), match({ ticker: 'ITX', micCode: 'XMAD', currency: 'EUR', name: 'Inditex SA' }));
-    const provider = new FakeSymbolSearchProvider([match({ ticker: 'ITX', micCode: 'XMAD', exchange: 'BME', name: 'Inditex SA', currency: 'EUR' })]);
+    await confirmarSeleccion(db, userA, valor('INDITEX', 'M.CONTINUO'), match({ ticker: 'ITX', micCode: 'BMEX', currency: 'EUR', name: 'Inditex SA' }));
+    const provider = new FakeSymbolSearchProvider([match({ ticker: 'ITX', micCode: 'BMEX', exchange: 'BME', name: 'Inditex SA', currency: 'EUR' })]);
     const rB = await resolverValor(db, userB, provider, valor('INDITEX', 'M.CONTINUO'));
     expect(rB.estado).not.toBe('remembered'); // B no hereda el alias de A
     expect(provider.calls).toContain('INDITEX'); // B sí consulta (no tiene recuerdo)
@@ -216,7 +218,7 @@ describe('CA-11: resiliencia del proveedor por valor', () => {
     const flaky: SymbolSearchProvider = {
       search: async (q: string) => {
         if (q.includes('BADCO')) throw new Error('proveedor caído (simulado)');
-        return [match({ ticker: 'GOOD', micCode: 'XNGS', exchange: 'NASDAQ', name: 'Good Co' })];
+        return [match({ ticker: 'GOOD', micCode: 'XNAS', exchange: 'NASDAQ', name: 'Good Co' })];
       },
     };
     const ops = [op('GOODCO', 'NASDAQ'), op('BADCO', 'NASDAQ')];

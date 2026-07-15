@@ -1,7 +1,7 @@
 import { NextResponse } from 'next/server';
 import { db } from '@/db/client';
 import { runCronCycle } from '@/lib/triggers/cycle';
-import { TwelveDataProvider } from '@/lib/market/twelve-data-provider';
+import { quoteProvider } from '@/lib/market/quote-provider-factory';
 import { ResendSender } from '@/lib/notifications/resend-sender';
 
 /**
@@ -20,7 +20,7 @@ export async function GET(req: Request): Promise<Response> {
     authHeader: req.headers.get('authorization'),
     secret: process.env.CRON_SECRET,
     db,
-    provider: new TwelveDataProvider(),
+    provider: quoteProvider(), // Marketstack (ADR-012); Twelve Data solo hace la búsqueda
     sender: new ResendSender(),
   });
   return NextResponse.json(outcome.body, { status: outcome.status });

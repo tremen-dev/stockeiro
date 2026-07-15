@@ -135,6 +135,8 @@ const child = spawn('npx', ['next', 'start', '-p', String(APP_PORT)], {
     NODE_ENV: 'production',
     // SPEC-008: el buscador usa el catálogo fake (determinista, sin red) en e2e.
     E2E_FAKE_SYMBOL_SEARCH: '1',
+    // SPEC-015/ADR-012: las cotizaciones usan el fake (sin llamar a Marketstack).
+    E2E_FAKE_QUOTES: '1',
   },
 });
 
