@@ -7,14 +7,17 @@ tipo: roadmap
 > El estado fino por spec vive en el tablero; aquí vive la INTENCIÓN.
 
 ## Ahora (en curso)
-- **EPIC-FIX — Defectos en producción** (estado: borrador; épica *bucket*).
-  Sube a "Ahora" porque hay un defecto que **rompe la promesa central del producto**:
+- **EPIC-FIX — Defectos en producción** (estado: `aprobada`; épica *bucket*).
+  Subió a "Ahora" porque hay un defecto que **rompe la promesa central del producto**:
   la vigilancia (CE-1) y el P/L actual (CE-3) **no funcionan para el mercado principal
   del usuario**. El free tier de Twelve Data no cubre BME/M.CONTINUO y la cartera real
   es ~82% mercado continuo español; además el fallo es **silencioso** (el usuario solo
   ve "sin cotización"). La app está desplegada, así que lleva desde el despliegue sin
   cumplir lo prometido. Nada de lo demás importa hasta que esto funcione.
-  Pendiente de gate humano para pasar a `aprobada`.
+  **Estado**: SPEC-015 (proveedor con cobertura real → Marketstack) y SPEC-016
+  (diagnóstico visible, **CE-F2 cumplido**) están `hecho` y en `main`. Queda confirmar
+  **CE-F1 contra la cartera real en producción** — el despliegue aplica la migración en
+  el build, así que se verá en el próximo ciclo del cron.
 
 ## Entregado
 > Lo que ya cumple su promesa. El detalle por spec vive en `docs/tablero.md`.
@@ -30,7 +33,20 @@ tipo: roadmap
   CVE y línea mantenida de Next.js (ADR-008).
 
 ## Después (comprometido, sin empezar)
-<!-- Vacío: no se compromete nada nuevo hasta que EPIC-FIX restaure la promesa. -->
+- **EPIC-003 — Continuidad del valor a través de eventos corporativos** (estado: borrador).
+  Cuando una empresa hace un contrasplit y cambia de nombre, o cambia de ticker, la cartera
+  **no sabe decir que el de antes y el de ahora son el mismo valor**: las transacciones
+  cuelgan del símbolo viejo, no hay forma de continuarlas y el P/L actual se queda en "—"
+  **para siempre**. Rompe CE-3 de EPIC-001 para ese valor. Caso real y documentado:
+  **PharmaMar, contrasplit 12:1 + cambio de nombre**, en el extracto de ING que originó
+  EPIC-002.
+  **Por qué "Después" y no "Ahora"**: rompe CE-3 solo para los valores que han pasado por un
+  evento corporativo, no para la cartera entera — EPIC-FIX era el 82% de la cartera sin
+  cotizar, y por eso mandaba. En cuanto EPIC-FIX cierre, esta es la siguiente.
+  **Por qué ahora se ve y antes no**: estaba tapado por el silencio. SPEC-016 hace visible
+  *por qué* un símbolo no cotiza, y el usuario descubre que no puede hacer nada al respecto.
+  Es la cláusula que EPIC-FIX dejó escrita: *"si el arreglo destapa una capacidad que falta,
+  va a su épica de producto"*. Pendiente de gate humano.
 
 ## Más adelante (idea, sin compromiso)
 - **Observabilidad del ciclo diario**: registrar el resultado de cada ejecución del cron
@@ -52,10 +68,17 @@ tipo: roadmap
 - Import por **conexión** con el bróker (API, sin fichero) y **otros formatos/brókers**
   (CSV, PDF): evolución de EPIC-002, que en v1 solo lee el `.xls` de ING. La conexión
   a la cuenta real choca con la visión ("la app no opera"); idea, sin compromiso.
-- Ajuste automático por **eventos corporativos** (re-escalar cantidades/precios en
-  splits/contrasplits): EPIC-002 lo delega en confirmación humana; automatizarlo
-  requiere una fuente de eventos fiable. *(El proveedor que entra por EPIC-FIX expone
-  `split_factor`/`dividend`, lo que lo haría más viable — pero sigue sin compromiso.)*
+- **Detección automática** de eventos corporativos (que la app se entere sola del split, sin
+  que el usuario lo declare): sigue sin compromiso porque automatizarlo **requiere una fuente
+  de eventos fiable** y no está validada. El proveedor que entra por EPIC-FIX expone
+  `split_factor`/`dividend`, lo que lo haría más viable. **Ojo, ya no es lo que era**:
+  EPIC-003 se lleva el *re-escalado* (lo hará la app aplicando RN-07, con confirmación del
+  usuario), así que lo único que queda aquí es la **detección** — enterarse del evento sin
+  que nadie lo teclee.
+- **Deslistado sin sucesor**: un valor que deja de cotizar y **no continúa en ningún sitio**
+  (¿archivar la posición? ¿congelar su P/L?). Se dejó **fuera de EPIC-003 a propósito**: esa
+  épica va de *continuar* un valor, y esto es *cerrar* uno muerto — otra capacidad, otra
+  aritmética. Idea, sin compromiso, hasta que haya caso real.
 - Canales de aviso adicionales (push móvil / app nativa).
 - Analítica histórica de la cartera y de aciertos de zona.
 - **F-SPEC-001-1** (deuda técnica de hardening, derivado de SPEC-001): reforzar el
