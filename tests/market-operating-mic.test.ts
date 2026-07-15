@@ -89,7 +89,7 @@ describe('CA-4 / CA-5 / CA-6: adaptador Marketstack', () => {
       ],
     };
     const provider = new MarketstackProvider('key', fakeFetch(body));
-    const out = await provider.getQuotes([{ ticker: 'ITX', micCode: 'BMEX' }]);
+    const { quotes: out } = await provider.getQuotes([{ ticker: 'ITX', micCode: 'BMEX' }]);
 
     expect(out).toHaveLength(1);
     expect(out[0].micCode).toBe('BMEX'); // el eco casa con lo pedido (CA-4)
@@ -105,7 +105,7 @@ describe('CA-4 / CA-5 / CA-6: adaptador Marketstack', () => {
     }) as unknown as typeof fetch;
 
     const provider = new MarketstackProvider('key', spyFetch);
-    const out = await provider.getQuotes([{ ticker: 'BMW', micCode: 'XETR' }]);
+    const { quotes: out } = await provider.getQuotes([{ ticker: 'BMW', micCode: 'XETR' }]);
 
     expect(pedido).toContain('BMW.XETRA'); // se pide en su dialecto
     expect(out[0].micCode).toBe('XETR'); // pero el dominio recibe el canónico ISO
@@ -142,11 +142,13 @@ describe('CA-8: resiliencia por símbolo', () => {
       ],
     };
     const provider = new MarketstackProvider('key', fakeFetch(body));
-    const out = await provider.getQuotes([
+    const { quotes: out, failures } = await provider.getQuotes([
       { ticker: 'ITX', micCode: 'BMEX' },
       { ticker: 'ZZZ', micCode: 'BMEX' },
     ]);
     expect(out.map((o) => o.ticker)).toEqual(['ITX']); // el fallido no aborta al otro
+    // SPEC-016: el fallido NO desaparece — sale con su motivo clasificado.
+    expect(failures).toEqual([{ ticker: 'ZZZ', micCode: 'BMEX', reason: 'mercado_no_cubierto' }]);
   });
 
   it('un fallo GLOBAL (HTTP 200 con {error}) se propaga como error', async () => {
@@ -176,12 +178,13 @@ describe('CA-10: un símbolo sin operating MIC canónico NO se cotiza', () => {
     expect(legacy.micCode).toBeNull();
 
     const provider = new MarketstackProvider('key', fakeFetch({ data: [] }));
-    const out = await provider.getQuotes([{ ticker: 'VIEJO', micCode: null }]);
+    const { quotes: out, failures } = await provider.getQuotes([{ ticker: 'VIEJO', micCode: null }]);
     expect(out).toEqual([]); // no se cotiza
+    expect(failures[0].reason).toBe('sin_identidad_de_mercado'); // y se dice por qué (SPEC-016)
 
     const res = await refreshQuotes(db, new FakeMarketDataProvider({}));
     expect(res.updated).toEqual([]);
-    expect(res.skipped).toContain('VIEJO'); // se salta; el motivo al usuario es SPEC-016
+    expect(res.skipped.map((s) => s.ticker)).toContain('VIEJO'); // se salta CON su motivo (SPEC-016)
   });
 });
 
@@ -220,7 +223,7 @@ describe('CA-11: el dominio depende del PUERTO, no del proveedor', () => {
   it('refreshQuotes funciona con cualquier adaptador', async () => {
     await watchSymbol(db, userA, 'ITX', 'EUR', {}, { micCode: 'BMEX', exchange: 'BME', name: 'Inditex' });
     const otro: MarketDataProvider = {
-      getQuotes: async (reqs) => reqs.map((r) => ({ ticker: r.ticker, micCode: r.micCode ?? null, price: '1.23', asOf: '2026-07-14T00:00:00.000Z' })),
+      getQuotes: async (reqs) => ({ quotes: reqs.map((r) => ({ ticker: r.ticker, micCode: r.micCode ?? null, price: '1.23', asOf: '2026-07-14T00:00:00.000Z' })), failures: [] }),
     };
     const res = await refreshQuotes(db, otro);
     expect(res.updated).toEqual(['ITX']);

@@ -1,13 +1,21 @@
-import { quoteKey, type MarketDataProvider, type ProviderQuote, type QuoteRequest } from './provider';
+import {
+  quoteKey,
+  type MarketDataProvider,
+  type ProviderFailure,
+  type ProviderQuote,
+  type QuoteFailureReason,
+  type QuoteRequest,
+  type QuotesResult,
+} from './provider';
 
 /**
  * Proveedor fake inyectable para tests/e2e (ADR-004): precios y fallos controlados,
  * sin tocar la API real. El dominio depende del puerto, así que este fake es
- * intercambiable con `TwelveDataProvider` sin cambiar el servicio de refresco.
+ * intercambiable con `MarketstackProvider` sin cambiar el servicio de refresco.
  *
  * El mapa `prices` se indexa por `quoteKey(ticker, micCode)`: para símbolos legacy
  * (sin mercado) la clave es el ticker (`{ ITX: ... }`); con mercado es
- * `ticker:micCode` (`{ 'MSFT:XNGS': ... }`).
+ * `ticker:micCode` (`{ 'ITX:BMEX': ... }`).
  */
 export interface FakeQuoteSpec {
   price: string;
@@ -20,25 +28,41 @@ export class FakeMarketDataProvider implements MarketDataProvider {
   public readonly calls: QuoteRequest[][] = [];
 
   /**
-   * @param prices  quoteKey -> cotización a devolver. Una clave AUSENTE del mapa
-   *                simula un fallo del proveedor para ese símbolo (se omite, CA-6).
+   * @param prices    quoteKey -> cotización a devolver.
+   * @param failures  quoteKey -> motivo CLASIFICADO (SPEC-016). Una clave que no está
+   *                  en ninguno de los dos mapas se reporta como `simbolo_desconocido`:
+   *                  el fake nunca hace desaparecer un símbolo en silencio, igual que el
+   *                  adaptador real.
    */
-  constructor(private readonly prices: Record<string, FakeQuoteSpec>) {}
+  constructor(
+    private readonly prices: Record<string, FakeQuoteSpec>,
+    private readonly failures: Record<string, QuoteFailureReason> = {},
+  ) {}
 
-  async getQuotes(requests: QuoteRequest[]): Promise<ProviderQuote[]> {
+  async getQuotes(requests: QuoteRequest[]): Promise<QuotesResult> {
     this.calls.push([...requests]);
-    const out: ProviderQuote[] = [];
+    const quotes: ProviderQuote[] = [];
+    const fails: ProviderFailure[] = [];
+
     for (const req of requests) {
-      const spec = this.prices[quoteKey(req.ticker, req.micCode)];
-      if (!spec) continue; // símbolo sin precio -> se omite (fallo simulado, CA-6)
-      out.push({
+      const key = quoteKey(req.ticker, req.micCode);
+      const spec = this.prices[key];
+      if (spec) {
+        quotes.push({
+          ticker: req.ticker,
+          micCode: req.micCode ?? null,
+          price: spec.price,
+          currency: spec.currency,
+          asOf: spec.asOf,
+        });
+        continue;
+      }
+      fails.push({
         ticker: req.ticker,
         micCode: req.micCode ?? null,
-        price: spec.price,
-        currency: spec.currency,
-        asOf: spec.asOf,
+        reason: this.failures[key] ?? 'simbolo_desconocido',
       });
     }
-    return out;
+    return { quotes, failures: fails };
   }
 }

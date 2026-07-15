@@ -137,6 +137,31 @@ export type Quote = typeof quotes.$inferSelect;
 export type NewQuote = typeof quotes.$inferInsert;
 
 /**
+ * `quote_diagnostics` — por qué un símbolo NO se pudo cotizar (SPEC-016, ADR-012 pto. 6).
+ * COMPARTIDA por símbolo (`symbolId` único), como `quotes`: el motivo no depende del
+ * usuario. Tabla propia y no una columna de `quotes` porque un símbolo que NUNCA se
+ * cotizó no tiene fila en `quotes` — y es justo el caso que hay que explicar.
+ *
+ * Existe porque el defecto de cobertura (EPIC-FIX) pasó semanas sin detectarse: el ciclo
+ * se saltaba los símbolos (CA-6 de SPEC-004, resiliencia correcta) y tiraba el motivo, así
+ * que el usuario veía "sin cotización" igual que si el ciclo no hubiera corrido.
+ *
+ * `reason` es vocabulario del DOMINIO (`QuoteFailureReason`), nunca el texto del proveedor.
+ * La fila se BORRA cuando un ciclo posterior sí obtiene precio (CA-8): sin avisos fantasma.
+ */
+export const quoteDiagnostics = pgTable('quote_diagnostics', {
+  id: uuid('id').defaultRandom().primaryKey(),
+  symbolId: uuid('symbol_id')
+    .notNull()
+    .unique()
+    .references(() => symbols.id),
+  reason: text('reason').notNull(), // QuoteFailureReason (dominio)
+  attemptedAt: timestamp('attempted_at', { withTimezone: true }).notNull().defaultNow(),
+});
+
+export type QuoteDiagnostic = typeof quoteDiagnostics.$inferSelect;
+
+/**
  * `zone_triggers` — episodios de entrada en zona por usuario (ADR-005, SPEC-005).
  * Un episodio por (acción vigilada, tipo de zona) mientras el precio permanece
  * dentro: `closedAt` null = dentro AHORA (estado actual + idempotencia, RN-13); al

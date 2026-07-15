@@ -1,6 +1,7 @@
 import { eq } from 'drizzle-orm';
 import type { PgDatabase } from 'drizzle-orm/pg-core';
-import { watchedSymbols, symbols, quotes } from '@/db/schema';
+import { watchedSymbols, symbols, quotes, quoteDiagnostics } from '@/db/schema';
+import type { QuoteFailureReason } from '@/lib/market/provider';
 import { entraEnZona, type Zona } from './zones';
 
 type Db = PgDatabase<any, any, any>;
@@ -24,6 +25,13 @@ export interface ZoneStatusView {
   inSell: boolean;
   /** Estado resumido para pintar el color de fondo: none = sin dato. */
   state: ZoneState;
+  /**
+   * Por qué NO se puede cotizar este símbolo (SPEC-016). `null` = nunca ha fallado, así
+   * que un `state:'none'` sin motivo significa "el ciclo aún no ha corrido" y con motivo
+   * significa "no se puede cotizar, y por esto" (CA-3). Sin él, ambos casos se veían
+   * igual: "sin cotización" — el fallo silencioso que originó EPIC-FIX.
+   */
+  failReason: QuoteFailureReason | null;
 }
 
 function zona(min: string | null, max: string | null): Zona | null {
@@ -56,10 +64,13 @@ export async function zoneStatusForUser(db: Db, userId: string): Promise<ZoneSta
       sellMax: watchedSymbols.sellMax,
       price: quotes.price,
       asOf: quotes.asOf,
+      failReason: quoteDiagnostics.reason,
     })
     .from(watchedSymbols)
     .innerJoin(symbols, eq(watchedSymbols.symbolId, symbols.id))
     .leftJoin(quotes, eq(quotes.symbolId, symbols.id))
+    // SPEC-016: el diagnóstico del símbolo (si lo hay) viaja con el estado de zona.
+    .leftJoin(quoteDiagnostics, eq(quoteDiagnostics.symbolId, symbols.id))
     .where(eq(watchedSymbols.userId, userId))
     .orderBy(symbols.ticker);
 
@@ -73,6 +84,7 @@ export async function zoneStatusForUser(db: Db, userId: string): Promise<ZoneSta
       inBuy,
       inSell,
       state: stateOf(hasQuote, inBuy, inSell),
+      failReason: (r.failReason as QuoteFailureReason | null) ?? null,
     };
   });
 }

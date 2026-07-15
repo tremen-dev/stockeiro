@@ -1,8 +1,8 @@
 import { inArray } from 'drizzle-orm';
 import type { PgDatabase } from 'drizzle-orm/pg-core';
 import { symbols, transactions, watchedSymbols } from '@/db/schema';
-import { quoteKey, type MarketDataProvider } from './provider';
-import { upsertQuote } from './quotes';
+import { quoteKey, type MarketDataProvider, type QuoteFailureReason } from './provider';
+import { clearDiagnostic, upsertDiagnostic, upsertQuote } from './quotes';
 
 type Db = PgDatabase<any, any, any>;
 
@@ -34,10 +34,21 @@ export async function symbolUniverse(db: Db): Promise<UniverseSymbol[]> {
   return rows.map((s) => ({ symbolId: s.id, ticker: s.ticker, micCode: s.micCode, currency: s.currency }));
 }
 
+/** Un símbolo que no se pudo cotizar, con su motivo clasificado (SPEC-016). */
+export interface SkippedSymbol {
+  ticker: string;
+  reason: QuoteFailureReason;
+}
+
 export interface RefreshResult {
   requested: string[]; // tickers pedidos (distinct)
   updated: string[]; // tickers cuya cotización se persistió
-  skipped: string[]; // tickers que el proveedor no resolvió (se saltan, CA-6)
+  /**
+   * Tickers que no se pudieron cotizar, CON SU MOTIVO (SPEC-016). Antes era una lista
+   * de tickers pelada y el motivo se tiraba: por eso el defecto de cobertura de EPIC-FIX
+   * pasó semanas sin detectarse. Se saltan sin abortar el ciclo (CA-6 de SPEC-004).
+   */
+  skipped: SkippedSymbol[];
 }
 
 /**
@@ -54,21 +65,28 @@ export async function refreshQuotes(db: Db, provider: MarketDataProvider): Promi
   // Se pide por (ticker, micCode) para desambiguar el mercado (ADR-007). El universo
   // ya es distinct por símbolo, así que no hay duplicados (dedupe, ADR-002).
   const requests = universe.map((u) => ({ ticker: u.ticker, micCode: u.micCode }));
-  const quotesFromProvider = await provider.getQuotes(requests);
-  const returned = new Map(quotesFromProvider.map((q) => [quoteKey(q.ticker, q.micCode), q]));
+  const { quotes: devueltas, failures } = await provider.getQuotes(requests);
+  const returned = new Map(devueltas.map((q) => [quoteKey(q.ticker, q.micCode), q]));
+  const failed = new Map(failures.map((f) => [quoteKey(f.ticker, f.micCode), f.reason]));
 
   const updated: string[] = [];
-  const skipped: string[] = [];
+  const skipped: SkippedSymbol[] = [];
   for (const u of universe) {
-    const q = returned.get(quoteKey(u.ticker, u.micCode));
+    const key = quoteKey(u.ticker, u.micCode);
+    const q = returned.get(key);
     if (!q) {
-      skipped.push(u.ticker); // proveedor no lo resolvió -> se salta (CA-6)
+      // No se pudo cotizar: se salta sin abortar el ciclo (CA-6 de SPEC-004) PERO el
+      // motivo se registra para que el usuario lo vea (SPEC-016, CE-F2 de EPIC-FIX).
+      const reason = failed.get(key) ?? 'proveedor_no_disponible';
+      await upsertDiagnostic(db, u.symbolId, reason);
+      skipped.push({ ticker: u.ticker, reason });
       continue;
     }
     // La divisa es la DEL SÍMBOLO (RN-09), no la que devuelva el proveedor: la fijó el
     // candidato elegido en la búsqueda (ADR-007). Marketstack ni siquiera la devuelve, y
     // fiarse del proveedor permitía guardar USD (SAN@NYSE) en un símbolo EUR (ADR-012).
     await upsertQuote(db, u.symbolId, { price: q.price, currency: u.currency, asOf: q.asOf });
+    await clearDiagnostic(db, u.symbolId); // se resolvió: fuera el diagnóstico (CA-8)
     updated.push(u.ticker);
   }
   return { requested, updated, skipped };

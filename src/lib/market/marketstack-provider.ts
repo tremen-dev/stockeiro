@@ -1,4 +1,11 @@
-import type { MarketDataProvider, ProviderQuote, QuoteRequest } from './provider';
+import type {
+  MarketDataProvider,
+  ProviderFailure,
+  ProviderQuote,
+  QuoteFailureReason,
+  QuoteRequest,
+  QuotesResult,
+} from './provider';
 import { isOperatingMic } from './mic';
 
 /**
@@ -49,20 +56,37 @@ interface MarketstackBody {
   error?: { code?: string; message?: string };
 }
 
+/**
+ * Traduce el fallo del proveedor a vocabulario del DOMINIO (SPEC-016). El texto crudo
+ * NO sale de aquí: la UI muestra la categoría, nunca "upgrade your plan".
+ * Verificado 2026-07-15: el free tier responde `{code:403, message:"**symbol** ITX is not
+ * available with your plan..."}` para los mercados que no cubre.
+ */
+function classify(row: MarketstackRow): QuoteFailureReason {
+  const msg = (row.message ?? '').toLowerCase();
+  if (row.code === 403 || /not available with your plan|upgrade/.test(msg)) return 'mercado_no_cubierto';
+  if (row.code === 404 || /not found|invalid symbol|no data/.test(msg)) return 'simbolo_desconocido';
+  return 'proveedor_no_disponible';
+}
+
 export class MarketstackProvider implements MarketDataProvider {
   constructor(
     private readonly apiKey: string | undefined = process.env.MARKETSTACK_API_KEY,
     private readonly fetchImpl: typeof fetch = fetch,
   ) {}
 
-  async getQuotes(requests: QuoteRequest[]): Promise<ProviderQuote[]> {
-    if (requests.length === 0) return [];
+  async getQuotes(requests: QuoteRequest[]): Promise<QuotesResult> {
+    if (requests.length === 0) return { quotes: [], failures: [] };
     if (!this.apiKey) throw new Error('MARKETSTACK_API_KEY no definida (ver .env.example).');
 
     // Solo se piden los símbolos con identidad de mercado canónica: sin operating MIC
-    // no se puede cotizar el mercado correcto y NO se adivina (CA-10, RN-09).
+    // no se puede cotizar el mercado correcto y NO se adivina (CA-10, RN-09). Los demás
+    // NO desaparecen: salen con su motivo (SPEC-016).
     const askable = requests.filter((r) => isOperatingMic(r.micCode));
-    if (askable.length === 0) return [];
+    const failures: ProviderFailure[] = requests
+      .filter((r) => !isOperatingMic(r.micCode))
+      .map((r) => ({ ticker: r.ticker, micCode: r.micCode ?? null, reason: 'sin_identidad_de_mercado' as const }));
+    if (askable.length === 0) return { quotes: [], failures };
 
     const url = new URL(BASE_URL);
     url.searchParams.set('symbols', askable.map((r) => `${r.ticker}.${toProviderMic(r.micCode as string)}`).join(','));
@@ -75,9 +99,23 @@ export class MarketstackProvider implements MarketDataProvider {
     if (body.error) throw new Error(`Marketstack: ${body.error.message ?? body.error.code ?? 'error'}`);
 
     const out: ProviderQuote[] = [];
+    // Lo pedido y aún sin respuesta: al final, lo que quede es un símbolo que el
+    // proveedor sencillamente no devolvió → tampoco desaparece en silencio (SPEC-016).
+    const pedidos = new Map(askable.map((r) => [`${r.ticker}:${r.micCode}`, r]));
+
     for (const row of body.data ?? []) {
-      if (!row || row.status === 'error') continue; // fallo por símbolo -> se omite (CA-8)
-      if (!row.symbol || row.close == null || !row.date) continue;
+      if (!row) continue;
+      // Fallo POR SÍMBOLO: no aborta a los demás (CA-8) pero su motivo se propaga
+      // clasificado (SPEC-016) — antes se descartaba y de ahí el fallo silencioso.
+      if (row.status === 'error' || !row.symbol || row.close == null || !row.date) {
+        const [t] = String(row.symbol ?? '').split('.');
+        const req = askable.find((r) => r.ticker === t);
+        if (req) {
+          pedidos.delete(`${req.ticker}:${req.micCode}`);
+          failures.push({ ticker: req.ticker, micCode: req.micCode ?? null, reason: classify(row) });
+        }
+        continue;
+      }
       const [ticker, providerMic] = row.symbol.split('.');
       if (!ticker) continue;
       // El mic del eco se devuelve en canónico ISO para que el emparejado del dominio
@@ -85,6 +123,7 @@ export class MarketstackProvider implements MarketDataProvider {
       const micCode = fromProviderMic(row.exchange || providerMic || '');
       const req = askable.find((r) => r.ticker === ticker && r.micCode === micCode);
       if (!req) continue; // eco que no corresponde a nada pedido -> se ignora
+      pedidos.delete(`${req.ticker}:${req.micCode}`);
       out.push({
         ticker,
         micCode,
@@ -94,6 +133,11 @@ export class MarketstackProvider implements MarketDataProvider {
         asOf: new Date(row.date).toISOString(), // D-2
       });
     }
-    return out;
+
+    // Pedidos sin respuesta ni error explícito: el proveedor no los conoce.
+    for (const req of pedidos.values()) {
+      failures.push({ ticker: req.ticker, micCode: req.micCode ?? null, reason: 'simbolo_desconocido' });
+    }
+    return { quotes: out, failures };
   }
 }

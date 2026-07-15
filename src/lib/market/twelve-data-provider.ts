@@ -1,4 +1,10 @@
-import type { MarketDataProvider, ProviderQuote, QuoteRequest } from './provider';
+import type {
+  MarketDataProvider,
+  ProviderFailure,
+  ProviderQuote,
+  QuoteRequest,
+  QuotesResult,
+} from './provider';
 
 /**
  * Adaptador REAL de Twelve Data (ADR-002, primer proveedor por su free tier diario).
@@ -34,8 +40,8 @@ export class TwelveDataProvider implements MarketDataProvider {
     private readonly fetchImpl: typeof fetch = fetch,
   ) {}
 
-  async getQuotes(requests: QuoteRequest[]): Promise<ProviderQuote[]> {
-    if (requests.length === 0) return [];
+  async getQuotes(requests: QuoteRequest[]): Promise<QuotesResult> {
+    if (requests.length === 0) return { quotes: [], failures: [] };
     if (!this.apiKey) throw new Error('TWELVE_DATA_API_KEY no definida (ver .env.example).');
 
     const url = new URL(BASE_URL);
@@ -58,11 +64,13 @@ export class TwelveDataProvider implements MarketDataProvider {
         : Object.values(body as Record<string, TwelveDataEod>);
 
     const out: ProviderQuote[] = [];
+    const resueltos = new Set<string>();
     for (const row of rows) {
-      if (!row || row.status === 'error') continue; // fallo por símbolo -> se omite (CA-6)
+      if (!row || row.status === 'error') continue; // fallo por símbolo -> no aborta (CA-6)
       if (!row.symbol || row.close == null || !row.datetime) continue;
       // Recupera el micCode pedido para este ticker (eco de la petición, ADR-007).
       const req = requests.find((r) => r.ticker === row.symbol);
+      resueltos.add(row.symbol);
       out.push({
         ticker: row.symbol,
         micCode: row.mic_code ?? req?.micCode ?? null,
@@ -71,6 +79,13 @@ export class TwelveDataProvider implements MarketDataProvider {
         asOf: new Date(row.datetime).toISOString(), // D-2
       });
     }
-    return out;
+    // SPEC-016: lo no resuelto sale con su motivo. Este adaptador ya no se usa para
+    // cotizar (ADR-012 lo sustituyó por Marketstack), pero mantiene el contrato del
+    // puerto: es el motivo por el que el free tier de Twelve Data falla (BME) lo que
+    // originó EPIC-FIX, así que aquí es `mercado_no_cubierto` por defecto.
+    const failures: ProviderFailure[] = requests
+      .filter((r) => !resueltos.has(r.ticker))
+      .map((r) => ({ ticker: r.ticker, micCode: r.micCode ?? null, reason: 'mercado_no_cubierto' as const }));
+    return { quotes: out, failures };
   }
 }

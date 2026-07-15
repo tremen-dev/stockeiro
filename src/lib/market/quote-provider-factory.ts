@@ -13,7 +13,14 @@ const E2E_PRICES = {
   'TEF:BMEX': { price: '3.615', currency: 'EUR', asOf: '2026-07-14T00:00:00.000Z' },
   'REP:BMEX': { price: '12.10', currency: 'EUR', asOf: '2026-07-14T00:00:00.000Z' },
   'AAPL:XNAS': { price: '210.50', currency: 'USD', asOf: '2026-07-14T00:00:00.000Z' },
-  'MSFT:XNAS': { price: '415.30', currency: 'USD', asOf: '2026-07-14T00:00:00.000Z' },
+};
+
+/**
+ * Fallos simulados para el E2E de SPEC-016: `MSFT` no se cotiza y se explica por qué.
+ * Permite verificar en navegador que "sin cotización" deja de ser mudo (CE-F2).
+ */
+const E2E_FAILURES = {
+  'MSFT:XNAS': 'mercado_no_cubierto' as const,
 };
 
 /**
@@ -25,6 +32,6 @@ const E2E_PRICES = {
  * cubre BME/M.CONTINUO (EPIC-FIX). Twelve Data se mantiene para la BÚSQUEDA (ADR-007).
  */
 export function quoteProvider(): MarketDataProvider {
-  if (process.env.E2E_FAKE_QUOTES === '1') return new FakeMarketDataProvider(E2E_PRICES);
+  if (process.env.E2E_FAKE_QUOTES === '1') return new FakeMarketDataProvider(E2E_PRICES, E2E_FAILURES);
   return new MarketstackProvider();
 }

@@ -36,6 +36,13 @@
       "when": 1784108141061,
       "tag": "0004_backfill_operating_mic",
       "breakpoints": true
+    },
+    {
+      "idx": 5,
+      "version": "7",
+      "when": 1784111416619,
+      "tag": "0005_quote_diagnostics",
+      "breakpoints": true
     }
   ]
 }
