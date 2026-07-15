@@ -2,10 +2,11 @@
 id: SPEC-017
 tipo: spec
 epica: EPIC-003
-estado: borrador
+estado: aprobada
 aprobada-por:
 historial:
   - {estado: borrador, fecha: 2026-07-15, por: sdd-arquitecto}
+  - {estado: aprobada, fecha: 2026-07-15, por: humano (Alberto Fojo)}
 ---
 # SPEC-017 — El evento de continuidad y la posicion derivada por linaje
 

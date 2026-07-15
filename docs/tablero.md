@@ -29,9 +29,9 @@ Actualizado: 2026-07-15
 
 | Spec | Estado | Último cambio |
 |---|---|---|
-| SPEC-017 — el-evento-de-continuidad-y-la-posicion-derivada-por-linaje | borrador | 2026-07-15 (sdd-arquitecto) |
-| SPEC-018 — declarar-la-continuidad-desde-la-cartera-con-previsualizacion | borrador | 2026-07-15 (sdd-arquitecto) |
-| SPEC-019 — el-import-declara-la-continuidad-en-vez-de-solo-avisar | borrador | 2026-07-15 (sdd-arquitecto) |
+| SPEC-017 — el-evento-de-continuidad-y-la-posicion-derivada-por-linaje | aprobada | 2026-07-15 (humano (Alberto Fojo)) |
+| SPEC-018 — declarar-la-continuidad-desde-la-cartera-con-previsualizacion | aprobada | 2026-07-15 (humano (Alberto Fojo)) |
+| SPEC-019 — el-import-declara-la-continuidad-en-vez-de-solo-avisar | aprobada | 2026-07-15 (humano (Alberto Fojo)) |
 
 ## EPIC-FIX (aprobada)
 
@@ -50,4 +50,4 @@ Actualizado: 2026-07-15
 ## Resumen
 
 - hecho: 16
-- borrador: 3
+- aprobada: 3

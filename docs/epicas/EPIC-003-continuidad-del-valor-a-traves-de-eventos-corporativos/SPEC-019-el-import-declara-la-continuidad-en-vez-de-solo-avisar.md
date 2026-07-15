@@ -2,10 +2,11 @@
 id: SPEC-019
 tipo: spec
 epica: EPIC-003
-estado: borrador
+estado: aprobada
 aprobada-por:
 historial:
   - {estado: borrador, fecha: 2026-07-15, por: sdd-arquitecto}
+  - {estado: aprobada, fecha: 2026-07-15, por: humano (Alberto Fojo)}
 ---
 # SPEC-019 — El import declara la continuidad en vez de solo avisar
 
