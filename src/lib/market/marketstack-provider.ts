@@ -69,6 +69,32 @@ function classify(row: MarketstackRow): QuoteFailureReason {
   return 'proveedor_no_disponible';
 }
 
+/**
+ * Empareja una fila de la respuesta con el pedido al que pertenece, por identidad
+ * COMPLETA — ticker **y** operating MIC (ADR-007). Marketstack hace eco del símbolo tal
+ * como se pidió (`SAN.BMEX`), así que el mercado viene en la propia fila.
+ *
+ * Emparejar solo por ticker le cuelga el fallo al mercado equivocado cuando el mismo
+ * ticker está en dos mercados (SAN en Madrid y SAN en NY, el ejemplo de ADR-012): el que
+ * cotiza bien saldría también como fallido, y el que falla heredaría un motivo que no es
+ * el suyo (F-SPEC-016-3).
+ *
+ * Si la fila no trae MIC parseable, solo se empareja cuando NO hay ambigüedad (un único
+ * pedido con ese ticker). Con dos mercados **no se adivina** (ADR-012): es preferible que
+ * caiga al barrido final de `pedidos` —donde igualmente se reporta, sin inventar el
+ * motivo— a colgárselo al mercado que no es.
+ */
+function matchRequest(symbol: string | undefined, askable: QuoteRequest[]): QuoteRequest | undefined {
+  const [ticker, providerMic] = String(symbol ?? '').split('.');
+  if (!ticker) return undefined;
+  if (!providerMic) {
+    const candidatos = askable.filter((r) => r.ticker === ticker);
+    return candidatos.length === 1 ? candidatos[0] : undefined;
+  }
+  const mic = fromProviderMic(providerMic);
+  return askable.find((r) => r.ticker === ticker && r.micCode === mic);
+}
+
 export class MarketstackProvider implements MarketDataProvider {
   constructor(
     private readonly apiKey: string | undefined = process.env.MARKETSTACK_API_KEY,
@@ -108,12 +134,15 @@ export class MarketstackProvider implements MarketDataProvider {
       // Fallo POR SÍMBOLO: no aborta a los demás (CA-8) pero su motivo se propaga
       // clasificado (SPEC-016) — antes se descartaba y de ahí el fallo silencioso.
       if (row.status === 'error' || !row.symbol || row.close == null || !row.date) {
-        const [t] = String(row.symbol ?? '').split('.');
-        const req = askable.find((r) => r.ticker === t);
+        // Por identidad COMPLETA, igual que el camino de éxito: si no, con el mismo ticker
+        // en dos mercados el motivo acaba en el mercado equivocado (F-SPEC-016-3).
+        const req = matchRequest(row.symbol, askable);
         if (req) {
           pedidos.delete(`${req.ticker}:${req.micCode}`);
           failures.push({ ticker: req.ticker, micCode: req.micCode ?? null, reason: classify(row) });
         }
+        // Fila que no se puede atribuir a nadie: no se le cuelga a un pedido al azar. Lo
+        // que quede sin respuesta cae al barrido final de `pedidos`.
         continue;
       }
       const [ticker, providerMic] = row.symbol.split('.');

@@ -19,7 +19,7 @@ epica: EPIC-FIX
 <!-- Un CA está ✅ solo cuando Implementado + Test + Verif. aplicables están en verde. Una salvedad se marca ⚠️, nunca ✅. -->
 | CA | Implementado (fichero) | Test (fichero/caso) | Verif. | Estado |
 |---|---|---|---|---|
-| CA-1 (motivo propagado y CLASIFICADO) | `market/provider.ts` (`QuoteFailureReason`, `ProviderFailure`, `QuotesResult`); `marketstack-provider.ts` (`classify`); `fail-reason-text.ts` | `tests/quote-diagnostics.test.ts` › CA-1 (2 casos) + e2e (el texto crudo no llega a la UI) | Vocabulario y traducción CORRECTOS: el fixture es la respuesta real del free tier (casa con ADR-012, incl. el artefacto `**symbol**`) y el aserto es `toEqual` estricto, no de adorno. `FAIL_REASON_TEXT` no filtra texto de proveedor (aserto negativo `/plan\|403\|upgrade/i` en unit **y** en e2e). **PERO** el motivo puede atribuirse al MERCADO EQUIVOCADO cuando un ticker está en dos mercados: **F-SPEC-016-3**, reproducido (ver Veredicto) | ⚠️ |
+| CA-1 (motivo propagado y CLASIFICADO) | `market/provider.ts` (`QuoteFailureReason`, `ProviderFailure`, `QuotesResult`); `marketstack-provider.ts` (`classify` + `matchRequest`, este último **arregla F-SPEC-016-3**); `fail-reason-text.ts` | `tests/quote-diagnostics.test.ts` › CA-1 (**4 casos**: traducción del error real · el texto crudo no sale a la UI · **el fallo se atribuye a SU mercado** · **el motivo del que falla es el suyo, no el de su gemelo**) + e2e | Vocabulario y traducción CORRECTOS: el fixture es la respuesta real del free tier (casa con ADR-012, incl. el artefacto `**symbol**`) y el aserto es `toEqual` estricto, no de adorno. `FAIL_REASON_TEXT` no filtra texto de proveedor (aserto negativo `/plan\|403\|upgrade/i` en unit **y** en e2e). **PERO** el motivo puede atribuirse al MERCADO EQUIVOCADO cuando un ticker está en dos mercados: **F-SPEC-016-3**, reproducido (ver Veredicto) | ⚠️ |
 | CA-2 (se persiste el último diagnóstico) | `db/schema.ts` (`quote_diagnostics`); `market/quotes.ts` (`upsertDiagnostic`); `refresh.ts` | `quote-diagnostics.test.ts` › CA-2 (motivo + attemptedAt; 1 fila por símbolo) | Verificado. `upsertDiagnostic` es upsert por `symbol_id` (UNIQUE) → el 2º ciclo actualiza y el test lo prueba (`toHaveLength(1)`). `attemptedAt` persistido y asertado. Esquema concordante en los **4** sitios (schema.ts / 0005 / test-db.ts / e2e-server.mjs): comparados campo a campo, sin drift | ✅ |
 | CA-3 (distinguir "sin datos aún" de "no se puede cotizar") | `zone-status.ts` (`failReason`); `vigiladas/page.tsx` | `quote-diagnostics.test.ts` › CA-3 + `e2e/diagnostico-cotizacion.spec.ts` › CA-3/CA-4 | Verificado en unit **y en navegador**. Los dos estados son distinguibles por `data-testid` distinto (`sin-datos-aun` vs `fail-reason`) y el e2e asserta la ausencia del otro (`toHaveCount(0)`) en ambos sentidos — no basta con que aparezca el propio | ✅ |
 | CA-4 (visible en /vigiladas) | `vigiladas/page.tsx`; `globals.css` (`.quote-fail`/`.quote-pending`) | `quote-diagnostics.test.ts` › CA-4 + e2e › CA-3/CA-4 (`data-reason`, screenshot) | Verificado en navegador (Playwright, 17/17). El estado de zona sigue `none` (RN-11/SPEC-007 intacto) y el motivo lo acompaña sin sustituirlo. Captura: `vigiladas-motivo.png` | ✅ |
@@ -173,20 +173,54 @@ Compartida por símbolo (no por usuario): el motivo no depende de quién mire (i
   directo. Destino: EPIC-MEJORA.
 - **No cierra F-ADR-012-2 ni F-SPEC-015-1**: siguen abiertas y son de despliegue/verificación de
   dialectos, ajenas a esta spec.
+- **F-SPEC-016-3 — ARREGLADO** (2ª vuelta, tras el RED del verificador). El emparejado de la fila
+  de error se hacía **solo por ticker**, así que con el mismo ticker en dos mercados el motivo
+  acababa en el mercado equivocado y el símbolo que sí cotizaba salía además como fallido. Ahora
+  `matchRequest()` empareja por **identidad completa** (ticker + operating MIC), aprovechando que
+  Marketstack hace eco del símbolo pedido (`SAN.BMEX`). El acierto del verificador: el camino de
+  éxito ya lo hacía bien: era una incoherencia dentro de la misma función.
+  Decisión propia sobre el borde que no cubría el finding: si la fila de error **no trae MIC
+  parseable**, se empareja solo cuando hay **un único** pedido con ese ticker; con dos mercados
+  **no se adivina** (ADR-012) y cae al barrido final de `pedidos`, donde igualmente se reporta —
+  antes callar el motivo exacto que colgárselo al mercado que no es. Tests nuevos: los 2 casos de
+  CA-1 con el fallo en el **segundo** pedido (el orden que destapa el bug), uno con 404 y otro con
+  403 — este último es donde el motivo salía mentiroso.
+- **F-SPEC-016-4** — `getDiagnosticMap` trae los diagnósticos de **todos** los símbolos del sistema
+  para usar solo los del usuario. No filtra nada al cliente (se resuelve en RSC, el verificador lo
+  confirmó en CA-9), pero es trabajo que crece con la base de símbolos. Destino: EPIC-MEJORA.
+- **F-SPEC-016-5** — Un símbolo que sale del universo (se deja de vigilar) conserva su fila de
+  diagnóstico; si se vuelve a vigilar antes del siguiente ciclo, se ve el motivo del intento
+  anterior. Es información cierta y fechada (`attemptedAt`), y CA-8 solo exige la limpieza vía
+  ciclo. Destino: EPIC-MEJORA.
+- **F-SPEC-016-6** — La UI no muestra `attemptedAt` aunque se persiste (CA-2 solo exige
+  persistirlo). Con el motivo ya visible, enseñar "intentado el X" reforzaría D-2.
+  Destino: EPIC-MEJORA.
 
 ## Cómo retomar (handoff)
 <!-- Estado real del trabajo para la siguiente sesión: qué está hecho, qué falta, dónde seguir. -->
 
+**2ª vuelta: el RED del verificador (F-SPEC-016-3) está ARREGLADO.** El cambio se limitó a lo que
+pedía el veredicto: `marketstack-provider.ts` (nuevo `matchRequest`, emparejado por identidad
+completa) + 2 tests nuevos en CA-1. **No se tocó** `refresh.ts:80` ni el contrato de
+`QuotesResult`: el verificador los juzgó correctos.
+
 **Implementación COMPLETA y verde.** Gates en local: `npx tsc --noEmit` 0 errores · `npx eslint`
-0 errores (1 warning **preexistente**: `LedgerEntry` sin usar en `tests/position.test.ts`, no es
-de esta spec) · `npx vitest run` 26 ficheros · `npm run build` OK · `npx playwright test` 17/17.
+0 errores (1 warning **preexistente**: `LedgerEntry` sin usar en `tests/position.test.ts`, del
+commit `2059d48` de SPEC-002 — no es de esta spec) · `npx vitest run` 26 ficheros / 168 tests ·
+`npm run build` OK · `npx playwright test` 17/17.
 
 Qué falta: **sdd-verificador** (columnas Verif./Estado del ledger + veredicto), push y PR. No
 fusionado. Capturas del E2E en `_qa/SPEC-016/` (`vigiladas-motivo.png`, `cartera-motivo.png`).
 
-Tests nuevos: `tests/quote-diagnostics.test.ts` (CA-1..CA-9, 9 casos) y
+Tests: `tests/quote-diagnostics.test.ts` (CA-1..CA-9, **11 casos**) y
 `tests/e2e/diagnostico-cotizacion.spec.ts` (2 tests: CA-3/CA-4 en vigiladas, CA-5/CA-6 en cartera).
 
-Punto de atención para quien verifique: `refresh.ts` cambió `RefreshResult.skipped` de `string[]`
-a `SkippedSymbol[]`. `tests/market-refresh.test.ts` › CA-6 (SPEC-004, resiliencia) se ajustó a la
-nueva forma **añadiendo** el aserto del motivo — se reforzó, no se relajó para que pasara.
+Puntos de atención para quien verifique:
+1. `refresh.ts` cambió `RefreshResult.skipped` de `string[]` a `SkippedSymbol[]`.
+   `tests/market-refresh.test.ts` › CA-6 (SPEC-004, resiliencia) se ajustó a la nueva forma
+   **añadiendo** el aserto del motivo — se reforzó, no se relajó para que pasara.
+2. El arreglo de F-SPEC-016-3 introduce un borde que el finding no cubría: fila de error **sin MIC
+   parseable**. Se resuelve emparejando solo si no hay ambigüedad (un único pedido con ese
+   ticker); con dos mercados no se adivina y cae al barrido de `pedidos`. Está en el código, no
+   tiene test propio (Marketstack siempre hace eco del símbolo pedido, verificado 2026-07-15) —
+   júzgalo.

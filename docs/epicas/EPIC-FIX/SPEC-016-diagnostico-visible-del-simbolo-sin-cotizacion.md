@@ -2,7 +2,7 @@
 id: SPEC-016
 tipo: spec
 epica: EPIC-FIX
-estado: en-progreso
+estado: en-revision
 aprobada-por:
 historial:
   - {estado: borrador, fecha: 2026-07-15, por: sdd-arquitecto}
@@ -10,6 +10,7 @@ historial:
   - {estado: en-progreso, fecha: 2026-07-15, por: sdd-implementador}
   - {estado: en-revision, fecha: 2026-07-15, por: sdd-implementador}
   - {estado: en-progreso, fecha: 2026-07-15, por: sdd-verificador}
+  - {estado: en-revision, fecha: 2026-07-15, por: sdd-implementador}
 ---
 # SPEC-016 — Diagnostico visible del simbolo sin cotizacion
 

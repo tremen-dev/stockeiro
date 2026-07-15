@@ -56,6 +56,49 @@ describe('CA-1: el motivo se propaga por el puerto, CLASIFICADO', () => {
     expect(failReasonText('mercado_no_cubierto')).not.toMatch(/plan|403|upgrade/i);
     expect(failReasonText(null)).toBe('');
   });
+
+  // F-SPEC-016-3: el mismo ticker en DOS mercados (SAN en Madrid y SAN en NY, el ejemplo
+  // de ADR-012, ya modelado en market-mic-code.test.ts). El fallo va en el SEGUNDO pedido:
+  // ese orden es el que destapa emparejar por ticker a secas.
+  const dosMercados = [
+    { ticker: 'SAN', micCode: 'BMEX' }, // cotiza (11,984 €)
+    { ticker: 'SAN', micCode: 'XNYS' }, // falla
+  ];
+
+  it('el fallo se atribuye a SU mercado: el que cotiza no aparece como fallido', async () => {
+    const body = {
+      data: [
+        { symbol: 'SAN.XNYS', code: 404, status: 'error', message: 'symbol not found' },
+        { symbol: 'SAN.BMEX', exchange: 'BMEX', date: '2026-07-14T00:00:00+0000', close: 11.984 },
+      ],
+    };
+    const provider = new MarketstackProvider('key', fakeFetch(body));
+    const { quotes, failures } = await provider.getQuotes(dosMercados);
+
+    // El de Madrid cotiza…
+    expect(quotes).toEqual([
+      { ticker: 'SAN', micCode: 'BMEX', price: '11.984', asOf: '2026-07-14T00:00:00.000Z' },
+    ]);
+    // …y NO puede salir además como fallido: `quotes` y `failures` son disjuntos, o el
+    // puerto diría "resuelto" y "no resuelto" del mismo símbolo a la vez.
+    expect(failures).toEqual([{ ticker: 'SAN', micCode: 'XNYS', reason: 'simbolo_desconocido' }]);
+  });
+
+  it('el motivo del mercado que falla es el SUYO, no el de su gemelo en otro mercado', async () => {
+    // Aquí es donde el motivo salía MENTIROSO: el 403 es de XNYS, pero atribuido a BMEX
+    // dejaba a XNYS con el `simbolo_desconocido` del barrido final — y el usuario leía
+    // "puede estar deslistado" cuando la verdad es "no cubrimos este mercado".
+    const body = {
+      data: [
+        { symbol: 'SAN.XNYS', code: 403, status: 'error', message: '**symbol** SAN is not available with your plan' },
+        { symbol: 'SAN.BMEX', exchange: 'BMEX', date: '2026-07-14T00:00:00+0000', close: 11.984 },
+      ],
+    };
+    const provider = new MarketstackProvider('key', fakeFetch(body));
+    const { failures } = await provider.getQuotes(dosMercados);
+
+    expect(failures).toEqual([{ ticker: 'SAN', micCode: 'XNYS', reason: 'mercado_no_cubierto' }]);
+  });
 });
 
 describe('CA-2: se persiste el último diagnóstico por símbolo', () => {
