@@ -40,6 +40,23 @@ export interface SkippedSymbol {
   reason: QuoteFailureReason;
 }
 
+/**
+ * Un precio que SÍ se asignó aunque el proveedor etiquetara la fila con otro mercado del
+ * mismo grupo equivalente (SPEC-021 CA-8, ADR-014). No es un fallo y **no se le muestra al
+ * usuario**: para él hay precio y no hay diagnóstico. Es constancia para el OPERADOR, en
+ * el canal que ya existe —el resultado del ciclo, que viaja entero al cuerpo del cron—,
+ * sin tabla nueva, sin telemetría y sin tocar `quote_diagnostics`, que es el canal de "no
+ * hay precio" y aquí sí lo hay. Si el proveedor empezara a etiquetar mal en masa, se ve
+ * aquí y no en el P/L de un usuario.
+ */
+export interface MarketLabelMismatch {
+  ticker: string;
+  /** Operating MIC del símbolo: el que se pidió y el ÚNICO que se persiste (ADR-007). */
+  requestedMicCode: string | null;
+  /** Mercado con el que el proveedor etiquetó la fila (del mismo grupo equivalente). */
+  providerMicCode: string;
+}
+
 export interface RefreshResult {
   requested: string[]; // tickers pedidos (distinct)
   updated: string[]; // tickers cuya cotización se persistió
@@ -49,6 +66,8 @@ export interface RefreshResult {
    * pasó semanas sin detectarse. Se saltan sin abortar el ciclo (CA-6 de SPEC-004).
    */
   skipped: SkippedSymbol[];
+  /** Precios asignados con etiqueta de mercado discrepante (SPEC-021 CA-8). */
+  mismatched: MarketLabelMismatch[];
 }
 
 /**
@@ -60,7 +79,7 @@ export interface RefreshResult {
 export async function refreshQuotes(db: Db, provider: MarketDataProvider): Promise<RefreshResult> {
   const universe = await symbolUniverse(db);
   const requested = universe.map((u) => u.ticker);
-  if (universe.length === 0) return { requested, updated: [], skipped: [] };
+  if (universe.length === 0) return { requested, updated: [], skipped: [], mismatched: [] };
 
   // Se pide por (ticker, micCode) para desambiguar el mercado (ADR-007). El universo
   // ya es distinct por símbolo, así que no hay duplicados (dedupe, ADR-002).
@@ -87,6 +106,7 @@ export async function refreshQuotes(db: Db, provider: MarketDataProvider): Promi
 
   const updated: string[] = [];
   const skipped: SkippedSymbol[] = [];
+  const mismatched: MarketLabelMismatch[] = [];
   for (const u of universe) {
     const key = quoteKey(u.ticker, u.micCode);
     const q = returned.get(key);
@@ -104,6 +124,12 @@ export async function refreshQuotes(db: Db, provider: MarketDataProvider): Promi
     await upsertQuote(db, u.symbolId, { price: q.price, currency: u.currency, asOf: q.asOf });
     await clearDiagnostic(db, u.symbolId); // se resolvió: fuera el diagnóstico (CA-8)
     updated.push(u.ticker);
+    // El proveedor etiquetó la fila con otro mercado del grupo equivalente (SPEC-021).
+    // El precio se persiste igual, con el mercado y la divisa DEL SÍMBOLO; aquí solo queda
+    // la constancia para el operador.
+    if (q.providerMicCode) {
+      mismatched.push({ ticker: u.ticker, requestedMicCode: u.micCode, providerMicCode: q.providerMicCode });
+    }
   }
-  return { requested, updated, skipped };
+  return { requested, updated, skipped, mismatched };
 }

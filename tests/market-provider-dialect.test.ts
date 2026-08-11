@@ -124,16 +124,27 @@ describe('CA-3: el eco del ticker pelado se empareja y se persiste', () => {
   });
 });
 
-describe('CA-4: eco de OTRO mercado — nunca el precio equivocado', () => {
-  it('un eco con exchange XNYS NO se le asigna al pedido de XNAS; sale en failures con motivo', async () => {
+// MATIZADA POR SPEC-021 / ADR-014. "Eco de otro mercado → nunca el precio" sigue entera
+// para mercados con sufijo, cadenas ambiguas, ecos de fuera del grupo equivalente y ecos
+// sin mercado legible (todos ellos en `market-provider-equivalent-markets.test.ts`).
+// Pierde EXACTAMENTE un escenario —cadena pelada + un único pedido + eco del mismo grupo
+// `{XNAS, XNYS}`—, que es el que este test ejercía y que esta expectativa recoge ya
+// derogado: era el defecto real de DOCS (precio existente, misma empresa, misma divisa).
+describe('CA-4: eco de OTRO mercado — matizado por SPEC-021 dentro del grupo equivalente', () => {
+  it('un eco con exchange XNYS SÍ se le asigna al pedido único y pelado de XNAS', async () => {
     const f = spyFetch({ data: [fila('WEN', 'XNYS', 7.3)] });
     const provider = new MarketstackProvider('key', f.impl);
 
     const { quotes, failures } = await provider.getQuotes([{ ticker: 'WEN', micCode: 'XNAS' }]);
 
-    expect(quotes).toEqual([]); // un precio del mercado que no es falsearía el P/L (RN-09/RN-06)
-    expect(failures).toEqual([{ ticker: 'WEN', micCode: 'XNAS', reason: 'simbolo_no_admitido' }]);
-    // Y el motivo NO acusa al valor de estar deslistado: el proveedor sí respondió.
+    // El mercado que viaja al dominio es el DEL PEDIDO (RN-09/ADR-007); el del eco solo
+    // queda como constancia observable del ciclo (SPEC-021 CA-8).
+    expect(quotes).toEqual([
+      { ticker: 'WEN', micCode: 'XNAS', price: '7.3', asOf: AS_OF, providerMicCode: 'XNYS' },
+    ]);
+    expect(failures).toEqual([]);
+    // El motivo sigue existiendo para todo lo que SÍ se rechaza, y no acusa al valor de
+    // estar deslistado: el proveedor sí respondió.
     expect(failReasonText('simbolo_no_admitido')).not.toMatch(/deslistad/i);
   });
 });

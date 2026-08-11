@@ -30,6 +30,15 @@ export interface ProviderQuote {
    * petición, ADR-007/ADR-012). El adaptador traduce el dialecto del proveedor.
    */
   micCode?: string | null;
+  /**
+   * Mercado con el que el PROVEEDOR etiquetó la fila, cuando **no** coincide con el
+   * pedido (SPEC-021 CA-8, ADR-014). Es **opcional y aditivo**: solo lo rellena el
+   * adaptador que acepta un eco discrepante dentro de un grupo de mercados equivalentes,
+   * y su único uso es dejar **constancia observable** del caso en el resultado del ciclo.
+   * NO es la identidad del precio —esa es `micCode`, el del pedido (ADR-007/ADR-012 pto.
+   * 3)— ni se le muestra al usuario: para él no ha fallado nada.
+   */
+  providerMicCode?: string;
   /** Último cierre NO ajustado (RN-12), como string decimal. */
   price: string;
   /**

@@ -24,7 +24,9 @@ import { isOperatingMic } from './mic';
  *   propósito: mezclarlos falsearía disparos y P/L.
  * - `date` → `asOf` (D-2). El mercado del precio se toma del campo `exchange` del eco y
  *   debe **confirmar** el mercado pedido antes de asignarlo (RN-09): un precio en el
- *   mercado equivocado falsea el P/L y es peor que no tener precio.
+ *   mercado equivocado falsea el P/L y es peor que no tener precio. **Única excepción**
+ *   (SPEC-021/ADR-014): dentro de un grupo de mercados equivalentes y con la cadena
+ *   inambigua — ver `EQUIVALENT_MARKET_GROUPS` y el paso 2 de la atribución.
  * - Resiliencia por símbolo (CA-8/CA-6 de SPEC-004): ni una fila con `status:"error"` ni
  *   un fallo GLOBAL abortan el ciclo — **este adaptador nunca lanza por el proveedor**
  *   (SPEC-020 CA-7); degrada a fallo por símbolo con su motivo.
@@ -72,6 +74,44 @@ const PROVIDER_SUFFIX: Record<string, string | null> = {
   XNAS: null, // pelado: `.XNAS` es INVÁLIDO para Marketstack (verificado)
   XNYS: null, // pelado: `.XNYS` es INVÁLIDO para Marketstack (verificado)
 };
+
+/**
+ * GRUPOS DE MERCADOS EQUIVALENTES **PARA ESTE PROVEEDOR** (SPEC-021, **ADR-014**). Un
+ * grupo es un conjunto de operating MIC entre los que un eco discrepante **no** es una
+ * anomalía sino una diferencia de criterio entre proveedores: el buscador sitúa `DOCS`
+ * (Doximity) en **NYSE** —y es lo cierto— mientras Marketstack etiqueta su fila con
+ * `XNAS`. Sin esta tabla, el usuario se queda sin un precio que existe, es de su empresa
+ * y está en su divisa (síntoma real observado en producción el 2026-08-11).
+ *
+ * **Para entrar en un grupo hay que cumplir las TRES condiciones a la vez** (ADR-014 pto.
+ * 1); son el argumento de seguridad, no una descripción:
+ *   (a) **Cadena indistinguible**: el proveedor los pide **pelados**, así que la cadena
+ *       enviada NO nombra el mercado y no puede desambiguarlos. Con sufijo (`MC.XPAR`) ya
+ *       le hemos dicho el mercado: ahí un eco discrepante es una **anomalía**.
+ *   (b) **Divisa homogénea**: protege **RN-09**. El refresco pone la divisa **del
+ *       símbolo** y el proveedor no manda ninguna; un eco de otra divisa (p. ej. `XETRA`,
+ *       EUR) guardaría euros etiquetados como dólares.
+ *   (c) **Espacio de nombres de tickers compartido y ÚNICO**: la misma cadena no puede ser
+ *       dos empresas distintas dentro del grupo.
+ *
+ * **PROCEDENCIA DEL DATO**: (a) está **verificado contra la API real** (SPEC-020, tabla de
+ * `PROVIDER_SUFFIX`): `XNAS` y `XNYS` son los **únicos** mercados que Marketstack acepta
+ * pelados. (b) y (c) son **conocimiento general de mercado, NO verificado por nosotros
+ * contra una fuente** — se declaran como asunción revisable en **F-SPEC-021-1**.
+ *
+ * **AMPLIAR ESTA TABLA NO ES LIBRE** (ADR-014 pto. 6): cada miembro nuevo obliga a rehacer
+ * (a)(b)(c) con evidencia, y eso es un **ADR**, no un `push`. Un grupo **NUNCA** puede
+ * mezclar divisas: si (c) fuera falsa para algún ticker, el usuario recibiría el precio de
+ * otra empresa **sin motivo visible**, que es peor que el fallo que esto viene a arreglar.
+ */
+export const EQUIVALENT_MARKET_GROUPS: readonly (readonly string[])[] = [
+  ['XNAS', 'XNYS'], // USD · tickers únicos entre Nasdaq y NYSE · ambos se piden pelados
+];
+
+/** ¿Están los dos mercados en el MISMO grupo equivalente? (`false` si alguno no está.) */
+function sameEquivalentGroup(a: string, b: string): boolean {
+  return EQUIVALENT_MARKET_GROUPS.some((g) => g.includes(a) && g.includes(b));
+}
 
 /** Dialecto → operating MIC canónico, para devolver el eco en el vocabulario del dominio. */
 const FROM_PROVIDER: Record<string, string> = { XETRA: 'XETR' };
@@ -197,6 +237,9 @@ export class MarketstackProvider implements MarketDataProvider {
     // Cadenas enviadas para las que SÍ llegó un precio (aunque fuera de otro mercado):
     // distingue "el proveedor no lo conoce" de "lo devolvió, pero no para este mercado".
     const conPrecio = new Set<string>();
+    // Filas CON precio y con mercado legible que NINGÚN pedido reclama por identidad
+    // completa. Son las candidatas del paso 2 (SPEC-021): aquí no se decide nada todavía.
+    const huerfanas: { ticker: string; micEco: string; row: MarketstackRow }[] = [];
 
     for (const row of body.data) {
       if (!row) continue;
@@ -220,12 +263,22 @@ export class MarketstackProvider implements MarketDataProvider {
       }
 
       if (eco) conPrecio.add(eco.toUpperCase());
-      // Sin mercado confirmado NO se asigna el precio: es preferible no tener precio a
-      // tenerlo del mercado equivocado, que falsearía el P/L (RN-09/RN-06).
+      // Sin mercado LEGIBLE no se asigna el precio ni por la vía exacta ni por la relajada
+      // (SPEC-021 CA-6): la relajación exige COMPROBAR que el mercado del eco está en el
+      // grupo, y no comprobar no es lo mismo que comprobar y aceptar.
       if (!micEco) continue;
+      // PASO 1 — emparejado EXACTO por identidad completa (ticker + operating MIC). Tiene
+      // prioridad siempre (SPEC-021 CA-7): la relajación solo mira lo que quede sin precio.
       const a = askable.find((x) => x.req.ticker === ticker && x.mic === micEco);
-      if (!a) continue; // eco de OTRO mercado (o de nada pedido): no se asigna (CA-4)
-      pedidos.delete(`${a.req.ticker}:${a.mic}`);
+      if (!a) {
+        // Eco de OTRO mercado (o de nada pedido). Aquí NO se asigna: queda como candidata
+        // del paso 2, que decidirá con las tres condiciones de ADR-014.
+        huerfanas.push({ ticker, micEco, row });
+        continue;
+      }
+      const clave = `${a.req.ticker}:${a.mic}`;
+      if (!pedidos.has(clave)) continue; // ya servido: ningún pedido recibe dos precios (CA-7)
+      pedidos.delete(clave);
       out.push({
         ticker: a.req.ticker,
         micCode: a.mic,
@@ -233,6 +286,37 @@ export class MarketstackProvider implements MarketDataProvider {
         // Sin `currency`: Marketstack no la devuelve (verificado). La divisa es la del
         // símbolo (RN-09) y la pone el refresco.
         asOf: new Date(row.date).toISOString(), // D-2
+      });
+    }
+
+    // PASO 2 — relajación acotada (SPEC-021, ADR-014). Solo sobre pedidos que quedaron sin
+    // precio, y solo con las TRES condiciones a la vez. Cualquier otro caso mantiene el
+    // rechazo estricto de SPEC-020.
+    for (const a of [...pedidos.values()]) {
+      // (a) La cadena NO nombra mercado. Con sufijo ya le dijimos cuál queríamos: un eco
+      //     discrepante ahí es una anomalía, no una diferencia de criterio (CA-4).
+      if (a.sent !== a.req.ticker) continue;
+      // (b) La cadena corresponde a UN ÚNICO pedido del lote. Con dos compitiendo, el eco
+      //     es la única información que los distingue: relajar cruzaría precios (CA-3).
+      if (askable.filter((x) => x.sent === a.sent).length !== 1) continue;
+      // (c) El mercado del eco está en el MISMO grupo equivalente que el pedido. Es el
+      //     guardarraíl de divisa (RN-09): un eco de fuera del grupo se rechaza (CA-5).
+      const candidatas = huerfanas.filter((h) => h.ticker === a.req.ticker && sameEquivalentGroup(a.mic, h.micEco));
+      // Ninguna → nada que relajar. Dos o más compitiendo sin casar → se falla SEGURO y no
+      // se asigna ninguna (CA-7): entre dos precios sin criterio, ninguno es defendible.
+      if (candidatas.length !== 1) continue;
+
+      const { row, micEco } = candidatas[0];
+      pedidos.delete(`${a.req.ticker}:${a.mic}`);
+      out.push({
+        ticker: a.req.ticker,
+        // El MIC del PEDIDO, nunca el del eco (CA-2, ADR-007/ADR-012 pto. 3): es el que el
+        // dominio tiene por cierto y el que hace casar `quoteKey` en `refresh.ts`.
+        micCode: a.mic,
+        // El mercado del eco viaja SOLO como constancia observable del ciclo (CA-8).
+        providerMicCode: micEco,
+        price: String(row.close),
+        asOf: new Date(row.date as string).toISOString(),
       });
     }
 
