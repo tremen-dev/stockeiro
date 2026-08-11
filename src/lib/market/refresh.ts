@@ -1,7 +1,7 @@
 import { inArray } from 'drizzle-orm';
 import type { PgDatabase } from 'drizzle-orm/pg-core';
 import { symbols, transactions, watchedSymbols } from '@/db/schema';
-import { quoteKey, type MarketDataProvider, type QuoteFailureReason } from './provider';
+import { quoteKey, type MarketDataProvider, type QuoteFailureReason, type QuotesResult } from './provider';
 import { clearDiagnostic, upsertDiagnostic, upsertQuote } from './quotes';
 
 type Db = PgDatabase<any, any, any>;
@@ -65,9 +65,25 @@ export async function refreshQuotes(db: Db, provider: MarketDataProvider): Promi
   // Se pide por (ticker, micCode) para desambiguar el mercado (ADR-007). El universo
   // ya es distinct por símbolo, así que no hay duplicados (dedupe, ADR-002).
   const requests = universe.map((u) => ({ ticker: u.ticker, micCode: u.micCode }));
-  const { quotes: devueltas, failures } = await provider.getQuotes(requests);
-  const returned = new Map(devueltas.map((q) => [quoteKey(q.ticker, q.micCode), q]));
-  const failed = new Map(failures.map((f) => [quoteKey(f.ticker, f.micCode), f.reason]));
+
+  // Defensa en profundidad (SPEC-020 CA-9). El contrato del puerto dice que `getQuotes`
+  // NO lanza (CA-6 de SPEC-004): informa el fallo por símbolo. Pero si un adaptador se
+  // porta mal —excepción inesperada, API key ausente, error de red no contemplado— el
+  // ciclo NO puede morir: sin refresco no hay evaluación de disparos (SPEC-005) ni avisos
+  // (SPEC-006) para NINGÚN usuario ese día. Un adaptador roto degrada a "el proveedor no
+  // respondió", que es exactamente lo que ha pasado.
+  let resultado: QuotesResult;
+  try {
+    resultado = await provider.getQuotes(requests);
+  } catch {
+    resultado = {
+      quotes: [],
+      failures: requests.map((r) => ({ ticker: r.ticker, micCode: r.micCode, reason: 'proveedor_no_disponible' as const })),
+    };
+  }
+
+  const returned = new Map(resultado.quotes.map((q) => [quoteKey(q.ticker, q.micCode), q]));
+  const failed = new Map(resultado.failures.map((f) => [quoteKey(f.ticker, f.micCode), f.reason]));
 
   const updated: string[] = [];
   const skipped: SkippedSymbol[] = [];

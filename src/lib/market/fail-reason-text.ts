@@ -11,6 +11,9 @@ export const FAIL_REASON_TEXT: Record<QuoteFailureReason, string> = {
   mercado_no_cubierto: 'Nuestro proveedor de precios no cubre este mercado',
   simbolo_desconocido: 'El proveedor no reconoce este símbolo (puede estar deslistado)',
   sin_identidad_de_mercado: 'Falta el mercado de esta acción: vuelve a añadirla eligiéndola del buscador',
+  // Ni acusa al valor de estar deslistado (no lo está) ni promete que el próximo ciclo lo
+  // arregle (no lo hará): el trabajo es nuestro, y eso es lo que se le dice (SPEC-020 CA-8).
+  simbolo_no_admitido: 'Nuestro proveedor no nos da precio para este símbolo en este mercado; lo estamos revisando',
   proveedor_no_disponible: 'El proveedor de precios no respondió; se reintentará en el próximo ciclo',
 };
 

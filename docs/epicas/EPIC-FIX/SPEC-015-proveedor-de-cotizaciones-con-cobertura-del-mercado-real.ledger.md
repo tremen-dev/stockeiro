@@ -108,13 +108,17 @@ opcional**: sin ella, esta épica no cumple CE-F2.
   **no devuelve divisa** (verificado contra la API). La divisa la pone el **refresco desde
   el símbolo** (RN-09/CA-5). Esto **corrige un bug latente**: antes se guardaba la divisa
   del proveedor, así que `SAN`@NYSE habría escrito **USD en un símbolo EUR**.
-- **F-ADR-012-2 (despliegue, BLOQUEANTE en producción)**: `MARKETSTACK_API_KEY` ya está en
-  `.env.example`, pero **hay que aprovisionarla en Vercel**. Sin ella, producción sigue sin
-  cotizar aunque esto se mergee. Igual que pasó con `TWELVE_DATA_API_KEY`.
-- **F-SPEC-015-1 (dialecto por verificar)**: solo se ha validado contra la API real
-  **BMEX** (ITX/SAN/TEF) y la codificación `%2C` del batch. El resto de dialectos
-  (`XETR`→`XETRA`, y XSTO/XPAR/XAMS/XNAS/XNYS) están en la tabla **sin verificar contra la
-  API**. Destino: follow-up de despliegue, junto a F-ADR-012-2.
+- **F-ADR-012-2 (despliegue) — ✅ CERRADA**. `MARKETSTACK_API_KEY` estaba aprovisionada en
+  Vercel (Production + Preview) desde el 2026-07-15; se comprobó con `vercel env ls` el
+  2026-08-11. Nunca fue el bloqueo que este ledger temía. El bloqueo real era otro y nadie
+  lo buscaba: **el código de esta épica no estaba desplegado** (ver aviso en
+  `docs/despliegue.md`).
+- **F-SPEC-015-1 (dialecto por verificar) — ⚠️ CERRADA PARCIALMENTE**. Verificado contra la
+  API real el 2026-08-11: `BMEX`, `XETR`→`XETRA`, `XPAR` y `XAMS` correctos; **`XNAS` y
+  `XNYS` estaban MAL** —Marketstack los quiere **pelados**, sin sufijo— y ese defecto es el
+  que arregla **SPEC-020**. `XSTO` sigue sin resolver (**F-SPEC-020-1**). La sospecha que
+  este follow-up dejó anotada era correcta: la tabla sin verificar escondía un fallo real
+  que impedía cotizar **cualquier** valor estadounidense.
 - **Twelve Data sigue necesario** (`TWELVE_DATA_API_KEY`) para la BÚSQUEDA: no se puede
   retirar. Dos proveedores, cada uno tras su puerto (ADR-012).
 

@@ -129,7 +129,9 @@ describe('CA-4 / CA-5 / CA-6: adaptador Marketstack', () => {
 
     expect(llamadas).toBe(1);
     // URLSearchParams codifica la coma (%2C); Marketstack la acepta (verificado 2026-07-15).
-    expect(decodeURIComponent(pedido)).toContain('ITX.BMEX,SAN.BMEX,AAPL.XNAS');
+    // SPEC-020: el dialecto es POR MERCADO — BMEX lleva sufijo y XNAS va PELADO (`.XNAS`
+    // es inválido para el proveedor). El batch de una llamada no cambia.
+    expect(decodeURIComponent(pedido)).toContain('ITX.BMEX,SAN.BMEX,AAPL');
   });
 });
 
@@ -151,9 +153,16 @@ describe('CA-8: resiliencia por símbolo', () => {
     expect(failures).toEqual([{ ticker: 'ZZZ', micCode: 'BMEX', reason: 'mercado_no_cubierto' }]);
   });
 
-  it('un fallo GLOBAL (HTTP 200 con {error}) se propaga como error', async () => {
+  // SPEC-020 CA-7 CAMBIA a propósito esta expectativa. Antes el fallo global se propagaba
+  // como excepción y NADIE la capturaba: el ciclo entero moría con 500 y todos los
+  // usuarios se quedaban sin refresco, sin disparos y sin avisos. Ahora degrada a fallo
+  // POR SÍMBOLO. Lo que se conserva es lo esencial: el fallo no desaparece en silencio.
+  it('un fallo GLOBAL (HTTP 200 con {error}) NO tumba el ciclo: sale por símbolo', async () => {
     const provider = new MarketstackProvider('key', fakeFetch({ error: { code: 'usage_limit_reached', message: 'limit' } }));
-    await expect(provider.getQuotes([{ ticker: 'ITX', micCode: 'BMEX' }])).rejects.toThrow(/Marketstack/);
+    const { quotes, failures } = await provider.getQuotes([{ ticker: 'ITX', micCode: 'BMEX' }]);
+
+    expect(quotes).toEqual([]);
+    expect(failures).toEqual([{ ticker: 'ITX', micCode: 'BMEX', reason: 'proveedor_no_disponible' }]);
   });
 });
 
