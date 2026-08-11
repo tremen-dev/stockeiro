@@ -6,9 +6,14 @@ epica: EPIC-FIX
 # Ledger — SPEC-020 Dialecto de simbolo del proveedor por mercado
 
 ## Resumen
-- Fase: implementada, pendiente de verificacion. **El frontmatter sigue en `aprobada`**:
-  `estado.mjs` rechaza la transicion a `en-progreso`/`en-revision` porque no reconoce como
-  humana la firma del gate (ver F-SPEC-020-2). No se ha forzado.
+- Fase: **hecho**. Verificada GREEN 10/10, mergeada (`8177b92`, PR #22) y desplegada en
+  produccion, donde WEN, TTD y PHM pasaron a cotizar.
+- **F-SPEC-020-2 CERRADA (2026-08-11)**: el gate quedo firmado por el humano de forma
+  **retroactiva** — aprobo la spec cuando ya estaba implementada, verificada y desplegada,
+  tras planteársele que la aprobacion original era por delegacion y no por lectura. El
+  bloqueo de `estado.mjs` fue **correcto** e hizo justo su trabajo: impidio que una
+  aprobacion delegada se colara como firma humana. La entrada original del historial se
+  conserva a proposito; el rastro no se reescribe.
 - Rama: `ft/SPEC-020-dialecto-de-simbolo-del-proveedor-por-mercado`
 - El dialecto del símbolo pasa a ser **conocimiento por mercado** en el adaptador
   (**ADR-012** pto. 4): hay mercados **con** sufijo (`BMEX`, `XETR`→`XETRA`, `XPAR`,

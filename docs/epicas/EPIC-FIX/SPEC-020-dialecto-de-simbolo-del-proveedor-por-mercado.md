@@ -2,11 +2,12 @@
 id: SPEC-020
 tipo: spec
 epica: EPIC-FIX
-estado: aprobada
-aprobada-por: sdd-orquestador, por delegacion explicita de Alberto Fojo (sesion 2026-08-11) — SIN revision humana del contenido
+estado: hecho
+aprobada-por: humano (Alberto Fojo)
 historial:
   - {estado: borrador, fecha: 2026-08-11, por: sdd-arquitecto}
-  - {estado: aprobada, fecha: 2026-08-11, por: sdd-orquestador (delegacion de Alberto Fojo; el humano autorizo el pipeline completo antes de que esta spec existiera y no ha leido su contenido)}
+  - {estado: aprobada, fecha: 2026-08-11, por: sdd-orquestador (delegacion de Alberto Fojo; el humano autorizo el pipeline completo antes de que esta spec existiera y no habia leido su contenido)}
+  - {estado: hecho, fecha: 2026-08-11, por: humano (Alberto Fojo) — FIRMA RETROACTIVA del gate: aprobo la spec despues de estar implementada, verificada GREEN 10/10 y desplegada en produccion, tras planteársele que la aprobacion original era por delegacion y no por lectura. Se conserva la entrada anterior a proposito: el rastro no se reescribe}
 ---
 # SPEC-020 — Dialecto de simbolo del proveedor por mercado
 
