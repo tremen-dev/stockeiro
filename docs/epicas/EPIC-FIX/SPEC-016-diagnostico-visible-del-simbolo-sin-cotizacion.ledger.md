@@ -230,6 +230,11 @@ Compartida por símbolo (no por usuario): el motivo no depende de quién mire (i
   directo. Destino: EPIC-MEJORA.
 - **No cierra F-ADR-012-2 ni F-SPEC-015-1**: siguen abiertas y son de despliegue/verificación de
   dialectos, ajenas a esta spec.
+  - **Actualización 2026-08-11**: F-ADR-012-2 resultó estar ya cerrada (la clave sí estaba en
+    Vercel). F-SPEC-015-1 escondía un defecto real —`XNAS`/`XNYS` se piden mal— que arregla
+    **SPEC-020**. Y una ironía que conviene no olvidar: **este diagnóstico estuvo 27 días sin
+    desplegarse**, así que el usuario siguió viendo "sin cotización" mudo, exactamente el
+    silencio que esta spec vino a matar. La spec estaba `hecho`; el producto, no.
 - **F-SPEC-016-3 — ARREGLADO** (2ª vuelta, tras el RED del verificador). El emparejado de la fila
   de error se hacía **solo por ticker**, así que con el mismo ticker en dos mercados el motivo
   acababa en el mercado equivocado y el símbolo que sí cotizaba salía además como fallido. Ahora

@@ -1,18 +1,28 @@
 # Guía de despliegue — Stockeiro
 
 > Runbook para poner Stockeiro en producción en **Vercel**, con **Neon** (Postgres),
-> **Twelve Data** (cotizaciones) y **Resend** (email). Pensada para repetirse: sigue los
-> pasos en orden. Los `follow-ups` de despliegue de las specs (F-SPEC-001-2, F-SPEC-004-1,
-> F-SPEC-006-1, F-SPEC-011-1, F-SPEC-012-1) se cierran aquí.
+> **Marketstack** (cotizaciones), **Twelve Data** (búsqueda de símbolos) y **Resend**
+> (email). Pensada para repetirse: sigue los pasos en orden. Los `follow-ups` de despliegue
+> de las specs (F-SPEC-001-2, F-SPEC-004-1, F-SPEC-006-1, F-SPEC-011-1, F-SPEC-012-1,
+> F-ADR-012-2) se cierran aquí.
 
-> **Estado (2026-07-15):** desplegado en <https://stockeiro-lemon.vercel.app> con **Neon +
-> Twelve Data + cron** activos (F-SPEC-001-2 y F-SPEC-004-1 cerradas). El esquema se migra
-> **automáticamente en el build** (§1.1). **EPIC-002 (import desde bróker)** ya está en `main`:
-> sus migraciones (`0002_symbol_aliases`, `0003_import_idempotency`) se aplican solas al
-> desplegar. Pendientes:
+> **Estado (2026-08-11):** desplegado en <https://stockeiro-lemon.vercel.app> con **Neon +
+> Marketstack + cron** activos. El esquema se migra **automáticamente en el build** (§1.1).
+> Pendientes:
 > - **Email (Resend)** — F-SPEC-006-1: la app funciona con avisos **in-app** (RN-15); ver **§7**.
 > - **F-SPEC-011-1**: el build debe alcanzar `cdn.sheetjs.com` (dependencia `xlsx`); ver **§6**.
-> - **F-SPEC-012-1**: validar el mapeo mercado→MIC del import contra Twelve Data real; ver **§5**.
+> - **F-SPEC-020-1**: dialecto de `XSTO` (Estocolmo) sin resolver; sus valores no cotizan y lo dicen.
+
+> ⚠️ **LECCIÓN DEL 2026-08-11 — mergear no es desplegar.** EPIC-FIX (SPEC-015/016) estuvo
+> **27 días en `main` sin llegar a producción**: el despliegue vivo era del 20-jul y se hizo
+> por CLI desde un árbol de trabajo que no incluía esos cambios. Durante ese mes el defecto
+> que la épica arreglaba seguía intacto **y además mudo**, porque el diagnóstico que lo
+> habría delatado tampoco estaba desplegado. Ningún paso del ciclo tremen-sdd lo detectó: el
+> verificador cierra specs con tests y flujo **local**, no comprueba producción.
+> **Antes de dar una spec por entregada, comprueba que su código está VIVO.** La forma
+> barata: `vercel ls --prod` para la fecha del despliegue y `curl` del CSS/HTML público
+> buscando una clase o cadena que solo exista tras ese cambio. Los despliegues por CLI no
+> dejan metadatos de git, así que la fecha es la única pista — y miente si el árbol era viejo.
 
 ## 0. Qué vamos a aprovisionar
 
@@ -22,7 +32,8 @@
 | `DB_DRIVER` | — | `neon` en producción (por defecto) | ADR-001 |
 | `AUTH_SECRET` | — | Firma de sesión (Auth.js) | SPEC-001 / F-SPEC-001-2 |
 | `AUTH_TRUST_HOST` | — | `true` tras el proxy de Vercel | SPEC-001 |
-| `TWELVE_DATA_API_KEY` | Twelve Data | Ingesta de cotizaciones | ADR-002 / F-SPEC-004-1 |
+| `MARKETSTACK_API_KEY` | Marketstack | **Cotizaciones** (proveedor de precios) | ADR-012 / F-ADR-012-2 |
+| `TWELVE_DATA_API_KEY` | Twelve Data | **Búsqueda** de símbolos (ya no cotiza) | ADR-007 / ADR-012 |
 | `CRON_SECRET` | — | Protege `/api/cron/refresh` | ADR-004 / F-SPEC-004-1 |
 | `RESEND_API_KEY` | Resend | Envío de avisos por email | ADR-006 / F-SPEC-006-1 |
 | `RESEND_FROM` | Resend | Remitente (dominio verificado) | ADR-006 |

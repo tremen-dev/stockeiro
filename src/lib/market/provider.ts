@@ -64,6 +64,14 @@ export type QuoteFailureReason =
   | 'simbolo_desconocido'
   /** El símbolo no tiene operating MIC canónico: no se puede cotizar sin adivinar (ADR-012). */
   | 'sin_identidad_de_mercado'
+  /**
+   * El proveedor RESPONDIÓ y no nos sirve ese símbolo tal y como se lo pedimos (SPEC-020):
+   * rechazó la petición (`no_valid_symbols_provided`) o devolvió el precio de OTRO mercado.
+   * No es `simbolo_desconocido` —el valor no está deslistado— ni `proveedor_no_disponible`
+   * —reintentar no lo arregla—: las dos cosas serían mentira, y el defecto de esta épica
+   * es exactamente el motivo mentiroso (CE-F2).
+   */
+  | 'simbolo_no_admitido'
   /** Caída/límite del proveedor: es transitorio, no un problema del símbolo. */
   | 'proveedor_no_disponible';
 
