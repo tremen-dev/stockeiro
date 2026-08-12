@@ -9,11 +9,43 @@ export const users = pgTable('users', {
   id: uuid('id').defaultRandom().primaryKey(),
   email: text('email').notNull().unique(), // RN-02: email único
   passwordHash: text('password_hash').notNull(),
+  // ÉPOCA DE CREDENCIAL (ADR-016 pto. 1): marca de la última vez que cambió la
+  // contraseña. El JWT la estampa al hacer login y la frontera Node la revalida:
+  // si no coinciden, la sesión ya no autentica (invalidación de sesiones previas).
+  passwordChangedAt: timestamp('password_changed_at', { withTimezone: true })
+    .notNull()
+    .defaultNow(),
   createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
 });
 
 export type User = typeof users.$inferSelect;
 export type NewUser = typeof users.$inferInsert;
+
+/**
+ * `password_reset_tokens` — enlaces de recuperación emitidos (SPEC-023, ADR-015 pto. 3).
+ *
+ * Tabla propia y no columnas de `users` porque un token es un EVENTO con ciclo de vida
+ * (se emite, caduca, se consume) y porque el historial es lo que hace posible el límite
+ * de solicitudes por ventana (CA-12).
+ *
+ * `tokenHash` es el SHA-256 en hex del token en claro (ADR-015 pto. 2): la tabla NUNCA
+ * contiene el secreto (CA-5), y localizar la fila exige re-hashear lo recibido. Es único
+ * porque es la clave de búsqueda. `consumedAt` null = vivo; el consumo es un UPDATE
+ * condicional atómico (ADR-015 pto. 5), no un lee-comprueba-escribe.
+ */
+export const passwordResetTokens = pgTable('password_reset_tokens', {
+  id: uuid('id').defaultRandom().primaryKey(),
+  userId: uuid('user_id')
+    .notNull()
+    .references(() => users.id),
+  tokenHash: text('token_hash').notNull().unique(),
+  expiresAt: timestamp('expires_at', { withTimezone: true }).notNull(),
+  consumedAt: timestamp('consumed_at', { withTimezone: true }), // null = vivo
+  createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
+});
+
+export type PasswordResetToken = typeof passwordResetTokens.$inferSelect;
+export type NewPasswordResetToken = typeof passwordResetTokens.$inferInsert;
 
 /**
  * `symbols` — registro COMPARTIDO de símbolos (ADR-002), no por usuario.
