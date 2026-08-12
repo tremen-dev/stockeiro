@@ -7,14 +7,33 @@ tipo: roadmap
 > El estado fino por spec vive en el tablero; aquí vive la INTENCIÓN.
 
 ## Ahora (en curso)
-- **EPIC-FIX — Defectos en producción** (estado: borrador; épica *bucket*).
+- **EPIC-FIX — Defectos en producción** (estado: aprobada; épica *bucket*).
   Sube a "Ahora" porque hay un defecto que **rompe la promesa central del producto**:
   la vigilancia (CE-1) y el P/L actual (CE-3) **no funcionan para el mercado principal
   del usuario**. El free tier de Twelve Data no cubre BME/M.CONTINUO y la cartera real
   es ~82% mercado continuo español; además el fallo es **silencioso** (el usuario solo
   ve "sin cotización"). La app está desplegada, así que lleva desde el despliegue sin
   cumplir lo prometido. Nada de lo demás importa hasta que esto funcione.
-  Pendiente de gate humano para pasar a `aprobada`.
+  Aprobada por humano el 2026-07-15.
+  ↳ **Estado real a 2026-08-11**: sus cuatro specs (SPEC-015, 016, 020, 021) están
+  `hecho`. La promesa está restaurada **de facto**; falta el cierre formal de la épica
+  (moverla a "Entregado" cuando lo sanciones).
+
+- **EPIC-003 — Recuperación y cambio de contraseña** (estado: borrador).
+  **Por qué está aquí y no en "Después", pese al criterio de corte.** El criterio dice
+  que no se compromete alcance nuevo hasta que EPIC-FIX restaure la promesa — y eso
+  **ya ha ocurrido**: las cuatro specs de EPIC-FIX están `hecho`. El listón que ese
+  criterio puso está superado; mantener la sección vacía sería respetar la letra de la
+  regla contra su propósito.
+  Y hay una razón propia, no derivada: la app se va a compartir con **testers externos**
+  en un foro de bolsa, y hoy **un usuario que olvida su contraseña queda fuera para
+  siempre** (única salida: tocar el hash a mano en Neon). Es el primer minuto de la
+  relación con el producto y no tiene remedio.
+  Además **no es alcance nuevo en sentido estricto**: el gate humano de SPEC-001
+  (2026-07-13) ya resolvió que *"el flujo de reset será spec propia"*. Esta épica paga
+  una deuda contraída, no amplía la ambición del producto.
+  ⚠️ **Convierte F-SPEC-006-1 en bloqueante** (ver "Ops y despliegue"): sin Resend con
+  dominio verificado no hay recuperación posible — el email no tiene fallback aquí.
 
 ## Entregado
 > Lo que ya cumple su promesa. El detalle por spec vive en `docs/tablero.md`.
@@ -30,7 +49,9 @@ tipo: roadmap
   CVE y línea mantenida de Next.js (ADR-008).
 
 ## Después (comprometido, sin empezar)
-<!-- Vacío: no se compromete nada nuevo hasta que EPIC-FIX restaure la promesa. -->
+<!-- Sigue vacío. La regla que lo vaciaba ("nada nuevo hasta que EPIC-FIX restaure la
+promesa") ya se ha cumplido, pero eso no la convierte en barra libre: lo único que ha
+subido es EPIC-003, y por las razones propias que allí se argumentan. -->
 
 ## Más adelante (idea, sin compromiso)
 - **Observabilidad del ciclo diario**: registrar el resultado de cada ejecución del cron
@@ -80,9 +101,11 @@ esquema no necesita paso manual.
 - ✅ **F-SPEC-001-2** (Neon + `AUTH_SECRET`) — **cerrada**.
 - ✅ **F-SPEC-004-1** (`TWELVE_DATA_API_KEY` + `CRON_SECRET` + Vercel Cron) — **cerrada**.
   ⚠️ Aprovisionada, pero el **free tier no cubre BME** → es el defecto que ataca EPIC-FIX.
-- ⏳ **F-SPEC-006-1** (Resend: `RESEND_API_KEY` + dominio verificado) — **pendiente por
-  diseño**. Sin ella los avisos quedan **in-app** (RN-15) y no sale email; el ciclo no
-  falla. Se activa cuando se quiera (runbook §7).
+- 🔴 **F-SPEC-006-1** (Resend: `RESEND_API_KEY` + dominio verificado) — **BLOQUEANTE
+  desde 2026-08-11** (antes: "pendiente por diseño"). Para los avisos sigue siendo
+  opcional: sin ella quedan **in-app** (RN-15) y el ciclo no falla. Pero **EPIC-003 la
+  convierte en prerrequisito**: la recuperación de contraseña viaja por email y **no
+  tiene fallback** — sin dominio verificado no hay recuperación. Runbook §7.
 - ⏳ **F-SPEC-011-1** (el build debe alcanzar `cdn.sheetjs.com`; `xlsx` viene del CDN por
   los CVE del paquete npm) — registrado en el runbook §6.
 - ⏳ **F-SPEC-012-1** (validar el mapeo mercado→MIC contra el proveedor real) — **lo
