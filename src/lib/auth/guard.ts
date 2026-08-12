@@ -12,8 +12,16 @@ export type GuardResult =
 
 export const LOGIN_PATH = '/login';
 
-/** Rutas públicas: accesibles sin sesión (RN-03 excepciona registro y login). */
-const PUBLIC_PREFIXES = ['/login', '/register'];
+/**
+ * Rutas públicas: accesibles sin sesión. ÚNICO sitio donde se declara la excepción
+ * a RN-03 — que se prueba (CA-15), no se hereda.
+ *
+ * `/forgot-password` y `/reset-password/<token>` (SPEC-023, CE-5) son públicas por
+ * diseño: quien ha perdido el acceso no puede tener sesión. El resto de rutas de
+ * datos sigue exigiéndola, y el emparejamiento es por segmento completo, así que
+ * una ruta que solo SE PAREZCA (p. ej. `/reset-passwordX`) no entra.
+ */
+export const PUBLIC_PREFIXES = ['/login', '/register', '/forgot-password', '/reset-password'];
 
 export function isPublicPath(pathname: string): boolean {
   if (pathname === '/') return true;
