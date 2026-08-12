@@ -1,4 +1,4 @@
-import { auth } from '@/lib/auth/config';
+import { requireUser } from '@/lib/auth/session';
 import { db } from '@/db/client';
 import { listNotificationsForUser } from '@/lib/notifications/service';
 import { AppNav } from '../app-nav';
@@ -12,8 +12,8 @@ const KIND: Record<string, string> = {
 };
 
 export default async function AvisosPage() {
-  const session = await auth();
-  const avisos = await listNotificationsForUser(db, session!.user.id);
+  const user = await requireUser(); // SPEC-023 CA-13: sesión revocada -> login
+  const avisos = await listNotificationsForUser(db, user.id);
   const unread = avisos.filter((n) => !n.isRead).length;
   const fecha = (d: Date) => d.toISOString().slice(0, 10);
 

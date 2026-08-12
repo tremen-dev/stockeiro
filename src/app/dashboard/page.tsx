@@ -1,5 +1,5 @@
 import Link from 'next/link';
-import { auth } from '@/lib/auth/config';
+import { requireUser } from '@/lib/auth/session';
 import { db } from '@/db/client';
 import { countUnread } from '@/lib/notifications/service';
 import { AppNav } from '../app-nav';
@@ -7,8 +7,8 @@ import { AppNav } from '../app-nav';
 // Panel principal (ruta protegida por middleware, CA-5 SPEC-001). Reformado en
 // SPEC-007 con navegación compartida y accesos a las secciones.
 export default async function DashboardPage() {
-  const session = await auth();
-  const unread = session?.user?.id ? await countUnread(db, session.user.id) : 0;
+  const user = await requireUser(); // SPEC-023 CA-13: sesión revocada -> login
+  const unread = await countUnread(db, user.id);
 
   return (
     <>
@@ -18,7 +18,7 @@ export default async function DashboardPage() {
           <span className="eyebrow">Panel</span>
           <h1 className="headline">Tu vigilancia</h1>
           <p className="sub">
-            Sesión iniciada como <strong>{session?.user?.email ?? 'usuario'}</strong>. Vigila tus
+            Sesión iniciada como <strong>{user.email ?? 'usuario'}</strong>. Vigila tus
             zonas, revisa tu cartera y no pierdas una entrada.
           </p>
         </div>
