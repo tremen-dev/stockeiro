@@ -15,20 +15,25 @@ ledger de transacciones, P/L actual/realizado con `decimal.js` y redondeo
 monetario, `/cartera`). **SPEC-003 (Acciones vigiladas y zonas)** en `borrador`
 (cierra la definición de "zona", R-2). Faltan por crear: Ingesta, Motor de
 disparo, Notificaciones y UI — el desglose de `_epica.md` es orientativo.
+**EPIC-003 (Recuperación y cambio de contraseña)** iniciada: **SPEC-023
+(Recuperación por email) HECHA GREEN** (16/16 CA, aprobada 2026-08-12).
 
 ## Stack y arquitectura (resumen as-built)
 
 Lo realmente montado (decisión en **ADR-001**; ingesta en **ADR-002**):
 
 - **Next.js 15 App Router** (React 19) sobre Vercel; Server Components + Server
-  Actions. Rutas en `src/app/`: grupo `(auth)/` (login, register + `actions.ts`),
-  `dashboard/`, `api/auth/[...nextauth]/route.ts`.
+  Actions. Rutas en `src/app/`: grupo `(auth)/` (login, register, forgot-password,
+  reset-password + `actions.ts`), `dashboard/`, `api/auth/[...nextauth]/route.ts`.
 - **Auth.js v5 (NextAuth beta) con split-config**: `src/lib/auth/base-config.ts`
   edge-safe (solo callbacks jwt/session, sin DB ni bcrypt) para
   `src/middleware.ts`; `src/lib/auth/config.ts` en Node añade provider
-  **Credentials** con bcrypt (`passwords.ts`) + Postgres. Sesión JWT.
+  **Credentials** con bcrypt (`passwords.ts`) + Postgres. Sesión JWT con
+  **época de credencial** (`passwordChangedAt`, ADR-016) para invalidación de
+  sesiones previas al cambiar contraseña.
 - **Drizzle ORM** (`src/db/schema.ts`, `drizzle.config.ts`); migraciones
-  versionadas (`db:generate`/`db:migrate`).
+  versionadas (`db:generate`/`db:migrate`). Tabla nueva **`password_reset_tokens`**
+  (token hasheado, un solo uso, caducidad 30 min, ADR-015).
 - **Cliente de datos INTERCAMBIABLE por `DB_DRIVER`** (`src/db/client.ts`):
   `neon-http` (Neon serverless) en prod / `postgres-js` en local y e2e.
 - **Persistencia por entorno**: **Neon Postgres** (prod), **PGlite**
@@ -41,8 +46,10 @@ Lo realmente montado (decisión en **ADR-001**; ingesta en **ADR-002**):
 - **Scheduler** previsto: Vercel Cron para el refresco diario (ADR-001/ADR-002),
   aún no implementado.
 - Env real: `.env.example` → `DATABASE_URL` (+ `DB_DRIVER`), `AUTH_SECRET`
-  (+ `AUTH_TRUST_HOST`); ingesta (SPEC-004): `TWELVE_DATA_API_KEY` y `CRON_SECRET`
-  (protege `/api/cron/refresh`). Provisión de producción en roadmap → "Antes de desplegar".
+  (+ `AUTH_TRUST_HOST`), **`APP_BASE_URL`** (origen absoluto de enlaces de
+  recuperación, ADR-015); ingesta (SPEC-004): `TWELVE_DATA_API_KEY` y
+  `CRON_SECRET` (protege `/api/cron/refresh`). Provisión de producción en
+  roadmap → "Antes de desplegar".
 
 ## Decisiones clave hasta hoy
 <!-- Referencias a ADR-NNN, no duplicar su contenido. -->
@@ -60,6 +67,13 @@ Lo realmente montado (decisión en **ADR-001**; ingesta en **ADR-002**):
   Auth.js** (sin política propia); aislamiento **en capa de app** con test (CA-6),
   **RLS a futuro** (refuerzo, no ahora); errores de login genéricos; sin
   recuperación de contraseña en esta spec.
+- **ADR-015** — Token de recuperación: opaco, de un solo uso, almacenado hasheado,
+  caducidad corta (30 min), 3 solicitudes/hora por cuenta. Sin el token en claro,
+  enlace fuera de cabeceras `Referer`, usando `APP_BASE_URL` no de `Host`.
+- **ADR-016** — Invalidación de sesiones: época de credencial (`passwordChangedAt`)
+  en JWT, revalidada en Node; al cambiar contraseña, todas las sesiones previas
+  dejan de autenticar. Precio: revalidación DB por petición, sin estado JWT, todo
+  el mundo cierra sesión el día del despliegue.
 
 ## Riesgos y preguntas abiertas
 
@@ -82,6 +96,15 @@ Salvedades del ledger SPEC-001 pendientes:
   bloquea (CA-6 cubierto en capa de app).
 - **F-SPEC-001-2** (para DESPLIEGUE): aprovisionar **Neon + `AUTH_SECRET` reales**
   antes de producción; ya no bloquea la verificación (e2e usa Postgres efímero).
+
+Salvedades de SPEC-023 (Recuperación por email):
+
+- **F-SPEC-023-1** (DESPLIEGUE, bloqueante del merge): `DATABASE_URL` compartida
+  entre Production y Preview; abrir PR migra producción. Migraciones aditivas,
+  compatibles hacia atrás.
+- **F-SPEC-023-2** (higiene): purgar tokens caducados/consumidos en cron diario.
+- **F-SPEC-023-3** (DESPLIEGUE): variable `APP_BASE_URL` en Vercel; sin ella o
+  mal configurada, los enlaces no funcionan.
 
 Preguntas abiertas pendientes de spec: definición formal de "zona" (R-2), cadencia
 exacta del refresco (R-3) y canal de aviso proactivo (R-4/CE-2).
