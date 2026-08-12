@@ -16,6 +16,7 @@ import {
   RESET_TOKEN_TTL_MINUTES,
   hashResetToken,
 } from '@/lib/auth/reset-tokens';
+import { credentialsSchema, newPasswordSchema } from '@/lib/auth/validation';
 
 const BASE = 'https://stockeiro.app';
 const EMAIL = 'ana@example.com';
@@ -411,5 +412,42 @@ describe('CA-12: límite por cuenta y ventana, invisible en la respuesta', () =>
 
     await (await requestPasswordReset(db, sender, 'bea@example.com', { baseUrl: BASE })).delivery;
     expect(sender.sent).toHaveLength(antes + 1);
+  });
+});
+
+describe('CA-16: el reset no inventa política de contraseña (CE-5)', () => {
+  /** Contraseñas que el REGISTRO acepta hoy: la política sigue delegada en Auth.js. */
+  const aceptadasPorElRegistro = ['a', '1234', 'clave', 'clave sin mayúsculas ni dígitos', '        x'];
+
+  it('la regla del reset ES la del registro, tomada de `credentialsSchema`', () => {
+    expect(newPasswordSchema).toBe(credentialsSchema.shape.password);
+  });
+
+  it('lo que el registro acepta, el reset lo acepta también', async () => {
+    for (const pwd of aceptadasPorElRegistro) {
+      expect(credentialsSchema.shape.password.safeParse(pwd).success).toBe(true);
+      expect(newPasswordSchema.safeParse(pwd).success).toBe(true);
+    }
+  });
+
+  it('extremo a extremo: una contraseña débil que el registro admite sirve para el reset', async () => {
+    await registerUser(db, EMAIL, 'a'); // el registro la admite hoy
+    const token = await requestAndReadToken();
+
+    expect((await resetPasswordWithToken(db, token, 'b')).ok).toBe(true);
+    await expect(verifyCredentials(db, EMAIL, 'b')).resolves.toBeTruthy();
+  });
+
+  it('lo único que se rechaza es la ausencia de contraseña, y sin quemar el enlace', async () => {
+    await registerUser(db, EMAIL, OLD_PWD);
+    const token = await requestAndReadToken();
+
+    expect(await resetPasswordWithToken(db, token, '')).toEqual({
+      ok: false,
+      reason: 'invalid-password',
+    });
+    // El enlace sigue vivo: un envío mal formado no puede dejar al usuario fuera.
+    expect(await isResetTokenUsable(db, token)).toBe(true);
+    expect((await resetPasswordWithToken(db, token, NEW_PWD)).ok).toBe(true);
   });
 });

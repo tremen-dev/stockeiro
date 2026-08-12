@@ -24,6 +24,7 @@ async function makeDbWithNotes() {
       id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
       email text NOT NULL UNIQUE,
       password_hash text NOT NULL,
+      password_changed_at timestamptz NOT NULL DEFAULT now(), -- época de credencial (ADR-016)
       created_at timestamptz NOT NULL DEFAULT now()
     );
     CREATE TABLE notes (
