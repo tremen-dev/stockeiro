@@ -7,15 +7,24 @@ import { EmailAlreadyRegisteredError, InvalidCredentialsError } from './errors';
 /** Acepta tanto el cliente Neon (producción) como PGlite (tests). */
 type Db = PgDatabase<any, any, any>;
 
-/** Identidad pública de un usuario: nunca expone el hash de contraseña. */
-export type PublicUser = { id: string; email: string; createdAt: Date };
+/**
+ * Identidad pública de un usuario: nunca expone el hash de contraseña.
+ * `passwordChangedAt` es la época de credencial (ADR-016 pto. 1) — no es material
+ * de la credencial, solo la marca temporal que el JWT estampa al hacer login.
+ */
+export type PublicUser = { id: string; email: string; passwordChangedAt: Date; createdAt: Date };
 
 function normalizeEmail(email: string): string {
   return email.trim().toLowerCase();
 }
 
 function toPublic(u: User): PublicUser {
-  return { id: u.id, email: u.email, createdAt: u.createdAt };
+  return {
+    id: u.id,
+    email: u.email,
+    passwordChangedAt: u.passwordChangedAt,
+    createdAt: u.createdAt,
+  };
 }
 
 /**

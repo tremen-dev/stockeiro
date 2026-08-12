@@ -17,6 +17,15 @@ export async function makeTestDb() {
       id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
       email text NOT NULL UNIQUE,
       password_hash text NOT NULL,
+      password_changed_at timestamptz NOT NULL DEFAULT now(),
+      created_at timestamptz NOT NULL DEFAULT now()
+    );
+    CREATE TABLE password_reset_tokens (
+      id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
+      user_id uuid NOT NULL REFERENCES users(id),
+      token_hash text NOT NULL UNIQUE,
+      expires_at timestamptz NOT NULL,
+      consumed_at timestamptz,
       created_at timestamptz NOT NULL DEFAULT now()
     );
     CREATE TABLE symbols (

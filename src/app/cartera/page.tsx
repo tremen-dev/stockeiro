@@ -1,5 +1,5 @@
 import Link from 'next/link';
-import { auth } from '@/lib/auth/config';
+import { requireUser } from '@/lib/auth/session';
 import { db } from '@/db/client';
 import { portfolioSummary } from '@/lib/portfolio/service';
 import { getDiagnosticMap, getPriceMap, getQuoteViews } from '@/lib/market/quotes';
@@ -11,9 +11,9 @@ import { BuyForm, SellForm } from './portfolio-forms';
 // actual usa el último cierre no ajustado ingerido (RN-06/RN-12). Sin cotización
 // para un símbolo, ese P/L actual sigue "—" (D-6). SPEC-007: nav compartida + estilo.
 export default async function CarteraPage() {
-  const session = await auth();
+  const user = await requireUser(); // SPEC-023 CA-13: sesión revocada -> login
   const priceByTicker = await getPriceMap(db);
-  const summary = await portfolioSummary(db, session!.user.id, priceByTicker);
+  const summary = await portfolioSummary(db, user.id, priceByTicker);
   const quotes = await getQuoteViews(db);
   const asOf = quotes.length
     ? new Date(Math.max(...quotes.map((q) => q.asOf.getTime()))).toISOString().slice(0, 10)

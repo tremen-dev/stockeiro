@@ -11,11 +11,16 @@ const PG_PORT = 54329;
 const APP_PORT = 3200;
 const DB = 'stockeiro_e2e';
 const dir = './.pg-e2e';
+// SPEC-023: buzón de correo del e2e. La app corre en OTRO proceso, así que el enlace
+// de recuperación se vuelca aquí (JSON por línea) para que el test pueda leerlo.
+// El mismo path lo lee tests/e2e/recuperacion.spec.ts. Nunca se llama a Resend.
+const OUTBOX = './.e2e-outbox.jsonl';
 
 try {
   rmSync(dir, { recursive: true, force: true });
+  rmSync(OUTBOX, { force: true });
 } catch {
-  // directorio inexistente: nada que limpiar
+  // no existían: nada que limpiar
 }
 
 const pg = new EmbeddedPostgres({
@@ -38,6 +43,15 @@ await sql`CREATE TABLE IF NOT EXISTS users (
   id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
   email text NOT NULL UNIQUE,
   password_hash text NOT NULL,
+  password_changed_at timestamptz NOT NULL DEFAULT now(),
+  created_at timestamptz NOT NULL DEFAULT now()
+)`;
+await sql`CREATE TABLE IF NOT EXISTS password_reset_tokens (
+  id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
+  user_id uuid NOT NULL REFERENCES users(id),
+  token_hash text NOT NULL UNIQUE,
+  expires_at timestamptz NOT NULL,
+  consumed_at timestamptz,
   created_at timestamptz NOT NULL DEFAULT now()
 )`;
 await sql`CREATE TABLE IF NOT EXISTS symbols (
@@ -143,6 +157,10 @@ const child = spawn('npx', ['next', 'start', '-p', String(APP_PORT)], {
     E2E_FAKE_SYMBOL_SEARCH: '1',
     // SPEC-015/ADR-012: las cotizaciones usan el fake (sin llamar a Marketstack).
     E2E_FAKE_QUOTES: '1',
+    // SPEC-023 CA-4: el origen del enlace sale de configuración, no de la cabecera Host.
+    APP_BASE_URL: `http://localhost:${APP_PORT}`,
+    // SPEC-023: el correo va al buzón en disco (ADR-006 tras el puerto), nunca a Resend.
+    E2E_OUTBOX_FILE: OUTBOX,
   },
 });
 

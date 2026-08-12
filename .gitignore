@@ -13,6 +13,7 @@ next-env.d.ts
 
 # e2e ephemeral
 .pg-e2e/
+.e2e-outbox.jsonl
 test-results/
 playwright-report/
 

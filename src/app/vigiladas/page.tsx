@@ -1,4 +1,4 @@
-import { auth } from '@/lib/auth/config';
+import { requireUser } from '@/lib/auth/session';
 import { db } from '@/db/client';
 import { zoneStatusForUser, type ZoneState } from '@/lib/watchlist/zone-status';
 import { failReasonText } from '@/lib/market/fail-reason-text';
@@ -23,8 +23,8 @@ const LABEL: Record<ZoneState, string> = {
 const SIN_DATO_AUN = 'Aún sin datos: se ingiere en el próximo ciclo diario';
 
 export default async function VigiladasPage() {
-  const session = await auth();
-  const rows = await zoneStatusForUser(db, session!.user.id);
+  const user = await requireUser(); // SPEC-023 CA-13: sesión revocada -> login
+  const rows = await zoneStatusForUser(db, user.id);
   const zona = (min: string | null, max: string | null) =>
     min !== null && max !== null ? `${min} – ${max}` : '—';
 

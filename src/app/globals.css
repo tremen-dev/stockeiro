@@ -5,15 +5,36 @@
 /* Ajustes mínimos de formularios de auth (SPEC-001). El sistema tremen-ds no
    trae inputs; estilamos lo justo con sus tokens para coherencia visual. */
 .auth-wrap {
-  min-height: 60vh;
+  min-height: 100vh;
   display: grid;
-  place-content: center;
-  gap: 20px;
+  align-content: center;
+  justify-items: start;
+  gap: 18px;
+  width: min(420px, 100%);
+  margin-inline: auto;
+  padding: 48px 0;
+}
+/* El `.headline` del design system es de portada (hasta 160px): en una pantalla de
+   formulario se salía del viewport y se recortaba. Aquí se le da escala de auth,
+   conservando peso, tracking y color del sistema. */
+.auth-wrap .headline {
+  font-size: clamp(38px, 7vw, 56px);
+  line-height: 0.95;
+  max-width: 100%;
 }
 .auth-form {
   display: grid;
   gap: 14px;
-  min-width: 340px;
+  width: 100%;
+  /* `.card` del sistema es una tarjeta de portada (min-height 280px); en un
+     formulario eso estiraba las filas y dejaba el botón desproporcionado. */
+  min-height: auto;
+  align-content: start;
+  padding: 26px 24px;
+}
+.auth-form .btn {
+  justify-content: center;
+  margin-top: 4px;
 }
 .auth-form label {
   display: grid;
@@ -37,6 +58,64 @@
   color: var(--error);
   font-size: var(--t-body-sm);
   margin: 0;
+}
+
+/* Los enlaces de auth salían con el azul por defecto del navegador, ajenos al
+   sistema; se alinean con el acento de la app (mismo trato que `.link` en el panel). */
+.auth-wrap .lede {
+  margin: 0;
+  font-size: var(--t-body-sm);
+  color: var(--fg-muted);
+}
+/* Solo los enlaces de TEXTO; los que son botón conservan el estilo del sistema. */
+.auth-wrap p a:not(.btn) {
+  color: var(--accent);
+  text-decoration: underline;
+  text-decoration-color: color-mix(in srgb, var(--accent) 45%, transparent);
+  text-underline-offset: 3px;
+}
+.auth-wrap p a:not(.btn):hover {
+  text-decoration-color: var(--accent);
+}
+
+/* --- SPEC-023: recuperación de contraseña. Mismos tokens y misma caja que
+   login/register; solo añade el texto de apoyo y el panel de acuse. --- */
+.auth-sub {
+  margin: -8px 0 0;
+  font-size: var(--t-body-sm);
+  line-height: 1.5;
+  color: var(--muted-50);
+}
+.auth-note {
+  margin: 0;
+  font-size: var(--t-body-sm);
+  line-height: 1.55;
+  color: var(--bone);
+  width: 100%;
+}
+/* Acuse de la solicitud / enlace no válido: misma caja que el formulario, para que
+   la pantalla no “salte” al enviar. */
+.auth-done {
+  gap: 12px;
+}
+.auth-done .btn {
+  justify-self: start;
+  justify-content: flex-start;
+}
+.auth-hint {
+  margin: 0;
+  font-size: var(--t-body-sm);
+  line-height: 1.5;
+  color: var(--muted-50);
+  opacity: 0.8;
+}
+/* Confirmación en /login tras el reset (CA-14): acento discreto, no una alarma. */
+.auth-note-ok {
+  padding: 12px 14px;
+  border-radius: var(--r-md);
+  border: 1px solid var(--ink-line);
+  border-left: 3px solid var(--accent);
+  background: var(--ink-soft);
 }
 
 /* ============================================================

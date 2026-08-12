@@ -1,4 +1,5 @@
 import Link from 'next/link';
+import { requireUser } from '@/lib/auth/session';
 import { AppNav } from '../../app-nav';
 import { ImportWizard } from './import-wizard';
 
@@ -7,7 +8,8 @@ import { ImportWizard } from './import-wizard';
  * el proxy de sesión (RN-03): sin sesión, redirige a login (CA-11). Aloja el asistente
  * de 3 pasos (Subir → Resolver → Previsualizar/Confirmar).
  */
-export default function ImportarPage() {
+export default async function ImportarPage() {
+  await requireUser(); // SPEC-023 CA-13: sesión revocada -> login
   return (
     <>
       <AppNav active="cartera" />

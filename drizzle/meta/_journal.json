@@ -43,6 +43,13 @@
       "when": 1784111416619,
       "tag": "0005_quote_diagnostics",
       "breakpoints": true
+    },
+    {
+      "idx": 6,
+      "version": "7",
+      "when": 1786520733446,
+      "tag": "0006_chemical_chronomancer",
+      "breakpoints": true
     }
   ]
 }
