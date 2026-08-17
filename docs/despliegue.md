@@ -6,26 +6,30 @@
 > de las specs (F-SPEC-001-2, F-SPEC-004-1, F-SPEC-006-1, F-SPEC-011-1, F-SPEC-012-1,
 > F-ADR-012-2) se cierran aquí.
 
-> **Estado (2026-08-17):** desplegado en <https://stockeiro-lemon.vercel.app> con **Neon +
+> **Estado (2026-08-18):** desplegado y **vivo** en <https://stockeiro.tremen.dev> (dominio
+> principal desde 2026-08-17) y en <https://stockeiro-lemon.vercel.app>, con **Neon +
 > Marketstack + cron** activos. El esquema se migra **automáticamente en el build** (§1.1).
-> El despliegue vivo es del **2026-08-11** (`vercel ls --prod`, comprobado el 2026-08-17: tres
-> despliegues ese día y **ninguno desde entonces**) y **NO incluye SPEC-023** (recuperación de
-> contraseña): esa spec está en `hecho` desde el 2026-08-12, su PR #24 **ya está mergeada en
-> `main`**, y aun así **sigue sin desplegarse** — es la lección de arriba repitiéndose. Ver **§8**.
 >
-> <sub>Corrección: una versión anterior de esta línea decía "2026-08-14". Era falso: salió de
-> leer el campo *Updated* de `vercel project ls`, que es metadato del **proyecto**, no la fecha
-> del despliegue. La fuente correcta es `vercel ls --prod`. Se deja escrito porque es
-> exactamente el error que este runbook advierte dos párrafos más arriba — **la fecha miente**—
-> y porque una guía de despliegue con una fecha inventada es peor que sin fecha.</sub>
+> **Último despliegue: 2026-08-18** (`vercel ls --prod`), y **sí incluye SPEC-023, SPEC-024 y
+> SPEC-025**. La recuperación de contraseña está **probada de punta a punta en producción**:
+> solicitud → correo desde `@tremen.dev` → enlace a `stockeiro.tremen.dev` → contraseña
+> cambiada. Antes de este despliegue, SPEC-023 llevaba **6 días** `hecho` y muda: la lección
+> de abajo, repitiéndose por tercera vez.
+>
+> <sub>Nota de fechas: una versión anterior de esta línea dijo "2026-08-14", que era falso — salió
+> de leer el campo *Updated* de `vercel project ls`, que es metadato del **proyecto**, no la fecha
+> del despliegue. La fuente correcta es siempre `vercel ls --prod`. Se deja escrito porque es
+> exactamente el error que este runbook advierte justo debajo: **la fecha miente**.</sub>
 >
 > Pendientes:
-> - **Email (Resend)** — F-SPEC-006-1: **CERRADO el 2026-08-17**. `RESEND_API_KEY` y
->   `RESEND_FROM` puestas en Production; dominio `tremen.dev` verificado y confirmado con un
->   envío real. Sigue sin efecto hasta que se despliegue.
-> - **`APP_BASE_URL`** — F-SPEC-023-3: **CERRADO el 2026-08-17**, con valor
->   `https://stockeiro.tremen.dev` (dominio nuevo, CNAME en Cloudflare sin proxy, HTTPS vivo).
->   Sin efecto hasta que se despliegue.
+> - ✅ **Email (Resend)** — F-SPEC-006-1: **CERRADO y PROBADO** el 2026-08-18. `RESEND_API_KEY`
+>   y `RESEND_FROM` en Production, dominio `tremen.dev` verificado, y un reset real entregado.
+> - ✅ **`APP_BASE_URL`** — F-SPEC-023-3: **CERRADO y PROBADO** el 2026-08-18, con valor
+>   `https://stockeiro.tremen.dev` (CNAME en Cloudflare, sin proxy).
+> - ⏳ **F-SPEC-023-1**: `DATABASE_URL` sigue compartida entre `Production` y `Preview`
+>   (confirmado en la propia integración de Neon: el recurso está conectado a *production* **y**
+>   *preview*). Hoy es inocuo porque nada dispara builds de Preview; **conectar el repo a Vercel
+>   lo activaría**. Lo resuelve ADR-018.
 > - **F-SPEC-011-1**: el build debe alcanzar `cdn.sheetjs.com` (dependencia `xlsx`); ver **§6**.
 > - **F-SPEC-020-1**: dialecto de `XSTO` (Estocolmo) sin resolver; sus valores no cotizan y lo dicen.
 
@@ -225,6 +229,18 @@ vercel --prod     # deploy a producción
 
 ## 6. Notas y gotchas
 
+- 🚨 **`vercel --prod` falla con `"Not authorized"` y NO es un problema de permisos.** Visto el
+  2026-08-18. El token es válido (`vercel whoami`, `env add` y `domains add` funcionan); lo que
+  pasa es que Vercel responde `missing_files` —normal: pide los blobs— y entonces la CLI lanza
+  **cientos de POST paralelos** a `/v2/files` y muere ahí, traduciendo el fallo como error de
+  autorización. **Solución: `vercel --prod --archive=tgz`**, que sube un único archivo
+  comprimido en vez de cientos de ficheros sueltos. Funciona a la primera. No pierdas tiempo
+  revisando tokens, scopes ni equipos: el mensaje miente sobre su causa.
+- ⚠️ **Desplegar desde un git worktree pierde los metadatos de git.** En un worktree `.git` es
+  un **fichero**, no un directorio, así que la CLI no encuentra `.git/config` y avisa con
+  `Error while parsing repo data`. El despliegue funciona, pero sale **sin** rama ni commit
+  asociados — que es justo lo que hace imposible saber después qué se desplegó (lo ataca
+  ADR-018 con `/api/version`).
 - **Rotación de secretos**: si regeneras `CRON_SECRET`/`AUTH_SECRET`, actualiza la env en Vercel
   y **redeploy** (las envs se leen en build/arranque).
 - **Migraciones**: el deploy **SÍ migra solo** — `vercel.json` corre `npm run db:migrate`
@@ -296,8 +312,14 @@ Pasos para incorporarlo cuando quieras (cierra **F-SPEC-006-1**):
 
 ## 8. Activar la recuperación de contraseña (SPEC-023)
 
-Estado: spec en `hecho` (16/16 CA, GREEN el 2026-08-12), **PR #24 abierta y sin mergear**. El
-código **no está vivo**. Pasos, en este orden — el orden importa:
+> ✅ **COMPLETADO el 2026-08-18.** SPEC-023 está viva y probada de punta a punta en producción:
+> se solicitó un reset real, llegó el correo desde `@tremen.dev`, el enlace abrió en
+> `stockeiro.tremen.dev` y la contraseña se cambió. `/forgot-password` responde **200** en ambos
+> dominios (antes: 307). Se conservan los pasos como **procedimiento repetible** —para otro
+> entorno, o para reconstruir esto desde cero—, no como tarea pendiente.
+
+Estado original del encargo: spec en `hecho` (16/16 CA, GREEN el 2026-08-12) y sin desplegar
+durante 6 días. Pasos, en este orden — el orden importa:
 
 1. **Resend con dominio verificado** (§2 y §7). Es **bloqueante**: sin él no hay recuperación.
 2. **Variables en Production** (`vercel env add … production`):
@@ -306,9 +328,16 @@ código **no está vivo**. Pasos, en este orden — el orden importa:
    - Confirma que **`E2E_OUTBOX_FILE` NO existe** (`vercel env ls production`): esa variable
      desvía el correo a un fichero y dejaría la recuperación muda (F-SPEC-023-8).
 3. **Merge de la PR #24** a `main`.
-4. **Desplegar**: `vercel --prod` **desde un árbol de trabajo que contenga el merge**. Releer
-   la lección del 2026-08-11 al principio de este runbook: `vercel --prod` sube **tu árbol
-   local**, no lo que hay en `main`.
+4. **Desplegar**: `vercel --prod --archive=tgz` **desde un árbol de trabajo que contenga el
+   merge** (sin `--archive` falla con un engañoso `"Not authorized"`; ver §6). Releer la
+   lección del 2026-08-11 al principio de este runbook: `vercel --prod` sube **tu árbol
+   local**, no lo que hay en `main`. La forma de asegurarlo, y que funcionó aquí:
+   ```bash
+   git fetch origin
+   git switch --detach origin/main          # el arbol pasa a SER main, exactamente
+   git status --short -- src drizzle package.json vercel.json   # debe salir vacio
+   vercel --prod --archive=tgz
+   ```
 5. **La migración entra en ese deploy** (`db:migrate` en el `buildCommand`): `CREATE TABLE
    password_reset_tokens` y `ADD COLUMN users.password_changed_at NOT NULL DEFAULT now()`.
    Ambas **aditivas y compatibles hacia atrás**. Si falla, el `&&` corta: no se despliega y se
