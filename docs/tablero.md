@@ -40,6 +40,7 @@ Actualizado: 2026-08-17
 | SPEC-020 — dialecto-de-simbolo-del-proveedor-por-mercado | hecho | 2026-08-11 (humano (Alberto Fojo) — FIRMA RETROACTIVA del gate: aprobo la spec despues de estar implementada) |
 | SPEC-021 — precio-de-cadena-inambigua-en-mercados-pelados | hecho | 2026-08-11 (sdd-verificador) |
 | SPEC-024 — quitar-de-vigiladas-la-accion-correcta-haya-estado-o-no-en-zona | hecho | 2026-08-17 (sdd-verificador) |
+| SPEC-025 — cartera-vender-dividir-y-cobrar-dividendo-sobre-la-posicion-del-mercado-correcto | hecho | 2026-08-17 (sdd-verificador) |
 
 ## EPIC-INFRA (aprobada)
 
@@ -71,4 +72,4 @@ Actualizado: 2026-08-17
 
 ## Resumen
 
-- hecho: 20
+- hecho: 21
