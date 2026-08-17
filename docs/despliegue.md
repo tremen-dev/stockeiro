@@ -8,15 +8,24 @@
 
 > **Estado (2026-08-17):** desplegado en <https://stockeiro-lemon.vercel.app> con **Neon +
 > Marketstack + cron** activos. El esquema se migra **automáticamente en el build** (§1.1).
-> El despliegue vivo es del **2026-08-14** y **NO incluye SPEC-023** (recuperación de
-> contraseña): esa spec está en `hecho` y su PR (#24) espera merge + deploy — ver **§8**.
+> El despliegue vivo es del **2026-08-11** (`vercel ls --prod`, comprobado el 2026-08-17: tres
+> despliegues ese día y **ninguno desde entonces**) y **NO incluye SPEC-023** (recuperación de
+> contraseña): esa spec está en `hecho` desde el 2026-08-12, su PR #24 **ya está mergeada en
+> `main`**, y aun así **sigue sin desplegarse** — es la lección de arriba repitiéndose. Ver **§8**.
+>
+> <sub>Corrección: una versión anterior de esta línea decía "2026-08-14". Era falso: salió de
+> leer el campo *Updated* de `vercel project ls`, que es metadato del **proyecto**, no la fecha
+> del despliegue. La fuente correcta es `vercel ls --prod`. Se deja escrito porque es
+> exactamente el error que este runbook advierte dos párrafos más arriba — **la fecha miente**—
+> y porque una guía de despliegue con una fecha inventada es peor que sin fecha.</sub>
+>
 > Pendientes:
-> - **Email (Resend)** — F-SPEC-006-1: **ya no es opcional**. Para los avisos sí lo era (la app
->   funciona con avisos **in-app**, RN-15), pero **SPEC-023 lo convierte en bloqueante**: el
->   enlace de recuperación **no tiene fallback in-app** a propósito (CA-3), así que sin Resend
->   verificado no hay recuperación posible. Ver **§7** y **§8**.
-> - **`APP_BASE_URL`** — F-SPEC-023-3: sin ella el formulario de reset falla en tiempo de
->   petición (el build sale verde igual). Ver la advertencia de **§0**.
+> - **Email (Resend)** — F-SPEC-006-1: **CERRADO el 2026-08-17**. `RESEND_API_KEY` y
+>   `RESEND_FROM` puestas en Production; dominio `tremen.dev` verificado y confirmado con un
+>   envío real. Sigue sin efecto hasta que se despliegue.
+> - **`APP_BASE_URL`** — F-SPEC-023-3: **CERRADO el 2026-08-17**, con valor
+>   `https://stockeiro.tremen.dev` (dominio nuevo, CNAME en Cloudflare sin proxy, HTTPS vivo).
+>   Sin efecto hasta que se despliegue.
 > - **F-SPEC-011-1**: el build debe alcanzar `cdn.sheetjs.com` (dependencia `xlsx`); ver **§6**.
 > - **F-SPEC-020-1**: dialecto de `XSTO` (Estocolmo) sin resolver; sus valores no cotizan y lo dicen.
 
