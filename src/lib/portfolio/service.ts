@@ -12,14 +12,14 @@ import {
   type Position,
 } from './position';
 import { moneyStr } from './money';
-import { getOrCreateSymbol, getSymbolByTicker, type SymbolMarket } from './symbols';
+import { getOrCreateSymbol, type SymbolMarket } from './symbols';
 
 type Db = PgDatabase<any, any, any>;
 
 /** Se lanza al operar (vender/split/dividendo) sobre un símbolo sin posición. */
 export class NoPositionError extends Error {
-  constructor(ticker: string) {
-    super(`No tienes posición en ${ticker}.`);
+  constructor(symbolId: string) {
+    super(`No tienes posición en ${symbolId}.`);
     this.name = 'NoPositionError';
   }
 }
@@ -86,18 +86,32 @@ export async function recordBuy(
 }
 
 /**
+ * Ledger del usuario sobre ESE símbolo (SPEC-025 CA-6). El `userId` viaja DENTRO de
+ * la consulta (`ownedEntries`), no en una guardia previa: sin filas, el usuario no
+ * tiene posición ahí y no se escribe nada — da igual que el símbolo exista y sea de
+ * otro (el registro de símbolos es compartido, ADR-002).
+ */
+async function positionOf(db: Db, userId: string, symbolId: string) {
+  const entries = await ownedEntries(db, userId, symbolId);
+  if (entries.length === 0) throw new NoPositionError(symbolId);
+  return computePosition(entries);
+}
+
+/**
  * CA-3/CA-4: registra una venta. CA-5/RN-08: rechaza (OversellError) si la
  * cantidad supera la viva, SIN insertar nada.
+ *
+ * SPEC-025 CA-1: la posición se identifica por `symbolId` (ADR-007), no por ticker:
+ * el mismo ticker en dos mercados son dos posiciones distintas, con distinta divisa
+ * (RN-09), y solo el `symbolId` dice cuál de las dos se está vendiendo.
  */
 export async function recordSell(
   db: Db,
   userId: string,
-  ticker: string,
+  symbolId: string,
   input: BuySellInput,
 ): Promise<Transaction> {
-  const sym = await getSymbolByTicker(db, ticker);
-  if (!sym) throw new NoPositionError(ticker);
-  const pos = computePosition(await ownedEntries(db, userId, sym.id));
+  const pos = await positionOf(db, userId, symbolId);
   if (new Decimal(input.quantity).gt(pos.cantidadViva)) {
     throw new OversellError(pos.cantidadViva, new Decimal(input.quantity));
   }
@@ -105,7 +119,7 @@ export async function recordSell(
     .insert(transactions)
     .values({
       userId,
-      symbolId: sym.id,
+      symbolId,
       type: 'sell',
       occurredOn: input.occurredOn,
       quantity: str(input.quantity),
@@ -116,42 +130,45 @@ export async function recordSell(
   return txn;
 }
 
-/** CA-7: registra un split (evento manual en v1). */
+/** CA-7: registra un split (evento manual en v1) sobre la posición señalada (RN-07). */
 export async function recordSplit(
   db: Db,
   userId: string,
-  ticker: string,
+  symbolId: string,
   ratio: Decimal.Value,
   occurredOn: string,
 ): Promise<Transaction> {
-  const sym = await getSymbolByTicker(db, ticker);
-  if (!sym) throw new NoPositionError(ticker);
+  await positionOf(db, userId, symbolId);
   const [txn] = await db
     .insert(transactions)
-    .values({ userId, symbolId: sym.id, type: 'split', occurredOn, ratio: str(ratio) })
+    .values({ userId, symbolId, type: 'split', occurredOn, ratio: str(ratio) })
     .returning();
   return txn;
 }
 
-/** CA-8: registra un dividendo cobrado (evento manual en v1). */
+/** CA-8: registra un dividendo cobrado sobre la posición señalada (RN-05). */
 export async function recordDividend(
   db: Db,
   userId: string,
-  ticker: string,
+  symbolId: string,
   amount: Decimal.Value,
   occurredOn: string,
 ): Promise<Transaction> {
-  const sym = await getSymbolByTicker(db, ticker);
-  if (!sym) throw new NoPositionError(ticker);
+  await positionOf(db, userId, symbolId);
   const [txn] = await db
     .insert(transactions)
-    .values({ userId, symbolId: sym.id, type: 'dividend', occurredOn, amount: str(amount) })
+    .values({ userId, symbolId, type: 'dividend', occurredOn, amount: str(amount) })
     .returning();
   return txn;
 }
 
 export interface PositionView {
+  /** Identidad de la posición (ADR-007): con ella se vende, se divide y se cobra. */
+  symbolId: string;
   ticker: string;
+  /** MIC del mercado; null en los símbolos legacy anteriores a ADR-007 (CA-7). */
+  micCode: string | null;
+  exchange: string | null;
   currency: string;
   cantidadViva: string;
   costeMedio: string | null;
@@ -161,9 +178,15 @@ export interface PositionView {
   isOpen: boolean;
 }
 
-interface RawPosition {
+interface SymbolIdentity {
+  symbolId: string;
   ticker: string;
+  micCode: string | null;
+  exchange: string | null;
   currency: string;
+}
+
+interface RawPosition extends SymbolIdentity {
   pos: Position;
   /** P/L actual en Decimal (precisión completa); null = "sin dato". */
   plActualRaw: Decimal | null;
@@ -173,7 +196,7 @@ interface RawPosition {
 async function rawPositions(
   db: Db,
   userId: string,
-  priceByTicker: Record<string, Decimal.Value>,
+  priceBySymbolId: Record<string, Decimal.Value>,
 ): Promise<RawPosition[]> {
   const rows = await db
     .select({ txn: transactions, sym: symbols })
@@ -182,18 +205,27 @@ async function rawPositions(
     .where(eq(transactions.userId, userId))
     .orderBy(transactions.occurredOn, transactions.createdAt, transactions.id);
 
-  const bySymbol = new Map<string, { ticker: string; currency: string; txns: Transaction[] }>();
+  const bySymbol = new Map<string, SymbolIdentity & { txns: Transaction[] }>();
   for (const { txn, sym } of rows) {
-    const g = bySymbol.get(sym.id) ?? { ticker: sym.ticker, currency: sym.currency, txns: [] };
+    const g = bySymbol.get(sym.id) ?? {
+      symbolId: sym.id,
+      ticker: sym.ticker,
+      micCode: sym.micCode,
+      exchange: sym.exchange,
+      currency: sym.currency,
+      txns: [] as Transaction[],
+    };
     g.txns.push(txn);
     bySymbol.set(sym.id, g);
   }
 
   const out: RawPosition[] = [];
-  for (const { ticker, currency, txns } of bySymbol.values()) {
+  for (const { txns, ...id } of bySymbol.values()) {
     const pos = computePosition(toEntries(txns));
-    const price = priceByTicker[ticker] ?? null;
-    out.push({ ticker, currency, pos, plActualRaw: plActual(pos, price) });
+    // SPEC-025 CA-9: el precio se busca por SÍMBOLO. Por ticker, dos mercados del
+    // mismo valor recibían el mismo precio (y una de las dos, de otra divisa).
+    const price = priceBySymbolId[id.symbolId] ?? null;
+    out.push({ ...id, pos, plActualRaw: plActual(pos, price) });
   }
   return out;
 }
@@ -201,7 +233,10 @@ async function rawPositions(
 function toView(raw: RawPosition): PositionView {
   const cm = costeMedio(raw.pos);
   return {
+    symbolId: raw.symbolId,
     ticker: raw.ticker,
+    micCode: raw.micCode,
+    exchange: raw.exchange,
     currency: raw.currency,
     cantidadViva: raw.pos.cantidadViva.toString(), // cantidad, no importe monetario
     costeMedio: cm ? moneyStr(cm) : null,
@@ -213,15 +248,15 @@ function toView(raw: RawPosition): PositionView {
 
 /**
  * CA-10: lista las posiciones del usuario (SOLO las suyas, filtrado por userId).
- * Importes redondeados a la unidad monetaria (SPEC-002). `priceByTicker` aporta
- * precios; sin precio, plActual = null.
+ * Importes redondeados a la unidad monetaria (SPEC-002). `priceBySymbolId` aporta
+ * precios (SPEC-025 CA-9); sin precio, plActual = null.
  */
 export async function listPositions(
   db: Db,
   userId: string,
-  priceByTicker: Record<string, Decimal.Value> = {},
+  priceBySymbolId: Record<string, Decimal.Value> = {},
 ): Promise<PositionView[]> {
-  const raws = await rawPositions(db, userId, priceByTicker);
+  const raws = await rawPositions(db, userId, priceBySymbolId);
   return raws.map(toView);
 }
 
@@ -239,9 +274,9 @@ export interface PortfolioSummary {
 export async function portfolioSummary(
   db: Db,
   userId: string,
-  priceByTicker: Record<string, Decimal.Value> = {},
+  priceBySymbolId: Record<string, Decimal.Value> = {},
 ): Promise<PortfolioSummary> {
-  const raws = await rawPositions(db, userId, priceByTicker);
+  const raws = await rawPositions(db, userId, priceBySymbolId);
   // Totales sumados en precisión COMPLETA y redondeados al final (no suma de redondeos).
   const realizadoTotal = raws.reduce((acc, r) => acc.plus(r.pos.realizadoPL), new Decimal(0));
   const priced = raws.filter((r) => r.plActualRaw !== null);

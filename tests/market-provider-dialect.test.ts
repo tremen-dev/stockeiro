@@ -9,6 +9,7 @@ import { runCronCycle } from '@/lib/triggers/cycle';
 import { MarketstackProvider } from '@/lib/market/marketstack-provider';
 import { FakeNotificationSender } from '@/lib/notifications/fake-sender';
 import { getDiagnosticMap, getQuoteViews, upsertQuote } from '@/lib/market/quotes';
+import { symbolId } from './symbol-id';
 import { FAIL_REASON_TEXT, failReasonText } from '@/lib/market/fail-reason-text';
 import type { MarketDataProvider } from '@/lib/market/provider';
 
@@ -219,7 +220,7 @@ describe('CA-6: mercado sin dialecto conocido — no se pide y no se miente', ()
     const res = await refreshQuotes(db, new MarketstackProvider('key', f.impl));
 
     expect(res.skipped).toEqual([{ ticker: 'ERIC_B', reason: 'mercado_no_cubierto' }]);
-    expect((await getDiagnosticMap(db)).ERIC_B.reason).toBe('mercado_no_cubierto');
+    expect((await getDiagnosticMap(db))[await symbolId(db, 'ERIC_B')].reason).toBe('mercado_no_cubierto');
   });
 });
 
@@ -328,7 +329,7 @@ describe('CA-9: defensa en profundidad — el dominio también degrada', () => {
 
     expect(res.updated).toEqual([]);
     expect(res.skipped).toEqual([{ ticker: 'ITX', reason: 'proveedor_no_disponible' }]);
-    expect((await getDiagnosticMap(db)).ITX.reason).toBe('proveedor_no_disponible'); // SPEC-016 CA-2
+    expect((await getDiagnosticMap(db))[await symbolId(db, 'ITX')].reason).toBe('proveedor_no_disponible'); // SPEC-016 CA-2
   });
 
   it('sin MARKETSTACK_API_KEY el ciclo tampoco muere', async () => {
@@ -409,12 +410,13 @@ describe('CA-10: sin regresión de lo ya entregado', () => {
 
     // Ciclo 1: fallo global → diagnóstico con motivo.
     await refreshQuotes(db, new MarketstackProvider('key', spyFetch({ error: { code: 'no_valid_symbols_provided' } }).impl));
-    expect((await getDiagnosticMap(db)).AAPL).toBeDefined();
+    const aapl = await symbolId(db, 'AAPL');
+    expect((await getDiagnosticMap(db))[aapl]).toBeDefined();
 
     // Ciclo 2: el pelado funciona → cotiza y el aviso desaparece.
     const res = await refreshQuotes(db, new MarketstackProvider('key', spyFetch({ data: [fila('AAPL', 'XNAS', 308.26)] }).impl));
 
     expect(res.updated).toEqual(['AAPL']);
-    expect((await getDiagnosticMap(db)).AAPL).toBeUndefined();
+    expect((await getDiagnosticMap(db))[aapl]).toBeUndefined();
   });
 });

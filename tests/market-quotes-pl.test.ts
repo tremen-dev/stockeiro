@@ -56,7 +56,7 @@ describe('CA-5: base NO ajustada + asOf (RN-12, D-2)', () => {
 
     // Un split en la cartera NO altera la cotización ingerida (la serie no se ajusta, RN-12).
     await recordBuy(db, userA, 'ITX', 'EUR', { quantity: 10, price: 100, occurredOn: '2026-01-01' });
-    await recordSplit(db, userA, 'ITX', 2, '2026-02-01');
+    await recordSplit(db, userA, await symbolId(db, 'ITX'), 2, '2026-02-01');
     const stillRaw = await getQuoteByTicker(db, 'ITX');
     expect(stillRaw!.price).toBe('123.45'); // intacta pese al split
   });

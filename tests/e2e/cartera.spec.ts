@@ -56,7 +56,11 @@ test('SPEC-002: venta parcial actualiza el P/L realizado; sobreventa se rechaza'
 
   // Venta parcial de 4 @ 120 → realizado (120-100)*4 = 80
   const venta = page.locator('form', { hasText: 'Registrar venta' });
-  await venta.locator('input[name="ticker"]').fill('AAPL');
+  // SPEC-025: la posición se ELIGE de la lista (ya no se teclea el ticker). Con una
+  // sola posición abierta, el selector trae esa opción y viene preseleccionada.
+  const seleccion = venta.locator('select[name="symbolId"]');
+  await expect(seleccion.locator('option')).toHaveCount(1);
+  await expect(seleccion).toContainText('AAPL');
   await venta.locator('input[name="quantity"]').fill('4');
   await venta.locator('input[name="price"]').fill('120');
   await venta.locator('input[name="occurredOn"]').fill('2026-01-05');
@@ -68,7 +72,7 @@ test('SPEC-002: venta parcial actualiza el P/L realizado; sobreventa se rechaza'
   await page.screenshot({ path: `${SHOTS}/ca4-venta-parcial.png`, fullPage: true });
 
   // Sobreventa: intentar vender 100 → error, sin cambiar la posición (CA-5)
-  await venta.locator('input[name="ticker"]').fill('AAPL');
+  await expect(seleccion).toContainText('AAPL');
   await venta.locator('input[name="quantity"]').fill('100');
   await venta.locator('input[name="price"]').fill('120');
   await venta.locator('input[name="occurredOn"]').fill('2026-01-06');

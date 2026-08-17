@@ -15,10 +15,9 @@ async function requireUserId(): Promise<string> {
   return session.user.id;
 }
 
+/** Importe y fecha, comunes a compra y venta. El símbolo va aparte en cada una. */
 function readCommon(formData: FormData) {
   return {
-    ticker: String(formData.get('ticker') ?? '').trim(),
-    currency: String(formData.get('currency') ?? 'EUR').trim() || 'EUR',
     quantity: String(formData.get('quantity') ?? '').trim(),
     price: String(formData.get('price') ?? '').trim(),
     gastos: String(formData.get('gastos') ?? '').trim() || null,
@@ -51,15 +50,24 @@ export async function addBuyAction(_prev: FormState, formData: FormData): Promis
   return { ok: true };
 }
 
-/** Registrar venta (CA-3/CA-4). Rechaza sobreventa (CA-5). */
+/**
+ * Registrar venta (CA-3/CA-4). Rechaza sobreventa (CA-5).
+ *
+ * SPEC-025 CA-8: lo que llega del formulario es el `symbolId` de la posición elegida
+ * (ADR-007), no un ticker: el ticker no distingue el mercado y la venta acababa en la
+ * posición equivocada. El aislamiento lo hace `recordSell` con el `userId` dentro de
+ * la consulta (RN-01), no esta capa.
+ */
 export async function addSellAction(_prev: FormState, formData: FormData): Promise<FormState> {
   const userId = await requireUserId();
   const c = readCommon(formData);
-  if (!c.ticker || !c.quantity || !c.price || !c.occurredOn) {
-    return { error: 'Rellena ticker, cantidad, precio y fecha.' };
+  const symbolId = String(formData.get('symbolId') ?? '').trim();
+  if (!symbolId) return { error: 'Elige la posición que vendes.' };
+  if (!c.quantity || !c.price || !c.occurredOn) {
+    return { error: 'Rellena cantidad, precio y fecha.' };
   }
   try {
-    await recordSell(db, userId, c.ticker, {
+    await recordSell(db, userId, symbolId, {
       quantity: c.quantity,
       price: c.price,
       gastos: c.gastos,

@@ -12,8 +12,11 @@ import { BuyForm, SellForm } from './portfolio-forms';
 // para un símbolo, ese P/L actual sigue "—" (D-6). SPEC-007: nav compartida + estilo.
 export default async function CarteraPage() {
   const user = await requireUser(); // SPEC-023 CA-13: sesión revocada -> login
-  const priceByTicker = await getPriceMap(db);
-  const summary = await portfolioSummary(db, user.id, priceByTicker);
+  // SPEC-025: precios y diagnósticos van indexados por `symbolId`, no por ticker: con
+  // el mismo ticker en dos mercados, la clave por ticker valoraba las dos posiciones
+  // con el mismo precio (y con la divisa de una sola).
+  const priceBySymbolId = await getPriceMap(db);
+  const summary = await portfolioSummary(db, user.id, priceBySymbolId);
   const quotes = await getQuoteViews(db);
   const asOf = quotes.length
     ? new Date(Math.max(...quotes.map((q) => q.asOf.getTime()))).toISOString().slice(0, 10)
@@ -68,20 +71,20 @@ export default async function CarteraPage() {
               </thead>
               <tbody>
                 {summary.positions.map((p) => (
-                  <tr key={p.ticker}>
+                  <tr key={p.symbolId}>
                     <td className="ticker">{p.ticker}</td>
                     <td className="num">{p.cantidadViva}</td>
                     <td className="num">{dash(p.costeMedio)}</td>
                     <td className="num">{p.realizadoPL}</td>
                     <td className="num">
                       {dash(p.plActual)}
-                      {p.plActual === null && diagnosticos[p.ticker] && (
+                      {p.plActual === null && diagnosticos[p.symbolId] && (
                         <span
                           className="quote-fail"
                           data-testid="fail-reason"
-                          data-reason={diagnosticos[p.ticker].reason}
+                          data-reason={diagnosticos[p.symbolId].reason}
                         >
-                          ⚠ {failReasonText(diagnosticos[p.ticker].reason)}
+                          ⚠ {failReasonText(diagnosticos[p.symbolId].reason)}
                         </span>
                       )}
                     </td>
@@ -94,7 +97,10 @@ export default async function CarteraPage() {
 
         <div style={{ display: 'flex', gap: 20, flexWrap: 'wrap' }}>
           <BuyForm />
-          <SellForm />
+          {/* SPEC-025 CA-8: la venta se elige de la lista de posiciones que la página
+              ya tiene (sin consulta nueva); es la única forma de decir SOBRE QUÉ
+              mercado se vende cuando el ticker vive en dos. */}
+          <SellForm positions={summary.positions} />
         </div>
       </main>
     </>
