@@ -8,7 +8,10 @@ import * as schema from './schema';
  * sin depender de un servicio externo. En producción se usa Neon (ADR-001).
  *
  * El esquema se crea con SQL explícito para no depender de drizzle-kit en tests;
- * debe mantenerse en sincronía con `src/db/schema.ts`.
+ * debe mantenerse en sincronía con `src/db/schema.ts`. Eso incluye las cláusulas
+ * `ON DELETE` (SPEC-024): si aquí no son las mismas que en la migración, los tests
+ * verificarían un esquema que no es el de producción y el defecto volvería sin que
+ * ninguna suite lo viera. Lo mismo aplica al DDL de `tests/e2e/server.mjs`.
  */
 export async function makeTestDb() {
   const client = new PGlite();
@@ -82,7 +85,8 @@ export async function makeTestDb() {
     CREATE TABLE zone_triggers (
       id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
       user_id uuid NOT NULL REFERENCES users(id),
-      watched_symbol_id uuid NOT NULL REFERENCES watched_symbols(id),
+      -- ADR-017/SPEC-024: el episodio PERTENECE a la acción vigilada -> cascade.
+      watched_symbol_id uuid NOT NULL REFERENCES watched_symbols(id) ON DELETE CASCADE,
       symbol_id uuid NOT NULL REFERENCES symbols(id),
       zone_kind text NOT NULL,
       price numeric NOT NULL,
@@ -94,7 +98,8 @@ export async function makeTestDb() {
       id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
       user_id uuid NOT NULL REFERENCES users(id),
       kind text NOT NULL,
-      zone_trigger_id uuid REFERENCES zone_triggers(id),
+      -- ADR-017/SPEC-024: el aviso solo REFERENCIA el episodio -> set null (RN-15).
+      zone_trigger_id uuid REFERENCES zone_triggers(id) ON DELETE SET NULL,
       cycle_ref text,
       payload text NOT NULL,
       channel text NOT NULL,

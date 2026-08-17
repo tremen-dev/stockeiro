@@ -37,7 +37,8 @@ await pg.createDatabase(DB);
 
 const url = `postgres://postgres:postgres@localhost:${PG_PORT}/${DB}`;
 
-// Esquema (idéntico a src/db/schema.ts / test-db.ts).
+// Esquema (idéntico a src/db/schema.ts / test-db.ts), cláusulas ON DELETE incluidas:
+// sin ellas el e2e correría contra un esquema distinto del de producción (SPEC-024).
 const sql = postgres(url, { ssl: false, max: 1 });
 await sql`CREATE TABLE IF NOT EXISTS users (
   id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
@@ -118,7 +119,7 @@ await sql`CREATE TABLE IF NOT EXISTS quote_diagnostics (
 await sql`CREATE TABLE IF NOT EXISTS zone_triggers (
   id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
   user_id uuid NOT NULL REFERENCES users(id),
-  watched_symbol_id uuid NOT NULL REFERENCES watched_symbols(id),
+  watched_symbol_id uuid NOT NULL REFERENCES watched_symbols(id) ON DELETE CASCADE,
   symbol_id uuid NOT NULL REFERENCES symbols(id),
   zone_kind text NOT NULL,
   price numeric NOT NULL,
@@ -130,7 +131,7 @@ await sql`CREATE TABLE IF NOT EXISTS notifications (
   id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
   user_id uuid NOT NULL REFERENCES users(id),
   kind text NOT NULL,
-  zone_trigger_id uuid REFERENCES zone_triggers(id),
+  zone_trigger_id uuid REFERENCES zone_triggers(id) ON DELETE SET NULL,
   cycle_ref text,
   payload text NOT NULL,
   channel text NOT NULL,

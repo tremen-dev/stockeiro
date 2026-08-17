@@ -30,6 +30,8 @@ export async function upsertQuote(db: Db, symbolId: string, q: QuoteInput): Prom
 }
 
 export interface QuoteView {
+  /** Símbolo al que pertenece la cotización: la identidad, no el ticker (ADR-007). */
+  symbolId: string;
   ticker: string;
   price: string;
   currency: string;
@@ -37,12 +39,18 @@ export interface QuoteView {
 }
 
 /**
- * Cotizaciones vigentes (una por símbolo) con su ticker y `asOf` (CA-5, D-2).
+ * Cotizaciones vigentes (una por símbolo) con su símbolo, ticker y `asOf` (CA-5, D-2).
  * Si `tickers` se pasa, limita a esos; sin argumento, devuelve todas.
  */
 export async function getQuoteViews(db: Db, tickers?: string[]): Promise<QuoteView[]> {
   const base = db
-    .select({ ticker: symbols.ticker, price: quotes.price, currency: quotes.currency, asOf: quotes.asOf })
+    .select({
+      symbolId: quotes.symbolId,
+      ticker: symbols.ticker,
+      price: quotes.price,
+      currency: quotes.currency,
+      asOf: quotes.asOf,
+    })
     .from(quotes)
     .innerJoin(symbols, eq(quotes.symbolId, symbols.id));
   const rows = tickers
@@ -60,13 +68,18 @@ export async function getQuoteByTicker(db: Db, ticker: string): Promise<QuoteVie
 }
 
 /**
- * Mapa ticker -> precio para alimentar el P/L actual de la cartera (CA-4, RN-06).
- * Formato que `portfolioSummary`/`listPositions` (SPEC-002) ya consumen.
+ * Mapa `symbolId` -> precio para alimentar el P/L actual de la cartera (CA-4, RN-06).
+ * Formato que `portfolioSummary`/`listPositions` (SPEC-002) consumen.
+ *
+ * SPEC-025 CA-9: la clave es el SÍMBOLO, no el ticker. Indexando por ticker, dos
+ * mercados del mismo valor (`SAN`@BMEX en EUR y `SAN`@XNYS en USD, ADR-012) colapsaban
+ * en una sola entrada —ganaba el último— y las dos posiciones se valoraban con el
+ * mismo precio: 165 € de error en el P/L actual sin que el usuario tocara nada.
  */
 export async function getPriceMap(db: Db, tickers?: string[]): Promise<Record<string, string>> {
   const views = await getQuoteViews(db, tickers);
   const map: Record<string, string> = {};
-  for (const v of views) map[v.ticker] = v.price;
+  for (const v of views) map[v.symbolId] = v.price;
   return map;
 }
 
@@ -92,23 +105,38 @@ export async function clearDiagnostic(db: Db, symbolId: string): Promise<void> {
 }
 
 export interface DiagnosticView {
+  symbolId: string;
   ticker: string;
   reason: QuoteFailureReason;
   attemptedAt: Date;
 }
 
 /**
- * Mapa ticker -> diagnóstico vigente. La UI lo usa para distinguir "no se puede cotizar
- * y por qué" de "el ciclo aún no ha corrido" (CA-3): sin fila = nunca falló.
+ * Mapa `symbolId` -> diagnóstico vigente. La UI lo usa para distinguir "no se puede
+ * cotizar y por qué" de "el ciclo aún no ha corrido" (CA-3): sin fila = nunca falló.
+ *
+ * SPEC-025 CA-10: indexado por SÍMBOLO. Por ticker, el motivo de un mercado aparecía
+ * junto a la posición del otro — un motivo verdadero en la fila equivocada, que es un
+ * fallo silencioso disfrazado de transparencia (CE-F2).
  */
 export async function getDiagnosticMap(db: Db): Promise<Record<string, DiagnosticView>> {
   const rows = await db
-    .select({ ticker: symbols.ticker, reason: quoteDiagnostics.reason, attemptedAt: quoteDiagnostics.attemptedAt })
+    .select({
+      symbolId: quoteDiagnostics.symbolId,
+      ticker: symbols.ticker,
+      reason: quoteDiagnostics.reason,
+      attemptedAt: quoteDiagnostics.attemptedAt,
+    })
     .from(quoteDiagnostics)
     .innerJoin(symbols, eq(quoteDiagnostics.symbolId, symbols.id));
   const map: Record<string, DiagnosticView> = {};
   for (const r of rows) {
-    map[r.ticker] = { ticker: r.ticker, reason: r.reason as QuoteFailureReason, attemptedAt: r.attemptedAt };
+    map[r.symbolId] = {
+      symbolId: r.symbolId,
+      ticker: r.ticker,
+      reason: r.reason as QuoteFailureReason,
+      attemptedAt: r.attemptedAt,
+    };
   }
   return map;
 }

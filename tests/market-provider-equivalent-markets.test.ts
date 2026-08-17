@@ -7,6 +7,7 @@ import { runCronCycle } from '@/lib/triggers/cycle';
 import { EQUIVALENT_MARKET_GROUPS, MarketstackProvider } from '@/lib/market/marketstack-provider';
 import { FakeNotificationSender } from '@/lib/notifications/fake-sender';
 import { getDiagnosticMap, getQuoteViews } from '@/lib/market/quotes';
+import { symbolId } from './symbol-id';
 
 // SPEC-021 / ADR-014 — Los dos proveedores discrepan sobre el mercado de un valor: el
 // buscador sitúa DOCS en NYSE (`XNYS`, correcto) y Marketstack etiqueta su fila con
@@ -90,13 +91,14 @@ describe('CA-2: el mercado que viaja al dominio es el DEL PEDIDO', () => {
 
     // Ciclo 1, comportamiento anterior a esta spec: el proveedor no devuelve nada.
     await refreshQuotes(db, new MarketstackProvider('key', spyFetch({ data: [] }).impl));
-    expect((await getDiagnosticMap(db)).DOCS).toBeDefined();
+    const docs = await symbolId(db, 'DOCS');
+    expect((await getDiagnosticMap(db))[docs]).toBeDefined();
 
     // Ciclo 2: el eco discrepante ya se acepta → cotiza y el aviso desaparece.
     const res = await refreshQuotes(db, new MarketstackProvider('key', spyFetch(ECO_DOCS_XNAS).impl));
 
     expect(res.updated).toEqual(['DOCS']);
-    expect((await getDiagnosticMap(db)).DOCS).toBeUndefined();
+    expect((await getDiagnosticMap(db))[docs]).toBeUndefined();
   });
 });
 
@@ -245,7 +247,7 @@ describe('CA-8: constancia observable de la etiqueta discrepante', () => {
     ]);
     // Para el usuario no ha fallado nada: hay precio y NO hay diagnóstico (SPEC-016).
     expect(outcome.body.refresh.skipped).toEqual([]);
-    expect((await getDiagnosticMap(db)).DOCS).toBeUndefined();
+    expect((await getDiagnosticMap(db))[await symbolId(db, 'DOCS')]).toBeUndefined();
   });
 
   it('cuando el eco casa, la lista queda VACÍA: no se anota ruido', async () => {

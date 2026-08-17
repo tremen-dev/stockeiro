@@ -1,7 +1,7 @@
 <!-- GENERADO por tremen-sdd (scripts/tablero.mjs). NO EDITAR A MANO. -->
 # Tablero
 
-Actualizado: 2026-08-12
+Actualizado: 2026-08-17
 
 ## EPIC-001 — vigilancia-de-zonas-de-compra-venta-con-cartera-y-avisos (hecho)
 
@@ -39,6 +39,8 @@ Actualizado: 2026-08-12
 | SPEC-016 — diagnostico-visible-del-simbolo-sin-cotizacion | hecho | 2026-07-15 (sdd-verificador) |
 | SPEC-020 — dialecto-de-simbolo-del-proveedor-por-mercado | hecho | 2026-08-11 (humano (Alberto Fojo) — FIRMA RETROACTIVA del gate: aprobo la spec despues de estar implementada) |
 | SPEC-021 — precio-de-cadena-inambigua-en-mercados-pelados | hecho | 2026-08-11 (sdd-verificador) |
+| SPEC-024 — quitar-de-vigiladas-la-accion-correcta-haya-estado-o-no-en-zona | hecho | 2026-08-17 (sdd-verificador) |
+| SPEC-025 — cartera-vender-dividir-y-cobrar-dividendo-sobre-la-posicion-del-mercado-correcto | hecho | 2026-08-17 (sdd-verificador) |
 
 ## EPIC-INFRA (aprobada)
 
@@ -46,12 +48,6 @@ Actualizado: 2026-08-12
 |---|---|---|
 | SPEC-009 — migracion-a-next-16-y-remediacion-de-cve-de-rsc | hecho | 2026-07-14 (sdd-verificador) |
 | SPEC-010 — bump-de-drizzle-orm-por-cve-de-sql-injection | hecho | 2026-07-14 (sdd-verificador) |
-
-## EPIC-MEJORA (borrador)
-
-| Spec | Estado | Último cambio |
-|---|---|---|
-| SPEC-022 — observabilidad-del-ciclo-de-refresco | borrador | 2026-08-11 (sdd-arquitecto) |
 
 ## ADRs
 
@@ -72,8 +68,8 @@ Actualizado: 2026-08-12
 | ADR-014 | aprobada | confianza-en-el-eco-de-mercado-dentro-de-un-grupo-de-mercados-equivalentes-del-proveedor | 2026-08-11 (humano (Alberto Fojo) — aprobado en el mismo gate que SPEC-021) |
 | ADR-015 | aprobada | token-de-recuperacion-opaco-de-un-solo-uso-almacenado-hasheado-y-con-caducidad-corta | 2026-08-12 (humano (Alberto Fojo)) |
 | ADR-016 | aprobada | invalidacion-de-sesiones-previas-al-cambiar-la-contrasena-mediante-epoca-de-credencial-en-el-jwt | 2026-08-12 (humano (Alberto Fojo)) |
+| ADR-017 | aprobada | baja-de-una-accion-vigilada-los-episodios-de-zona-son-derivados-y-el-historial-de-avisos-se-conserva | 2026-08-17 (Alberto Fojo) |
 
 ## Resumen
 
-- hecho: 19
-- borrador: 1
+- hecho: 21

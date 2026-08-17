@@ -12,6 +12,7 @@ import { watchSymbol } from '@/lib/watchlist/service';
 import { recordBuy } from '@/lib/portfolio/service';
 import { portfolioSummary } from '@/lib/portfolio/service';
 import { getPriceMap } from '@/lib/market/quotes';
+import { symbolId } from './symbol-id';
 
 // SPEC-016 — ningún símbolo se descarta sin traza visible (CE-F2 de EPIC-FIX).
 
@@ -109,9 +110,10 @@ describe('CA-2: se persiste el último diagnóstico por símbolo', () => {
     const res = await refreshQuotes(db, provider);
 
     expect(res.skipped).toEqual([{ ticker: 'ITX', reason: 'mercado_no_cubierto' }]);
-    const diag = await getDiagnosticMap(db);
-    expect(diag.ITX.reason).toBe('mercado_no_cubierto');
-    expect(diag.ITX.attemptedAt).toBeInstanceOf(Date);
+    const itx = await symbolId(db, 'ITX');
+    const diag = await getDiagnosticMap(db); // SPEC-025: indexado por symbolId
+    expect(diag[itx].reason).toBe('mercado_no_cubierto');
+    expect(diag[itx].attemptedAt).toBeInstanceOf(Date);
     // Una fila por símbolo: un segundo ciclo actualiza, no duplica.
     await refreshQuotes(db, provider);
     expect(await db.select().from(quoteDiagnostics)).toHaveLength(1);
@@ -163,7 +165,7 @@ describe('CA-5 / CA-6: /cartera muestra el motivo, pero RN-06 sigue intacto', ()
 
     // …pero el motivo está disponible para acompañar ese "—" (CA-5).
     const diag = await getDiagnosticMap(db);
-    expect(diag.ITX.reason).toBe('mercado_no_cubierto');
+    expect(diag[await symbolId(db, 'ITX')].reason).toBe('mercado_no_cubierto');
   });
 });
 
@@ -180,7 +182,7 @@ describe('CA-7: la resiliencia no se rompe (CA-6 de SPEC-004)', () => {
     expect(res.updated).toEqual(['SAN']); // el otro SÍ se actualiza
     expect(res.skipped).toEqual([{ ticker: 'ITX', reason: 'mercado_no_cubierto' }]);
     const diag = await getDiagnosticMap(db);
-    expect(diag.SAN).toBeUndefined(); // el que fue bien no tiene diagnóstico
+    expect(diag[await symbolId(db, 'SAN')]).toBeUndefined(); // el que fue bien no tiene diagnóstico
   });
 });
 
@@ -189,13 +191,14 @@ describe('CA-8: el diagnóstico se limpia al resolverse', () => {
     await watchSymbol(db, userA, 'ITX', 'EUR', {}, BME);
 
     await refreshQuotes(db, new FakeMarketDataProvider({}, { 'ITX:BMEX': 'mercado_no_cubierto' }));
-    expect((await getDiagnosticMap(db)).ITX).toBeDefined();
+    const itx = await symbolId(db, 'ITX');
+    expect((await getDiagnosticMap(db))[itx]).toBeDefined();
 
     // Ahora el proveedor SÍ lo cotiza (p. ej. tras cambiar de proveedor o de plan).
     const res = await refreshQuotes(db, new FakeMarketDataProvider({ 'ITX:BMEX': q('53.72') }));
 
     expect(res.updated).toEqual(['ITX']);
-    expect((await getDiagnosticMap(db)).ITX).toBeUndefined(); // desaparece
+    expect((await getDiagnosticMap(db))[itx]).toBeUndefined(); // desaparece
     const [row] = await zoneStatusForUser(db, userA);
     expect(row.failReason).toBeNull();
     expect(row.state).not.toBe('none'); // vuelve a la normalidad
