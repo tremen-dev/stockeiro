@@ -88,7 +88,10 @@ export default async function VigiladasPage() {
                     <td className="num">{zona(r.sellMin, r.sellMax)}</td>
                     <td>
                       <form action={removeAction}>
-                        <input type="hidden" name="ticker" value={r.ticker} />
+                        {/* SPEC-024: viaja el id de la ACCIÓN VIGILADA (el mismo que la
+                            fila usa como key), no el ticker: dos mercados del mismo ticker
+                            son dos vigiladas distintas (ADR-007). */}
+                        <input type="hidden" name="watchedId" value={r.id} />
                         <button className="btn-sm" type="submit">
                           Quitar
                         </button>

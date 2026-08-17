@@ -46,12 +46,17 @@ export async function watchAction(_prev: FormState, formData: FormData): Promise
   return { ok: true };
 }
 
-/** Dejar de vigilar un ticker (CA-5). */
+/**
+ * Dejar de vigilar la acción vigilada señalada (CA-5 de SPEC-003; SPEC-024).
+ * Viaja el `id` de la acción vigilada, no el ticker: con el mismo ticker en dos
+ * mercados, el ticker no identifica la fila (ADR-007). Tolerante con el campo
+ * ausente (CA-12): no hay nada que quitar, así que no se hace nada.
+ */
 export async function removeAction(formData: FormData): Promise<void> {
   const userId = await requireUserId();
-  const ticker = String(formData.get('ticker') ?? '').trim();
-  if (ticker) {
-    await unwatch(db, userId, ticker);
+  const watchedId = String(formData.get('watchedId') ?? '').trim();
+  if (watchedId) {
+    await unwatch(db, userId, watchedId);
     revalidatePath('/vigiladas');
   }
 }
