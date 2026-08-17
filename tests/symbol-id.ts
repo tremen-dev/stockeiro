@@ -7,8 +7,8 @@ import { symbols } from '@/db/schema';
  * identidad con la que operan la cartera y las cotizaciones desde SPEC-025.
  *
  * Exige coincidencia ÚNICA a propósito: si un ticker vive en dos mercados hay que
- * decir cuál (`micCode`). Es justo la ambigüedad que `getSymbolByTicker` resolvía
- * con un `limit(1)` silencioso, y que aquí preferimos que explote.
+ * decir cuál (`micCode`). Es justo la ambigüedad que el camino viejo resolvía con un
+ * `limit(1)` silencioso (SPEC-025 CA-12), y que aquí preferimos que explote.
  */
 export async function symbolId(
   db: PgDatabase<any, any, any>,
