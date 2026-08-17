@@ -20,15 +20,16 @@ export interface SymbolMarket {
   name?: string | null;
 }
 
-/**
- * Busca un símbolo por ticker (normalizado); null si no existe. Camino legacy:
- * cuando no se conoce el mercado, resuelve por ticker devolviendo la primera
- * coincidencia. Con varios mercados para un mismo ticker, usa `getSymbolByMarket`.
+/*
+ * SPEC-025 CA-12: aquí vivía el atajo "busca un símbolo por ticker", que resolvía con
+ * `limit(1)` y sin `ORDER BY` — o sea, devolvía una fila cualquiera. Con el mismo
+ * ticker en dos mercados (ADR-012) eso hacía caer ventas, splits y dividendos en la
+ * posición equivocada, en silencio, y colapsaba el P/L actual de las dos posiciones en
+ * un solo precio. Ya no queda ningún cliente: la cartera opera por `symbols.id` y la
+ * watchlist por `watched_symbols.id` (SPEC-024). Se ELIMINA en vez de marcarse
+ * obsoleta, para no dejar la trampa armada al siguiente que necesite "algo rápido".
+ * La identidad completa vive en las dos funciones de abajo.
  */
-export async function getSymbolByTicker(db: Db, ticker: string): Promise<Symbol | null> {
-  const [s] = await db.select().from(symbols).where(eq(symbols.ticker, normalizeTicker(ticker))).limit(1);
-  return s ?? null;
-}
 
 /** Busca un símbolo por su identidad de mercado (ticker, micCode); null si no existe. */
 export async function getSymbolByMarket(db: Db, ticker: string, micCode: string): Promise<Symbol | null> {

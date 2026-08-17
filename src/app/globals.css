@@ -42,7 +42,11 @@
   font-size: var(--t-body-sm);
   color: var(--muted-50);
 }
-.auth-form input {
+/* SPEC-025: el selector de posición de la venta es un `select`, y sin esto salía con
+   el estilo por defecto del navegador (fondo blanco) en medio de un formulario
+   oscuro. Comparte el trato de los `input` del mismo formulario. */
+.auth-form input,
+.auth-form select {
   padding: 10px 12px;
   border-radius: var(--r-md);
   border: 1px solid var(--ink-line);
@@ -50,7 +54,24 @@
   color: var(--bone);
   font: inherit;
 }
-.auth-form input:focus {
+.auth-form select {
+  appearance: none;
+  /* Cheurón dibujado (data URI): sin él, `appearance: none` deja el campo sin ninguna
+     pista de que es desplegable. */
+  background-image: url("data:image/svg+xml;charset=utf-8,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 12 8'%3E%3Cpath fill='none' stroke='%23b8b2a8' stroke-width='1.6' stroke-linecap='round' stroke-linejoin='round' d='M1.4 1.6 6 6.2l4.6-4.6'/%3E%3C/svg%3E");
+  background-repeat: no-repeat;
+  background-position: right 12px center;
+  background-size: 12px 8px;
+  padding-right: 34px;
+}
+/* El desplegable nativo lo pinta el sistema: sin esto, en Windows salen opciones
+   claras sobre el campo oscuro. */
+.auth-form select option {
+  background: var(--ink-soft);
+  color: var(--bone);
+}
+.auth-form input:focus,
+.auth-form select:focus {
   outline: 2px solid var(--ember);
   outline-offset: 1px;
 }
