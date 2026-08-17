@@ -6,10 +6,17 @@
 > de las specs (F-SPEC-001-2, F-SPEC-004-1, F-SPEC-006-1, F-SPEC-011-1, F-SPEC-012-1,
 > F-ADR-012-2) se cierran aquí.
 
-> **Estado (2026-08-11):** desplegado en <https://stockeiro-lemon.vercel.app> con **Neon +
+> **Estado (2026-08-17):** desplegado en <https://stockeiro-lemon.vercel.app> con **Neon +
 > Marketstack + cron** activos. El esquema se migra **automáticamente en el build** (§1.1).
+> El despliegue vivo es del **2026-08-14** y **NO incluye SPEC-023** (recuperación de
+> contraseña): esa spec está en `hecho` y su PR (#24) espera merge + deploy — ver **§8**.
 > Pendientes:
-> - **Email (Resend)** — F-SPEC-006-1: la app funciona con avisos **in-app** (RN-15); ver **§7**.
+> - **Email (Resend)** — F-SPEC-006-1: **ya no es opcional**. Para los avisos sí lo era (la app
+>   funciona con avisos **in-app**, RN-15), pero **SPEC-023 lo convierte en bloqueante**: el
+>   enlace de recuperación **no tiene fallback in-app** a propósito (CA-3), así que sin Resend
+>   verificado no hay recuperación posible. Ver **§7** y **§8**.
+> - **`APP_BASE_URL`** — F-SPEC-023-3: sin ella el formulario de reset falla en tiempo de
+>   petición (el build sale verde igual). Ver la advertencia de **§0**.
 > - **F-SPEC-011-1**: el build debe alcanzar `cdn.sheetjs.com` (dependencia `xlsx`); ver **§6**.
 > - **F-SPEC-020-1**: dialecto de `XSTO` (Estocolmo) sin resolver; sus valores no cotizan y lo dicen.
 
@@ -35,8 +42,17 @@
 | `MARKETSTACK_API_KEY` | Marketstack | **Cotizaciones** (proveedor de precios) | ADR-012 / F-ADR-012-2 |
 | `TWELVE_DATA_API_KEY` | Twelve Data | **Búsqueda** de símbolos (ya no cotiza) | ADR-007 / ADR-012 |
 | `CRON_SECRET` | — | Protege `/api/cron/refresh` | ADR-004 / F-SPEC-004-1 |
-| `RESEND_API_KEY` | Resend | Envío de avisos por email | ADR-006 / F-SPEC-006-1 |
+| `RESEND_API_KEY` | Resend | Envío de avisos por email **y del enlace de reset** | ADR-006 / F-SPEC-006-1 |
 | `RESEND_FROM` | Resend | Remitente (dominio verificado) | ADR-006 |
+| `APP_BASE_URL` | — | Origen absoluto de los enlaces de **recuperación de contraseña** | SPEC-023 / F-SPEC-023-3 |
+
+> ⚠️ **`APP_BASE_URL` debe ser el origen REAL del despliegue** (hoy
+> `https://stockeiro-lemon.vercel.app`), no el valor de ejemplo de `.env.example`
+> (`https://stockeiro.app`, un dominio propio que quizá no exista aún). Si apunta a otro
+> sitio, los enlaces de reset llevan a la nada — y lo hacen con aire de estar bien
+> configurado. `appBaseUrl()` **falla ruidosamente si la variable falta**, pero no puede
+> detectar que esté *mal*: eso solo lo ve el usuario que pincha el enlace. Y ojo: el error
+> es en tiempo de **petición**, no de build, así que el deploy sale verde igualmente.
 
 Plantilla completa en `.env.example`. Genera los secretos propios:
 
@@ -184,8 +200,11 @@ vercel --prod     # deploy a producción
   PR migraría producción (§6).
 - [ ] `AUTH_SECRET`, `AUTH_TRUST_HOST` puestos.
 - [ ] Twelve Data: `TWELVE_DATA_API_KEY`; `CRON_SECRET` generado y puesto.
-- [ ] Resend: dominio verificado, `RESEND_API_KEY`, `RESEND_FROM` — **pendiente por diseño**, se
-  añade cuando se quiera el email (ver **§7**); la app funciona con avisos in-app mientras tanto.
+- [ ] Resend: dominio verificado, `RESEND_API_KEY`, `RESEND_FROM` — **bloqueante desde SPEC-023**
+  (ver **§7** y **§8**). Para los *avisos* era opcional (fallback in-app, RN-15); para la
+  *recuperación de contraseña* no hay fallback y sin Resend no funciona.
+- [ ] `APP_BASE_URL` con el **origen real del despliegue** (no el ejemplo de `.env.example`) — §0.
+- [ ] `E2E_OUTBOX_FILE` **NO** definida en Vercel (desviaría el correo a un fichero) — F-SPEC-023-8.
 - [ ] `vercel --prod` verde (build alcanza `cdn.sheetjs.com`, §6).
 - [ ] Smoke test (registro + cron manual + email) OK.
 - [ ] Import (EPIC-002): subir un extracto en `/cartera/importar` y comprobar la resolución
@@ -257,3 +276,59 @@ Pasos para incorporarlo cuando quieras (cierra **F-SPEC-006-1**):
 > **Nada que revertir si se desactiva:** si quitas `RESEND_API_KEY`, `ResendSender` lanza y el
 > servicio marca el aviso `failed` pero lo conserva in-app (RN-15). El producto sigue usable.
 > **Coste:** free tier de Resend 3.000/mes · 100/día (suficiente para el MVP de testers).
+
+> ⚠️ Lo de arriba vale para los **avisos**. Para la **recuperación de contraseña** NO: ese
+> correo no se registra in-app a propósito (SPEC-023 CA-3, para que no sea legible desde la
+> sesión del intruso al que se pretende expulsar). Sin Resend, la recuperación **no funciona**
+> y el usuario no se entera: el formulario acusa recibo igualmente, porque el acuse es genérico
+> por diseño (CA-1/CA-2). Es un fallo **silencioso**.
+
+---
+
+## 8. Activar la recuperación de contraseña (SPEC-023)
+
+Estado: spec en `hecho` (16/16 CA, GREEN el 2026-08-12), **PR #24 abierta y sin mergear**. El
+código **no está vivo**. Pasos, en este orden — el orden importa:
+
+1. **Resend con dominio verificado** (§2 y §7). Es **bloqueante**: sin él no hay recuperación.
+2. **Variables en Production** (`vercel env add … production`):
+   - `APP_BASE_URL` → el **origen real** del despliegue (ver la advertencia de §0).
+   - `RESEND_API_KEY` y `RESEND_FROM` (dominio verificado).
+   - Confirma que **`E2E_OUTBOX_FILE` NO existe** (`vercel env ls production`): esa variable
+     desvía el correo a un fichero y dejaría la recuperación muda (F-SPEC-023-8).
+3. **Merge de la PR #24** a `main`.
+4. **Desplegar**: `vercel --prod` **desde un árbol de trabajo que contenga el merge**. Releer
+   la lección del 2026-08-11 al principio de este runbook: `vercel --prod` sube **tu árbol
+   local**, no lo que hay en `main`.
+5. **La migración entra en ese deploy** (`db:migrate` en el `buildCommand`): `CREATE TABLE
+   password_reset_tokens` y `ADD COLUMN users.password_changed_at NOT NULL DEFAULT now()`.
+   Ambas **aditivas y compatibles hacia atrás**. Si falla, el `&&` corta: no se despliega y se
+   queda la versión anterior.
+6. ⚠️ **Este deploy cierra la sesión de TODOS los usuarios, una vez.** Un JWT sin época de
+   credencial se considera caducado (ADR-016 pto. 6); lo contrario dejaría una puerta
+   permanente para cualquier cookie antigua. **Que no coincida con el día en que invites a
+   testers**: sería su primera impresión.
+7. **Smoke test** (con una cuenta real):
+   - `/login` muestra el enlace de "he olvidado mi contraseña"; `/forgot-password` carga.
+   - Pide el reset → **llega el correo** → el enlace abre la página de contraseña nueva.
+   - Establece una nueva → aterrizas en `/login` (no hay auto-login, CA-14) → entras con la
+     nueva y **no** con la vieja.
+   - Con sesión abierta en otro navegador: tras el reset, esa sesión **ya no sirve datos**.
+   - Email inexistente → **el mismo acuse genérico** y ningún correo (CA-1).
+8. **Comprueba que está VIVO**, no solo mergeado:
+   ```bash
+   curl -s https://stockeiro-lemon.vercel.app/forgot-password | grep -o "forgot-password"
+   ```
+   Si no responde, el deploy no llevaba el cambio.
+
+### Nota sobre Preview y la BD de producción (F-SPEC-023-1)
+
+Verificado el **2026-08-17** con `vercel env ls production`: `DATABASE_URL` está definida para
+**`Production, Preview`** con un único valor. Como el `buildCommand` migra en todos los
+entornos, **un build de Preview migraría producción** (§6).
+
+Atenuante comprobado el mismo día: **hoy no hay integración Vercel↔GitHub** en este repo — la
+API de deployments de GitHub está vacía y la PR #24 no reporta ningún check, así que un `push`
+o una PR **no disparan build alguno**. La trampa está **latente, no activa**: se activaría en
+el momento en que alguien conecte el repo a Vercel. El arreglo (BD de Neon aparte para Preview)
+sigue pendiente y es lo que separa producción de las PRs.
