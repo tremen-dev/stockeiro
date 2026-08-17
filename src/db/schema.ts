@@ -199,6 +199,11 @@ export type QuoteDiagnostic = typeof quoteDiagnostics.$inferSelect;
  * dentro: `closedAt` null = dentro AHORA (estado actual + idempotencia, RN-13); al
  * salir de la zona se cierra. El conjunto de filas es el log de disparos que la
  * spec de notificación (CE-2) consumirá — tanto entradas como permanencia.
+ *
+ * El episodio PERTENECE a su acción vigilada (ADR-017, SPEC-024): es estado derivado
+ * del par (zonas, última cotización), nadie lo muestra y se recalcula solo en el ciclo
+ * siguiente. Por eso la FK cascadea: dejar de vigilar borra sus episodios en la misma
+ * sentencia, sin borrado explícito que otro camino de baja pueda olvidar.
  */
 export const zoneTriggers = pgTable('zone_triggers', {
   id: uuid('id').defaultRandom().primaryKey(),
@@ -207,7 +212,7 @@ export const zoneTriggers = pgTable('zone_triggers', {
     .references(() => users.id),
   watchedSymbolId: uuid('watched_symbol_id')
     .notNull()
-    .references(() => watchedSymbols.id),
+    .references(() => watchedSymbols.id, { onDelete: 'cascade' }),
   symbolId: uuid('symbol_id')
     .notNull()
     .references(() => symbols.id),
@@ -229,6 +234,11 @@ export type NewZoneTrigger = typeof zoneTriggers.$inferInsert;
  *  - 'digest' (aviso agregado): único por (`userId`, `cycleRef`) → uno por usuario y ciclo.
  * Cada aviso lleva su `asOf` (D-2). Los NULL cuentan como distintos en Postgres, así que
  * las filas 'entry' (cycleRef null) y 'digest' (zoneTriggerId null) conviven sin chocar.
+ *
+ * El aviso NO pertenece al episodio: lo referencia (ADR-017, SPEC-024). Si el episodio
+ * desaparece —porque el usuario dejó de vigilar— se pierde el vínculo, nunca el aviso:
+ * la fila es autocontenida (`payload`, `kind`, `asOf`, `status`, `readAt`) y RN-15 la
+ * declara fuente de verdad. De ahí el `set null` en vez de un cascade que la borraría.
  */
 export const notifications = pgTable(
   'notifications',
@@ -238,7 +248,8 @@ export const notifications = pgTable(
       .notNull()
       .references(() => users.id),
     kind: text('kind').notNull(), // 'entry' | 'digest'
-    zoneTriggerId: uuid('zone_trigger_id').references(() => zoneTriggers.id), // 'entry'; null en 'digest'
+    // 'entry'; null en 'digest'. Y null también cuando su episodio se borró (ADR-017).
+    zoneTriggerId: uuid('zone_trigger_id').references(() => zoneTriggers.id, { onDelete: 'set null' }),
     cycleRef: text('cycle_ref'), // 'digest'; null en 'entry'
     payload: text('payload').notNull(), // resumen legible del aviso
     channel: text('channel').notNull(), // 'email' | 'in_app'

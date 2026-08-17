@@ -50,6 +50,13 @@
       "when": 1786520733446,
       "tag": "0006_chemical_chronomancer",
       "breakpoints": true
+    },
+    {
+      "idx": 7,
+      "version": "7",
+      "when": 1786963536639,
+      "tag": "0007_tearful_roughhouse",
+      "breakpoints": true
     }
   ]
 }
