@@ -4,8 +4,12 @@
 // parada, tumba la app y Postgres.
 import EmbeddedPostgres from 'embedded-postgres';
 import postgres from 'postgres';
+import { drizzle } from 'drizzle-orm/postgres-js';
+import { migrate } from 'drizzle-orm/postgres-js/migrator';
 import { spawn } from 'node:child_process';
 import { rmSync } from 'node:fs';
+import { dirname, resolve } from 'node:path';
+import { fileURLToPath } from 'node:url';
 
 const PG_PORT = 54329;
 const APP_PORT = 3200;
@@ -15,6 +19,9 @@ const dir = './.pg-e2e';
 // de recuperación se vuelca aquí (JSON por línea) para que el test pueda leerlo.
 // El mismo path lo lee tests/e2e/recuperacion.spec.ts. Nunca se llama a Resend.
 const OUTBOX = './.e2e-outbox.jsonl';
+
+// Resuelto desde este fichero, no desde el cwd (SPEC-026).
+const migrationsFolder = resolve(dirname(fileURLToPath(import.meta.url)), '..', '..', 'drizzle');
 
 try {
   rmSync(dir, { recursive: true, force: true });
@@ -37,111 +44,11 @@ await pg.createDatabase(DB);
 
 const url = `postgres://postgres:postgres@localhost:${PG_PORT}/${DB}`;
 
-// Esquema (idéntico a src/db/schema.ts / test-db.ts), cláusulas ON DELETE incluidas:
-// sin ellas el e2e correría contra un esquema distinto del de producción (SPEC-024).
+// El esquema del e2e se obtiene aplicando las migraciones de `drizzle/` —las mismas
+// que se aplican a producción (ADR-018, SPEC-026)—. Ya no hay una copia del esquema
+// aquí que pudiera divergir en silencio, cláusulas ON DELETE incluidas (SPEC-024).
 const sql = postgres(url, { ssl: false, max: 1 });
-await sql`CREATE TABLE IF NOT EXISTS users (
-  id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
-  email text NOT NULL UNIQUE,
-  password_hash text NOT NULL,
-  password_changed_at timestamptz NOT NULL DEFAULT now(),
-  created_at timestamptz NOT NULL DEFAULT now()
-)`;
-await sql`CREATE TABLE IF NOT EXISTS password_reset_tokens (
-  id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
-  user_id uuid NOT NULL REFERENCES users(id),
-  token_hash text NOT NULL UNIQUE,
-  expires_at timestamptz NOT NULL,
-  consumed_at timestamptz,
-  created_at timestamptz NOT NULL DEFAULT now()
-)`;
-await sql`CREATE TABLE IF NOT EXISTS symbols (
-  id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
-  ticker text NOT NULL,
-  mic_code text,
-  exchange text,
-  name text,
-  currency text NOT NULL,
-  CONSTRAINT symbols_ticker_mic UNIQUE (ticker, mic_code)
-)`;
-await sql`CREATE INDEX IF NOT EXISTS symbols_ticker_idx ON symbols (ticker)`;
-await sql`CREATE TABLE IF NOT EXISTS transactions (
-  id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
-  user_id uuid NOT NULL REFERENCES users(id),
-  symbol_id uuid NOT NULL REFERENCES symbols(id),
-  type text NOT NULL,
-  occurred_on date NOT NULL,
-  quantity numeric,
-  price numeric,
-  gastos numeric,
-  ratio numeric,
-  amount numeric,
-  import_key text,
-  importe_eur numeric,
-  created_at timestamptz NOT NULL DEFAULT now(),
-  CONSTRAINT transactions_user_import_key UNIQUE (user_id, import_key)
-)`;
-await sql`CREATE TABLE IF NOT EXISTS symbol_aliases (
-  id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
-  user_id uuid NOT NULL REFERENCES users(id),
-  broker_name text NOT NULL,
-  market_label text NOT NULL,
-  symbol_id uuid NOT NULL REFERENCES symbols(id),
-  created_at timestamptz NOT NULL DEFAULT now(),
-  CONSTRAINT symbol_alias_user_broker_market UNIQUE (user_id, broker_name, market_label)
-)`;
-await sql`CREATE INDEX IF NOT EXISTS symbol_alias_user_idx ON symbol_aliases (user_id)`;
-await sql`CREATE TABLE IF NOT EXISTS watched_symbols (
-  id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
-  user_id uuid NOT NULL REFERENCES users(id),
-  symbol_id uuid NOT NULL REFERENCES symbols(id),
-  buy_min numeric,
-  buy_max numeric,
-  sell_min numeric,
-  sell_max numeric,
-  created_at timestamptz NOT NULL DEFAULT now(),
-  UNIQUE (user_id, symbol_id)
-)`;
-await sql`CREATE TABLE IF NOT EXISTS quotes (
-  id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
-  symbol_id uuid NOT NULL UNIQUE REFERENCES symbols(id),
-  price numeric NOT NULL,
-  currency text NOT NULL,
-  as_of timestamptz NOT NULL,
-  updated_at timestamptz NOT NULL DEFAULT now()
-)`;
-await sql`CREATE TABLE IF NOT EXISTS quote_diagnostics (
-  id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
-  symbol_id uuid NOT NULL UNIQUE REFERENCES symbols(id),
-  reason text NOT NULL,
-  attempted_at timestamptz NOT NULL DEFAULT now()
-)`;
-await sql`CREATE TABLE IF NOT EXISTS zone_triggers (
-  id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
-  user_id uuid NOT NULL REFERENCES users(id),
-  watched_symbol_id uuid NOT NULL REFERENCES watched_symbols(id) ON DELETE CASCADE,
-  symbol_id uuid NOT NULL REFERENCES symbols(id),
-  zone_kind text NOT NULL,
-  price numeric NOT NULL,
-  as_of timestamptz NOT NULL,
-  opened_at timestamptz NOT NULL DEFAULT now(),
-  closed_at timestamptz
-)`;
-await sql`CREATE TABLE IF NOT EXISTS notifications (
-  id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
-  user_id uuid NOT NULL REFERENCES users(id),
-  kind text NOT NULL,
-  zone_trigger_id uuid REFERENCES zone_triggers(id) ON DELETE SET NULL,
-  cycle_ref text,
-  payload text NOT NULL,
-  channel text NOT NULL,
-  status text NOT NULL,
-  as_of timestamptz NOT NULL,
-  read_at timestamptz,
-  created_at timestamptz NOT NULL DEFAULT now(),
-  CONSTRAINT notif_entry_trigger UNIQUE (zone_trigger_id),
-  CONSTRAINT notif_digest_cycle UNIQUE (user_id, cycle_ref)
-)`;
+await migrate(drizzle(sql), { migrationsFolder });
 await sql.end();
 
 const child = spawn('npx', ['next', 'start', '-p', String(APP_PORT)], {

@@ -1,5 +1,8 @@
 import { drizzle } from 'drizzle-orm/pglite';
+import { migrate } from 'drizzle-orm/pglite/migrator';
 import { PGlite } from '@electric-sql/pglite';
+import { dirname, resolve } from 'node:path';
+import { fileURLToPath } from 'node:url';
 import * as schema from './schema';
 
 /**
@@ -7,121 +10,29 @@ import * as schema from './schema';
  * comportamiento real contra Postgres —unicidad, aislamiento, persistencia—
  * sin depender de un servicio externo. En producción se usa Neon (ADR-001).
  *
- * El esquema se crea con SQL explícito para no depender de drizzle-kit en tests;
- * debe mantenerse en sincronía con `src/db/schema.ts`. Eso incluye las cláusulas
- * `ON DELETE` (SPEC-024): si aquí no son las mismas que en la migración, los tests
- * verificarían un esquema que no es el de producción y el defecto volvería sin que
- * ninguna suite lo viera. Lo mismo aplica al DDL de `tests/e2e/server.mjs`.
+ * El esquema NO se escribe aquí: se obtiene aplicando las migraciones de
+ * `drizzle/`, las mismas que se aplican a producción (ADR-018, SPEC-026). Hay
+ * una sola definición del esquema —`src/db/schema.ts`, materializada en esas
+ * migraciones— y ya no hay nada que sincronizar a mano. Eso incluye las
+ * cláusulas `ON DELETE` de SPEC-024, que son DDL puro y ningún test de
+ * comportamiento delataría (quedan ancladas en `tests/schema-source.test.ts`).
+ *
+ * Consecuencias que conviene conocer (ADR-018):
+ * - Toda migración futura debe poder aplicarse sobre PGlite.
+ * - Una migración que no aplique limpia tumba TODA la suite, no un test: un
+ *   fallo masivo y homogéneo se lee como "la migración nueva no aplica".
+ * - Aparece el esquema `drizzle` (tabla de control). Cualquier test que
+ *   enumere el catálogo debe acotarse a `public`.
  */
+
+/** Resuelto desde este fichero, no desde el cwd: así el arnés funciona se
+ *  invoque desde donde se invoque. */
+const migrationsFolder = resolve(dirname(fileURLToPath(import.meta.url)), '..', '..', 'drizzle');
+
 export async function makeTestDb() {
   const client = new PGlite();
-  await client.exec(`
-    CREATE TABLE users (
-      id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
-      email text NOT NULL UNIQUE,
-      password_hash text NOT NULL,
-      password_changed_at timestamptz NOT NULL DEFAULT now(),
-      created_at timestamptz NOT NULL DEFAULT now()
-    );
-    CREATE TABLE password_reset_tokens (
-      id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
-      user_id uuid NOT NULL REFERENCES users(id),
-      token_hash text NOT NULL UNIQUE,
-      expires_at timestamptz NOT NULL,
-      consumed_at timestamptz,
-      created_at timestamptz NOT NULL DEFAULT now()
-    );
-    CREATE TABLE symbols (
-      id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
-      ticker text NOT NULL,
-      mic_code text,
-      exchange text,
-      name text,
-      currency text NOT NULL,
-      CONSTRAINT symbols_ticker_mic UNIQUE (ticker, mic_code)
-    );
-    CREATE INDEX symbols_ticker_idx ON symbols (ticker);
-    CREATE TABLE transactions (
-      id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
-      user_id uuid NOT NULL REFERENCES users(id),
-      symbol_id uuid NOT NULL REFERENCES symbols(id),
-      type text NOT NULL,
-      occurred_on date NOT NULL,
-      quantity numeric,
-      price numeric,
-      gastos numeric,
-      ratio numeric,
-      amount numeric,
-      import_key text,
-      importe_eur numeric,
-      created_at timestamptz NOT NULL DEFAULT now(),
-      CONSTRAINT transactions_user_import_key UNIQUE (user_id, import_key)
-    );
-    CREATE TABLE watched_symbols (
-      id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
-      user_id uuid NOT NULL REFERENCES users(id),
-      symbol_id uuid NOT NULL REFERENCES symbols(id),
-      buy_min numeric,
-      buy_max numeric,
-      sell_min numeric,
-      sell_max numeric,
-      created_at timestamptz NOT NULL DEFAULT now(),
-      UNIQUE (user_id, symbol_id)
-    );
-    CREATE TABLE quotes (
-      id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
-      symbol_id uuid NOT NULL UNIQUE REFERENCES symbols(id),
-      price numeric NOT NULL,
-      currency text NOT NULL,
-      as_of timestamptz NOT NULL,
-      updated_at timestamptz NOT NULL DEFAULT now()
-    );
-    CREATE TABLE quote_diagnostics (
-      id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
-      symbol_id uuid NOT NULL UNIQUE REFERENCES symbols(id),
-      reason text NOT NULL,
-      attempted_at timestamptz NOT NULL DEFAULT now()
-    );
-    CREATE TABLE zone_triggers (
-      id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
-      user_id uuid NOT NULL REFERENCES users(id),
-      -- ADR-017/SPEC-024: el episodio PERTENECE a la acción vigilada -> cascade.
-      watched_symbol_id uuid NOT NULL REFERENCES watched_symbols(id) ON DELETE CASCADE,
-      symbol_id uuid NOT NULL REFERENCES symbols(id),
-      zone_kind text NOT NULL,
-      price numeric NOT NULL,
-      as_of timestamptz NOT NULL,
-      opened_at timestamptz NOT NULL DEFAULT now(),
-      closed_at timestamptz
-    );
-    CREATE TABLE notifications (
-      id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
-      user_id uuid NOT NULL REFERENCES users(id),
-      kind text NOT NULL,
-      -- ADR-017/SPEC-024: el aviso solo REFERENCIA el episodio -> set null (RN-15).
-      zone_trigger_id uuid REFERENCES zone_triggers(id) ON DELETE SET NULL,
-      cycle_ref text,
-      payload text NOT NULL,
-      channel text NOT NULL,
-      status text NOT NULL,
-      as_of timestamptz NOT NULL,
-      read_at timestamptz,
-      created_at timestamptz NOT NULL DEFAULT now(),
-      CONSTRAINT notif_entry_trigger UNIQUE (zone_trigger_id),
-      CONSTRAINT notif_digest_cycle UNIQUE (user_id, cycle_ref)
-    );
-    CREATE TABLE symbol_aliases (
-      id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
-      user_id uuid NOT NULL REFERENCES users(id),
-      broker_name text NOT NULL,
-      market_label text NOT NULL,
-      symbol_id uuid NOT NULL REFERENCES symbols(id),
-      created_at timestamptz NOT NULL DEFAULT now(),
-      CONSTRAINT symbol_alias_user_broker_market UNIQUE (user_id, broker_name, market_label)
-    );
-    CREATE INDEX symbol_alias_user_idx ON symbol_aliases (user_id);
-  `);
   const db = drizzle(client, { schema });
+  await migrate(db, { migrationsFolder });
   return { db, client };
 }
 
