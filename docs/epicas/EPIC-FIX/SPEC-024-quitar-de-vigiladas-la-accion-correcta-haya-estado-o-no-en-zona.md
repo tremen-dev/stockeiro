@@ -2,13 +2,14 @@
 id: SPEC-024
 tipo: spec
 epica: EPIC-FIX
-estado: en-revision
+estado: hecho
 aprobada-por: Alberto Fojo
 historial:
   - {estado: borrador, fecha: 2026-08-17, por: sdd-arquitecto}
   - {estado: aprobada, fecha: 2026-08-17, por: Alberto Fojo}
   - {estado: en-progreso, fecha: 2026-08-17, por: sdd-implementador}
   - {estado: en-revision, fecha: 2026-08-17, por: sdd-implementador}
+  - {estado: hecho, fecha: 2026-08-17, por: sdd-verificador}
 ---
 # SPEC-024 — Quitar de vigiladas la acción correcta, haya estado o no en zona
 

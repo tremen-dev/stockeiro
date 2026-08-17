@@ -15,16 +15,16 @@ tipo: roadmap
   ve "sin cotización"). La app está desplegada, así que lleva desde el despliegue sin
   cumplir lo prometido. Nada de lo demás importa hasta que esto funcione.
   Aprobada por humano el 2026-07-15.
-  ↳ **Estado real a 2026-08-11**: sus cuatro specs (SPEC-015, 016, 020, 021) están
+  ↳ **Estado real a 2026-08-17**: sus cinco specs (SPEC-015, 016, 020, 021, 024) están
   `hecho`. La promesa está restaurada **de facto**; falta el cierre formal de la épica
   (moverla a "Entregado" cuando lo sanciones).
 
 - **EPIC-003 — Recuperación y cambio de contraseña** (estado: borrador).
   **Por qué está aquí y no en "Después", pese al criterio de corte.** El criterio dice
   que no se compromete alcance nuevo hasta que EPIC-FIX restaure la promesa — y eso
-  **ya ha ocurrido**: las cuatro specs de EPIC-FIX están `hecho`. El listón que ese
-  criterio puso está superado; mantener la sección vacía sería respetar la letra de la
-  regla contra su propósito.
+  **ya ha ocurrido**: las cinco specs de EPIC-FIX (015, 016, 020, 021, 024) están
+  `hecho`. El listón que ese criterio puso está superado; mantener la sección vacía
+  sería respetar la letra de la regla contra su propósito.
   Y hay una razón propia, no derivada: la app se va a compartir con **testers externos**
   en un foro de bolsa, y hoy **un usuario que olvida su contraseña queda fuera para
   siempre** (única salida: tocar el hash a mano en Neon). Es el primer minuto de la
