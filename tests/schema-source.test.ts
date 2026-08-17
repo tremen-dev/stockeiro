@@ -1,8 +1,7 @@
 import { describe, it, expect, beforeAll, afterAll } from 'vitest';
 import { PGlite } from '@electric-sql/pglite';
 import { execFileSync } from 'node:child_process';
-import { cpSync, mkdtempSync, readFileSync, readdirSync, rmSync } from 'node:fs';
-import { tmpdir } from 'node:os';
+import { cpSync, readFileSync, readdirSync, rmSync } from 'node:fs';
 import { dirname, join, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { makeTestDb } from '@/db/test-db';
@@ -201,11 +200,16 @@ describe('SPEC-026 — una sola definición del esquema', () => {
 
   describe('CA-6: src/db/schema.ts no puede quedarse sin migrar', () => {
     it('drizzle/ está al día respecto de src/db/schema.ts', () => {
-      const probe = mkdtempSync(join(tmpdir(), 'spec026-drizzle-'));
+      // El probe vive DENTRO del repo a propósito: `drizzle-kit generate` resuelve
+      // `--out` contra el cwd y descarta las rutas absolutas, y además termina con
+      // código 0 aunque falle. Un probe en el temp del sistema hace que la guardia
+      // pase siempre sin haber comprobado nada.
+      const probeRel = `node_modules/.cache/spec026-guard-${process.pid}-${Date.now()}`;
+      const probeAbs = join(rootDir, probeRel);
       try {
-        cpSync(migrationsDir, probe, { recursive: true });
-        const before = readdirSync(probe).filter((f) => f.endsWith('.sql')).length;
-        execFileSync(
+        cpSync(migrationsDir, probeAbs, { recursive: true });
+        const before = readdirSync(probeAbs).filter((f) => f.endsWith('.sql')).length;
+        const output = execFileSync(
           'npx',
           [
             'drizzle-kit',
@@ -215,20 +219,31 @@ describe('SPEC-026 — una sola definición del esquema', () => {
             '--schema',
             './src/db/schema.ts',
             '--out',
-            probe.replace(/\\/g, '/'),
+            probeRel,
           ],
-          { cwd: rootDir, stdio: 'ignore', shell: true, timeout: 120_000 },
+          { cwd: rootDir, encoding: 'utf8', stdio: 'pipe', shell: true, timeout: 120_000 },
         );
-        const after = readdirSync(probe).filter((f) => f.endsWith('.sql'));
+        // drizzle-kit sale con 0 pase lo que pase, así que una invocación rota se
+        // vería igual que "no hay cambios". Sin esto, la guardia puede morir muda.
+        expect(
+          /error|ENOENT/i.test(output),
+          `La guardia de esquema no pudo ejecutarse (drizzle-kit falló):\n${output}`,
+        ).toBe(false);
+
+        // El criterio es "¿apareció un fichero?": drizzle-kit no escribe nada si no
+        // hay cambios, y emite un .sql nuevo si los hay.
+        const after = readdirSync(probeAbs).filter((f) => f.endsWith('.sql')).sort();
         expect(
           after.length,
           'src/db/schema.ts tiene cambios de esquema que NO están en drizzle/. ' +
             'Ejecuta `npm run db:generate` y commitea la migración: si no, los tests y ' +
             'producción vuelven a correr contra esquemas distintos (SPEC-026/ADR-018). ' +
+            'Ojo con `onDelete`: no tiene ningún efecto en runtime, así que ningún test ' +
+            'de comportamiento delataría el olvido. ' +
             `Migración que drizzle-kit quiso generar: ${after.slice(before).join(', ')}`,
         ).toBe(before);
       } finally {
-        rmSync(probe, { recursive: true, force: true });
+        rmSync(probeAbs, { recursive: true, force: true });
       }
     }, 180_000);
   });
