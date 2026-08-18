@@ -133,8 +133,23 @@ jobs:
 
       # Solo chromium: playwright.config.ts declara ese unico proyecto, asi que
       # instalar los tres navegadores es tirar minutos de cuota.
+      #
+      # SIN `--with-deps`, y no por gusto. La primera pasada de CI de esta rama
+      # (run 32085219147) se colgo aqui 24 minutos y murio en el timeout del job
+      # sin ejecutar un solo test: `--with-deps` se pasa a root y lanza un
+      # `apt-get update` que se quedo esperando a `azure.archive.ubuntu.com`, sin
+      # imprimir nada, desde las 00:38:33 hasta que el runner lo mato. La imagen
+      # `ubuntu-latest` ya trae las librerias de sistema que pide Chromium, asi
+      # que `--with-deps` no aportaba nada y a cambio ataba cada pasada del gate a
+      # que un mirror de apt este de humor. Si algun dia faltara de verdad una
+      # libreria, Chromium no arrancara y el e2e lo dira a gritos: es un fallo que
+      # se delata solo.
+      #
+      # El `timeout-minutes` es el cinturon: que un cuelgue aqui cueste 5 minutos
+      # de cuota y no los 25 del job entero.
       - name: Install Playwright browser
-        run: npx playwright install --with-deps chromium
+        timeout-minutes: 5
+        run: npx playwright install chromium
 
       - name: Build
         run: npm run build
