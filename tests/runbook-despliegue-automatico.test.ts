@@ -197,22 +197,101 @@ describe('SPEC-028 CA-12: la sección que documenta el pipeline entero', () => {
     expect(cuerpo).toMatch(/restauraci[óo]n/i);
   });
 
-  it('12.5 — dice que la CI informa pero NO impide, y que ya no queda ninguna persona', () => {
-    // Es la única huella verificable de F-SPEC-028-1, el riesgo que el humano
-    // aceptó en el gate del 2026-08-18 en contra de la recomendación del
-    // arquitecto. Va sin suavizar, a propósito.
+  /**
+   * 12.5 cambió de signo el 2026-08-19: el repositorio pasó a público, GitHub
+   * habilitó la protección de rama y el ruleset `Protected main` quedó activo.
+   * El CA pide dos cosas a la vez, y las dos se prueban aquí: que el runbook
+   * cuente la protección **nombrando sus piezas** —para que sea comprobable hoy
+   * y quede comprobablemente desfasado el día que alguien las cambie— y que
+   * **ninguna frase del texto anterior sobreviva**, porque decir que no hay red
+   * justo cuando sí la hay es el peor fallo posible en un runbook.
+   */
+  it('12.5 — todo cambio entra por PR: ni push directo, ni borrado, ni force-push', () => {
     const cuerpo = pipeline();
-    expect(cuerpo).toMatch(/informa[^.]*(pero )?no impide|no impide mezclar/i);
-    expect(
-      cuerpo,
-      'Falta lo que de verdad cambia con esta spec: entre un merge en rojo y ' +
-        'producción no queda ninguna persona.',
-    ).toMatch(/ninguna persona/i);
-    expect(cuerpo).toContain('F-SPEC-028-1');
+    expect(cuerpo, 'No se dice que `main` esté protegida').toMatch(
+      /protegida|protecci[óo]n de rama/i,
+    );
+    expect(cuerpo, 'Falta que `main` no acepta push directo').toMatch(
+      /no acepta \*?\*?push\*?\*?|sin \*?\*?push\*?\*? directo|push.{0,12}directo/i,
+    );
+    expect(cuerpo, 'Falta la regla que bloquea el borrado de la rama').toContain('deletion');
+    expect(cuerpo, 'Falta la regla que bloquea el force-push').toContain('non_fast_forward');
   });
 
-  it('12.5 — y que nadie va a mirar el check por ti', () => {
-    expect(pipeline()).toMatch(/nadie lo va a mirar por ti/i);
+  it('12.5 — nombra los dos checks requeridos, con su nombre exacto y como salen en la PR', () => {
+    // Los contextos del ruleset se llaman `Checks` y `E2E`; en la lista de la PR
+    // aparecen prefijados por el workflow. Quien compare el runbook con GitHub
+    // necesita las dos formas para no pensar que hay un tercer check.
+    const cuerpo = pipeline();
+    expect(cuerpo).toMatch(/`Checks`/);
+    expect(cuerpo).toMatch(/`E2E`/);
+    expect(cuerpo).toContain('CI / Checks');
+    expect(cuerpo).toContain('CI / E2E');
+    expect(cuerpo, 'Falta decir que en rojo el merge NO sale').toMatch(
+      /en verde|en rojo/i,
+    );
+  });
+
+  it('12.5 — nombra el ruleset, su enforcement y la lista de bypass VACÍA', () => {
+    const cuerpo = pipeline();
+    expect(cuerpo, 'Sin el nombre del ruleset nadie puede comprobarlo').toContain(
+      'Protected main',
+    );
+    expect(cuerpo).toMatch(/enforcement.{0,4}active/i);
+    expect(
+      cuerpo,
+      'La lista de bypass vacía es parte de la protección: sin ella la regla ' +
+        'no frena al dueño del repositorio. Tiene que estar escrita.',
+    ).toMatch(/bypass_actors.{0,6}\[\]|lista de \*{0,2}\*?bypass\*?\*{0,2} (est[áa] )?vac[íi]a/i);
+  });
+
+  it('12.5 — y dice lo que la protección NO cubre: ni revisión, ni rama al día, ni `Alive`', () => {
+    const cuerpo = pipeline();
+    expect(cuerpo, 'No exige revisión de nadie').toContain(
+      'required_approving_review_count: 0',
+    );
+    expect(cuerpo, 'No exige que la rama esté al día con `main` (política strict)').toMatch(
+      /al d[íi]a con `main`|pol[íi]tica \*?\*?strict/i,
+    );
+    expect(
+      cuerpo,
+      '`Alive` corre en push a `main`, o sea DESPUÉS del merge: exigirlo en la ' +
+        'PR bloquearía todas las PR para siempre. Tiene que quedar escrito.',
+    ).toMatch(/`Alive`[^.]{0,60}no (es|debe ser)[^.]{0,40}requerido/i);
+    expect(cuerpo).toMatch(/despu[ée]s\*{0,2}\s*del merge/i);
+  });
+
+  it('12.5 negativo — ninguna parte del documento sigue diciendo que la CI no impide', () => {
+    // La mitad que importa: mientras la frase vieja siga en el fichero, el
+    // runbook miente en el sentido peligroso, diga lo que diga §12.5.
+    expect(
+      source(),
+      'Alguna sección sigue afirmando que la CI informa pero no impide mezclar.',
+    ).not.toMatch(/no impide mezclar|informa[^.\n]{0,40}no impide/i);
+  });
+
+  it('12.5 negativo — "nadie lo va a mirar por ti" no sobrevive en ningún punto', () => {
+    expect(source()).not.toMatch(/nadie lo va a mirar por ti/i);
+  });
+
+  it('12.5 negativo — los residuales de la protección de rama ya no figuran como abiertos', () => {
+    const texto = source();
+    for (const id of ['F-SPEC-027-1', 'F-SPEC-028-1']) {
+      for (const encontrado of texto.matchAll(new RegExp(id, 'g'))) {
+        const ventana = texto.slice(
+          Math.max(0, encontrado.index - 300),
+          encontrado.index + 300,
+        );
+        expect(
+          ventana,
+          `${id} se menciona sin decir que está cerrado. Los dos se cerraron el ` +
+            '2026-08-19, cuando el repo pasó a público y `main` quedó protegida.',
+        ).toMatch(/cerrad/i);
+      }
+      expect(texto, `${id} sigue presentado como residual abierto`).not.toMatch(
+        new RegExp(`abiert[ao]s?[^.\\n]{0,60}${id}`, 'i'),
+      );
+    }
   });
 });
 
