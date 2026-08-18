@@ -6,10 +6,15 @@ epica: EPIC-INFRA
 # Ledger — SPEC-027 CI en cada PR: la suite deja de depender de que alguien se acuerde
 
 ## Resumen
-- Fase: en-revision (implementación cerrada en local; falta la evidencia viva que solo existe con la PR abierta)
+- Fase: en-revision — implementación cerrada **y verificada en CI real**. La PR se verificó a
+  sí misma: 6 ejecuciones, 3 de ellas en rojo a propósito y revertidas.
 - Rama: `ft/SPEC-027-ci-en-cada-pr` (worktree `.claude/worktrees/followups-024-025`)
-- Commits: `c5ba11f` (RED del test estático) · `dbcb7dc` (workflow + `.nvmrc` + scripts) ·
-  `6c2a625` (canario y retirada del código muerto) · `674de6f` (runbook)
+- PR: **<https://github.com/tremen-dev/stockeiro/pull/31>**
+- Commits permanentes: `c5ba11f` (RED del test estático) · `dbcb7dc` (workflow + `.nvmrc` +
+  scripts) · `6c2a625` (canario y retirada del código muerto) · `674de6f` (runbook) ·
+  `015536b` (ledger) · `c62a2b3` (arreglo del cuelgue de `--with-deps`)
+- Commits temporales, **los tres revertidos**: `4197e23`→`9094a2c` (CA-3) ·
+  `8f4185f`→(revert) (CA-10) · `e8036d4`→`e2f7b2a` (CA-9). `git diff c62a2b3 HEAD` = **vacío**.
 
 ## Matriz de criterios de aceptación
 <!-- Escritores: sdd-implementador rellena Implementado y Test; sdd-verificador rellena Verif. y Estado. Nunca al revés. -->
@@ -17,19 +22,19 @@ epica: EPIC-INFRA
 <!-- Un CA está ✅ solo cuando Implementado + Test + Verif. aplicables están en verde. Una salvedad se marca ⚠️, nunca ✅. -->
 | CA | Implementado (fichero) | Test (fichero/caso) | Verif. | Estado |
 |---|---|---|---|---|
-| CA-1 | `.github/workflows/ci.yml` (`on: pull_request/push`, ambos `branches: [main]`) | `tests/ci-workflow.test.ts` › *CA-1* (3 casos). **Evidencia viva pendiente de la PR** (F-SPEC-027-4) | | ❌ |
-| CA-2 | `.github/workflows/ci.yml` (steps `Typecheck`, `Lint`, `Unit tests`, `Build`, `End-to-end tests`) | `tests/ci-workflow.test.ts` › *CA-2* (2 casos: el conjunto de nombres es exactamente el esperado; cada `run` invoca un solo script y no encadena) | | ❌ |
-| CA-3 | `.github/workflows/ci.yml` (`if: ${{ !cancelled() }}` en los tres gates de `Checks`; ausente en `End-to-end tests`) | `tests/ci-workflow.test.ts` › *CA-3* (2 casos). **Prueba en rojo pendiente de la PR** (F-SPEC-027-4) | | ❌ |
-| CA-4 | `.github/workflows/ci.yml` (jobs `checks`/`Checks` y `e2e`/`E2E`, sin `needs`) | `tests/ci-workflow.test.ts` › *CA-4* (3 casos). **Captura de los dos checks pendiente de la PR** | | ❌ |
-| CA-5 | `.github/workflows/ci.yml` (`permissions: contents: read`; `env` de juguete en `E2E`; `timeout-minutes` 20/25; `concurrency` con `cancel-in-progress` condicionado) | `tests/ci-workflow.test.ts` › *CA-5* (6 casos, uno por punto: 5.1 sin `secrets.` / 5.1 variables de juguete / 5.2 permissions / 5.3 sin `db:migrate` / 5.4 timeouts / 5.5 concurrency) | | ❌ |
-| CA-6 | `.nvmrc` (`24`) + `node-version-file: .nvmrc` en los dos `Set up Node` | `tests/ci-workflow.test.ts` › *CA-6* (2 casos). **Suite completa ejecutada en Node 24 — ver §Mediciones** | | ❌ |
-| CA-7 | `package.json` › `scripts.lint` = `eslint . --max-warnings=0`, `scripts["test:e2e"]` = `playwright test`; todo gate del YAML invoca `npm run <script>` | `tests/ci-workflow.test.ts` › *CA-7* (3 casos: los scripts existen; cada gate invoca el suyo; las banderas van tras `--`) | | ❌ |
-| CA-8 | `.github/workflows/ci.yml` (`cache: npm` en setup-node; `actions/cache` de `~/.cache/ms-playwright` con clave de `package-lock.json`; sin caché de `node_modules` ni `.next/cache`, con el motivo escrito en el YAML) | `tests/ci-workflow.test.ts` › *CA-8* (4 casos). **Ahorro medido (1ª vs 2ª pasada) pendiente de la PR** | | ❌ |
-| CA-9 | `.github/workflows/ci.yml` › step `Upload e2e diagnostics` (`if: failure()`, `playwright-report/` + `test-results/` + `_qa/`, `retention-days: 7`) | Sin test estático (a propósito: lo que se afirma es que el artefacto *existe y abre*). **Prueba en rojo pendiente de la PR** (F-SPEC-027-4) | | ❌ |
-| CA-10 | `.github/workflows/ci.yml` › `npm run test:e2e -- --forbid-only …` | Bandera ejercitada en local en Node 24 (27/27 con `--forbid-only`). **Prueba en rojo con un `.only` pendiente de la PR** (F-SPEC-027-4) | | ❌ |
-| CA-11 | `tests/schema-source.test.ts` › bloque CA-6: invocación extraída a `generateInto()`, sonda a `withProbe()` | `tests/schema-source.test.ts` › *CA-6* › «la guardia sabe detectar: contra un directorio vacío genera migración». **Probado en los dos sentidos en local — ver §Mediciones** | | ❌ |
+| CA-1 | `.github/workflows/ci.yml` (`on: pull_request/push`, ambos `branches: [main]`) | `tests/ci-workflow.test.ts` › *CA-1* (3 casos) **+ evidencia viva**: 6 ejecuciones disparadas por `pull_request` en la PR #31, la primera de ellas sobre el commit que introduce el propio workflow ([run 32086893473](https://github.com/tremen-dev/stockeiro/actions/runs/32086893473), success) | | ❌ |
+| CA-2 | `.github/workflows/ci.yml` (steps `Typecheck`, `Lint`, `Unit tests`, `Build`, `End-to-end tests`) | `tests/ci-workflow.test.ts` › *CA-2* (2 casos) **+ evidencia viva**: en [run 32087238733](https://github.com/tremen-dev/stockeiro/actions/runs/32087238733) el rojo se lee en el nombre del step (`Typecheck: failure`, `Lint: failure`) sin abrir el log | | ❌ |
+| CA-3 | `.github/workflows/ci.yml` (`if: ${{ !cancelled() }}` en los tres gates de `Checks`; ausente en `End-to-end tests`) | `tests/ci-workflow.test.ts` › *CA-3* (2 casos) **+ prueba en rojo**: [run 32087238733](https://github.com/tremen-dev/stockeiro/actions/runs/32087238733) → `Typecheck: failure` · `Lint: failure` · **`Unit tests: success` (se ejecutó igual)** · job en rojo. Y la contrapartida en el mismo run: `Build: failure` → **`End-to-end tests: skipped`** (encadena a propósito). Commit `4197e23`, revertido en `9094a2c` | | ❌ |
+| CA-4 | `.github/workflows/ci.yml` (jobs `checks`/`Checks` y `e2e`/`E2E`, sin `needs`) | `tests/ci-workflow.test.ts` › *CA-4* (3 casos) **+ evidencia viva**: los dos jobs arrancan en el **mismo segundo** (`01:28:48Z` los dos, [run 32088353875](https://github.com/tremen-dev/stockeiro/actions/runs/32088353875)) y aparecen como dos checks separados en la PR; en [run 32087612615](https://github.com/tremen-dev/stockeiro/actions/runs/32087612615) uno falla y el otro pasa (`E2E: failure`, `Checks: success`), que es el aislamiento que el CA pide | | ❌ |
+| CA-5 | `.github/workflows/ci.yml` (`permissions: contents: read`; `env` de juguete en `E2E`; `timeout-minutes` 20/25; `concurrency` con `cancel-in-progress` condicionado) | `tests/ci-workflow.test.ts` › *CA-5* (6 casos, uno por punto: 5.1 sin `secrets.` / 5.1 variables de juguete / 5.2 permissions / 5.3 sin `db:migrate` / 5.4 timeouts / 5.5 concurrency). **5.4 demostrado en vivo, sin quererlo**: el `timeout-minutes: 25` cortó el job colgado de [run 32085219147](https://github.com/tremen-dev/stockeiro/actions/runs/32085219147) — el tope existe y muerde | | ❌ |
+| CA-6 | `.nvmrc` (`24`) + `node-version-file: .nvmrc` en los dos `Set up Node` | `tests/ci-workflow.test.ts` › *CA-6* (2 casos) **+ el runner lo imprime**: `Found in cache @ /opt/hostedtoolcache/node/24.19.0/x64` y `node: v24.19.0`, con `node-version-file: .nvmrc` en el log. Suite completa ejecutada además en Node 24 en local — ver §Mediciones | | ❌ |
+| CA-7 | `package.json` › `scripts.lint` = `eslint . --max-warnings=0`, `scripts["test:e2e"]` = `playwright test`; todo gate del YAML invoca `npm run <script>` | `tests/ci-workflow.test.ts` › *CA-7* (3 casos: los scripts existen; cada gate invoca el suyo; las banderas van tras `--`). En el log de CI se lee el comando entero: `> playwright test --forbid-only --trace=retain-on-failure --reporter=list,html` | | ❌ |
+| CA-8 | `.github/workflows/ci.yml` (`cache: npm` en setup-node; `actions/cache` de `~/.cache/ms-playwright` con clave de `package-lock.json`; sin caché de `node_modules` ni `.next/cache`, con el motivo escrito en el YAML) | `tests/ci-workflow.test.ts` › *CA-8* (4 casos) **+ ahorro medido** — ver §Ahorro de caché. Frío→caliente: `Install Playwright browser` **14 s → 1 s**; `Cache hit` de 261 MB (navegador) y 212 MB (npm) en el log | | ❌ |
+| CA-9 | `.github/workflows/ci.yml` › step `Upload e2e diagnostics` (`if: failure()`, `playwright-report/` + `test-results/` + `_qa/`, `retention-days: 7`) | Sin test estático a propósito: lo que se afirma es que el artefacto *existe y abre*. **Prueba en rojo**: [run 32087968719](https://github.com/tremen-dev/stockeiro/actions/runs/32087968719) → artefacto `e2e-diagnostics` de **9,8 MB**, descargado y abierto — ver §Artefacto. **Y en verde no sube nada**: [run 32088353875](https://github.com/tremen-dev/stockeiro/actions/runs/32088353875) tiene **0 artefactos**. Commit `e8036d4`, revertido en `e2f7b2a` | | ❌ |
+| CA-10 | `.github/workflows/ci.yml` › `npm run test:e2e -- --forbid-only …` | **Prueba en rojo**: [run 32087612615](https://github.com/tremen-dev/stockeiro/actions/runs/32087612615) → `End-to-end tests: failure` con el mensaje literal `Error: item focused with '.only' is not allowed due to the '--forbid-only' CLI flag: "vigiladas.spec.ts SPEC-003: …"`. Sin la bandera habría pasado en verde con **1 test de 27**. Commit `8f4185f`, revertido | | ❌ |
+| CA-11 | `tests/schema-source.test.ts` › bloque CA-6: invocación extraída a `generateInto()`, sonda a `withProbe()` | `tests/schema-source.test.ts` › *CA-6* › «la guardia sabe detectar: contra un directorio vacío genera migración». **Probado en los dos sentidos** — ver §Mediciones. Corre en CI en cada pasada (dentro de los 308) | | ❌ |
 | CA-12 | `tests/schema-source.test.ts`: desaparece la inspección `/error\|ENOENT/i` de stdout; el comentario de la sonda se sustituye por lo medido | `tests/schema-source.test.ts` › *CA-6* (la guardia sigue verde sin la inspección). **La medición prescrita CONTRADICE la premisa del CA — ver §Mediciones y F-SPEC-027-3** | | ❌ |
-| CA-13 | Sin cambios de expectativas en ningún test existente; único fichero de test existente tocado: `tests/schema-source.test.ts` (+ `tests/position.test.ts`, un import sin usar, autorizado en el gate) | Suite completa verde en Node 22 y Node 24 (308/308 en 32 ficheros). **Tiempos y minutos facturados de CI pendientes de la PR** | | ❌ |
+| CA-13 | Sin cambios de expectativas en ningún test existente; único fichero de test existente tocado: `tests/schema-source.test.ts` (+ `tests/position.test.ts`, un import sin usar, autorizado en el gate) | Suite completa verde en Node 22 y Node 24 en local (308/308 en 32 ficheros) **y en CI** (32/32 ficheros, 27/27 e2e). **Tiempos y minutos facturados reales** — ver §Tiempos reales de CI | | ❌ |
 
 ## Veredicto del verificador
 <!-- GREEN/RED + fecha + resumen. Lo escribe SOLO sdd-verificador. -->
@@ -37,9 +42,123 @@ epica: EPIC-INFRA
 ## Evidencia visual
 <!-- Tabla CA → captura en _qa/SPEC-027/. Informe HTML opcional: _qa/SPEC-027/informe.html -->
 
-Pendiente: las capturas que esta spec necesita son de **la lista de checks de la PR** (CA-4) y
-del **artefacto de diagnóstico descargado** (CA-9). Ninguna de las dos existe hasta que la PR
-esté abierta. No hay UI de aplicación que capturar: esta spec no toca `src/`.
+Esta spec no toca `src/`: no hay UI de aplicación que capturar. Su evidencia es la propia PR
+**#31** y sus ejecuciones, enlazadas una a una en la matriz y en §Ejecuciones de CI. Todas son
+navegables por el verificador sin reproducir nada.
+
+## Ejecuciones de CI (la PR se verificó a sí misma)
+
+Para el evento `pull_request` GitHub ejecuta el workflow **de la rama de la PR**, así que estas
+seis ejecuciones son el workflow de esta spec verificándose a sí mismo antes de existir en
+`main`.
+
+| # | Run | Commit | Para qué | Desenlace |
+|---|---|---|---|---|
+| 1 | [32085219147](https://github.com/tremen-dev/stockeiro/actions/runs/32085219147) | `015536b` | primera pasada | `Checks: success` (3m28s) · **`E2E: cancelled`** por el `timeout-minutes` — ver §El primer run |
+| 2 | [32086893473](https://github.com/tremen-dev/stockeiro/actions/runs/32086893473) | `c62a2b3` | primera pasada **verde** (npm caliente, navegador **frío**) | **success** — Checks 4m29s · E2E 2m01s |
+| 3 | [32087238733](https://github.com/tremen-dev/stockeiro/actions/runs/32087238733) | `4197e23` ⟳ | **rojo de CA-3** | failure — `Typecheck ✗` · `Lint ✗` · `Unit tests ✓` · `Build ✗` → `End-to-end tests` skipped |
+| 4 | [32087612615](https://github.com/tremen-dev/stockeiro/actions/runs/32087612615) | `8f4185f` ⟳ | **rojo de CA-10** (`.only`) | failure — `--forbid-only` lo tumba; `Checks: success` |
+| 5 | [32087968719](https://github.com/tremen-dev/stockeiro/actions/runs/32087968719) | `e8036d4` ⟳ | **rojo de CA-9** (aserción falsa) | failure — **1 failed / 26 passed**, artefacto de 9,8 MB con traza |
+| 6 | [32088353875](https://github.com/tremen-dev/stockeiro/actions/runs/32088353875) | `e2f7b2a` | pasada final, **todo caliente** | **success** — Checks 3m48s · E2E 1m42s · **0 artefactos** |
+
+⟳ = commit temporal, revertido. `git diff c62a2b3 HEAD` está **vacío**: no queda ni un resto.
+
+## Tiempos reales de CI (CA-13) — el número que nadie tenía
+
+| | Checks | E2E | Pared | Facturado* |
+|---|---|---|---|---|
+| **Run 2** (npm caliente, navegador frío) | **4m29s** | **2m01s** | **4m29s** | ~7 min |
+| **Run 6** (todo caliente) | **3m48s** | **1m42s** | **3m48s** | **~6 min** |
+
+<sub>*GitHub factura por job redondeando al minuto: 4+2 = 6 min en el run 6. Repo privado, plan
+free, 2.000 min/mes.</sub>
+
+Desglose del run 6, por step:
+
+| Checks | | E2E | |
+|---|---|---|---|
+| Set up Node | 5 s | Set up Node | 3 s |
+| Install dependencies | 15 s | Install dependencies | 11 s |
+| **Typecheck** | **6 s** | Cache Playwright browsers | 6 s |
+| **Lint** | **4 s** | **Install Playwright browser** | **1 s** |
+| **Unit tests** | **3m11s** | **Build** | **14 s** |
+| | | **End-to-end tests** | **57 s** |
+
+**La estimación de la spec se queda corta por el lado bueno.** Predecía 7-9 min de pared y 13-16
+facturados; lo real es **3m48s de pared y ~6 min facturados**, menos de la mitad. A ~6 min por
+pasada, los 2.000 min/mes del plan free dan para **~330 pasadas mensuales**: correr el e2e en
+cada PR (pregunta 6 del gate de ADR-018) no está ni cerca de ser un problema de cuota, y ahora
+está respondido con datos.
+
+### Ahorro de caché (CA-8)
+
+| | Run 2 (navegador frío) | Run 6 (caliente) |
+|---|---|---|
+| `Cache Playwright browsers` | 1 s (miss) | 6 s (restore de **261 MB**) |
+| `Install Playwright browser` | **14 s** | **1 s** |
+| `Install dependencies` (npm) | 13 s | 11 s (cache hit de **212 MB**) |
+
+Líneas literales del log: `Cache hit for: playwright-Linux-9d37e1f0…` y `Cache hit for:
+node-cache-Linux-x64-npm-9d37e1f0…`. El ahorro neto del navegador es modesto en segundos
+(~7 s) porque el binario ya venía comprimido y la restauración cuesta lo suyo; lo que evita de
+verdad es **descargar 130 MB desde el CDN de Microsoft en cada pasada**, que es un punto de
+fallo externo, no solo tiempo. Y sigue **sin cachearse `node_modules`**: la instalación de
+`@embedded-postgres/linux-x64` se ejecuta de verdad en cada pasada, que es exactamente lo que
+el CA quería proteger.
+
+### El artefacto de diagnóstico, descargado y abierto (CA-9)
+
+Del run 5, `gh run download`:
+
+```
+art/_qa/                      50 capturas .png
+art/playwright-report/        index.html + data/ + trace/
+art/test-results/vigiladas-SPEC-003-…-chromium/
+                              error-context.md (9,5 KB)
+                              trace.zip (1.125.825 B)
+```
+
+La traza **abre**: dentro del `.zip` están `test.trace`, `0-trace.trace`, `0-trace.network` y el
+screencast completo en `resources/*.jpeg`. No es un fichero vacío con nombre bonito. Retención
+confirmada por la API: creado `2026-08-18T01:24:10Z`, expira `2026-08-25T01:24:09Z` — **7 días
+exactos**. Y la mitad que más se olvida: la pasada verde (run 6) tiene **`total_count: 0`**.
+
+## El primer run: por qué el gate no dependía de lo que creíamos
+
+El riesgo que traía señalado de la implementación local era
+`@embedded-postgres/linux-x64` — la primera vez que su script de instalación corría en Linux.
+**No dio ningún problema**: `Install dependencies` pasó en **21 s** a la primera, y el e2e
+levanta su Postgres efímero sin una queja. Ese miedo queda cerrado.
+
+Lo que sí tumbó el primer run fue otra cosa, y no estaba en ninguna lista:
+
+```
+00:37:55  Installing dependencies...                        <- playwright install --with-deps
+00:37:55  Switching to root user to install dependencies...
+00:38:33  Ign:14 http://azure.archive.ubuntu.com/ubuntu noble-updates/main amd64 Packages
+          … 24 minutos sin una sola línea …
+01:02:40  ##[error]The operation was canceled.               <- timeout-minutes: 25
+```
+
+`--with-deps` se pasa a root y lanza un `apt-get update` que se quedó esperando al mirror
+`azure.archive.ubuntu.com`. El job murió en el tope sin ejecutar **un solo test**, quemando
+~25 min de cuota para cero información.
+
+Arreglado en `c62a2b3`, y merece explicación porque es una decisión y no un parche:
+
+- **Se retira `--with-deps`.** La imagen `ubuntu-latest` ya trae las librerías de sistema que
+  pide Chromium, así que no aportaba nada y a cambio ataba **cada pasada del gate** a la salud de
+  un mirror de apt. Si algún día faltara una librería de verdad, Chromium no arranca y el e2e lo
+  dice a gritos: es un fallo que se delata solo. Medido: el step pasó de colgarse a **14 s** en
+  frío y **1 s** en caliente.
+- **El step gana `timeout-minutes: 5`.** Para que un cuelgue ahí cueste 5 minutos y no los 25 del
+  job entero.
+- **No toca ningún CA.** `--with-deps` venía de §*Forma del workflow* de la spec, marcada
+  literalmente como *«guía para el implementador, no contrato»*. Ningún criterio de aceptación lo
+  menciona.
+
+Lectura que conviene no perder: el `timeout-minutes` de CA-5.4 **hizo su trabajo el primer día**.
+Sin él, ese cuelgue se habría comido la cuota hasta el tope de 6 h de GitHub.
 
 ## Mediciones
 
@@ -164,20 +283,25 @@ la ejecución real, pero descarta el viaje de ida y vuelta por un error de sinta
   la sonda del canario y exigir que reproduzca la última migración tras retirarla del journal;
   (b) que la guardia capture `stderr` y exija que esté vacío (`spawnSync` en vez de
   `execFileSync`); (c) asumirlo y dejarlo escrito. → **decisión del arquitecto/gate.**
-- **F-SPEC-027-4 — Cuatro pruebas en rojo y toda la evidencia viva siguen pendientes, y
-  necesitan la PR abierta.** El implementador no hace push ni abre PR. Sin PR no existen: la
-  ejecución de CA-1, los dos checks de CA-4, el rojo simultáneo de CA-3, el artefacto de CA-9, el
-  `.only` de CA-10, el ahorro de caché de CA-8 y los tiempos/minutos facturados de CA-13.
-  **Guion listo en §Cómo retomar.**
+- ~~**F-SPEC-027-4 — Pruebas en rojo y evidencia viva pendientes de la PR.**~~ **CERRADO** el
+  2026-08-18 con la PR #31: seis ejecuciones, tres rojos deliberados revertidos, artefacto
+  descargado y traza abierta, tiempos reales medidos. Ver §Ejecuciones de CI.
+- **F-SPEC-027-5 — `actions/checkout@v4` y `actions/setup-node@v4` están deprecadas.** Cada
+  ejecución emite el aviso: *«Node.js 20 is deprecated. The following actions target Node.js 20
+  but are being forced to run on Node.js 24: actions/checkout@v4, actions/setup-node@v4»*. Hoy es
+  ruido —GitHub las fuerza a Node 24 y funcionan—, pero es deuda con fecha de caducidad. Subirlas
+  a `@v5` es un cambio de dos líneas; no entra aquí porque ningún CA lo pide y tocarlo el mismo
+  día que se estrena el gate mezcla dos cosas. → **EPIC-INFRA**.
 - **Lectura de CA-7 que conviene que el verificador conozca**: la spec escribe el script como
   `"lint": "eslint ."` y deja `--max-warnings=0` como pregunta del gate. El humano dijo que sí, y
   la bandera se ha puesto **dentro del script de `package.json`**, no en el YAML, precisamente
   porque CA-7 exige que ninguna bandera propia de CI cambie lo que se ejecuta: así `npm run lint`
   significa lo mismo en la máquina del humano y en el runner. Efecto colateral autorizado: se
   borra el import sin usar de `tests/position.test.ts:7` (`type LedgerEntry`).
-- **El e2e en Linux no se ha ejecutado nunca.** `@embedded-postgres/linux-x64` tiene
-  `hasInstallScript: true` y extrae los binarios de Postgres al instalar. Todo lo medido aquí es
-  Windows. Si la primera pasada de CI muere, el sospechoso es ese.
+- ~~**El e2e en Linux no se ha ejecutado nunca.**~~ **Cerrado, y el sospechoso era inocente**:
+  `@embedded-postgres/linux-x64` instaló en 21 s a la primera y el e2e levanta su Postgres
+  efímero sin queja. Lo que rompió el primer run fue `playwright install --with-deps` colgado
+  contra un mirror de apt — ver §El primer run.
 - **Colisión de ids de ADR: resuelta antes de empezar** (commit `e930f1c`): **ADR-018** =
   despliegue continuo (el que gobierna esta spec), **ADR-019** = el esquema de test es el de
   producción (SPEC-026). No se ha renumerado nada.
@@ -201,25 +325,26 @@ e2e**, typecheck y lint limpios con `--max-warnings=0`, build verde con variable
 | `tests/position.test.ts` | borrado el import sin usar (autorizado en el gate) |
 | `docs/despliegue.md` | §9 nueva |
 
-**Lo único que falta, y no lo puede hacer el implementador: abrir la PR.** Para el evento
-`pull_request` GitHub ejecuta el workflow **de la rama de la PR**, así que la PR se verifica a sí
-misma. Guion, en este orden, cada commit temporal **revertido** y **enlazado aquí**:
+**El guion de verificación en CI está ejecutado y cerrado.** La PR #31 se verificó a sí misma en
+seis ejecuciones (§Ejecuciones de CI): una verde en frío, tres rojos deliberados —CA-3, CA-10,
+CA-9— cada uno revertido, y una verde final con las cachés calientes. El artefacto de diagnóstico
+se descargó y la traza se abrió. `git diff c62a2b3 HEAD` está vacío: la rama no lleva ni un resto
+de las pruebas en rojo.
 
-1. **Pasada limpia (fría).** Debe salir verde. Apuntar: duración de `Checks`, duración de `E2E`,
-   minutos facturados, y la versión de Node impresa por `Set up Node` (debe ser 24.x) → CA-1,
-   CA-6, CA-13.
-2. **Segunda pasada (cachés calientes).** Un commit vacío basta. Apuntar el ahorro frente a la
-   primera → CA-8, CA-13.
-3. **Rojo de CA-3.** Un commit que rompa **a la vez** typecheck y lint (p. ej. una variable sin
-   declarar y un import sin usar en el mismo fichero). Comprobar que `Typecheck` y `Lint`
-   aparecen rojos **por separado** y que `Unit tests` **también se ejecuta**. Revertir.
-4. **Rojo de CA-10 + artefacto de CA-9.** Un `test.only` en cualquier `.spec.ts` de `tests/e2e/`.
-   Debe fallar por `--forbid-only`, y el job debe subir `e2e-diagnostics`: descargarlo, comprobar
-   que trae `playwright-report/`, `test-results/` y `_qa/`, y que **la traza abre**. Revertir.
-5. **Captura de la lista de checks** de la PR (dos entradas: `CI / Checks` y `CI / E2E`) →
-   `_qa/SPEC-027/` para CA-4.
-6. Comprobar que la pasada **verde** no deja artefacto (CA-9, segunda mitad).
+**Estado para el verificador**: los 13 CA tienen implementación, test y —salvo CA-12— evidencia.
+No queda nada mío por hacer en esta spec. Lo que sigue abierto es de decisión, no de trabajo:
 
-**Y antes de nada, lo que el gate tiene que decidir**: la medición de CA-12 sale al revés de la
-premisa del CA (§Mediciones). Ni el CA se puede cerrar como está escrito, ni yo debo reescribirlo.
-Con ello va **F-SPEC-027-3**, que es el único riesgo técnico nuevo que deja esta spec.
+1. **CA-12 no se puede cerrar como está escrito.** Su verificación prescribe una medición que
+   **sale al revés de su premisa**: con la sonda sembrada, un `--out` absoluto deja la guardia
+   muda y verde en falso (§Mediciones). El código que CA-12 pedía retirar está retirado y el
+   comentario dice lo medido; lo que no puedo hacer es firmar una afirmación que he medido falsa.
+   **Decide el arquitecto/gate**: cerrar con salvedad, reescribir el CA, o reforzar el canario.
+2. **F-SPEC-027-3** sale de ahí y es el único riesgo técnico nuevo que deja esta spec: el canario
+   de sonda vacía no distingue ese fallo concreto. Tres salidas propuestas, ninguna elegida.
+3. **F-SPEC-027-1** sigue siendo la conversación cara: la CI informa y **no impide** mezclar,
+   porque el plan de GitHub no lo ofrece. Está escrito en `docs/despliegue.md` §9 para que un
+   check verde no se lea como una barrera.
+
+**Si hay que retomar el workflow**, lo único no obvio está en `.github/workflows/ci.yml` con su
+porqué al lado: por qué no se cachea `node_modules`, por qué `--with-deps` no está, y por qué
+`End-to-end tests` es el único gate que encadena.
