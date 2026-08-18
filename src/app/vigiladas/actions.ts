@@ -3,8 +3,10 @@
 import { revalidatePath } from 'next/cache';
 import { auth } from '@/lib/auth/config';
 import { db } from '@/db/client';
-import { watchSymbol, unwatch, InvalidZoneError } from '@/lib/watchlist/service';
+import { watchSymbol, unwatch, type WatchInput } from '@/lib/watchlist/service';
 import { readSymbolSelection } from '@/lib/market/symbol-selection';
+import { readDecimalField } from '@/lib/format/decimal-input';
+import { toFormError } from '@/lib/format/action-error';
 
 export type FormState = { error: string } | { ok: true } | undefined;
 
@@ -14,9 +16,18 @@ async function requireUserId(): Promise<string> {
   return session.user.id;
 }
 
-function opt(formData: FormData, key: string): string | null {
-  const v = String(formData.get(key) ?? '').trim();
-  return v === '' ? null : v;
+/**
+ * Las cuatro zonas, leídas por la única puerta de entrada numérica (SPEC-030 CA-13).
+ * Lanza `InvalidNumberError` con el campo, el valor y el motivo; un campo vacío es
+ * ausencia (`null`), y de la validación del par sigue encargándose RN-10 en el servicio.
+ */
+function readZones(formData: FormData): WatchInput {
+  return {
+    buyMin: readDecimalField(formData, 'buyMin'),
+    buyMax: readDecimalField(formData, 'buyMax'),
+    sellMin: readDecimalField(formData, 'sellMin'),
+    sellMax: readDecimalField(formData, 'sellMax'),
+  };
 }
 
 /** Vigilar un ticker con zonas opcionales (CA-1/CA-2/CA-4). */
@@ -24,23 +35,28 @@ export async function watchAction(_prev: FormState, formData: FormData): Promise
   const userId = await requireUserId();
   const selection = readSymbolSelection(formData);
   if (!selection) return { error: 'Busca y elige una acción de la lista.' };
+
+  // SPEC-030: la normalización va FUERA del try del servicio. Así el cajón de sastre
+  // queda reducido a lo que de verdad es infraestructura, y quien escribe «12,5» lee un
+  // error que nombra su campo y su valor en vez del mensaje genérico de antes.
+  let zones: WatchInput;
+  try {
+    zones = readZones(formData);
+  } catch (e) {
+    return toFormError('vigilar', e);
+  }
+
   try {
     await watchSymbol(
       db,
       userId,
       selection.ticker,
       selection.currency,
-      {
-        buyMin: opt(formData, 'buyMin'),
-        buyMax: opt(formData, 'buyMax'),
-        sellMin: opt(formData, 'sellMin'),
-        sellMax: opt(formData, 'sellMax'),
-      },
+      zones,
       selection.market,
     );
   } catch (e) {
-    if (e instanceof InvalidZoneError) return { error: e.message };
-    return { error: 'Datos inválidos.' };
+    return toFormError('vigilar', e);
   }
   revalidatePath('/vigiladas');
   return { ok: true };
