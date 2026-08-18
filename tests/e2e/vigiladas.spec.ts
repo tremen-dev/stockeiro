@@ -24,9 +24,7 @@ async function elegirAccion(form: ReturnType<Page['locator']>, query: string, ti
   await expect(form.locator('.symbol-chip-tk')).toContainText(ticker);
 }
 
-// TEMPORAL — SPEC-027 CA-10. Un `.only` olvidado: sin `--forbid-only` el e2e
-// pasaria en verde habiendo ejecutado UN test de 27. Se revierte.
-test.only('SPEC-003: vigilar un ticker con zonas aparece en la lista', async ({ page }) => {
+test('SPEC-003: vigilar un ticker con zonas aparece en la lista', async ({ page }) => {
   await registrarYEntrar(page, 'vig1@example.com');
   await page.goto('/vigiladas');
 
