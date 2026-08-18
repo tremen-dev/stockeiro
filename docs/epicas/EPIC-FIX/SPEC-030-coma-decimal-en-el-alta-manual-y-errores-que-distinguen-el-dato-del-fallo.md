@@ -2,13 +2,14 @@
 id: SPEC-030
 tipo: spec
 epica: EPIC-FIX
-estado: en-revision
+estado: hecho
 aprobada-por: humano (Alberto Fojo)
 historial:
   - {estado: borrador, fecha: 2026-08-18, por: sdd-arquitecto}
   - {estado: aprobada, fecha: 2026-08-18, por: humano (Alberto Fojo)}
   - {estado: en-progreso, fecha: 2026-08-18, por: sdd-implementador}
   - {estado: en-revision, fecha: 2026-08-18, por: sdd-implementador}
+  - {estado: hecho, fecha: 2026-08-18, por: sdd-verificador}
 ---
 # SPEC-030 — Coma decimal en el alta manual y errores que distinguen el dato del fallo
 
