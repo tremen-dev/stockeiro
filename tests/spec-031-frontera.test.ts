@@ -31,8 +31,12 @@ const GATES_DE_SPEC_027 = ['Build', 'End-to-end tests', 'Lint', 'Typecheck', 'Un
 const workflow = () => parse(readFileSync(workflowPath, 'utf8')) as Workflow;
 const steps = () => Object.values(workflow().jobs ?? {}).flatMap((job) => job.steps ?? []);
 
-describe('SPEC-031 CA-13.1: el workflow de CI no gana ni un step', () => {
-  it('los steps con `run` siguen siendo exactamente los de SPEC-027', () => {
+describe('SPEC-031 CA-13.1: el workflow de CI no gana ni un step por la puerta de atrás', () => {
+  it('los steps con `run` son los de SPEC-027 más el gate de SPEC-032', () => {
+    // Lista cerrada a propósito: cada entrada nueva tiene que venir con un CA que
+    // la pida. `Migration scan` la pide SPEC-032 CA-11 —lee ficheros del repo, no
+    // habla con nada—, y las tres aserciones de abajo (no toca check-alive, no
+    // sale a ningún host) siguen siendo lo que este bloque defiende de verdad.
     const conRun = steps().filter((s) => typeof s.run === 'string');
     const nombres = conRun.map((s) => s.name ?? '(sin nombre)').sort();
     expect(nombres).toEqual(
@@ -43,6 +47,7 @@ describe('SPEC-031 CA-13.1: el workflow de CI no gana ni un step', () => {
         'Install dependencies',
         'Install dependencies',
         'Lint',
+        'Migration scan',
         'Typecheck',
         'Unit tests',
       ].sort(),
@@ -74,13 +79,19 @@ describe('SPEC-031 CA-13.1: el workflow de CI no gana ni un step', () => {
   });
 });
 
-describe('SPEC-031 CA-13.2: vercel.json no cambia', () => {
-  it('sigue siendo exactamente lo que era antes de esta spec', () => {
+describe('SPEC-031 CA-13.2: vercel.json solo cambia cuando una spec lo cambia', () => {
+  it('sigue siendo exactamente lo que era, más la guardia de SPEC-032', () => {
     // Literal congelado, no un `git diff`: el test tiene que poder decidir esto
     // en un clone superficial de CI, sin `origin/main` a mano.
+    //
+    // SPEC-032 (ADR-018 D-2) añadió `node scripts/guard-migrate.mjs &&` delante
+    // de `db:migrate`, y eso ES el CA-4 de aquella spec: la única forma de que
+    // este literal siguiera intacto era no implementarla. Lo que este test
+    // conserva —y sigue conservando— es la propiedad de SPEC-031: **su** spec no
+    // tocó este fichero, y ningún cambio se cuela aquí sin un CA que lo pida.
     expect(JSON.parse(readFileSync(join(rootDir, 'vercel.json'), 'utf8'))).toEqual({
       $schema: 'https://openapi.vercel.sh/vercel.json',
-      buildCommand: 'npm run db:migrate && npm run build',
+      buildCommand: 'node scripts/guard-migrate.mjs && npm run db:migrate && npm run build',
       crons: [{ path: '/api/cron/refresh', schedule: '0 22 * * *' }],
     });
   });

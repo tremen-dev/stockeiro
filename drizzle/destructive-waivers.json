@@ -1,0 +1,14 @@
+{
+  "0001_symbol_market_identity": {
+    "spec": "SPEC-008",
+    "reason": "ADR-007 canoniza la identidad del símbolo en el par (ticker, mic_code), no en el ticker suelto. La restricción UNIQUE sobre `ticker` que creó 0000 impedía persistir el mismo ticker en dos mercados distintos —AAPL en XNAS y AAPL en un mercado europeo son instrumentos diferentes con precios diferentes—, así que 0001 la retira y la sustituye en la misma migración por `symbols_ticker_mic` UNIQUE(ticker, mic_code) más un índice sobre `ticker`. El DROP relaja una unicidad: no borra ni una fila y no estrecha ninguna columna.",
+    "rollback": "Reponer la restricción con `ALTER TABLE symbols ADD CONSTRAINT symbols_ticker_unique UNIQUE(ticker)`, lo que exige que no haya dos filas con el mismo ticker: si ya se han persistido símbolos homónimos en mercados distintos, hay que decidir cuál se conserva antes de volver atrás. Nada que restaurar de una copia: la migración no destruye datos, solo un índice único.",
+    "statements": 1
+  },
+  "0007_tearful_roughhouse": {
+    "spec": "SPEC-024",
+    "reason": "Quitar una acción de la lista de vigiladas fallaba cuando tenía episodios de zona, porque las dos claves foráneas que creó 0000 iban con `ON DELETE no action`. ADR-017 fija que los episodios de zona son derivados —se van con su vigilada— y que el historial de avisos se conserva. Las dos claves se quitan y se reponen en la misma migración con `ON DELETE cascade` (zone_triggers → watched_symbols) y `ON DELETE set null` (notifications → zone_triggers). Es la marca que ADR-018 D-5.2 señala como la que más merece que alguien la lea: habilita borrados en cascada.",
+    "rollback": "Reponer ambas claves con `ON DELETE no action` (`ALTER TABLE zone_triggers DROP CONSTRAINT zone_triggers_watched_symbol_id_watched_symbols_id_fk` y su ADD equivalente, ídem en notifications), lo que devuelve el defecto de SPEC-024 pero deja el esquema íntegro. Lo que el rollback NO devuelve son los `zone_triggers` que el cascade ya haya borrado ni los `zone_trigger_id` que el set null ya haya puesto a NULL: eso solo vuelve desde el historial de restauración de Neon, cuya ventana real sigue sin comprobarse (pregunta 7 del gate de ADR-018).",
+    "statements": 2
+  }
+}

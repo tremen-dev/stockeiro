@@ -13,7 +13,8 @@
     "lint": "eslint . --max-warnings=0",
     "typecheck": "tsc --noEmit",
     "db:generate": "drizzle-kit generate",
-    "db:migrate": "drizzle-kit migrate"
+    "db:migrate": "drizzle-kit migrate",
+    "db:scan": "node scripts/scan-destructive-sql.mjs"
   },
   "dependencies": {
     "@neondatabase/serverless": "^0.10.4",
