@@ -1,7 +1,7 @@
 import { describe, it, expect, beforeAll, afterAll } from 'vitest';
 import { PGlite } from '@electric-sql/pglite';
 import { execFileSync } from 'node:child_process';
-import { cpSync, mkdirSync, readFileSync, readdirSync, rmSync } from 'node:fs';
+import { cpSync, readFileSync, readdirSync, rmSync, writeFileSync } from 'node:fs';
 import { dirname, join, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { makeTestDb } from '@/db/test-db';
@@ -22,7 +22,9 @@ import { makeTestDb } from '@/db/test-db';
  *
  * SPEC-027 añade al bloque de CA-6 el **canario** (su CA-11): la guardia
  * demuestra en cada pasada que sabe detectar, para que "no hay deriva" no pueda
- * confundirse con "la guardia no llegó a correr".
+ * confundirse con "la guardia no llegó a correr". El canario corre sobre una
+ * sonda SEMBRADA y rebobinada — el estado de partida real de la guardia—, no
+ * sobre una vacía: enmienda del 2026-08-18, con la medición al lado de withProbe.
  */
 
 const rootDir = resolve(dirname(fileURLToPath(import.meta.url)), '..');
@@ -204,76 +206,139 @@ describe('SPEC-026 — una sola definición del esquema', () => {
 
   describe('CA-6: src/db/schema.ts no puede quedarse sin migrar', () => {
     /**
-     * La invocación de la guardia, en un solo sitio. El canario de CA-11
-     * (SPEC-027) la reutiliza **tal cual** —mismo cwd, mismo shell, mismos
-     * argumentos, solo cambia `--out`— porque un canario que invoca otra cosa no
-     * prueba nada sobre esta.
+     * Sonda de usar y tirar, y la invocación de `drizzle-kit` YA LIGADA a ella.
      *
-     * Sobre la forma de la sonda: aquí había escrito que `drizzle-kit` "descarta
-     * las rutas absolutas" y "termina con código 0 aunque falle". Medido el
-     * 2026-08-18 (SPEC-027 CA-12), esto es lo que de verdad hace, y no coincide
-     * con ninguna de las dos versiones que se han contado:
+     * Aquí, y en ningún otro sitio, se decide la **forma de la ruta** que recibe
+     * `--out`. Ni la guardia ni el canario nombran su sonda: la reciben ligada.
+     * Eso es deliberado y es lo que sostiene el canario (SPEC-027 CA-11): quien
+     * "limpie" esta forma —a absoluta, a otra unidad, a lo que sea— la cambia en
+     * los DOS a la vez, y entonces el canario se pone rojo y lo cuenta. Si cada
+     * uno nombrara la suya, se podría romper la guardia dejando el canario verde,
+     * que es exactamente el agujero que esta enmienda cierra.
      *
-     *   sonda SEMBRADA con drizzle/, `--out` RELATIVO  → funciona (es este test)
-     *   sonda SEMBRADA con drizzle/, `--out` ABSOLUTO  → MUDA: concatena el cwd
-     *       delante de la ruta absoluta (`D:\…\D:\…`), no encuentra
-     *       `meta/0000_snapshot.json`, escribe el ENOENT en **stderr** y sale con
-     *       **código 0** sin escribir nada. Con `stdio: 'pipe'` eso se ve
-     *       exactamente igual que "no hay deriva".
-     *   sonda VACÍA, `--out` ABSOLUTO                  → funciona
+     * Sobre la forma de la ruta se han emitido ya TRES veredictos y cada uno
+     * corrigió al anterior; dos llegaron a colarse en un documento firmado. Lo
+     * medido el 2026-08-18, con la sonda SEMBRADA que es la que usa la guardia de
+     * verdad:
      *
-     * Es decir: la ruta absoluta rompe justo el caso de la guardia, y lo rompe en
-     * silencio. Y el `--schema` inexistente sale con **1**, así que `execFileSync`
-     * ya lanza — por eso la vieja inspección de stdout era código muerto: el
-     * único fallo mudo real ni siquiera pasa por stdout.
+     *   sembrada, sin deriva, `--out` RELATIVO → exit 0, "No schema changes…",
+     *       8 → 8 `.sql`  → guardia verde, correcto
+     *   sembrada, con deriva, `--out` RELATIVO → exit 0, escribe `0008_*.sql`,
+     *       8 → 9         → guardia roja, correcto
+     *   sembrada, sin deriva, `--out` ABSOLUTO → exit 0, stdout VACÍO, 1395 B en
+     *       stderr, 8 → 8
+     *   sembrada, con deriva, `--out` ABSOLUTO → exit 0, stdout VACÍO, 1403 B en
+     *       stderr, 8 → 8 → **VERDE EN FALSO**
+     *   VACÍA,    sin deriva, `--out` ABSOLUTO → funciona: 0 → 1 `.sql`
      *
-     * Lo que NO se hace aquí, a propósito: fijar en un test que la sonda tiene que
-     * ser relativa. Eso ataría el test a una versión de drizzle-kit y seguiría sin
-     * cubrir las otras diez formas de morir mudo. Lo que cubre el riesgo es el
-     * canario de abajo — con la salvedad, medida, de que su sonda vacía no
-     * distingue este caso concreto (F-SPEC-027-3).
+     * Mecanismo real: `drizzle-kit` **concatena el cwd delante de la ruta
+     * absoluta** al buscar el snapshot previo (`ENOENT … 'D:\…\D:\…\meta\
+     * 0000_snapshot.json'`). Por eso falla SOLO con la sonda sembrada —el caso de
+     * la guardia— y no con la vacía, y por eso el canario viejo, que usaba sonda
+     * vacía, no lo cazaba. Y falla con código 0, así que `execFileSync` no lanza
+     * y nadie se entera.
+     *
+     * Esto documenta una MEDICIÓN, no una regla que el test imponga: abajo no hay
+     * ninguna aserción sobre la forma de la ruta, ni a favor ni en contra. Un test
+     * sobre la forma fosiliza folklore, se ata a una versión de `drizzle-kit` y
+     * daría por cerrado un riesgo que seguiría abierto —cubriría esta manera de
+     * morir mudo y ninguna otra—. Lo que cubre el riesgo es el canario sembrado.
+     * Descartado expresamente por el humano el 2026-08-18.
      */
-    const generateInto = (outRel: string) =>
-      execFileSync(
-        'npx',
-        [
-          'drizzle-kit',
-          'generate',
-          '--dialect',
-          'postgresql',
-          '--schema',
-          './src/db/schema.ts',
-          '--out',
-          outRel,
-        ],
-        { cwd: rootDir, encoding: 'utf8', stdio: 'pipe', shell: true, timeout: 120_000 },
-      );
-
-    /** Sonda de usar y tirar dentro del repo, con nombre irrepetible. */
-    function withProbe<T>(label: string, fn: (rel: string, abs: string) => T): T {
-      const rel = `node_modules/.cache/${label}-${process.pid}-${Date.now()}`;
-      const abs = join(rootDir, rel);
+    function withProbe<T>(
+      label: string,
+      fn: (probe: {
+        /** Dónde vive la sonda, para sembrarla y leerla. */
+        dir: string;
+        /** La invocación de la guardia, apuntada a ESTA sonda. */
+        generate: () => string;
+        /** Los `.sql` que hay ahora mismo en la sonda, ordenados. */
+        sqlFiles: () => string[];
+      }) => T,
+    ): T {
+      const relPath = `node_modules/.cache/${label}-${process.pid}-${Date.now()}`;
+      const dir = join(rootDir, relPath);
+      // ↓ LA forma de la ruta de sonda. Un solo sitio, para los dos tests.
+      const outArg = relPath;
       try {
-        return fn(rel, abs);
+        return fn({
+          dir,
+          generate: () =>
+            execFileSync(
+              'npx',
+              [
+                'drizzle-kit',
+                'generate',
+                '--dialect',
+                'postgresql',
+                '--schema',
+                './src/db/schema.ts',
+                '--out',
+                outArg,
+              ],
+              { cwd: rootDir, encoding: 'utf8', stdio: 'pipe', shell: true, timeout: 120_000 },
+            ),
+          sqlFiles: () =>
+            readdirSync(dir)
+              .filter((f) => f.endsWith('.sql'))
+              .sort(),
+        });
       } finally {
-        rmSync(abs, { recursive: true, force: true });
+        rmSync(dir, { recursive: true, force: true });
       }
     }
 
-    const sqlFilesIn = (dir: string) =>
-      readdirSync(dir)
-        .filter((f) => f.endsWith('.sql'))
-        .sort();
+    /** Copia `drizzle/` entero: el estado de partida real de la guardia. */
+    function seedFull(dir: string) {
+      cpSync(migrationsDir, dir, { recursive: true });
+    }
+
+    /**
+     * Copia `drizzle/` REBOBINADA a su primer apunte: deja `0000_*.sql` y
+     * `meta/0000_snapshot.json`, recorta el journal a `idx 0` y borra el resto.
+     *
+     * Se rebobina al PRIMERO y no "se quita el último" porque el delta contra
+     * `0000` solo puede CRECER con cada migración futura, mientras que el último
+     * apunte puede ser una migración escrita a mano sin cambio de esquema
+     * —`0004_backfill_operating_mic` es una— y dejaría el canario en rojo
+     * acusando a la guardia de algo que no pasa.
+     */
+    function seedRewound(dir: string) {
+      cpSync(migrationsDir, dir, { recursive: true });
+      const journalPath = join(dir, 'meta', '_journal.json');
+      const journal = JSON.parse(readFileSync(journalPath, 'utf8')) as {
+        entries: { idx: number; tag: string }[];
+      };
+      const first = [...journal.entries].sort((a, b) => a.idx - b.idx)[0];
+      writeFileSync(
+        journalPath,
+        `${JSON.stringify({ ...journal, entries: [first] }, null, 2)}\n`,
+        'utf8',
+      );
+      const keptSnapshot = `${String(first.idx).padStart(4, '0')}_snapshot.json`;
+      for (const file of readdirSync(dir)) {
+        if (file.endsWith('.sql') && file !== `${first.tag}.sql`) {
+          rmSync(join(dir, file), { force: true });
+        }
+      }
+      const metaDir = join(dir, 'meta');
+      for (const file of readdirSync(metaDir)) {
+        if (file.endsWith('_snapshot.json') && file !== keptSnapshot) {
+          rmSync(join(metaDir, file), { force: true });
+        }
+      }
+      return first.tag;
+    }
 
     it('drizzle/ está al día respecto de src/db/schema.ts', () => {
-      withProbe('spec026-guard', (probeRel, probeAbs) => {
-        cpSync(migrationsDir, probeAbs, { recursive: true });
-        const before = sqlFilesIn(probeAbs);
-        generateInto(probeRel);
+      withProbe('spec026-guard', ({ dir, generate, sqlFiles }) => {
+        seedFull(dir);
+        const before = sqlFiles();
+        generate();
 
         // El criterio es "¿apareció un fichero?": drizzle-kit no escribe nada si no
         // hay cambios, y emite un .sql nuevo si los hay.
-        const after = sqlFilesIn(probeAbs);
+        const after = sqlFiles();
         expect(
           after.length,
           'src/db/schema.ts tiene cambios de esquema que NO están en drizzle/. ' +
@@ -291,26 +356,35 @@ describe('SPEC-026 — una sola definición del esquema', () => {
     // SPEC-027 CA-11 — el canario.
     //
     // El test de arriba pasa de dos maneras: porque no hay deriva, o porque la
-    // invocación no llegó a ejecutarse y por tanto no escribió nada. Las dos se
-    // ven idénticas desde fuera, y la segunda es una guardia muerta que sigue
-    // dando verde. Esto lo distingue: la MISMA invocación contra un directorio
-    // vacío tiene que generar el esquema entero. Si no aparece ni un `.sql`, el
-    // problema es la guardia, no el esquema — y el mensaje lo dice así.
+    // invocación no llegó a hacer nada. Las dos se ven idénticas desde fuera, y la
+    // segunda es una guardia muerta que sigue dando verde. Esto lo distingue: la
+    // MISMA invocación, sobre una sonda SEMBRADA como la suya pero rebobinada al
+    // primer apunte, tiene que reproducir las migraciones que le faltan.
     //
-    // A propósito no depende de POR QUÉ podría romperse (ruta, binario ausente,
-    // argumento renombrado, otra plataforma): solo comprueba que sabe detectar.
-    it('la guardia sabe detectar: contra un directorio vacío genera migración', () => {
-      withProbe('spec027-canary', (probeRel, probeAbs) => {
-        mkdirSync(probeAbs, { recursive: true });
-        generateInto(probeRel);
+    // Sembrada y no vacía, y esto es la enmienda del 2026-08-18: una sonda vacía es
+    // un estado que la guardia no tiene nunca, y resulta ser justo aquel en el que
+    // el fallo mudo NO se reproduce. El canario vacío daba verde mientras la
+    // guardia se quedaba muda — medido, no supuesto.
+    //
+    // No depende de POR QUÉ falle la invocación (ruta, binario ausente, argumento
+    // renombrado, otra plataforma, un cambio de banderas que aún no conocemos):
+    // solo comprueba que el detector detecta, en sus propias condiciones.
+    it('la guardia sabe detectar: sobre una sonda rebobinada reproduce las migraciones que faltan', () => {
+      withProbe('spec027-canary', ({ dir, generate, sqlFiles }) => {
+        const desde = seedRewound(dir);
+        const before = sqlFiles();
+        generate();
+        const after = sqlFiles();
         expect(
-          sqlFilesIn(probeAbs).length,
-          'La guardia de esquema NO PUDO EJECUTARSE. Esto no dice que haya deriva: ' +
-            'dice que la comprobación de deriva está muerta y lleva quién sabe cuánto ' +
-            'dando verde sin mirar nada. La misma invocación de `drizzle-kit generate` ' +
-            'que usa la guardia, apuntada a un directorio vacío, debería haber escrito ' +
-            'el esquema completo y no ha escrito ningún .sql. Revisa la invocación ' +
-            '(argumentos, binario, cwd) antes de creerte el verde del test de arriba.',
+          after.length - before.length,
+          'La guardia de esquema NO PUDO EJECUTARSE. La lectura probable: la ' +
+            'comprobación de deriva está muerta y lleva quién sabe cuánto dando ' +
+            'verde sin mirar nada — revisa la invocación de `drizzle-kit generate` ' +
+            '(argumentos, binario, cwd, la forma de la ruta de sonda) antes de ' +
+            'creerte el verde del test de arriba. La segunda lectura, menos ' +
+            `probable: alguien ha reescrito el historial de \`drizzle/\` y el punto ` +
+            `de rebobinado (${desde}) ya no tiene deriva pendiente, en cuyo caso ` +
+            'lo que hay que arreglar es este canario y no la guardia.',
         ).toBeGreaterThan(0);
       });
     }, 180_000);
