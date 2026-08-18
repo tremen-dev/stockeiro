@@ -41,8 +41,8 @@ Actualizado: 2026-08-18
 | SPEC-021 — precio-de-cadena-inambigua-en-mercados-pelados | hecho | 2026-08-11 (sdd-verificador) |
 | SPEC-024 — quitar-de-vigiladas-la-accion-correcta-haya-estado-o-no-en-zona | hecho | 2026-08-17 (sdd-verificador) |
 | SPEC-025 — cartera-vender-dividir-y-cobrar-dividendo-sobre-la-posicion-del-mercado-correcto | hecho | 2026-08-17 (sdd-verificador) |
-| SPEC-029 — el-buscador-ofrece-cualquier-instrumento-del-mercado-soportado-dice-de-que-tipo-es-y-por-que-descarta | borrador | 2026-08-18 (sdd-arquitecto) |
-| SPEC-030 — coma-decimal-en-el-alta-manual-y-errores-que-distinguen-el-dato-del-fallo | borrador | 2026-08-18 (sdd-arquitecto) |
+| SPEC-029 — el-buscador-ofrece-cualquier-instrumento-del-mercado-soportado-dice-de-que-tipo-es-y-por-que-descarta | hecho | 2026-08-18 (sdd-verificador) |
+| SPEC-030 — coma-decimal-en-el-alta-manual-y-errores-que-distinguen-el-dato-del-fallo | hecho | 2026-08-18 (sdd-verificador) |
 
 ## EPIC-INFRA (aprobada)
 
@@ -79,5 +79,4 @@ Actualizado: 2026-08-18
 
 ## Resumen
 
-- hecho: 23
-- borrador: 2
+- hecho: 25
