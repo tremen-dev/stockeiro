@@ -1,0 +1,177 @@
+# SPEC-027 / ADR-018 D-4 — la suite deja de depender de que alguien se acuerde.
+#
+# Antes de este fichero, las 282 pruebas unitarias, las 27 de e2e, el typecheck,
+# el lint y el build solo corrian si una persona los ejecutaba a mano antes de
+# mezclar. Aqui los ejecuta una maquina, en cada PR y en cada push a main.
+#
+# Que NO hace, y conviene tenerlo escrito:
+#   - No lleva ni un secreto (ver el bloque `env` del job E2E).
+#   - No migra nada gestionado: `vercel.json` es configuracion DE Vercel, y un
+#     runner que ejecuta `npm run build` no ejecuta su `buildCommand`.
+#   - No escribe en el repositorio (`permissions: contents: read`).
+#   - No IMPIDE mezclar. El plan de GitHub de esta organizacion no ofrece
+#     proteccion de rama ni rulesets en repos privados (403 "Upgrade to GitHub
+#     Pro"), asi que este CI informa. Ver F-SPEC-027-1.
+name: CI
+
+# Solo dos disparadores, a proposito (CA-1):
+#   - `pull_request` contra main: el check aparece en la PR antes de mezclar. Y
+#     como GitHub ejecuta el workflow de la RAMA de la PR, la PR que introduce
+#     este fichero se verifica a si misma.
+#   - `push` a main: hoy los merges se hacen a mano y nada obliga a pasar por una
+#     PR; sin esto, lo que entre por otra via no lo mira nadie. Ademas deja
+#     publicado el estado "main esta verde", que es el cimiento de SPEC-028.
+on:
+  pull_request:
+    branches: [main]
+  push:
+    branches: [main]
+
+# El CI lee el arbol y nada mas: no commitea, no etiqueta, no comenta (CA-5.2).
+permissions:
+  contents: read
+
+# Una pasada viva por rama. `cancel-in-progress` SOLO en `pull_request`: en una
+# PR el push siguiente invalida al anterior y cancelar ahorra cuota, pero en main
+# cada commit tiene su propio verde que hay que publicar — un push a main no
+# puede cancelarse a si mismo (CA-5.5).
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
+
+jobs:
+  # Dos jobs y no uno, porque en la lista de checks de la PR se ven como dos
+  # entradas separadas: la primera pregunta ("se rompio la logica o el flujo?")
+  # se responde antes de entrar a ningun job. Y porque el e2e necesita andamiaje
+  # que los demas gates no necesitan (un `next build` y un navegador de ~130 MB):
+  # meterlo todo en un job pone ~2 min de preparacion delante de un typecheck de
+  # 10 s. Sin `needs` entre ellos: corren en paralelo (CA-4).
+  checks:
+    name: Checks
+    runs-on: ubuntu-latest
+    # Un proceso colgado no puede quemar horas de cuota (CA-5.4).
+    timeout-minutes: 20
+    # Este job no necesita ninguna variable: la suite unitaria pasa sin
+    # DATABASE_URL (medido). Si algun dia la necesita, es que un test dejo de ser
+    # unitario.
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up Node
+        uses: actions/setup-node@v4
+        with:
+          # Una sola fuente para la version de Node (CA-6). Aqui no se escribe
+          # ningun numero: un numero suelto en este fichero es una segunda fuente
+          # esperando a divergir de la de produccion.
+          node-version-file: .nvmrc
+          # Se cachea el directorio de descargas de npm. NO se cachea
+          # `node_modules` (CA-8): contiene binarios por plataforma y paquetes con
+          # script de instalacion — `embedded-postgres` extrae los binarios de
+          # Postgres al instalar —, y restaurarlo de una cache salta ese script y
+          # produce un verde que no corresponde a lo instalado. `.next/cache`
+          # tampoco: puede enmascarar justo el fallo de build limpio que el gate
+          # viene a detectar.
+          cache: npm
+
+      - name: Install dependencies
+        run: npm ci
+
+      # Los tres gates de abajo son independientes entre si, asi que se ejecutan
+      # todos aunque uno falle (CA-3). Por defecto GitHub aborta el job en el
+      # primer step rojo, y entonces el humano arregla a ciegas de uno en uno sin
+      # saber si ademas el lint y los unitarios estaban rojos. El job falla igual;
+      # lo que cambia es cuanto se sabe al mirarlo.
+      - name: Typecheck
+        if: ${{ !cancelled() }}
+        run: npm run typecheck
+
+      - name: Lint
+        if: ${{ !cancelled() }}
+        run: npm run lint
+
+      - name: Unit tests
+        if: ${{ !cancelled() }}
+        run: npm run test
+
+  e2e:
+    name: E2E
+    runs-on: ubuntu-latest
+    timeout-minutes: 25
+    # Valores de juguete, en claro y a proposito (CA-5.1). `next build` solo exige
+    # que estas variables EXISTAN — el cliente de BD se instancia al importar — y
+    # no abre ninguna conexion durante el build (medido). El launcher del e2e
+    # (tests/e2e/server.mjs) reinyecta las suyas al proceso hijo, incluida la
+    # DATABASE_URL del Postgres efimero que el mismo levanta: estas solo sirven al
+    # build. Un CI sin secretos es un CI que no puede filtrar nada.
+    env:
+      DATABASE_URL: postgres://ci:ci@localhost:5432/ci
+      AUTH_SECRET: ci-not-a-real-secret-ci-not-a-real-secret
+      AUTH_TRUST_HOST: 'true'
+      APP_BASE_URL: http://localhost:3200
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up Node
+        uses: actions/setup-node@v4
+        with:
+          node-version-file: .nvmrc
+          cache: npm
+
+      - name: Install dependencies
+        run: npm ci
+
+      # El navegador si se cachea: son ~130 MB de descarga que no cambian entre
+      # pasadas. La clave sale de `package-lock.json` porque es lo que fija la
+      # version de @playwright/test, y el navegador tiene que casar con ella.
+      - name: Cache Playwright browsers
+        uses: actions/cache@v4
+        with:
+          path: ~/.cache/ms-playwright
+          key: playwright-${{ runner.os }}-${{ hashFiles('package-lock.json') }}
+
+      # Solo chromium: playwright.config.ts declara ese unico proyecto, asi que
+      # instalar los tres navegadores es tirar minutos de cuota.
+      - name: Install Playwright browser
+        run: npx playwright install --with-deps chromium
+
+      - name: Build
+        run: npm run build
+
+      # Este si encadena con `Build`, al reves que los gates de `Checks`, y es
+      # deliberado: un e2e sin `.next` no falla, falla mintiendo (`server.mjs`
+      # arranca `next start`), y un rojo sin informacion es peor que un step que
+      # no llego a correr.
+      #
+      # Las banderas van tras `--` y ninguna cambia QUE se ejecuta (CA-7):
+      #   --forbid-only            playwright.config.ts no fija `forbidOnly`, asi
+      #                            que un `test.only` olvidado dejaria el e2e
+      #                            verde habiendo corrido UN test. Es rigor, no
+      #                            diagnostico. (Los unitarios ya estan cubiertos:
+      #                            Vitest desactiva `allowOnly` cuando CI esta
+      #                            definida, y Actions siempre la define.)
+      #   --trace=retain-on-failure  la config vive en `trace: 'off'` para no
+      #                            engordar las pasadas locales; aqui la traza es
+      #                            lo unico con que se depura un fallo que no se
+      #                            puede reproducir a mano.
+      #   --reporter=list,html     `list` para leer el log, `html` para el
+      #                            artefacto de abajo.
+      - name: End-to-end tests
+        run: npm run test:e2e -- --forbid-only --trace=retain-on-failure --reporter=list,html
+
+      # Solo cuando hay algo que mirar (CA-9): en verde no se sube nada, para no
+      # dejar basura ni pagar almacenamiento por 27 tests que pasaron. `_qa/` esta
+      # versionado y el e2e lo reescribe al correr; el workflow no commitea nada,
+      # asi que esa reescritura muere con el runner y subirla aqui es su unico uso
+      # legitimo.
+      - name: Upload e2e diagnostics
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: e2e-diagnostics
+          path: |
+            playwright-report/
+            test-results/
+            _qa/
+          retention-days: 7
