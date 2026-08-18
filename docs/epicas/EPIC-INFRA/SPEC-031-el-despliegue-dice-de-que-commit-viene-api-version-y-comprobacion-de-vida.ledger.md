@@ -35,10 +35,10 @@ epica: EPIC-INFRA
 | CA-5 Responde con la BD caída | `src/app/api/version/route.ts` (único import: la identidad) | `tests/version-import-graph.test.ts` (grafo transitivo) · `tests/version-endpoint.test.ts` (sin `DATABASE_URL`) | | ❌ |
 | CA-6 `Cache-Control: no-store` + render dinámico | `src/app/api/version/route.ts` (`no-store`, `dynamic = 'force-dynamic'`) | `tests/version-endpoint.test.ts` (CA-6: 2 casos) · `tests/e2e/version.spec.ts` (CA-6) | | ❌ |
 | CA-7 No dice nada de ciclos (frontera ADR-018, contra el código) | `src/app/api/version/route.ts` | `tests/version-import-graph.test.ts` (prefijos prohibidos: `src/lib/market`, `src/lib/triggers`, `src/lib/notifications`, `src/app/api/cron`) · `tests/e2e/version.spec.ts` (CA-7) | | ❌ |
-| CA-8 `scripts/check-alive.mjs`: contrato, stdlib, sin secretos | | | | ❌ |
-| CA-9 Salida 0 cuando coincide (y modo *smoke*) | | | | ❌ |
-| CA-10 Salida 1 cuando no llega, con esperado y visto | | | | ❌ |
-| CA-11 Salida 2 en `unknown`; reintento; 3 si el cuerpo no es el contrato | | | | ❌ |
+| CA-8 `scripts/check-alive.mjs`: contrato, stdlib, sin secretos | `scripts/check-alive.mjs` (cabecera con los 4 códigos, `--help`, cero imports) | `tests/check-alive.test.ts` → CA-8 (9 casos: imports stdlib, ninguna dep de `package.json`, cero `process.env`, `--help`, usos incorrectos) | | ❌ |
+| CA-9 Salida 0 cuando coincide (y modo *smoke*) | `scripts/check-alive.mjs` | `tests/check-alive.test.ts` → CA-9 (4 casos, subproceso contra servidor `node:http`) | | ❌ |
+| CA-10 Salida 1 cuando no llega, con esperado y visto | `scripts/check-alive.mjs` | `tests/check-alive.test.ts` → CA-10 (2 casos: sha discrepante y origen mudo; se asierta código, texto y tiempo transcurrido) | | ❌ |
+| CA-11 Salida 2 en `unknown`; reintento; 3 si el cuerpo no es el contrato | `scripts/check-alive.mjs` | `tests/check-alive.test.ts` → CA-11 (7 casos: `unknown` con y sin `--commit`, 500→200, ECONNREFUSED→200, no-JSON, claves de menos, claves de más) | | ❌ |
 | CA-12 El runbook retira el `curl \| grep` | | | | ❌ |
 | CA-13 Nada queda conectado (CI, `vercel.json`, red) | | | | ❌ |
 
