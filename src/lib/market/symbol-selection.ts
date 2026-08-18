@@ -24,5 +24,8 @@ export function readSymbolSelection(formData: FormData): SymbolSelection | null 
   if (!ticker || !micCode || !currency) return null;
   const exchange = String(formData.get('exchange') ?? '').trim() || null;
   const name = String(formData.get('name') ?? '').trim() || null;
-  return { ticker, currency, market: { micCode, exchange, name } };
+  // SPEC-029: el tipo del candidato viaja también en campo oculto, para persistirlo
+  // con el símbolo y poder mostrarlo después. Vacío = el proveedor no lo dio → null.
+  const instrumentType = String(formData.get('instrumentType') ?? '').trim() || null;
+  return { ticker, currency, market: { micCode, exchange, name, instrumentType } };
 }

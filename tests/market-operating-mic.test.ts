@@ -72,12 +72,16 @@ describe('CA-2 / CA-3: identidad canónica = operating MIC', () => {
       ],
     };
     const provider = new TwelveDataSymbolSearchProvider('key-de-prueba', fakeFetch(body));
-    const out = await provider.search('cualquier');
+    const { matches, discarded } = await provider.search('cualquier');
 
-    expect(out.map((m) => m.micCode)).toEqual(['BMEX', 'XNAS']); // normalizados
-    expect(out.every((m) => isOperatingMic(m.micCode))).toBe(true);
-    // El mercado no mapeable se omite: sin identidad canónica no se podría cotizar.
-    expect(out.find((m) => m.ticker === 'ZZZ')).toBeUndefined();
+    expect(matches.map((m) => m.micCode)).toEqual(['BMEX', 'XNAS']); // normalizados
+    expect(matches.every((m) => isOperatingMic(m.micCode))).toBe(true);
+    // El mercado no mapeable sigue sin ser candidato: sin identidad canónica no se
+    // podría cotizar. SPEC-029: ya no se OMITE en silencio, se reporta como descarte.
+    expect(matches.find((m) => m.ticker === 'ZZZ')).toBeUndefined();
+    expect(discarded).toEqual([
+      { ticker: 'ZZZ', name: 'Desconocida', micCode: 'XXXX', exchange: '?', reason: 'mercado_no_soportado' },
+    ]);
   });
 });
 
@@ -214,7 +218,7 @@ describe('CA-9: MARKET_MAP corregido a operating MIC (cierra F-SPEC-012-1)', () 
   it('M.CONTINUO filtra por BMEX, no por XMAD', () => {
     expect(MARKET_MAP['M.CONTINUO']).toBe('BMEX');
     const cand = (micCode: string): SymbolMatch => ({
-      ticker: 'ITX', micCode, exchange: 'BME', name: 'Inditex', currency: 'EUR', country: 'ES', type: 'stock',
+      ticker: 'ITX', micCode, exchange: 'BME', name: 'Inditex', currency: 'EUR', country: 'ES', instrumentType: 'Common Stock',
     });
     expect(filterByMarket([cand('BMEX')], 'M.CONTINUO')).toHaveLength(1);
     expect(filterByMarket([cand('XMAD')], 'M.CONTINUO')).toHaveLength(0); // el segmento ya no cuela

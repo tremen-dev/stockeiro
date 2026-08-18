@@ -74,7 +74,8 @@ async function getAlias(db: Db, userId: string, v: ValorBroker): Promise<SymbolA
 
 /**
  * Resuelve UN valor (CA-1/CA-2/CA-3/CA-6/CA-9/CA-11): alias recordado → búsqueda por
- * nombre (solo acciones, D-7) filtrada por mercado → estado. No auto-asigna.
+ * nombre filtrada por MERCADO → estado. No auto-asigna. Desde ADR-020 (SPEC-029 CA-16)
+ * ya no se filtra por tipo: un ETF o un REIT del extracto también se pueden resolver.
  */
 export async function resolverValor(
   db: Db,
@@ -87,8 +88,11 @@ export async function resolverValor(
 
   let candidatos: SymbolMatch[];
   try {
-    const stocks = await searchSymbols(provider, v.nombreBroker); // solo renta variable (D-7, CA-9)
-    candidatos = filterByMarket(stocks, v.etiquetaMercado); // CA-1
+    // ADR-020 (SPEC-029 CA-16): el tipo YA NO FILTRA. Aquí decía «solo renta variable
+    // (D-7, CA-9)», y por eso el extracto real no podía resolver un ETF ni un REIT. El
+    // único filtro que queda es el de MERCADO, que es el de la línea siguiente.
+    const { matches } = await searchSymbols(provider, v.nombreBroker);
+    candidatos = filterByMarket(matches, v.etiquetaMercado); // CA-1
   } catch {
     return { ...v, estado: 'error' }; // CA-11: el fallo de un valor no aborta los demás
   }
@@ -159,6 +163,7 @@ export async function confirmarSeleccion(
     micCode: match.micCode,
     exchange: match.exchange,
     name: match.name,
+    instrumentType: match.instrumentType, // SPEC-029: el tipo viaja también desde el import
   });
   const fused = await symbolYaUsadoPorOtroAlias(db, userId, sym.id, v);
   await upsertAlias(db, userId, v, sym.id);

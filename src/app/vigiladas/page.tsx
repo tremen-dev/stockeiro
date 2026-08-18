@@ -2,6 +2,8 @@ import { requireUser } from '@/lib/auth/session';
 import { db } from '@/db/client';
 import { zoneStatusForUser, type ZoneState } from '@/lib/watchlist/zone-status';
 import { failReasonText } from '@/lib/market/fail-reason-text';
+import { instrumentTypeText } from '@/lib/market/instrument-type-text';
+import { marketName } from '@/lib/market/market-name';
 import { AppNav } from '../app-nav';
 import { WatchForm } from './watch-form';
 import { removeAction } from './actions';
@@ -52,6 +54,14 @@ export default async function VigiladasPage() {
               <thead>
                 <tr>
                   <th>Ticker</th>
+                  {/* SPEC-029: tipo (CA-13) y mercado (CA-14). El mercado sale de
+                      `micCode` —la mitad de la identidad, ADR-012— y no de `exchange`,
+                      que es texto libre del proveedor: con el mismo ticker en dos
+                      mercados, esta celda es lo unico que distingue las dos filas
+                      (cierra F-SPEC-024-1). Celda VACIA cuando no se sabe: ni «—» ni
+                      un mercado inventado. */}
+                  <th>Tipo</th>
+                  <th>Mercado</th>
                   <th>Estado</th>
                   <th>Precio</th>
                   <th>A fecha</th>
@@ -64,6 +74,8 @@ export default async function VigiladasPage() {
                 {rows.map((r) => (
                   <tr key={r.id} className={`zone-${r.state}`}>
                     <td className="ticker">{r.ticker}</td>
+                    <td className="muted" data-testid="row-type">{instrumentTypeText(r.instrumentType)}</td>
+                    <td className="muted" data-testid="row-market">{marketName(r.micCode)}</td>
                     <td>
                       <span
                         className={`zone-label is-${r.state}`}

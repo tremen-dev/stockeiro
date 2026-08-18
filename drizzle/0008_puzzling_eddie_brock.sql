@@ -1,0 +1,1 @@
+ALTER TABLE "symbols" ADD COLUMN "instrument_type" text;

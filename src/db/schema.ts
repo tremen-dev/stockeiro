@@ -66,6 +66,14 @@ export const symbols = pgTable(
     micCode: text('mic_code'), // MIC ISO 10383; null = símbolo legacy (pre ADR-007)
     exchange: text('exchange'),
     name: text('name'), // instrument_name del proveedor (p. ej. "Microsoft Corp")
+    // Etiqueta de tipo TAL CUAL la dio el proveedor ("Common Stock", "REIT",
+    // "American Depositary Receipt", "ETF"…). Informativa: se MUESTRA, no filtra ni
+    // entra en ningún cálculo (ADR-020, SPEC-029). Nullable como micCode/exchange/name:
+    // un símbolo sin tipo conocido NO TIENE tipo, y eso es información verdadera — nada
+    // de NOT NULL con un default inventado. Sin backfill de los símbolos ya existentes
+    // (costaría una búsqueda por símbolo contra el free tier, F-ADR-020-3): se rellenan
+    // solos cuando alguien vuelva a elegir ese valor en el buscador.
+    instrumentType: text('instrument_type'),
     currency: text('currency').notNull(),
   },
   (t) => ({

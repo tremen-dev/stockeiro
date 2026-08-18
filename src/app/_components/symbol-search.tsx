@@ -2,19 +2,34 @@
 
 import { useEffect, useRef, useState } from 'react';
 import { searchSymbolsAction } from './symbol-search-action';
-import type { SymbolMatch } from '@/lib/market/search-provider';
+import type { SymbolMatch, DiscardedSymbol } from '@/lib/market/search-provider';
+import { instrumentTypeText } from '@/lib/market/instrument-type-text';
+import { marketName } from '@/lib/market/market-name';
+import { searchDiscardText, discardedMarketLabel } from '@/lib/market/search-discard-text';
 
 /** Umbral mínimo y debounce del cliente (CA-10): protegen el free tier compartido. */
 const MIN_CHARS = 2;
 const DEBOUNCE_MS = 300;
 
-type Status = 'idle' | 'loading' | 'empty' | 'error';
+/**
+ * SPEC-029 CA-9/CA-10: «sin candidatos» ya no es UN estado, son DOS, y se leen
+ * distinto porque significan cosas distintas y dejan al usuario con acciones
+ * distintas. `empty` = no existe nada con ese nombre (revisa el nombre);
+ * `discarded` = existe, pero no lo cubrimos (el problema es nuestro).
+ */
+type Status = 'idle' | 'loading' | 'empty' | 'discarded' | 'error';
 
 /**
  * Buscador-y-selección de símbolos compartido por /vigiladas y /cartera (CA-9).
  * El usuario busca por nombre o ticker; al elegir un candidato, la identidad de
- * mercado (ticker, micCode, exchange, name, currency) queda en campos ocultos que
- * la server action lee. Sin selección no hay campos → no se puede guardar (CA-8).
+ * mercado (ticker, micCode, exchange, name, currency, instrumentType) queda en
+ * campos ocultos que la server action lee. Sin selección no hay campos → no se
+ * puede guardar (CA-8).
+ *
+ * El **mercado** se pinta con `marketName(micCode)`, el MISMO mapa que la tabla de
+ * /vigiladas (SPEC-029 CA-14): antes se pintaba `exchange || micCode` —texto libre
+ * del proveedor o el código pelado—, y con eso el usuario habría leído «NASDAQ» en
+ * la tabla y «XNGS» en el buscador para el mismo valor.
  *
  * `onSelect` (opcional, SPEC-014): si se pasa, al elegir un candidato se invoca el
  * callback y el picker se resetea para volver a usarse (flujo cliente del import),
@@ -32,6 +47,7 @@ export function SymbolSearch({
 }) {
   const [query, setQuery] = useState('');
   const [results, setResults] = useState<SymbolMatch[]>([]);
+  const [discarded, setDiscarded] = useState<DiscardedSymbol[]>([]);
   const [selected, setSelected] = useState<SymbolMatch | null>(null);
   const [status, setStatus] = useState<Status>('idle');
   const [open, setOpen] = useState(false);
@@ -42,6 +58,7 @@ export function SymbolSearch({
     const q = query.trim();
     if (q.length < MIN_CHARS) {
       setResults([]);
+      setDiscarded([]);
       setStatus('idle');
       setOpen(false);
       return;
@@ -54,9 +71,14 @@ export function SymbolSearch({
       if (mySeq !== seq.current) return; // ignora respuestas obsoletas (carrera de tecleo)
       if (outcome.status === 'ok') {
         setResults(outcome.results);
-        setStatus(outcome.results.length ? 'idle' : 'empty');
+        setDiscarded(outcome.discarded);
+        // Tres desenlaces, tres mensajes (CA-9/CA-10). Si hay candidatos se muestran,
+        // aunque también haya descartes: los descartes no tapan lo que sí sirve.
+        if (outcome.results.length) setStatus('idle');
+        else setStatus(outcome.discarded.length ? 'discarded' : 'empty');
       } else {
         setResults([]);
+        setDiscarded([]);
         setStatus('error'); // unauthorized o fallo del proveedor (CA-8)
       }
     }, DEBOUNCE_MS);
@@ -70,12 +92,14 @@ export function SymbolSearch({
       setSelected(null);
       setOpen(false);
       setResults([]);
+      setDiscarded([]);
       setQuery('');
       return;
     }
     setSelected(m);
     setOpen(false);
     setResults([]);
+    setDiscarded([]);
     setQuery('');
   }
 
@@ -83,10 +107,12 @@ export function SymbolSearch({
     setSelected(null);
     setQuery('');
     setResults([]);
+    setDiscarded([]);
     setStatus('idle');
   }
 
   if (selected) {
+    const tipo = instrumentTypeText(selected.instrumentType);
     return (
       <div className="symbol-picker">
         <span className="symbol-picker-label">Acción</span>
@@ -96,7 +122,12 @@ export function SymbolSearch({
             <span className="symbol-chip-name">{selected.name}</span>
           </div>
           <div className="symbol-chip-meta">
-            <span>{selected.exchange || selected.micCode}</span>
+            <span data-testid="chip-market">{marketName(selected.micCode)}</span>
+            {tipo !== '' && (
+              <span className="symbol-type" data-testid="chip-type">
+                {tipo}
+              </span>
+            )}
             <span className="symbol-chip-ccy">{selected.currency}</span>
           </div>
           <button type="button" className="symbol-chip-change" onClick={clear}>
@@ -108,6 +139,7 @@ export function SymbolSearch({
         <input type="hidden" name="exchange" value={selected.exchange} />
         <input type="hidden" name="name" value={selected.name} />
         <input type="hidden" name="currency" value={selected.currency} />
+        <input type="hidden" name="instrumentType" value={selected.instrumentType} />
       </div>
     );
   }
@@ -133,22 +165,58 @@ export function SymbolSearch({
           <ul className="symbol-results" role="listbox">
             {status === 'loading' && <li className="symbol-hint">Buscando…</li>}
             {status === 'error' && (
-              <li className="symbol-hint symbol-hint-error">Búsqueda no disponible. Inténtalo de nuevo.</li>
-            )}
-            {status === 'empty' && <li className="symbol-hint">Sin resultados para «{query.trim()}».</li>}
-            {results.map((m) => (
-              <li key={`${m.ticker}:${m.micCode}`}>
-                <button type="button" className="symbol-result" onClick={() => choose(m)}>
-                  <span className="symbol-result-tk">
-                    <strong>{m.ticker}</strong>
-                    <span className="symbol-result-name">{m.name}</span>
-                  </span>
-                  <span className="symbol-result-meta">
-                    {m.exchange || m.micCode} · {m.currency}
-                  </span>
-                </button>
+              <li className="symbol-hint symbol-hint-error" data-testid="search-error">
+                Búsqueda no disponible. Inténtalo de nuevo.
               </li>
-            ))}
+            )}
+            {status === 'empty' && (
+              <li className="symbol-hint" data-testid="search-empty">
+                No hemos encontrado ningún valor con «{query.trim()}». Revisa el nombre o prueba con
+                el ticker.
+              </li>
+            )}
+            {status === 'discarded' && (
+              <li className="symbol-hint symbol-hint-discarded" data-testid="search-discarded">
+                <span className="symbol-hint-title">Existe, pero no lo cubrimos</span>
+                <ul className="symbol-discards">
+                  {discarded.map((d) => {
+                    const mercado = discardedMarketLabel(d);
+                    return (
+                      <li key={`${d.ticker}:${d.micCode}`}>
+                        <strong>{d.ticker}</strong> {d.name} — {searchDiscardText(d.reason)}
+                        {mercado !== '' && <> ({mercado})</>}
+                      </li>
+                    );
+                  })}
+                </ul>
+              </li>
+            )}
+            {results.map((m) => {
+              const tipo = instrumentTypeText(m.instrumentType);
+              return (
+                <li key={`${m.ticker}:${m.micCode}`}>
+                  <button type="button" className="symbol-result" onClick={() => choose(m)}>
+                    <span className="symbol-result-tk">
+                      <strong>{m.ticker}</strong>
+                      <span className="symbol-result-name">{m.name}</span>
+                    </span>
+                    <span className="symbol-result-meta">
+                      <span data-testid="result-market">{marketName(m.micCode)}</span>
+                      {tipo !== '' && (
+                        <>
+                          {' · '}
+                          <span className="symbol-type" data-testid="result-type">
+                            {tipo}
+                          </span>
+                        </>
+                      )}
+                      {' · '}
+                      {m.currency}
+                    </span>
+                  </button>
+                </li>
+              );
+            })}
           </ul>
         )}
       </div>

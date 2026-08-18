@@ -1,4 +1,9 @@
-import type { SymbolSearchProvider, SymbolMatch } from './search-provider';
+import type {
+  SymbolSearchProvider,
+  SymbolMatch,
+  SymbolSearchResult,
+  DiscardedSymbol,
+} from './search-provider';
 import { toOperatingMic } from './mic';
 
 /**
@@ -7,12 +12,17 @@ import { toOperatingMic } from './mic';
  * devuelve por fila: symbol, instrument_name, exchange, mic_code, currency,
  * country, instrument_type. Verificado online 2026-07-14 (https://twelvedata.com/docs).
  *
- * NO se ejerce en tests (se usa `FakeSymbolSearchProvider`); requiere
- * `TWELVE_DATA_API_KEY` real (la misma que la ingesta, SPEC-004).
+ * No se ejerce contra la red en tests: se inyecta un `fetch` con **fixtures de la
+ * respuesta real** capturada el 2026-08-18 (`tests/symbol-search.test.ts`).
  *
- * Omite filas sin `mic_code`: sin identidad de mercado no podríamos cotizar el
- * símbolo de forma coherente (ADR-007). El filtrado a renta variable (D-7) lo hace
- * el dominio (`searchSymbols`); aquí solo se normaliza `instrument_type` a `type`.
+ * SPEC-029/ADR-020 — dos cambios, y los dos son el mismo:
+ *  - El **tipo no se toca**: `instrument_type` viaja íntegro a `instrumentType`. Antes
+ *    se aplastaba a `'stock'`/minúsculas y el dominio tiraba lo que no fuera `'stock'`,
+ *    con lo que un REIT o un ADR —que SON renta variable— desaparecían.
+ *  - El **descarte deja de ser mudo**: las filas sin `mic_code` y las de mercados fuera
+ *    de los 7 operating MIC ya no se saltan con un `continue`; se empujan a `discarded`
+ *    con su motivo y con el mic/exchange crudos, para poder decirle al usuario qué
+ *    mercado es. El mercado sigue siendo el único filtro (ADR-012).
  */
 const BASE_URL = 'https://api.twelvedata.com/symbol_search';
 
@@ -32,9 +42,9 @@ export class TwelveDataSymbolSearchProvider implements SymbolSearchProvider {
     private readonly fetchImpl: typeof fetch = fetch,
   ) {}
 
-  async search(query: string): Promise<SymbolMatch[]> {
+  async search(query: string): Promise<SymbolSearchResult> {
     const q = query.trim();
-    if (q === '') return [];
+    if (q === '') return { matches: [], discarded: [] };
     if (!this.apiKey) throw new Error('TWELVE_DATA_API_KEY no definida (ver .env.example).');
 
     const url = new URL(BASE_URL);
@@ -45,26 +55,41 @@ export class TwelveDataSymbolSearchProvider implements SymbolSearchProvider {
     if (!res.ok) throw new Error(`Twelve Data respondió ${res.status}.`);
     const body = (await res.json()) as { data?: TwelveSymbolSearchRow[] };
 
-    const out: SymbolMatch[] = [];
+    const matches: SymbolMatch[] = [];
+    const discarded: DiscardedSymbol[] = [];
     for (const r of body.data ?? []) {
-      if (!r.symbol || !r.mic_code) continue; // sin identidad de mercado -> se omite
+      // Sin ticker no hay nada que ofrecer NI que nombrar en un descarte.
+      if (!r.symbol) continue;
+      const rawMic = (r.mic_code ?? '').trim();
+      const exchange = r.exchange ?? '';
+      const name = r.instrument_name ?? '';
+
+      if (rawMic === '') {
+        // ADR-007: sin identidad de mercado no se podría cotizar. La razón no cambia;
+        // lo que cambia es que ya no se calla (SPEC-029 CA-8).
+        discarded.push({ ticker: r.symbol, name, micCode: '', exchange, reason: 'sin_identidad_de_mercado' });
+        continue;
+      }
       // ADR-012: Twelve Data devuelve el MIC de SEGMENTO (XNGS, XMAD…). La identidad
       // canónica del dominio es el OPERATING MIC (XNAS, BMEX…), así que se normaliza
-      // AQUÍ, en el adaptador. Un mercado que no sabemos mapear se omite: sin identidad
-      // canónica no se podría cotizar y no se adivina (CA-3/CA-10).
-      const micCode = toOperatingMic(r.mic_code);
-      if (!micCode) continue;
-      const instrumentType = r.instrument_type ?? '';
-      out.push({
+      // AQUÍ, en el adaptador. Un mercado que no sabemos mapear no se adivina: se
+      // descarta, y ahora se DICE (SPEC-029 CA-7).
+      const micCode = toOperatingMic(rawMic);
+      if (!micCode) {
+        discarded.push({ ticker: r.symbol, name, micCode: rawMic, exchange, reason: 'mercado_no_soportado' });
+        continue;
+      }
+
+      matches.push({
         ticker: r.symbol,
         micCode,
-        exchange: r.exchange ?? '',
-        name: r.instrument_name ?? '',
+        exchange,
+        name,
         currency: r.currency ?? 'USD',
         country: r.country ?? '',
-        type: /stock/i.test(instrumentType) ? 'stock' : instrumentType.toLowerCase(),
+        instrumentType: r.instrument_type ?? '',
       });
     }
-    return out;
+    return { matches, discarded };
   }
 }

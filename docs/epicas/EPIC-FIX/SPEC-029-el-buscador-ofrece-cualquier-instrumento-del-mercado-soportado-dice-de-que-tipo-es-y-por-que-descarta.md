@@ -2,11 +2,12 @@
 id: SPEC-029
 tipo: spec
 epica: EPIC-FIX
-estado: aprobada
+estado: en-progreso
 aprobada-por: humano (Alberto Fojo)
 historial:
   - {estado: borrador, fecha: 2026-08-18, por: sdd-arquitecto}
   - {estado: aprobada, fecha: 2026-08-18, por: humano (Alberto Fojo)}
+  - {estado: en-progreso, fecha: 2026-08-18, por: sdd-implementador}
 ---
 # SPEC-029 — El buscador ofrece cualquier instrumento del mercado soportado, dice de qué tipo es y por qué descarta
 
