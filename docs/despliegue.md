@@ -21,6 +21,13 @@
 > del despliegue. La fuente correcta es siempre `vercel ls --prod`. Se deja escrito porque es
 > exactamente el error que este runbook advierte justo debajo: **la fecha miente**.</sub>
 >
+> **Atraso medido el 2026-08-18, y por qué importa aquí:** `curl -s
+> https://stockeiro.tremen.dev/api/version` respondía **HTTP 404**, es decir, el despliegue vivo
+> era **anterior** al merge de SPEC-031. Mergeadas y mudas: **SPEC-026, 027, 029, 031 y 032**,
+> más la migración `0008_puzzling_eddie_brock` (`ADD COLUMN instrument_type`, aditiva) **sin
+> aplicar en Neon**. El orden para salir de ahí —drenar a mano, comprobar, `ALLOW_MIGRATE`,
+> conectar— está en **§13**, y es una precondición, no una sugerencia.
+>
 > Pendientes:
 > - ✅ **Email (Resend)** — F-SPEC-006-1: **CERRADO y PROBADO** el 2026-08-18. `RESEND_API_KEY`
 >   y `RESEND_FROM` en Production, dominio `tremen.dev` verificado, y un reset real entregado.
@@ -34,19 +41,29 @@
 > - **F-SPEC-011-1**: el build debe alcanzar `cdn.sheetjs.com` (dependencia `xlsx`); ver **§6**.
 > - **F-SPEC-020-1**: dialecto de `XSTO` (Estocolmo) sin resolver; sus valores no cotizan y lo dicen.
 
-> ⚠️ **LECCIÓN DEL 2026-08-11 — mergear no es desplegar.** EPIC-FIX (SPEC-015/016) estuvo
-> **27 días en `main` sin llegar a producción**: el despliegue vivo era del 20-jul y se hizo
-> por CLI desde un árbol de trabajo que no incluía esos cambios. Durante ese mes el defecto
-> que la épica arreglaba seguía intacto **y además mudo**, porque el diagnóstico que lo
-> habría delatado tampoco estaba desplegado. Ningún paso del ciclo tremen-sdd lo detectó: el
-> verificador cierra specs con tests y flujo **local**, no comprueba producción.
-> **Antes de dar una spec por entregada, comprueba que su código está VIVO.** Desde
-> **SPEC-031** eso es un comando y no un truco distinto por entrega:
-> `node scripts/check-alive.mjs --url <origen>` interroga `/api/version` y responde con un
-> código de salida — **§10** lo documenta. Si contesta `unknown`, ese despliegue **no sabe de
-> qué commit viene**, que es lo que son hoy todos los hechos por CLI: no dejan metadatos de
-> git. La fecha de `vercel ls --prod` sigue siendo una pista, pero **miente** si el árbol era
-> viejo, y por eso ya no es la comprobación.
+> ⚠️ **LECCIÓN DEL 2026-08-11 — mergear no era desplegar. Desde SPEC-028, mergear ya es
+> desplegar.** EPIC-FIX (SPEC-015/016) estuvo **27 días en `main` sin llegar a producción**: el
+> despliegue vivo era del 20-jul y se hizo por CLI desde un árbol de trabajo que no incluía esos
+> cambios. Durante ese mes el defecto que la épica arreglaba seguía intacto **y además mudo**,
+> porque el diagnóstico que lo habría delatado tampoco estaba desplegado. Ningún paso del ciclo
+> tremen-sdd lo detectó: el verificador cierra specs con tests y flujo **local**, no comprueba
+> producción.
+>
+> **La lección no se borra: es la razón de todo lo que hay debajo.** Lo que cambia es el
+> remedio. Con el repositorio conectado a Vercel (ADR-018 D-1, **§12**), un merge a `main`
+> construye y despliega **sin que nadie teclee nada**, y una puerta automática
+> (`.github/workflows/deploy-gate.yml`) espera a que el sha mergeado esté vivo y **se pone roja
+> si no llega**. Así que **lo que hay que mirar ahora es el check de la puerta**, no la fecha de
+> `vercel ls --prod` — que sigue siendo una pista y sigue **mintiendo** si el árbol desde el que
+> se desplegó era viejo.
+>
+> **Y sigue siendo cierto que una spec no está entregada hasta que su código está VIVO** — eso
+> es ahora una regla escrita, **RI-02** en `docs/fundacion/reglas.md`. Desde **SPEC-031** es un
+> comando y no un truco distinto por entrega:
+> `node scripts/check-alive.mjs --url <origen> --commit <sha>` interroga `/api/version` y
+> responde con un código de salida — **§10** documenta el contrato y **§12** qué hacer con cada
+> código. Si contesta `unknown`, ese despliegue **no sabe de qué commit viene**: es la firma de
+> un despliegue hecho por CLI, que sube sin metadatos de git.
 
 ## 0. Qué vamos a aprovisionar
 
@@ -188,10 +205,32 @@ Vercel invoca esa ruta 1×/día y **envía `Authorization: Bearer $CRON_SECRET`*
 
 ### 3.4 Desplegar
 
-```bash
-vercel            # deploy de preview (URL temporal para probar)
-vercel --prod     # deploy a producción
-```
+**No se despliega: se mergea.** Desde **SPEC-028** (ADR-018 D-1) el repositorio
+`tremen-dev/stockeiro` está conectado al proyecto de Vercel por la integración Git nativa, con
+rama de producción `main`:
+
+| Qué haces | Qué pasa solo |
+|---|---|
+| **Mergeas una PR a `main`** | Vercel construye ese commit y **despliega a producción**. Nadie ejecuta ningún comando. Detrás, la puerta post-deploy comprueba que el sha llegó (**§12**) |
+| **Abres o actualizas una PR** | Vercel construye un **despliegue de Preview** con su propia URL, publicada como check en la PR, y con su propia rama de Neon (**§13**) |
+
+El artefacto sale de un **commit**, no de un directorio: es lo que mata de raíz la causa 2 de
+ADR-018 (*"`vercel --prod` sube el árbol de trabajo local, no `main`"*). Lo que hay que mirar
+tras mergear es el **check de la puerta**, y el pipeline entero está documentado en **§12**.
+
+> 🚨 **`vercel --prod --archive=tgz` sigue existiendo, pero pasa a ser un RECURSO DE
+> EMERGENCIA** (ADR-018 D-1), no el procedimiento. Se usa cuando la integración no puede
+> desplegar y hay que poner algo en producción igualmente — por ejemplo, para **drenar un
+> atraso antes de conectar el repositorio** (§13).
+>
+> Sus dos trampas, ya documentadas y vigentes: sin `--archive=tgz` falla con un engañoso
+> **`"Not authorized"`** que no es un problema de permisos (**§6**), y lanzado desde un **git
+> worktree** pierde los metadatos de git, porque ahí `.git` es un fichero y no un directorio.
+>
+> **Y una consecuencia nueva que hay que decir en voz alta:** un despliegue por CLI sube **sin**
+> `.git`, así que `/api/version` responderá `commit: unknown` y **la puerta lo delataría** —se
+> pone roja con código **2** (§12)—. Deja de ser un detalle de diagnóstico: `unknown` en
+> producción es **la firma de un despliegue hecho fuera de proceso**.
 
 ---
 
@@ -228,7 +267,13 @@ vercel --prod     # deploy a producción
   *recuperación de contraseña* no hay fallback y sin Resend no funciona.
 - [ ] `APP_BASE_URL` con el **origen real del despliegue** (no el ejemplo de `.env.example`) — §0.
 - [ ] `E2E_OUTBOX_FILE` **NO** definida en Vercel (desviaría el correo a un fichero) — F-SPEC-023-8.
-- [ ] `vercel --prod` verde (build alcanza `cdn.sheetjs.com`, §6).
+- [ ] `ALLOW_MIGRATE=1` en el entorno **Preview** — sin ella, **todas** las previews fallan en la
+  guardia (§11 y §13).
+- [ ] Repositorio conectado a Vercel con rama de producción `main` (§13).
+- [ ] **El check de la puerta en verde** para el commit mergeado —`Deploy gate / Alive` en la
+  lista de checks de GitHub (§12)—. Es lo que sustituye al viejo *"deploy manual verde"*: dice
+  que el build alcanzó `cdn.sheetjs.com` (§6), que la migración pasó y que el sha está **vivo**
+  en `https://stockeiro.tremen.dev`.
 - [ ] Smoke test (registro + cron manual + email) OK.
 - [ ] Import (EPIC-002): subir un extracto en `/cartera/importar` y comprobar la resolución
   contra Twelve Data **real** — cierra **F-SPEC-012-1** (la tabla `MARKET_MAP` etiqueta→MIC de
@@ -245,12 +290,17 @@ vercel --prod     # deploy a producción
   **cientos de POST paralelos** a `/v2/files` y muere ahí, traduciendo el fallo como error de
   autorización. **Solución: `vercel --prod --archive=tgz`**, que sube un único archivo
   comprimido en vez de cientos de ficheros sueltos. Funciona a la primera. No pierdas tiempo
-  revisando tokens, scopes ni equipos: el mensaje miente sobre su causa.
-- ⚠️ **Desplegar desde un git worktree pierde los metadatos de git.** En un worktree `.git` es
-  un **fichero**, no un directorio, así que la CLI no encuentra `.git/config` y avisa con
-  `Error while parsing repo data`. El despliegue funciona, pero sale **sin** rama ni commit
-  asociados — que es justo lo que hace imposible saber después qué se desplegó (lo ataca
-  ADR-018 con `/api/version`).
+  revisando tokens, scopes ni equipos: el mensaje miente sobre su causa. Desde SPEC-028 esto
+  solo hace falta en el camino de emergencia (§3.4).
+- ⚠️ **Desplegar por CLI pierde los metadatos de git — y eso es ahora lo que verás si alguien
+  despliega FUERA DE PROCESO.** La CLI sube un directorio, no un commit; y desde un git worktree
+  ni siquiera encuentra `.git/config` —ahí `.git` es un **fichero**— y avisa con `Error while
+  parsing repo data`. El despliegue funciona, pero sale **sin** rama ni commit asociados, así
+  que `/api/version` responde `commit: unknown`.
+  Antes de SPEC-028 eso era el estado normal de todos los despliegues. **Ahora es una anomalía
+  con nombre**: si producción responde `unknown`, alguien desplegó a mano por encima de la
+  integración Git, y la puerta post-deploy se pone roja con código **2** (§12). Es exactamente
+  la señal que ADR-018 quería con `/api/version`.
 - **Rotación de secretos**: si regeneras `CRON_SECRET`/`AUTH_SECRET`, actualiza la env en Vercel
   y **redeploy** (las envs se leen en build/arranque).
 - **Migraciones**: el deploy **SÍ migra solo** — `vercel.json` corre `npm run db:migrate`
@@ -295,10 +345,13 @@ Pasos para incorporarlo cuando quieras (cierra **F-SPEC-006-1**):
    ```
 
    Confirma con `vercel env ls production`.
-3. **Redeploy** para que el runtime lea las nuevas variables (las envs se aplican en build/arranque):
+3. **Redeploy** para que el runtime lea las nuevas variables (las envs se aplican en
+   build/arranque). Desde SPEC-028 la vía normal **no** es la CLI: en el panel de Vercel,
+   *Deployments → el último de producción → Redeploy*; o mergea cualquier cosa a `main`, que
+   despliega solo (§3.4 y §12). La CLI queda para la emergencia:
 
    ```bash
-   vercel --prod
+   vercel --prod --archive=tgz     # solo si la integracion no puede desplegar (§3.4)
    ```
 
 4. **Verifica el envío** (con datos reales que disparen un aviso):
@@ -430,10 +483,19 @@ los demás. Cuando el e2e falla, el job sube un artefacto (`playwright-report/`,
 > tremen-sdd. Las tres salidas —pagar GitHub Team (~4 $/asiento/mes, hoy 1 asiento), hacer
 > público el repo (descartado: app financiera privada) o asumirlo— están abiertas como
 > **F-SPEC-027-1**. **Mira el check antes de mezclar: nadie lo va a mirar por ti.**
+>
+> 🟠 **Y desde SPEC-028 esa frase dejó de ser una molestia y pasó a ser la única barrera**: con
+> el despliegue automático, **entre un merge en rojo y producción no queda ninguna persona**.
+> El riesgo se llevó al gate del 2026-08-18 y el humano lo **aceptó a sabiendas**, sin comprar
+> la protección de rama, en contra de la recomendación del arquitecto → **F-SPEC-028-1**. Léelo
+> entero en **§12**.
 
 Lo que este workflow **no** hace, y conviene no darlo por hecho:
 
-- **No despliega nada** ni conecta el repo con Vercel (eso es SPEC-028 / ADR-018 D-1). Un
+- **No despliega nada** ni conecta el repo con Vercel: eso lo hace la integración Git y lo
+  documenta **§12** (SPEC-028 / ADR-018 D-1). La puerta post-deploy vive en **otro** fichero,
+  `.github/workflows/deploy-gate.yml`, a propósito: la CI responde *"¿se puede mezclar?"* antes
+  del merge y la puerta responde *"¿llegó?"* después. Un
   runner que ejecuta `npm run build` **no** ejecuta el `buildCommand` de `vercel.json`, así que
   **no** ejecuta `db:migrate`: añadir esta CI **no** activa la trampa de F-SPEC-023-1.
 - **No lleva ni un secreto.** Las variables que el build exige van en claro en el YAML con
@@ -450,9 +512,10 @@ comando que lo pregunta. Sustituye al `curl` de una cadena inventada que este ru
 prescribía antes: aquello funcionaba una vez, para una spec, si a alguien se le ocurría una
 cadena que solo existiera tras ese cambio.
 
-> **Alcance**: esto es **uso manual**. Esta sección **no** describe despliegue automático,
-> ni puerta post-deploy, ni la conexión del repo a Vercel: eso es **SPEC-028**, que usará
-> este mismo script desde un paso sin secretos.
+> **Alcance**: esta sección es el **contrato** del endpoint y del comando, para uso manual.
+> El despliegue automático, la puerta post-deploy y la conexión del repo a Vercel los entregó
+> **SPEC-028** y se documentan en **§12**, que consume este mismo script desde un paso sin
+> secretos.
 
 ### El contrato de `/api/version`
 
@@ -468,17 +531,18 @@ falta hace. Devuelve **exactamente** tres claves y ninguna más:
 
 ```bash
 curl -s https://stockeiro.tremen.dev/api/version
-# {"commit":"unknown","environment":"production","builtAt":"2026-08-18T…Z"}
+# {"commit":"<sha del commit mergeado>","environment":"production","builtAt":"2026-…Z"}
 ```
 
 Los tres valores van **congelados en el build** (canal `env` de `next.config.mjs`): no se
 pueden cambiar sin reconstruir. Si pudieran, la comprobación mentiría.
 
-> ⚠️ **Hoy `commit` responde `unknown`, y es el diagnóstico correcto.** No hay integración
-> Vercel↔GitHub, así que `VERCEL_GIT_COMMIT_SHA` llega vacía y el despliegue **no sabe de
-> dónde viene** — exactamente lo que son los despliegues hechos por CLI. Empezará a llevar
-> sha cuando **SPEC-028** conecte el repositorio. Mientras tanto sirve `builtAt`, que ya
-> distingue un despliegue de otro. En un `npm run build` **local** sí sale un sha real: el
+> ⚠️ **`commit: unknown` significa que ese despliegue no viene de la integración Git.**
+> `VERCEL_GIT_COMMIT_SHA` llega vacía y el artefacto **no sabe de dónde viene** — exactamente
+> lo que son los despliegues hechos por CLI, que suben un directorio y no un commit. Con el
+> repositorio conectado (§13) un despliegue de producción lleva **siempre** el sha del merge,
+> así que un `unknown` en producción es una **anomalía**, no el estado normal, y la puerta lo
+> pone en rojo con código **2** (§12). En un `npm run build` **local** sí sale un sha real: el
 > build cae a `git rev-parse HEAD`.
 
 ### El comando
@@ -521,8 +585,10 @@ responden preguntas distintas:
 | `scripts/guard-migrate.mjs` | ¿Tiene **este build** permiso para migrar? | Dentro del `buildCommand` de Vercel |
 | `scripts/scan-destructive-sql.mjs` | ¿Hay SQL **destructivo** sin justificar por escrito? | En la CI (`Migration scan`) y en `npm test` |
 
-> **Alcance**: esto es **uso manual y contrato**. Esta sección **no** describe despliegue
-> automático, ni conexión del repo a Vercel, ni puerta post-deploy: eso es **SPEC-028**.
+> **Alcance**: esta sección es el **contrato** de las dos guardias. El despliegue automático,
+> la conexión del repo a Vercel y la puerta post-deploy los entregó **SPEC-028** y viven en
+> **§12**; lo que la guardia protege —que un build de Preview no migre producción— pasó de
+> hipótesis a rutina el día en que el repositorio se conectó.
 
 ### 11.1 La guardia del build — `guard-migrate`
 
@@ -571,10 +637,11 @@ vercel env add ALLOW_MIGRATE preview     # valor: 1
 ```
 
 **Si falta**, ese entorno **no migra: su build falla en rojo**, y se queda la versión anterior.
-Hoy eso no rompe nada porque sin integración Git no se disparan builds de Preview; el día que
-**SPEC-028** conecte el repositorio sin esa variable, **todas las previews fallarán en la
-guardia**. Es el comportamiento correcto (ADR-018 D-3: *fallan en rojo y en la PR, nunca en
-silencio contra producción*), pero conviene que sea una decisión y no una sorpresa.
+Con el repositorio ya conectado, cada PR dispara un build de Preview, así que sin esa variable
+**todas las previews fallan en la guardia**. Es el comportamiento correcto (ADR-018 D-3:
+*fallan en rojo y en la PR, nunca en silencio contra producción*), pero conviene que sea una
+decisión y no una sorpresa — por eso `ALLOW_MIGRATE` va **antes** de conectar el repositorio en
+el orden de **§13**.
 
 En tu máquina no hay `VERCEL_ENV`, así que la guardia rechazaría — por eso el camino manual de
 **§1.1** (`DATABASE_URL="…" npm run db:migrate`) **no pasa por ella**.
@@ -638,3 +705,191 @@ plan de vuelta atrás no es papeleo: **`vercel rollback` devuelve el código, no
 
 > **La regla detrás del gate es RI-01** (`docs/fundacion/reglas.md`, fuente ADR-018 D-5.1):
 > migraciones aditivas, *expand/contract*. El escáner es su vigilante, no su sustituto.
+
+---
+
+## 12. Despliegue automático desde `main` y la puerta post-deploy (SPEC-028)
+
+Desde **SPEC-028** (ADR-018 D-1 y D-6) **mergear es desplegar**. Esta sección es el mapa
+completo: qué dispara qué, quién lo comprueba, y qué hacer cuando se pone rojo.
+
+### 12.1 El disparador
+
+```
+merge a main ──► Vercel construye ese commit
+                   node scripts/guard-migrate.mjs   (§11: ¿tiene permiso para migrar?)
+                   npm run db:migrate               (drizzle-kit migrate contra Neon)
+                   npm run build                    (next build)
+                 └─► despliegue de PRODUCCIÓN, alias https://stockeiro.tremen.dev
+                       └─► puerta post-deploy: ¿llegó el sha? (§12.2)
+
+PR abierta ────► Vercel construye la cabeza de la PR
+                 └─► despliegue de PREVIEW, con su URL propia publicada como check en la PR
+                       y su propia rama copy-on-write de Neon (§13.3)
+```
+
+Nadie ejecuta ningún comando: el origen del despliegue es la **integración Git**, y su artefacto
+sale de un **commit**, no de un directorio. Los tres eslabones del build van encadenados con
+`&&` en el `buildCommand` de `vercel.json`, así que **si uno falla no se despliega nada** y se
+queda la versión anterior.
+
+**Y una consecuencia que hay que leer antes de mergear, no después**: un cambio de época de
+credencial cierra la sesión de **todos** los usuarios en el instante del merge (ADR-016). Antes,
+ese instante lo elegía quien desplegaba; ahora lo fija quien mergea.
+
+### 12.2 La puerta
+
+| | |
+|---|---|
+| **Workflow** | `.github/workflows/deploy-gate.yml` |
+| **Se dispara** | en cada `push` a `main` (es decir, en cada merge), y en nada más |
+| **Nombre del check** | **`Deploy gate / Alive`**, en la lista de checks del commit en GitHub |
+| **Qué hace** | `node scripts/check-alive.mjs --url https://stockeiro.tremen.dev --commit <sha> --timeout 900 --interval 10` |
+| **Qué afirma en verde** | que `https://stockeiro.tremen.dev/api/version` responde el **sha mergeado**: ese código está vivo para el usuario |
+| **Plazo** | **900 s (15 minutos)**, sondeando cada 10 s |
+
+Interroga el **dominio propio** y no `stockeiro-lemon.vercel.app` a propósito: es el origen que
+recorren las personas y el valor de `APP_BASE_URL`, así que de una vez comprueba el despliegue,
+el alias de producción y el CNAME de Cloudflare. El coste es que un fallo de DNS pinta la puerta
+de rojo aunque el despliegue esté perfecto — y ese es un **rojo correcto**: si el dominio no
+responde, la app no está viva para nadie.
+
+El plazo es generoso a sabiendas. ADR-018 midió builds de ~40 s, pero desde entonces el
+`buildCommand` ejecuta además la guardia y las migraciones, y la propagación del alias necesita
+aire. **Una puerta que se pone roja porque el build fue lento enseña a ignorarla, y una puerta
+ignorada no es una puerta.** Si algún día 15 minutos sobran, bajarlo es cambiar un número.
+
+### 12.3 Tabla de reacción: qué hacer con cada código
+
+Son los cuatro códigos de salida de `check-alive` (§10), leídos **en este contexto**:
+
+| Código | Qué significa aquí | Qué mirar |
+|---|---|---|
+| **0** | El sha mergeado está vivo en producción | Nada. Es la evidencia que **RI-02** pide para pasar la spec a `hecho` |
+| **1** | No llegó en los 15 minutos | El build de Vercel: ¿falló, y en qué eslabón? La **guardia** (`ALLOW_MIGRATE`), la **migración** (`db:migrate` contra Neon) o el **build** (`next build`, `cdn.sheetjs.com`). El mensaje del script imprime además el **último sha visto**: dice qué hay vivo ahora |
+| **2** | Hay un despliegue vivo que **no viene de la integración Git** | Alguien desplegó por **CLI** (§3.4): sube sin `.git`, así que `/api/version` responde `unknown`. Es la firma de un despliegue fuera de proceso — averigua quién y por qué antes de volver a mergear |
+| **3** | El origen no responde el contrato | El **dominio** y el **DNS**: si el cuerpo no es el JSON de tres claves, lo que hay al otro lado no es esta app (alias mal apuntado, CNAME de Cloudflare, proxy) |
+
+### 12.4 Lo que la puerta NO hace: no revierte nada
+
+ADR-018 lo excluye sin rodeos —*"un check rojo en `main` no revierte nada por sí solo: avisa"*—,
+y hay una razón de fondo: un falso rojo (un build lento, una propagación de DNS) dispararía un
+rollback que nadie pidió.
+
+La reversión sigue siendo **manual, y con criterio**:
+
+```bash
+vercel rollback            # vuelve al despliegue anterior
+```
+
+> ⚠️ **`vercel rollback` devuelve el código, no el esquema.** Si el despliegue roto traía una
+> migración destructiva, revertir el código deja **código viejo contra un esquema mutilado**, que
+> suele ser peor que el fallo original. Lo que hace tolerable el auto-deploy es **RI-01**
+> (migraciones aditivas, *expand/contract*, `docs/fundacion/reglas.md`) y el escáner que la
+> vigila (§11.2). La red **última** es el historial de **restauración** de Neon (*point-in-time
+> restore*), **cuya ventana sigue sin comprobar** — pregunta 7 del gate de ADR-018, cinco minutos
+> en la consola de Neon que nadie ha invertido todavía.
+
+Tampoco hay **alerting**: el rojo se ve en GitHub y en ningún otro sitio (ADR-018 §Frontera).
+Y no hay puerta para los despliegues de **Preview** (`F-SPEC-028-3`): exigiría la URL de Preview,
+que solo se conoce con un token de Vercel — y un token es un secreto, justo lo que ADR-018 D-4.1
+evita. La PR ya muestra el check propio de Vercel con su URL.
+
+### 12.5 Mirar el check de la CI antes de mezclar es ahora el ÚNICO freno
+
+🟠 **Léelo entero antes de pulsar *Merge*.** La CI (§9) **informa**, pero **no impide** mezclar:
+el plan de GitHub de esta organización no ofrece protección de rama en repo privado
+(`403 — Upgrade to GitHub Pro`). Hasta SPEC-028 eso era tolerable porque **entre un merge malo y
+producción había una persona** que tenía que decidir desplegar.
+
+**Esta spec retira a esa persona.** A partir de aquí, un merge con `Typecheck`, `Lint`,
+`Unit tests`, `Migration scan` o el e2e en rojo **va a producción solo**, y la puerta post-deploy
+dirá alegremente que ese código roto está vivo — porque lo está. Dicho sin suavizar: **entre un
+merge en rojo y producción no queda ninguna persona.**
+
+**Mira el check antes de mezclar: nadie lo va a mirar por ti.**
+
+Es un riesgo **conocido, aceptado y fechado** por el humano en el gate del **2026-08-18**, en
+contra de la recomendación del arquitecto, y queda abierto como **`F-SPEC-028-1`** — no como
+tarea pendiente, sino como riesgo asumido. Las dos salidas, si algún día el criterio cambia:
+pagar **GitHub Team** (~4 $/asiento/mes, hoy 1 asiento) y exigir `CI / Checks` y `CI / E2E`
+sobre `main`; o hacer público el repositorio (descartado: app financiera privada).
+
+---
+
+## 13. La configuración que no vive en el repositorio (acciones de ops)
+
+Nada de esta sección se puede ejecutar desde un test ni desde el repositorio: son **acciones de
+ops**, y su evidencia se pega en el ledger de la spec que las necesita. Se documentan aquí porque
+un pipeline cuya mitad vive en un panel que nadie versiona es un pipeline que se rompe sin avisar.
+
+**El orden es una precondición firmada en el gate del 2026-08-18, no una sugerencia:**
+
+| # | Acción | Cómo | Por qué en esa posición |
+|---|---|---|---|
+| 1 | **Drenar el atraso a mano** | `git fetch origin` · `git switch --detach origin/main` · `git status --short` vacío · `vercel --prod --archive=tgz` (§3.4 y §8 paso 4) | Pone producción al día por la vía ya probada. Si el primer despliegue automático falla, así se sabe si falló el pipeline o el atraso, y no las dos cosas a la vez |
+| 2 | **Verificar que el atraso llegó** | `curl -s https://stockeiro.tremen.dev/api/version` · `node scripts/check-alive.mjs --url https://stockeiro.tremen.dev` | Puerta de salida del paso 1. Saldrá con **2** (`commit: unknown`) y **eso es correcto**: la CLI sube sin `.git`. Lo que se comprueba es que el endpoint **existe** y que la migración pendiente se aplicó |
+| 3 | **`ALLOW_MIGRATE=1` en Preview** | `vercel env add ALLOW_MIGRATE preview` (valor `1`) | **Antes de conectar**, porque la guardia es *fail-closed* por diseño |
+| 4 | **Conectar el repositorio** | panel de Vercel → *Settings → Git* | Es ADR-018 D-1. A partir de aquí, mergear despliega |
+| 5 | **Ver qué se disparó al conectar** | `vercel ls --prod` justo después | Si la conexión lanza un despliegue por su cuenta, conviene verlo y no descubrirlo |
+| 6 | **Anotar el techo de ramas de Neon** | consola de Neon | Es el recurso que se agota primero (§13.3) |
+
+### 13.1 La conexión Git
+
+- **Repositorio**: `tremen-dev/stockeiro`. **Proyecto**: el de Vercel al que apunta `vercel link`.
+- **Rama de producción: `main`.** Cualquier otra rama produce Preview, nunca producción.
+- **Integración Git nativa**, no un token ni un workflow que llame a la CLI: es lo que hace que
+  el despliegue lleve `meta.githubCommitSha` y que `/api/version` deje de responder `unknown`.
+
+Cómo se comprueba que está conectado, sin fiarse del recuerdo:
+
+```bash
+vercel project inspect            # muestra el repositorio conectado y la rama de produccion
+vercel ls --prod                  # el despliegue mas reciente es posterior al ultimo merge
+vercel inspect <url-del-deploy>   # meta.githubCommitSha = sha del merge; Creator = la integracion
+```
+
+En el panel, el despliegue muestra **Source** con la rama y el commit. Si *Source* aparece vacío,
+ese despliegue se hizo por CLI y no por la integración (§3.4).
+
+### 13.2 `ALLOW_MIGRATE=1` en el entorno Preview
+
+```bash
+vercel env add ALLOW_MIGRATE preview     # valor: 1
+```
+
+Es el permiso explícito que la guardia `guard-migrate` exige a todo entorno que no sea Production
+(§11.1). **Si falta, todas las previews fallan en la guardia**, en rojo y a propósito: es
+*fail-closed* por diseño (ADR-018 D-3). Ponerla es ops; el residual está declarado como
+**F-SPEC-032-2**, y su efecto —que una Preview construya verde— es la única prueba imposible de
+falsear de que la variable existe.
+
+### 13.3 El *preview branching* de Neon, y sus dos techos
+
+La integración nativa de Neon tiene activado el ***preview branching*** (`Create Database Branch
+For Deployment` = **Preview sí, Production no**, prefijo de variables `DATABASE`): cada
+despliegue de Preview recibe la `DATABASE_URL` de **su propia rama copy-on-write**, no la de
+producción. Eso cerró F-SPEC-023-1 el 2026-08-18 (§8).
+
+Sus dos techos, que hasta SPEC-028 no importaban porque no había builds de Preview y ahora son
+lo primero que se agota — declarados como **F-SPEC-028-2**:
+
+1. **10 ramas** en el plan **Free** de Neon. La número 11 no despliega:
+   `Require Active Resource Before Deploy`.
+2. Las ramas de preview **sobreviven al cierre de la PR** — la retención de Vercel es de **6
+   meses**. Es decir, se acumulan solas.
+
+**Mantenimiento**: revisar la consola de Neon periódicamente y **borrar las ramas de preview
+viejas**, empezando por las de PRs ya cerradas. Con una PR a la vez no molesta; con diez
+acumuladas, bloquea las previews de todo el mundo. Es ops, y nadie avisa antes de que ocurra.
+
+### 13.4 Por qué ese orden
+
+Dos razones distintas, cada una con su paso:
+
+- **#1 y #2 van primero** para no acoplar dos riesgos independientes en un solo día. Es el
+  consejo del propio ADR-018 aplicado a cinco specs mudas en vez de a una: si el primer
+  despliegue automático falla, hay que poder saber si falló el pipeline o el atraso.
+- **`ALLOW_MIGRATE` va antes de conectar** (#3 antes que #4) porque la guardia es *fail-closed*:
+  conectar el repositorio sin esa variable deja **todas** las previews en rojo desde el primer
+  minuto. Es el comportamiento correcto, pero conviene que sea una decisión y no una sorpresa.
