@@ -53,6 +53,7 @@ Actualizado: 2026-08-18
 | SPEC-026 — una-sola-definicion-del-esquema-los-tests-corren-contra-las-migraciones-de-produccion | hecho | 2026-08-17 (sdd-verificador) |
 | SPEC-027 — ci-en-cada-pr-la-suite-deja-de-depender-de-que-alguien-se-acuerde | hecho | 2026-08-18 (sdd-verificador) |
 | SPEC-031 — el-despliegue-dice-de-que-commit-viene-api-version-y-comprobacion-de-vida | hecho | 2026-08-18 (sdd-verificador) |
+| SPEC-032 — las-guardias-de-migracion-nada-migra-sin-permiso-y-ningun-drop-pasa-mudo | hecho | 2026-08-18 (sdd-verificador) |
 
 ## ADRs
 
@@ -80,4 +81,4 @@ Actualizado: 2026-08-18
 
 ## Resumen
 
-- hecho: 26
+- hecho: 27
