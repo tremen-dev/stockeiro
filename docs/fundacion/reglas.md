@@ -87,3 +87,16 @@
   retira lo viejo. El incumplimiento se detecta automáticamente (SPEC-032) y
   **solo se desbloquea por escrito**, con justificación y plan de vuelta atrás,
   en `drizzle/destructive-waivers.json`. Fuente: ADR-018 D-5.1.
+- **RI-02** (*"Hecho" significa "vivo"*): una spec no pasa a `hecho` por tener
+  GREEN del verificador. Pasa a `hecho` cuando su merge está en `main` **y** el
+  despliegue de ese merge está vivo: la puerta de despliegue
+  (`.github/workflows/deploy-gate.yml`) en verde, o a mano
+  `node scripts/check-alive.mjs --url <origen> --commit <sha del merge>` con
+  salida **0**. El GREEN del verificador **sigue siendo sobre el árbol de trabajo
+  y antes del merge**: lo que esta regla añade es el último paso, que ocurre
+  **después**. La evidencia (enlace al run de la puerta, o la salida del comando)
+  se pega en el ledger de la spec. Fuente: ADR-018 D-7.
+  El mecanismo que la hace cumplible son `/api/version` (SPEC-031) y la puerta
+  post-deploy (SPEC-028): sin los dos, la regla es incumplible —el despliegue no
+  sabría de qué commit viene y respondería `unknown`—, que es exactamente por lo
+  que estuvo aplazada desde el 2026-08-17.
