@@ -7,7 +7,7 @@ import { fileURLToPath } from 'node:url';
 import { makeTestDb } from '@/db/test-db';
 
 /**
- * SPEC-026 / ADR-018 — El esquema de test es el de producción.
+ * SPEC-026 / ADR-019 — El esquema de test es el de producción.
  *
  * Este fichero es la guardia de que existe UNA sola definición del esquema
  * (`src/db/schema.ts` → `drizzle/`) y de que los dos arneses de test la aplican
@@ -27,7 +27,7 @@ const migrationsDir = join(rootDir, 'drizzle');
 type Row = Record<string, unknown>;
 
 /** Catálogo del esquema `public`. La tabla de control de drizzle vive en el
- *  esquema `drizzle` y queda fuera a propósito (ADR-018). */
+ *  esquema `drizzle` y queda fuera a propósito (ADR-019). */
 async function readCatalog(client: PGlite) {
   const q = async (sql: string) => (await client.query<Row>(sql)).rows;
   return {
@@ -191,7 +191,7 @@ describe('SPEC-026 — una sola definición del esquema', () => {
           expect(
             pattern.test(source),
             `${harnessFile} vuelve a declarar esquema a mano (${pattern.source}). ` +
-              'El esquema tiene una sola fuente: src/db/schema.ts → drizzle/ (ADR-018).',
+              'El esquema tiene una sola fuente: src/db/schema.ts → drizzle/ (ADR-019).',
           ).toBe(false);
         }
       });
@@ -237,7 +237,7 @@ describe('SPEC-026 — una sola definición del esquema', () => {
           after.length,
           'src/db/schema.ts tiene cambios de esquema que NO están en drizzle/. ' +
             'Ejecuta `npm run db:generate` y commitea la migración: si no, los tests y ' +
-            'producción vuelven a correr contra esquemas distintos (SPEC-026/ADR-018). ' +
+            'producción vuelven a correr contra esquemas distintos (SPEC-026/ADR-019). ' +
             'Ojo con `onDelete`: no tiene ningún efecto en runtime, así que ningún test ' +
             'de comportamiento delataría el olvido. ' +
             `Migración que drizzle-kit quiso generar: ${after.slice(before).join(', ')}`,

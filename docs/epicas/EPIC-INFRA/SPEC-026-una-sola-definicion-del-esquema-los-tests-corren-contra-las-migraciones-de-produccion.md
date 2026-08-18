@@ -83,7 +83,7 @@ no puede quedarse sin migrar (sin ella la decisión mueve el agujero en vez de c
 un `onDelete` cambiado en `schema.ts` y no generado reproduce el mismo fallo silencioso).
 
 El razonamiento completo, con las alternativas rechazadas y sus motivos medidos, está en
-**ADR-018**. Resumen de por qué no las otras:
+**ADR-019**. Resumen de por qué no las otras:
 
 - **Test de coherencia entre las tres fuentes** (la que más sonaba): da **48 falsos positivos
   el primer día**; obliga a escribir una normalización de nombres a mano que hay que mantener
@@ -185,7 +185,7 @@ cambia únicamente cómo se construye el esquema en los dos entornos de prueba.
   desaparece y se sustituye por `migrate(db, { migrationsFolder })` de
   `drizzle-orm/pglite/migrator`. La firma pública (`makeTestDb(): { db, client }`, tipo `TestDb`)
   **no cambia**, por eso ningún test se toca. El comentario de cabecera —que hoy explica que hay
-  que sincronizar tres DDL a mano— se reescribe para decir lo contrario y citar ADR-018.
+  que sincronizar tres DDL a mano— se reescribe para decir lo contrario y citar ADR-019.
 - **`tests/e2e/server.mjs`** — las ~100 líneas de `CREATE TABLE IF NOT EXISTS` (43-144) se
   sustituyen por `migrate()` de `drizzle-orm/postgres-js/migrator` **sobre la conexión `postgres`
   que el launcher ya abre**. Coste medido: **236 ms**, una vez por ejecución de e2e, frente a los
@@ -202,7 +202,7 @@ launcher e2e arrancan desde la raíz del repo, pero es frágil: resuélvelo desd
 
 ### Transversal
 
-- Decisión: **ADR-018** (nueva, esta spec la implementa). Precedente: **ADR-017** y **SPEC-024**
+- Decisión: **ADR-019** (nueva, esta spec la implementa). Precedente: **ADR-017** y **SPEC-024**
   (cuyas cláusulas `ON DELETE` quedan ancladas por CA-2). Contexto: **ADR-001** (Neon en
   producción, PGlite/embedded-postgres en test).
 - Épica: **EPIC-INFRA**, criterio "salud técnica del proyecto"; refuerza su **R-1** (la suite
@@ -242,7 +242,7 @@ Aparcado a propósito, no por descuido:
    clase entera**.
 2. **La decisión de fondo, en una frase: los tests dejan de tener su propio esquema.** A partir
    de aquí, montar la base de test **es** ejecutar lo que se ejecuta en producción. El precio
-   está en ADR-018 y el que más te puede importar es este: **toda migración futura tendrá que
+   está en ADR-019 y el que más te puede importar es este: **toda migración futura tendrá que
    poder aplicarse sobre PGlite**. Con el stack actual (uuid, text, numeric, date, timestamptz,
    `gen_random_uuid()`) no hay ningún roce, pero es una restricción nueva y permanente sobre algo
    que hoy es libre. Si algún día una migración necesita algo que el Postgres WASM no soporta,
@@ -265,7 +265,7 @@ Aparcado a propósito, no por descuido:
    suite**, no un test. Es el precio correcto (es el aviso más temprano posible, y hoy no
    existe: nada comprueba que la cadena aplique limpia hasta que se despliega), pero cambia
    cómo se leen los fallos. Treinta ficheros rojos a la vez ya no querrá decir "he roto el
-   dominio", querrá decir "la migración nueva no aplica". Queda escrito en ADR-018.
+   dominio", querrá decir "la migración nueva no aplica". Queda escrito en ADR-019.
 6. **Presupuesto de tiempo: he puesto el techo en +15% (CA-8) con +6% ya medido.** El margen
    existe porque tu máquina y la mía pueden no coincidir y porque el coste crece con el número
    de migraciones. Si al implementar se pasara del 15%, la instrucción de la spec es **parar y

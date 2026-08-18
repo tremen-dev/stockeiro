@@ -11,13 +11,13 @@ import * as schema from './schema';
  * sin depender de un servicio externo. En producción se usa Neon (ADR-001).
  *
  * El esquema NO se escribe aquí: se obtiene aplicando las migraciones de
- * `drizzle/`, las mismas que se aplican a producción (ADR-018, SPEC-026). Hay
+ * `drizzle/`, las mismas que se aplican a producción (ADR-019, SPEC-026). Hay
  * una sola definición del esquema —`src/db/schema.ts`, materializada en esas
  * migraciones— y ya no hay nada que sincronizar a mano. Eso incluye las
  * cláusulas `ON DELETE` de SPEC-024, que son DDL puro y ningún test de
  * comportamiento delataría (quedan ancladas en `tests/schema-source.test.ts`).
  *
- * Consecuencias que conviene conocer (ADR-018):
+ * Consecuencias que conviene conocer (ADR-019):
  * - Toda migración futura debe poder aplicarse sobre PGlite.
  * - Una migración que no aplique limpia tumba TODA la suite, no un test: un
  *   fallo masivo y homogéneo se lee como "la migración nueva no aplica".

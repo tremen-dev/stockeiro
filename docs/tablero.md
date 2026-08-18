@@ -1,7 +1,7 @@
 <!-- GENERADO por tremen-sdd (scripts/tablero.mjs). NO EDITAR A MANO. -->
 # Tablero
 
-Actualizado: 2026-08-17
+Actualizado: 2026-08-18
 
 ## EPIC-001 — vigilancia-de-zonas-de-compra-venta-con-cartera-y-avisos (hecho)
 
@@ -49,6 +49,7 @@ Actualizado: 2026-08-17
 | SPEC-009 — migracion-a-next-16-y-remediacion-de-cve-de-rsc | hecho | 2026-07-14 (sdd-verificador) |
 | SPEC-010 — bump-de-drizzle-orm-por-cve-de-sql-injection | hecho | 2026-07-14 (sdd-verificador) |
 | SPEC-026 — una-sola-definicion-del-esquema-los-tests-corren-contra-las-migraciones-de-produccion | hecho | 2026-08-17 (sdd-verificador) |
+| SPEC-027 — ci-en-cada-pr-la-suite-deja-de-depender-de-que-alguien-se-acuerde | aprobada | 2026-08-18 (Alberto Fojo) |
 
 ## ADRs
 
@@ -70,8 +71,10 @@ Actualizado: 2026-08-17
 | ADR-015 | aprobada | token-de-recuperacion-opaco-de-un-solo-uso-almacenado-hasheado-y-con-caducidad-corta | 2026-08-12 (humano (Alberto Fojo)) |
 | ADR-016 | aprobada | invalidacion-de-sesiones-previas-al-cambiar-la-contrasena-mediante-epoca-de-credencial-en-el-jwt | 2026-08-12 (humano (Alberto Fojo)) |
 | ADR-017 | aprobada | baja-de-una-accion-vigilada-los-episodios-de-zona-son-derivados-y-el-historial-de-avisos-se-conserva | 2026-08-17 (Alberto Fojo) |
-| ADR-018 | aprobada | el-esquema-de-test-es-el-de-produccion-una-sola-fuente-aplicada-desde-las-migraciones | 2026-08-17 (Alberto Fojo) |
+| ADR-018 | aprobada | despliegue-continuo-desde-main-verificacion-en-pr-deploy-automatico-al-mergear-y-comprobacion-de-vida | 2026-08-17 (humano (Alberto Fojo)) |
+| ADR-019 | aprobada | el-esquema-de-test-es-el-de-produccion-una-sola-fuente-aplicada-desde-las-migraciones | 2026-08-17 (Alberto Fojo) |
 
 ## Resumen
 
 - hecho: 22
+- aprobada: 1

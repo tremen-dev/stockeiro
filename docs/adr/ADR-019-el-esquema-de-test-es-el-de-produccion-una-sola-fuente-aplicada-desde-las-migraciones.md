@@ -1,5 +1,5 @@
 ---
-id: ADR-018
+id: ADR-019
 tipo: adr
 estado: aprobada
 historial:
@@ -7,7 +7,7 @@ historial:
   - {estado: aprobada, fecha: 2026-08-17, por: Alberto Fojo}
 aprobada-por: Alberto Fojo
 ---
-# ADR-018: El esquema de test es el de producción — una sola fuente aplicada desde las migraciones
+# ADR-019: El esquema de test es el de producción — una sola fuente aplicada desde las migraciones
 
 - Deciders: propone **sdd-arquitecto** (2026-08-17), a raíz de **F-SPEC-024-3** abierto por
   sdd-implementador y elevado por sdd-verificador. Aprueba **el humano en el gate de SPEC-026**.
