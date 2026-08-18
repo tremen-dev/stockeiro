@@ -1,7 +1,7 @@
 import { describe, it, expect, beforeAll, afterAll } from 'vitest';
 import { PGlite } from '@electric-sql/pglite';
 import { execFileSync } from 'node:child_process';
-import { cpSync, readFileSync, readdirSync, rmSync } from 'node:fs';
+import { cpSync, mkdirSync, readFileSync, readdirSync, rmSync } from 'node:fs';
 import { dirname, join, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { makeTestDb } from '@/db/test-db';
@@ -19,6 +19,10 @@ import { makeTestDb } from '@/db/test-db';
  *   el catálogo, no contra el comportamiento (`onDelete` no existe en runtime).
  * - CA-4: ningún arnés vuelve a declarar esquema a mano.
  * - CA-6: `src/db/schema.ts` no puede quedarse sin migrar.
+ *
+ * SPEC-027 añade al bloque de CA-6 el **canario** (su CA-11): la guardia
+ * demuestra en cada pasada que sabe detectar, para que "no hay deriva" no pueda
+ * confundirse con "la guardia no llegó a correr".
  */
 
 const rootDir = resolve(dirname(fileURLToPath(import.meta.url)), '..');
@@ -199,40 +203,77 @@ describe('SPEC-026 — una sola definición del esquema', () => {
   });
 
   describe('CA-6: src/db/schema.ts no puede quedarse sin migrar', () => {
-    it('drizzle/ está al día respecto de src/db/schema.ts', () => {
-      // El probe vive DENTRO del repo a propósito: `drizzle-kit generate` resuelve
-      // `--out` contra el cwd y descarta las rutas absolutas, y además termina con
-      // código 0 aunque falle. Un probe en el temp del sistema hace que la guardia
-      // pase siempre sin haber comprobado nada.
-      const probeRel = `node_modules/.cache/spec026-guard-${process.pid}-${Date.now()}`;
-      const probeAbs = join(rootDir, probeRel);
+    /**
+     * La invocación de la guardia, en un solo sitio. El canario de CA-11
+     * (SPEC-027) la reutiliza **tal cual** —mismo cwd, mismo shell, mismos
+     * argumentos, solo cambia `--out`— porque un canario que invoca otra cosa no
+     * prueba nada sobre esta.
+     *
+     * Sobre la forma de la sonda: aquí había escrito que `drizzle-kit` "descarta
+     * las rutas absolutas" y "termina con código 0 aunque falle". Medido el
+     * 2026-08-18 (SPEC-027 CA-12), esto es lo que de verdad hace, y no coincide
+     * con ninguna de las dos versiones que se han contado:
+     *
+     *   sonda SEMBRADA con drizzle/, `--out` RELATIVO  → funciona (es este test)
+     *   sonda SEMBRADA con drizzle/, `--out` ABSOLUTO  → MUDA: concatena el cwd
+     *       delante de la ruta absoluta (`D:\…\D:\…`), no encuentra
+     *       `meta/0000_snapshot.json`, escribe el ENOENT en **stderr** y sale con
+     *       **código 0** sin escribir nada. Con `stdio: 'pipe'` eso se ve
+     *       exactamente igual que "no hay deriva".
+     *   sonda VACÍA, `--out` ABSOLUTO                  → funciona
+     *
+     * Es decir: la ruta absoluta rompe justo el caso de la guardia, y lo rompe en
+     * silencio. Y el `--schema` inexistente sale con **1**, así que `execFileSync`
+     * ya lanza — por eso la vieja inspección de stdout era código muerto: el
+     * único fallo mudo real ni siquiera pasa por stdout.
+     *
+     * Lo que NO se hace aquí, a propósito: fijar en un test que la sonda tiene que
+     * ser relativa. Eso ataría el test a una versión de drizzle-kit y seguiría sin
+     * cubrir las otras diez formas de morir mudo. Lo que cubre el riesgo es el
+     * canario de abajo — con la salvedad, medida, de que su sonda vacía no
+     * distingue este caso concreto (F-SPEC-027-3).
+     */
+    const generateInto = (outRel: string) =>
+      execFileSync(
+        'npx',
+        [
+          'drizzle-kit',
+          'generate',
+          '--dialect',
+          'postgresql',
+          '--schema',
+          './src/db/schema.ts',
+          '--out',
+          outRel,
+        ],
+        { cwd: rootDir, encoding: 'utf8', stdio: 'pipe', shell: true, timeout: 120_000 },
+      );
+
+    /** Sonda de usar y tirar dentro del repo, con nombre irrepetible. */
+    function withProbe<T>(label: string, fn: (rel: string, abs: string) => T): T {
+      const rel = `node_modules/.cache/${label}-${process.pid}-${Date.now()}`;
+      const abs = join(rootDir, rel);
       try {
+        return fn(rel, abs);
+      } finally {
+        rmSync(abs, { recursive: true, force: true });
+      }
+    }
+
+    const sqlFilesIn = (dir: string) =>
+      readdirSync(dir)
+        .filter((f) => f.endsWith('.sql'))
+        .sort();
+
+    it('drizzle/ está al día respecto de src/db/schema.ts', () => {
+      withProbe('spec026-guard', (probeRel, probeAbs) => {
         cpSync(migrationsDir, probeAbs, { recursive: true });
-        const before = readdirSync(probeAbs).filter((f) => f.endsWith('.sql')).length;
-        const output = execFileSync(
-          'npx',
-          [
-            'drizzle-kit',
-            'generate',
-            '--dialect',
-            'postgresql',
-            '--schema',
-            './src/db/schema.ts',
-            '--out',
-            probeRel,
-          ],
-          { cwd: rootDir, encoding: 'utf8', stdio: 'pipe', shell: true, timeout: 120_000 },
-        );
-        // drizzle-kit sale con 0 pase lo que pase, así que una invocación rota se
-        // vería igual que "no hay cambios". Sin esto, la guardia puede morir muda.
-        expect(
-          /error|ENOENT/i.test(output),
-          `La guardia de esquema no pudo ejecutarse (drizzle-kit falló):\n${output}`,
-        ).toBe(false);
+        const before = sqlFilesIn(probeAbs);
+        generateInto(probeRel);
 
         // El criterio es "¿apareció un fichero?": drizzle-kit no escribe nada si no
         // hay cambios, y emite un .sql nuevo si los hay.
-        const after = readdirSync(probeAbs).filter((f) => f.endsWith('.sql')).sort();
+        const after = sqlFilesIn(probeAbs);
         expect(
           after.length,
           'src/db/schema.ts tiene cambios de esquema que NO están en drizzle/. ' +
@@ -240,11 +281,38 @@ describe('SPEC-026 — una sola definición del esquema', () => {
             'producción vuelven a correr contra esquemas distintos (SPEC-026/ADR-019). ' +
             'Ojo con `onDelete`: no tiene ningún efecto en runtime, así que ningún test ' +
             'de comportamiento delataría el olvido. ' +
-            `Migración que drizzle-kit quiso generar: ${after.slice(before).join(', ')}`,
-        ).toBe(before);
-      } finally {
-        rmSync(probeAbs, { recursive: true, force: true });
-      }
+            `Migración que drizzle-kit quiso generar: ${after
+              .filter((f) => !before.includes(f))
+              .join(', ')}`,
+        ).toBe(before.length);
+      });
+    }, 180_000);
+
+    // SPEC-027 CA-11 — el canario.
+    //
+    // El test de arriba pasa de dos maneras: porque no hay deriva, o porque la
+    // invocación no llegó a ejecutarse y por tanto no escribió nada. Las dos se
+    // ven idénticas desde fuera, y la segunda es una guardia muerta que sigue
+    // dando verde. Esto lo distingue: la MISMA invocación contra un directorio
+    // vacío tiene que generar el esquema entero. Si no aparece ni un `.sql`, el
+    // problema es la guardia, no el esquema — y el mensaje lo dice así.
+    //
+    // A propósito no depende de POR QUÉ podría romperse (ruta, binario ausente,
+    // argumento renombrado, otra plataforma): solo comprueba que sabe detectar.
+    it('la guardia sabe detectar: contra un directorio vacío genera migración', () => {
+      withProbe('spec027-canary', (probeRel, probeAbs) => {
+        mkdirSync(probeAbs, { recursive: true });
+        generateInto(probeRel);
+        expect(
+          sqlFilesIn(probeAbs).length,
+          'La guardia de esquema NO PUDO EJECUTARSE. Esto no dice que haya deriva: ' +
+            'dice que la comprobación de deriva está muerta y lleva quién sabe cuánto ' +
+            'dando verde sin mirar nada. La misma invocación de `drizzle-kit generate` ' +
+            'que usa la guardia, apuntada a un directorio vacío, debería haber escrito ' +
+            'el esquema completo y no ha escrito ningún .sql. Revisa la invocación ' +
+            '(argumentos, binario, cwd) antes de creerte el verde del test de arriba.',
+        ).toBeGreaterThan(0);
+      });
     }, 180_000);
   });
 });
