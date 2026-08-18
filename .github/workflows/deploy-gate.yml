@@ -1,0 +1,103 @@
+# SPEC-028 / ADR-018 D-6 — la puerta post-deploy: "mergear ya es desplegar,
+# ¿pero LLEGÓ?".
+#
+# ADR-018 la define asi: "una puerta automatica tras cada despliegue: un paso que
+# espera a que /api/version en el dominio de produccion devuelva el sha mergeado,
+# y falla si no llega en un plazo". Es el sustituto del freno 3 —el humano que
+# abria la app despues de desplegar—, que es el que fallo 27 dias en 2026-07/08.
+#
+# Por que un fichero aparte y no un job dentro de ci.yml (CA-4.3), que es una
+# decision y no una preferencia:
+#   - Ciclo distinto: ci.yml responde "se puede mezclar?" ANTES del merge; esta
+#     responde "llego?" DESPUES, y el rojo de cada una pide otra reaccion.
+#   - ci.yml no habla con hosts externos y esta si, por definicion. Mezclarlas
+#     romperia una propiedad que dos specs dejaron congelada en tests
+#     (tests/spec-031-frontera.test.ts y tests/spec-032-frontera.test.ts afirman,
+#     sobre ci.yml, que ningun step invoca check-alive ni cita una URL externa),
+#     y obligaria a editar los tests de otras dos specs — que es exactamente lo
+#     que ocurrio en F-SPEC-032-3 y aqui es evitable por completo.
+#
+# Lo que esta puerta NO hace, dicho para que nadie lo espere:
+#   - No revierte nada. ADR-018 lo excluye a proposito: avisa. La reversion sigue
+#     siendo `vercel rollback` + criterio humano, y devuelve el codigo, no el
+#     esquema (docs/despliegue.md §12).
+#   - No lleva ni un secreto ni instala nada: interroga un endpoint publico.
+#   - No cubre los despliegues de Preview (F-SPEC-028-3): exigiria la URL de
+#     Preview, que solo se conoce con un token de Vercel — un secreto.
+name: Deploy gate
+
+# Un solo disparador (CA-4.1). En una PR no hay despliegue de produccion que
+# comprobar, y un `schedule` convertiria esto en un monitor: otra cosa, con otro
+# ciclo y otra conversacion.
+on:
+  push:
+    branches: [main]
+
+# Lee el arbol para tener el script a mano, y nada mas (CA-4.2).
+permissions:
+  contents: read
+
+# Grupo propio, distinto del de ci.yml, y `cancel-in-progress: true` — que es
+# justo lo contrario de lo que hace la CI, a proposito (CA-8).
+#
+# La CI de un push a main publica "este commit esta verde", y cada commit tiene
+# el suyo: cancelarlo pierde informacion. Esta puerta afirma otra cosa: "lo mas
+# nuevo de main esta vivo". Si llega un commit posterior, Vercel desplegara ESE,
+# y la puerta vieja pasaria a esperar un sha que ya nunca estara vivo: su rojo
+# seria garantizado y sin significado. Cancelarla no pierde nada — la puerta del
+# commit nuevo cubre a los dos.
+concurrency:
+  group: deploy-gate-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  alive:
+    name: Alive
+    runs-on: ubuntu-latest
+    # Mayor que el plazo del script (900 s), para que quien corte sea el script
+    # —con su mensaje, que dice el sha esperado y el ultimo visto— y no el runner
+    # con un cuelgue mudo (CA-7.3).
+    timeout-minutes: 20
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      # Sin `cache: npm` y sin `npm ci` (CA-6): es el dividendo de SPEC-031
+      # CA-8.2 —el script solo importa `node:*`— cobrado aqui. Instalar
+      # dependencias añadiria dos minutos y una dependencia del registro de npm y
+      # del CDN de SheetJS (F-SPEC-011-1) a un paso cuyo unico trabajo es hacer
+      # una peticion HTTP a un endpoint publico.
+      - name: Set up Node
+        uses: actions/setup-node@v4
+        with:
+          # Una sola fuente para la version de Node (SPEC-027 CA-6). Un numero
+          # suelto aqui es una segunda fuente esperando a divergir de produccion.
+          node-version-file: .nvmrc
+
+      # El unico step que ejecuta algo, y el unico veredicto (CA-5).
+      #
+      #   --url      el dominio propio, no `stockeiro-lemon.vercel.app`: es el
+      #              origen que recorren las personas y el valor de APP_BASE_URL,
+      #              asi que interrogarlo comprueba de una vez el despliegue, el
+      #              alias de produccion y el CNAME de Cloudflare. Va literal
+      #              porque es publico, y ser literal lo hace verificable.
+      #   --commit   en un `push`, github.sha es el commit que acaba de aterrizar
+      #              en main, y es el mismo que Vercel pone en
+      #              VERCEL_GIT_COMMIT_SHA del despliegue de produccion.
+      #   --timeout  900 s. ADR-018 midio builds de ~40 s, pero desde entonces el
+      #              buildCommand ejecuta ademas la guardia y las migraciones, y
+      #              a la propagacion del alias hay que darle aire. Un plazo corto
+      #              pinta rojos por lentitud, y una puerta que da falsos rojos
+      #              enseña a ignorarla: una puerta ignorada no es una puerta.
+      #   --interval 10 s entre intentos.
+      #
+      # Sin tolerancia al fallo, sin `|| true` y sin `if:` (CA-7.2): un codigo de
+      # salida distinto de 0 tiene que pintar el check de rojo. Una puerta que
+      # nunca se pone roja es peor que no tener puerta, porque ademas tranquiliza.
+      # Los codigos
+      # de salida son el contrato de SPEC-031: 0 llego · 1 no llego en el plazo ·
+      # 2 hay un despliegue que no viene de la integracion Git (alguien desplego
+      # por CLI) · 3 el origen no responde el contrato. La tabla de reaccion vive
+      # en docs/despliegue.md §12.
+      - name: Wait for the deployment to go live
+        run: node scripts/check-alive.mjs --url https://stockeiro.tremen.dev --commit ${{ github.sha }} --timeout 900 --interval 10
