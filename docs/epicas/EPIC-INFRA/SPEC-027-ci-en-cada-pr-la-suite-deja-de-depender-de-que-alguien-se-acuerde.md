@@ -2,11 +2,13 @@
 id: SPEC-027
 tipo: spec
 epica: EPIC-INFRA
-estado: aprobada
+estado: en-revision
 aprobada-por: Alberto Fojo
 historial:
   - {estado: borrador, fecha: 2026-08-18, por: sdd-arquitecto}
   - {estado: aprobada, fecha: 2026-08-18, por: Alberto Fojo}
+  - {estado: en-progreso, fecha: 2026-08-18, por: sdd-implementador}
+  - {estado: en-revision, fecha: 2026-08-18, por: sdd-implementador}
 ---
 # SPEC-027 — CI en cada PR: la suite deja de depender de que alguien se acuerde
 
