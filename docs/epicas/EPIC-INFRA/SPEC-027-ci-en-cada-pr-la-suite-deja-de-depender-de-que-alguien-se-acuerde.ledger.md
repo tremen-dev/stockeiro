@@ -65,11 +65,13 @@ seis ejecuciones son el workflow de esta spec verificándose a sí mismo antes d
 | 4 | [32087612615](https://github.com/tremen-dev/stockeiro/actions/runs/32087612615) | `8f4185f` ⟳ | **rojo de CA-10** (`.only`) | failure — `--forbid-only` lo tumba; `Checks: success` |
 | 5 | [32087968719](https://github.com/tremen-dev/stockeiro/actions/runs/32087968719) | `e8036d4` ⟳ | **rojo de CA-9** (aserción falsa) | failure — **1 failed / 26 passed**, artefacto de 9,8 MB con traza |
 | 6 | [32088353875](https://github.com/tremen-dev/stockeiro/actions/runs/32088353875) | `e2f7b2a` | pasada final, **todo caliente** | **success** — Checks 3m48s · E2E 1m42s · **0 artefactos** |
+| 7 | [32114303596](https://github.com/tremen-dev/stockeiro/actions/runs/32114303596) | `2ac5d24` | primera pasada con el **canario sembrado** (enmienda) | **success** — Checks 3m55s · E2E 1m47s · canario en **655 ms** |
 
-**Las seis corrieron con el canario ANTERIOR (sonda vacía)**: siguen probando CA-1…CA-10 y CA-13,
+**Las seis primeras corrieron con el canario ANTERIOR (sonda vacía)**: siguen probando CA-1…CA-10 y CA-13,
 pero **no CA-11** — ver el aviso de §Cómo retomar.
 
-⟳ = commit temporal, revertido. `git diff c62a2b3 HEAD` está **vacío**: no queda ni un resto.
+⟳ = commit temporal, revertido. Tras los tres, `git diff c62a2b3 e2f7b2a` estaba **vacío**: la
+rama no conservó ni un resto de las pruebas en rojo.
 
 ## Tiempos reales de CI (CA-13) — el número que nadie tenía
 
@@ -204,6 +206,10 @@ es justo el estado en el que `drizzle-kit` sí acepta la ruta absoluta. Revertid
 |---|---|
 | sonda **vacía** (implementación anterior) | 1,96 s · 1,99 s |
 | sonda **sembrada y rebobinada** (actual) | **2,05 s · 2,80 s** |
+
+Y en CI, sobre el runner de Linux, el canario sembrado tarda **655 ms** — la máquina de GitHub
+resuelve `npx` más rápido que Windows ([run 32114303596](https://github.com/tremen-dev/stockeiro/actions/runs/32114303596),
+`Checks: success`, 32/32 ficheros). Es la primera pasada de CI que lleva el canario vigente.
 
 El mismo orden de magnitud, como preveía la enmienda: el gasto es la invocación de `drizzle-kit`,
 no la copia de 17 ficheros ni el recorte del JSON. **Techo declarado: 10 s. Margen sobrado**, sin
