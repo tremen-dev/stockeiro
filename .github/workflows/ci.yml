@@ -77,7 +77,7 @@ jobs:
       - name: Install dependencies
         run: npm ci
 
-      # Los tres gates de abajo son independientes entre si, asi que se ejecutan
+      # Los cuatro gates de abajo son independientes entre si, asi que se ejecutan
       # todos aunque uno falle (CA-3). Por defecto GitHub aborta el job en el
       # primer step rojo, y entonces el humano arregla a ciegas de uno en uno sin
       # saber si ademas el lint y los unitarios estaban rojos. El job falla igual;
@@ -93,6 +93,21 @@ jobs:
       - name: Unit tests
         if: ${{ !cancelled() }}
         run: npm run test
+
+      # SPEC-032 CA-11 / ADR-018 D-5.2 — ningun DROP pasa mudo. Step propio y no
+      # una linea dentro de otro: el requisito del humano en SPEC-027 es que el
+      # nombre del check rojo diga que se rompio, y "Unit tests" no dice "alguien
+      # ha metido una migracion destructiva sin justificarla por escrito".
+      #
+      # No sale a la red ni abre ninguna base: lee los .sql de `drizzle/` en el
+      # orden del journal y los cruza con `drizzle/destructive-waivers.json`. La
+      # regla dura de ADR-018 D-4 sigue intacta — este step no migra nada.
+      #
+      # Corre tambien dentro de `npm test` (CA-12): la CI es la que impide el
+      # olvido, y la suite es la que te lo dice ANTES de empujar.
+      - name: Migration scan
+        if: ${{ !cancelled() }}
+        run: npm run db:scan
 
   e2e:
     name: E2E

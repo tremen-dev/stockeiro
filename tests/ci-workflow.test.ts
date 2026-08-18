@@ -54,6 +54,10 @@ const GATES: Record<string, string> = {
   Typecheck: 'typecheck',
   Lint: 'lint',
   'Unit tests': 'test',
+  // SPEC-032 CA-11: el escáner de SQL destructivo es un gate con nombre propio,
+  // no una línea dentro de otro step. Es el requisito del humano en SPEC-027 —
+  // que el nombre del check rojo diga qué se rompió — y lo impone este mapa.
+  'Migration scan': 'db:scan',
   Build: 'build',
   'End-to-end tests': 'test:e2e',
 };
@@ -108,7 +112,7 @@ describe('SPEC-027 — el workflow de CI', () => {
   });
 
   describe('CA-2: un step por gate, y el nombre basta', () => {
-    it('están exactamente los cinco gates, una vez cada uno', () => {
+    it('están exactamente los seis gates, una vez cada uno', () => {
       const names = gateSteps().map((s) => s.name!);
       expect(names.slice().sort()).toEqual(Object.keys(GATES).sort());
       expect(new Set(names).size).toBe(names.length);
@@ -128,8 +132,8 @@ describe('SPEC-027 — el workflow de CI', () => {
   });
 
   describe('CA-3: un gate roto no oculta a los demás', () => {
-    it('Typecheck, Lint y Unit tests se ejecutan aunque uno falle', () => {
-      for (const name of ['Typecheck', 'Lint', 'Unit tests']) {
+    it('los cuatro gates de Checks se ejecutan aunque uno falle', () => {
+      for (const name of ['Typecheck', 'Lint', 'Unit tests', 'Migration scan']) {
         const step = gateSteps().find((s) => s.name === name)!;
         expect(
           step.if ?? '',
@@ -159,7 +163,12 @@ describe('SPEC-027 — el workflow de CI', () => {
         (job.steps ?? [])
           .map((s) => s.name)
           .filter((n): n is string => typeof n === 'string' && n in GATES);
-      expect(namesOf(jobByName('Checks')!)).toEqual(['Typecheck', 'Lint', 'Unit tests']);
+      expect(namesOf(jobByName('Checks')!)).toEqual([
+        'Typecheck',
+        'Lint',
+        'Unit tests',
+        'Migration scan',
+      ]);
       expect(namesOf(jobByName('E2E')!)).toEqual(['Build', 'End-to-end tests']);
     });
   });

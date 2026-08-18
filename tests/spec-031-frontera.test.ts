@@ -31,8 +31,12 @@ const GATES_DE_SPEC_027 = ['Build', 'End-to-end tests', 'Lint', 'Typecheck', 'Un
 const workflow = () => parse(readFileSync(workflowPath, 'utf8')) as Workflow;
 const steps = () => Object.values(workflow().jobs ?? {}).flatMap((job) => job.steps ?? []);
 
-describe('SPEC-031 CA-13.1: el workflow de CI no gana ni un step', () => {
-  it('los steps con `run` siguen siendo exactamente los de SPEC-027', () => {
+describe('SPEC-031 CA-13.1: el workflow de CI no gana ni un step por la puerta de atrás', () => {
+  it('los steps con `run` son los de SPEC-027 más el gate de SPEC-032', () => {
+    // Lista cerrada a propósito: cada entrada nueva tiene que venir con un CA que
+    // la pida. `Migration scan` la pide SPEC-032 CA-11 —lee ficheros del repo, no
+    // habla con nada—, y las tres aserciones de abajo (no toca check-alive, no
+    // sale a ningún host) siguen siendo lo que este bloque defiende de verdad.
     const conRun = steps().filter((s) => typeof s.run === 'string');
     const nombres = conRun.map((s) => s.name ?? '(sin nombre)').sort();
     expect(nombres).toEqual(
@@ -43,6 +47,7 @@ describe('SPEC-031 CA-13.1: el workflow de CI no gana ni un step', () => {
         'Install dependencies',
         'Install dependencies',
         'Lint',
+        'Migration scan',
         'Typecheck',
         'Unit tests',
       ].sort(),
