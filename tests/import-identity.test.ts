@@ -48,7 +48,7 @@ const match = (over: Partial<SymbolMatch>): SymbolMatch => ({
   name: 'Microsoft Corp',
   currency: 'USD',
   country: 'United States',
-  type: 'stock',
+  instrumentType: 'Common Stock',
   ...over,
 });
 
@@ -184,15 +184,30 @@ describe('CA-8: independiente por defecto', () => {
   });
 });
 
-describe('CA-9: solo acciones (D-7)', () => {
-  it('descarta ETF/cripto aunque el proveedor los devuelva', async () => {
+describe('CA-9 (INVERTIDO por ADR-020 — SPEC-029 CA-16): el import ya no filtra por tipo', () => {
+  // Este bloque asertaba lo contrario: «solo acciones (D-7)». ADR-020, aprobado por el
+  // humano el 2026-08-18, supersede D-7 en su parte de filtro — el tipo deja de juzgarse
+  // y pasa a mostrarse, y el mercado es el único filtro. La expectativa se INVIERTE a
+  // propósito y se deja anotada aquí para que el histórico diga que fue una decisión y
+  // no una regresión colada. Ver SPEC-029 CA-16.
+  it('un ETF del mismo mercado se OFRECE como candidato, ya no se descarta', async () => {
     const provider = new FakeSymbolSearchProvider([
-      match({ ticker: 'IAU', micCode: 'XNYS', exchange: 'NYSE', name: 'iShares Gold ETF', type: 'etf' }),
-      match({ ticker: 'GOLD', micCode: 'XNYS', exchange: 'NYSE', name: 'Barrick Gold', type: 'stock' }),
+      match({ ticker: 'IAU', micCode: 'XNYS', exchange: 'NYSE', name: 'Gold Trust', instrumentType: 'ETF' }),
+      match({ ticker: 'GOLD', micCode: 'XNYS', exchange: 'NYSE', name: 'Barrick Gold', instrumentType: 'Common Stock' }),
     ]);
     const r = await resolverValor(db, userA, provider, valor('GOLD', 'NYSE'));
-    expect(r.candidatos!.every((c) => c.type === 'stock')).toBe(true);
-    expect(r.candidatos!.map((c) => c.ticker)).toEqual(['GOLD']);
+    expect(r.candidatos!.map((c) => c.ticker).sort()).toEqual(['GOLD', 'IAU']);
+    expect(r.estado).toBe('ambiguous'); // dos candidatos: elige el usuario, no filtramos por él
+  });
+
+  it('el resto de la resolución se comporta IGUAL: el mercado sigue filtrando', async () => {
+    const provider = new FakeSymbolSearchProvider([
+      match({ ticker: 'IWDA', micCode: 'XAMS', exchange: 'Euronext Amsterdam', name: 'iShares Core MSCI World', currency: 'EUR', instrumentType: 'ETF' }),
+      match({ ticker: 'IWDA', micCode: 'XNYS', exchange: 'NYSE', name: 'iShares Core MSCI World', instrumentType: 'ETF' }),
+    ]);
+    const r = await resolverValor(db, userA, provider, valor('IWDA', 'BOLSA AMSTERDAM'));
+    expect(r.estado).toBe('suggested');
+    expect(r.candidatos!.map((c) => c.micCode)).toEqual(['XAMS']);
   });
 });
 
@@ -218,7 +233,7 @@ describe('CA-11: resiliencia del proveedor por valor', () => {
     const flaky: SymbolSearchProvider = {
       search: async (q: string) => {
         if (q.includes('BADCO')) throw new Error('proveedor caído (simulado)');
-        return [match({ ticker: 'GOOD', micCode: 'XNAS', exchange: 'NASDAQ', name: 'Good Co' })];
+        return { matches: [match({ ticker: 'GOOD', micCode: 'XNAS', exchange: 'NASDAQ', name: 'Good Co' })], discarded: [] };
       },
     };
     const ops = [op('GOODCO', 'NASDAQ'), op('BADCO', 'NASDAQ')];

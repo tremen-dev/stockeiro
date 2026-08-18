@@ -174,7 +174,9 @@ Abiertos ya en la fase de spec (fuera de alcance a propósito, ver la sección h
 - **F-SPEC-025-1** (EPIC-MEJORA): la tabla de posiciones de `/cartera` no muestra
   mercado ni divisa, así que dos posiciones del mismo ticker se ven como dos filas
   idénticas. Presentación, no corrección. Hermano de **F-SPEC-024-1** (`/vigiladas`):
-  conviene hacerlos en la misma spec.
+  conviene hacerlos en la misma spec. **Sigue abierto**, pero su hermano lo cierra SPEC-029
+  (CA-14, gate del 2026-08-18), que deja escrito el mapa operating MIC → nombre de mercado
+  (`market-name.ts`): hacer este ya es solo reutilizarlo en la proyección de `/cartera`.
 - **F-SPEC-025-2** (EPIC-FIX, spec propia): `portfolioSummary` suma `realizadoTotal` y
   `actualTotal` sobre posiciones de **divisas distintas** (EUR + USD en una sola cifra).
   Defecto **preexistente e independiente** de SPEC-025 —existe desde SPEC-002 con un solo

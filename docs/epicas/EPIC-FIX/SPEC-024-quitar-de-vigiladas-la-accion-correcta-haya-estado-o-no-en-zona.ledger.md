@@ -135,6 +135,8 @@ Viewport: el único que define el proyecto (`playwright.config.ts` → chromium 
 - **F-SPEC-024-1** (abierto en spec, fuera de alcance): `/vigiladas` no muestra el mercado,
   así que dos vigiladas del mismo ticker en mercados distintos se ven como filas idénticas.
   Presentación, no corrección → EPIC-MEJORA.
+  **CERRADO por SPEC-029 (CA-14)**, decisión del humano en el gate del 2026-08-18: `/vigiladas`
+  pasa a mostrar mercado (y tipo). Se anota aquí y **SPEC-024 no se reabre**: sigue en `hecho`.
 - **F-SPEC-024-2** (abierto en spec, fuera de alcance): mismo defecto de identidad por ticker
   en la cartera (`recordSell`/`recordSplit`/`recordDividend`,
   `src/lib/portfolio/service.ts:98,127,144`) → candidato a spec propia en EPIC-FIX.

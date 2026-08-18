@@ -12,6 +12,15 @@ export type ZoneState = 'buy' | 'sell' | 'both' | 'out' | 'none';
 export interface ZoneStatusView {
   id: string;
   ticker: string;
+  /**
+   * Operating MIC canónico del símbolo (ADR-012). Es LA MITAD DE LA IDENTIDAD, o sea
+   * exactamente lo que distingue dos filas del mismo ticker que hoy se ven iguales
+   * (SPEC-029 CA-14, cierra F-SPEC-024-1). NULL en los símbolos legacy pre-ADR-007:
+   * de esos no sabemos en qué mercado cotizan, y la celda queda VACÍA.
+   */
+  micCode: string | null;
+  /** Etiqueta de tipo del proveedor (SPEC-029 CA-13); NULL = no lo sabemos. */
+  instrumentType: string | null;
   currency: string;
   buyMin: string | null;
   buyMax: string | null;
@@ -57,6 +66,8 @@ export async function zoneStatusForUser(db: Db, userId: string): Promise<ZoneSta
     .select({
       id: watchedSymbols.id,
       ticker: symbols.ticker,
+      micCode: symbols.micCode,
+      instrumentType: symbols.instrumentType,
       currency: symbols.currency,
       buyMin: watchedSymbols.buyMin,
       buyMax: watchedSymbols.buyMax,

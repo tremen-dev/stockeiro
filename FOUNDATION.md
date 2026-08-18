@@ -27,9 +27,17 @@
 - **D-6** (2026-07-13): El **P/L distingue siempre actual vs. realizado**: el de
   posición abierta no se mezcla con el materializado tras venta. Porque son
   magnitudes distintas y confundirlas engaña sobre el resultado (CE-3).
-- **D-7** (2026-07-13): El **instrumento es la acción**. Otros instrumentos
-  (fondos, cripto, derivados, divisas) quedan fuera del núcleo. Porque acota el
-  modelo de dominio al problema validado antes de ampliar (épica "Fuera").
+- **D-7** (2026-07-13, *supersedida por **ADR-020** el 2026-08-18*): El
+  instrumento **es el que cotice en un mercado soportado**. No se filtra por
+  tipo de instrumento: el buscador ofrece lo que el proveedor devuelva en los
+  mercados soportados y **muestra** de qué tipo es (acción, REIT, ADR, ETF…). El
+  **modelo de dominio sigue siendo el de la acción** (ADR-003: ledger, precio
+  medio, splits, dividendos, P/L actual vs. realizado); lo que se retira es la
+  **lista blanca de tipos**, no la contención del modelo.
+  *Redacción original (2026-07-13)*: «El **instrumento es la acción**. Otros
+  instrumentos (fondos, cripto, derivados, divisas) quedan fuera del núcleo.
+  Porque acota el modelo de dominio al problema validado antes de ampliar
+  (épica "Fuera")».
 
 ## Alcance
 - Dentro:
@@ -47,7 +55,12 @@
   - Tiempo real / intradía y disparadores por valor exacto.
   - Ejecución de órdenes reales o conexión con bróker (la app avisa, no opera).
   - Recomendaciones o cálculo propio de zonas/análisis.
-  - Instrumentos distintos de acciones (fondos, cripto, derivados, divisas).
+  - **Modelado específico** de instrumentos distintos de la acción (fiscalidad
+    propia, TER de un ETF, ratio de un ADR, dividendos de REIT…): vigilarlos y
+    tenerlos en cartera **sí** entra desde **ADR-020**; lo que queda fuera es
+    poner reglas de negocio por tipo. Cripto y divisas siguen fuera **por
+    mercado** —no cotizan en ninguno de los operating MIC soportados
+    (ADR-012)—, no por tipo (D-7 supersedida por ADR-020, 2026-08-18).
   - App móvil nativa e import automático de posiciones desde el bróker.
   - Multi-moneda avanzada y fiscalidad (P/L con comisiones, dividendos, splits).
 

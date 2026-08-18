@@ -18,6 +18,12 @@ export interface SymbolMarket {
   micCode: string;
   exchange?: string | null;
   name?: string | null;
+  /**
+   * Etiqueta de tipo del proveedor, tal cual (SPEC-029/ADR-020). Informativa: viaja
+   * del candidato elegido a la fila del símbolo para poder MOSTRARLA; no filtra nada
+   * ni entra en ningún cálculo. `null`/ausente = no sabemos su tipo.
+   */
+  instrumentType?: string | null;
 }
 
 /*
@@ -68,6 +74,7 @@ export async function getOrCreateSymbol(
         micCode: market.micCode,
         exchange: market.exchange ?? null,
         name: market.name ?? null,
+        instrumentType: market.instrumentType ?? null,
         currency,
       })
       .returning();
