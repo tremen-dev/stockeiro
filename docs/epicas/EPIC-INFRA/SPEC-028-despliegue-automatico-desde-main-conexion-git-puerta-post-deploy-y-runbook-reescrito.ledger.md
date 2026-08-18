@@ -59,20 +59,20 @@ sin un despliegue real**, y su fila de *Verif.* debe llevar la evidencia nombrad
 
 | CA | Cierre | Implementado (fichero) | Test (fichero/caso) | Verif. | Estado |
 |---|---|---|---|---|---|
-| CA-1 Mergear despliega, sin que nadie teclee | 🚀 despliegue real | **n-a para el implementador**: no es código. Es la acción de ops #4 (conectar el repo), sin hacer a 2026-08-19 | **n-a**: evidencia de despliegue, no test — ver §Evidencia visual | | ❌ |
-| CA-2 Producción dice de qué commit viene | 🚀 despliegue real | **n-a**: lo entregó SPEC-031 (`src/app/api/version/route.ts`); aquí solo cambia quién lo rellena | **n-a**: `curl` + `check-alive` contra producción. Línea base re-medida el **2026-08-19**: sigue **HTTP 404** | | ❌ |
-| CA-3 Preview existe y no migra la base de producción | 🚀 despliegue real | **n-a**: depende de ops #3 (`ALLOW_MIGRATE`) y #4 (conectar) | **n-a**: URL de Preview + las dos líneas de `guard-migrate` de los logs de build | | ❌ |
-| CA-4 La puerta existe, en su propio workflow | 🔒 sin desplegar | `.github/workflows/deploy-gate.yml` | `tests/deploy-gate-workflow.test.ts` › *CA-4* (6 casos: existe · solo `push` a `main` · ni `pull_request`/`schedule` · `permissions` · sin `secrets.` · fichero y `name` propios, y no colada en `ci.yml`) | | ❌ |
-| CA-5 Consume `check-alive.mjs` tal cual | 🔒 sin desplegar | `.github/workflows/deploy-gate.yml` (step *Wait for the deployment to go live*) | `tests/deploy-gate-workflow.test.ts` › *CA-5* (5 casos: un único `run` · invoca el script · `--url` literal · `--commit ${{ github.sha }}` · `scripts/` con **tres** habitantes) | | ❌ |
-| CA-6 Sin instalar nada, sin secretos | 🔒 sin desplegar | `.github/workflows/deploy-gate.yml` (job `alive`) | `tests/deploy-gate-workflow.test.ts` › *CA-6* (5 casos: sin `npm ci`/`install` · sin caché · sin `env` · `node-version-file: .nvmrc` · no toca la BD) | | ❌ |
-| CA-7 Plazo mayor que el build, veredicto no tragado | 🔒 sin desplegar | `.github/workflows/deploy-gate.yml` (`--timeout 900 --interval 10`, `timeout-minutes: 20`) | `tests/deploy-gate-workflow.test.ts` › *CA-7* (6 casos: banderas explícitas · plazo > 600 s · sin `continue-on-error` · sin `\|\| true` ni encadenados · sin `if: always()` · `timeout-minutes` × 60 > plazo) | | ❌ |
-| CA-8 Concurrencia propia; la CI no cambia | 🔒 sin desplegar | `.github/workflows/deploy-gate.yml` (`concurrency.group: deploy-gate-${{ github.ref }}`) | `tests/deploy-gate-workflow.test.ts` › *CA-8* (3 casos: grupo distinto del de `ci.yml` · `cancel-in-progress: true` · `ci.yml` conserva el suyo condicionado a `pull_request`) | | ❌ |
-| CA-9 Nada más cableado; ni un test ajeno tocado | 🔒 sin desplegar | — (es lo que NO se tocó) | `tests/deploy-gate-workflow.test.ts` › *CA-9* (4 congelados: forma de `ci.yml` · `vercel.json` literal · `package.json` sin scripts nuevos · `drizzle/` con nueve `.sql`) **+ 3 sobre el diff real** (`src/` intacto · `ci.yml`/`vercel.json` fuera del diff · los tres tests ajenos sin editar). Evidencia adicional abajo | | ❌ |
-| CA-10 La puerta corre en el merge y sale verde | 🚀 despliegue real | **n-a**: la puerta existe (CA-4…CA-8); que *corra* exige el merge y el repo conectado | **n-a**: URL del run de Actions en verde. Las dos ramas rojas ya están probadas en `tests/check-alive.test.ts` (SPEC-031) y **no se re-prueban aquí** | | ❌ |
-| CA-11 El despliegue manual pasa a emergencia | 🔒 sin desplegar | `docs/despliegue.md` §3.4 (reescrita), cabecera (lección del 2026-08-11 actualizada), §7 paso 3 | `tests/runbook-despliegue-automatico.test.ts` › *CA-11* (7 casos: merge→producción · PR→Preview · sin `vercel --prod` como paso normal · `--archive=tgz` marcado *emergencia* · las dos trampas · `unknown` + la puerta + *fuera de proceso* · la lección actualizada) | | ❌ |
-| CA-12 El runbook documenta el pipeline y el rojo | 🔒 sin desplegar | `docs/despliegue.md` **§12 nueva** (§12.1 disparador · §12.2 la puerta · §12.3 tabla de reacción · §12.4 no revierte · §12.5 el único freno) + aviso reforzado en §9 | `tests/runbook-despliegue-automatico.test.ts` › *CA-12* (8 casos, uno por punto del CA; **12.5** exige *"informa pero no impide"*, *"ninguna persona"*, `F-SPEC-028-1` y *"nadie lo va a mirar por ti"*) | | ❌ |
-| CA-13 La config de plataforma queda escrita, con techos | 🔒 sin desplegar | `docs/despliegue.md` **§13 nueva** (orden de ops · §13.1 conexión Git · §13.2 `ALLOW_MIGRATE` · §13.3 Neon y sus dos techos · §13.4 por qué ese orden) + §5 checklist y §6 gotchas al día | `tests/runbook-despliegue-automatico.test.ts` › *CA-13* (7 casos: conexión Git y cómo se comprueba · `ALLOW_MIGRATE` y qué pasa si falta · *preview branching* + 10 ramas + supervivencia · mantenimiento · el orden · §5 sin `vercel --prod verde` · §6 reencuadrado) | | ❌ |
-| CA-14 `RI-02`: "hecho" significa "vivo" (D-7 adoptado) | 🔒 sin desplegar | `docs/fundacion/reglas.md` (+13 líneas, **solo añade `RI-02`**) | `tests/reglas-ingenieria-hecho-vivo.test.ts` (16 casos: existe y va tras `RI-01` · **7 fragmentos literales** del enunciado que firmó el gate · fuente `ADR-018 D-7` · mecanismo `/api/version`+SPEC-031+SPEC-028 · **`RI-01` congelada palabra por palabra** · las quince `RN` en orden · sin `RN-16`) | | ❌ |
+| CA-1 Mergear despliega, sin que nadie teclee | 🚀 despliegue real | **n-a para el implementador**: no es código. Es la acción de ops #4 (conectar el repo), sin hacer a 2026-08-19 | **n-a**: evidencia de despliegue, no test — ver §Evidencia visual | 🚀 **ABIERTO — correcto que lo esté.** Las seis acciones de ops siguen sin ejecutar (comprobado: `/api/version` sigue en 404, luego el repo no está conectado). Evidencia declarada **suficiente por el lado de `meta.githubCommitSha`**; ver salvedad V-3 sobre `Creator` | ❌ |
+| CA-2 Producción dice de qué commit viene | 🚀 despliegue real | **n-a**: lo entregó SPEC-031 (`src/app/api/version/route.ts`); aquí solo cambia quién lo rellena | **n-a**: `curl` + `check-alive` contra producción. Línea base re-medida el **2026-08-19**: sigue **HTTP 404** | 🚀 **ABIERTO.** El "antes" lo re-medí yo el **2026-08-19**: `node scripts/check-alive.mjs --url https://stockeiro.tremen.dev --commit bdffabb --timeout 8 --interval 4` → `HTTP 404`, **exit 1**. Evidencia declarada suficiente; ver salvedad V-4 (`git fetch` antes de `rev-parse origin/main`) | ❌ |
+| CA-3 Preview existe y no migra la base de producción | 🚀 despliegue real | **n-a**: depende de ops #3 (`ALLOW_MIGRATE`) y #4 (conectar) | **n-a**: URL de Preview + las dos líneas de `guard-migrate` de los logs de build | 🚀 **ABIERTO.** Evidencia declarada **suficiente y correcta**, verificada contra el artefacto: en `scripts/guard-migrate.mjs`, con `VERCEL_ENV=preview` el **único** camino que autoriza es `ALLOW_MIGRATE=1` (una Preview verde sí es prueba imposible de falsear, CA-3.1), y la guardia imprime `[guard-migrate] DATABASE_URL: host=… base=…` sin credenciales, así que las dos líneas de CA-3.3 existen y son obtenibles | ❌ |
+| CA-4 La puerta existe, en su propio workflow | 🔒 sin desplegar | `.github/workflows/deploy-gate.yml` | `tests/deploy-gate-workflow.test.ts` › *CA-4* (6 casos: existe · solo `push` a `main` · ni `pull_request`/`schedule` · `permissions` · sin `secrets.` · fichero y `name` propios, y no colada en `ci.yml`) | ✅ YAML **parseado por mí** con `yaml` fuera del test: `on` = `{push:{branches:[main]}}` y nada más · `permissions = {contents: read}` · `grep -n "secrets."` → 0 coincidencias · `name: Deploy gate` ≠ `name: CI`. 7/7 casos verdes | ✅ |
+| CA-5 Consume `check-alive.mjs` tal cual | 🔒 sin desplegar | `.github/workflows/deploy-gate.yml` (step *Wait for the deployment to go live*) | `tests/deploy-gate-workflow.test.ts` › *CA-5* (5 casos: un único `run` · invoca el script · `--url` literal · `--commit ${{ github.sha }}` · `scripts/` con **tres** habitantes) | ✅ Único `run` = `node scripts/check-alive.mjs --url https://stockeiro.tremen.dev --commit ${{ github.sha }} --timeout 900 --interval 10` · `ls scripts/` = **tres** habitantes · y **ejecuté esa misma forma de banderas de verdad** contra producción: el script las acepta y responde su contrato. 5/5 verdes | ✅ |
+| CA-6 Sin instalar nada, sin secretos | 🔒 sin desplegar | `.github/workflows/deploy-gate.yml` (job `alive`) | `tests/deploy-gate-workflow.test.ts` › *CA-6* (5 casos: sin `npm ci`/`install` · sin caché · sin `env` · `node-version-file: .nvmrc` · no toca la BD) | ✅ Tres steps: `actions/checkout@v4`, `actions/setup-node@v4` con `node-version-file: .nvmrc` (`.nvmrc` = 24) y el `run`. Ni `npm ci`/`npm install`, ni `cache`, ni `env`, ni `DATABASE_URL` en ningún nivel del árbol parseado. 5/5 verdes | ✅ |
+| CA-7 Plazo mayor que el build, veredicto no tragado | 🔒 sin desplegar | `.github/workflows/deploy-gate.yml` (`--timeout 900 --interval 10`, `timeout-minutes: 20`) | `tests/deploy-gate-workflow.test.ts` › *CA-7* (6 casos: banderas explícitas · plazo > 600 s · sin `continue-on-error` · sin `\|\| true` ni encadenados · sin `if: always()` · `timeout-minutes` × 60 > plazo) | ✅ `--timeout 900 --interval 10` explícitos (los defectos del script son 120/5, leídos en `scripts/check-alive.mjs`, y son **segundos**) · sin `continue-on-error` en job, step ni fichero · el `run` no lleva `||`, `&&` ni `;` · sin `if:` · `timeout-minutes: 20` = 1200 s > 900 s. 6/6 verdes | ✅ |
+| CA-8 Concurrencia propia; la CI no cambia | 🔒 sin desplegar | `.github/workflows/deploy-gate.yml` (`concurrency.group: deploy-gate-${{ github.ref }}`) | `tests/deploy-gate-workflow.test.ts` › *CA-8* (3 casos: grupo distinto del de `ci.yml` · `cancel-in-progress: true` · `ci.yml` conserva el suyo condicionado a `pull_request`) | ✅ `deploy-gate-${{ github.ref }}` + `cancel-in-progress: true`, frente al `${{ github.workflow }}-${{ github.ref }}` + `${{ github.event_name == 'pull_request' }}` de `ci.yml`, que sigue **fuera del diff**. 3/3 verdes | ✅ |
+| CA-9 Nada más cableado; ni un test ajeno tocado | 🔒 sin desplegar | — (es lo que NO se tocó) | `tests/deploy-gate-workflow.test.ts` › *CA-9* (4 congelados: forma de `ci.yml` · `vercel.json` literal · `package.json` sin scripts nuevos · `drizzle/` con nueve `.sql`) **+ 3 sobre el diff real** (`src/` intacto · `ci.yml`/`vercel.json` fuera del diff · los tres tests ajenos sin editar). Evidencia adicional abajo | ✅ Sobre el **diff real** contra `de3a6ee`: el `git diff --stat` acotado sale **vacío**, y el diff completo son **8 ficheros**, ninguno ajeno. Suite completa **53 ficheros / 753 tests en verde**. Los 3 casos que dependen del commit base **se ejecutaron** (no se saltaron por `skipIf`). 7/7 verdes | ✅ |
+| CA-10 La puerta corre en el merge y sale verde | 🚀 despliegue real | **n-a**: la puerta existe (CA-4…CA-8); que *corra* exige el merge y el repo conectado | **n-a**: URL del run de Actions en verde. Las dos ramas rojas ya están probadas en `tests/check-alive.test.ts` (SPEC-031) y **no se re-prueban aquí** | 🚀 **ABIERTO.** El nombre del check declarado, **`Deploy gate / Alive`**, coincide con lo que produce el YAML (`name: Deploy gate` + job `alive` con `name: Alive`): la evidencia pedida es la correcta. Ver salvedad V-2: si esta spec se mergea **antes** de ops #4, su primera pasada es un rojo garantizado | ❌ |
+| CA-11 El despliegue manual pasa a emergencia | 🔒 sin desplegar | `docs/despliegue.md` §3.4 (reescrita), cabecera (lección del 2026-08-11 actualizada), §7 paso 3 | `tests/runbook-despliegue-automatico.test.ts` › *CA-11* (7 casos: merge→producción · PR→Preview · sin `vercel --prod` como paso normal · `--archive=tgz` marcado *emergencia* · las dos trampas · `unknown` + la puerta + *fuera de proceso* · la lección actualizada) | ✅ Leído `docs/despliegue.md`: §3.4 es ahora una tabla merge→producción / PR→Preview, y el bloque suelto ```vercel``` / ```vercel --prod``` **está borrado en el diff**; `--archive=tgz` queda bajo 🚨 *RECURSO DE EMERGENCIA* con las dos trampas (`"Not authorized"`, worktree) y la consecuencia nueva (`unknown` → puerta en rojo con **2**). La lección del 2026-08-11 **no se borró**: se reescribió en la cabecera. 7/7 verdes | ✅ |
+| CA-12 El runbook documenta el pipeline y el rojo | 🔒 sin desplegar | `docs/despliegue.md` **§12 nueva** (§12.1 disparador · §12.2 la puerta · §12.3 tabla de reacción · §12.4 no revierte · §12.5 el único freno) + aviso reforzado en §9 | `tests/runbook-despliegue-automatico.test.ts` › *CA-12* (8 casos, uno por punto del CA; **12.5** exige *"informa pero no impide"*, *"ninguna persona"*, `F-SPEC-028-1` y *"nadie lo va a mirar por ti"*) | ✅ §12 leída entera: 12.1 el encadenado `guard-migrate → db:migrate → next build`; 12.2 workflow, dominio, plazo y nombre del check; 12.3 los **cuatro** códigos con qué mirar en cada uno; 12.4 `vercel rollback` **con** *"devuelve el código, no el esquema"* y el PITR de Neon sin medir; **12.5 sin edulcorar** (*"informa pero no impide"*, *"va a producción solo"*, *"no queda ninguna persona"*, *"nadie lo va a mirar por ti"*, `F-SPEC-028-1` y las dos salidas), y además reforzada en §9, que es donde se lee antes de mezclar. 8/8 verdes | ✅ |
+| CA-13 La config de plataforma queda escrita, con techos | 🔒 sin desplegar | `docs/despliegue.md` **§13 nueva** (orden de ops · §13.1 conexión Git · §13.2 `ALLOW_MIGRATE` · §13.3 Neon y sus dos techos · §13.4 por qué ese orden) + §5 checklist y §6 gotchas al día | `tests/runbook-despliegue-automatico.test.ts` › *CA-13* (7 casos: conexión Git y cómo se comprueba · `ALLOW_MIGRATE` y qué pasa si falta · *preview branching* + 10 ramas + supervivencia · mantenimiento · el orden · §5 sin `vercel --prod verde` · §6 reencuadrado) | ✅ §13 leída entera: tabla de ops 1..6 en orden; 13.1 conexión Git con `vercel project inspect` / `vercel inspect` / *Source*; 13.2 `ALLOW_MIGRATE` con su fail-closed —**verificado contra `scripts/guard-migrate.mjs`**, no solo leído—; 13.3 *preview branching* con los dos techos (10 ramas, supervivencia al cierre de la PR) y su apartado de mantenimiento; 13.4 el porqué del orden. §5 pide la puerta en verde y ya no `vercel --prod verde`; §6 reencuadra el worktree como firma de despliegue fuera de proceso. 7/7 verdes | ✅ |
+| CA-14 `RI-02`: "hecho" significa "vivo" (D-7 adoptado) | 🔒 sin desplegar | `docs/fundacion/reglas.md` (+13 líneas, **solo añade `RI-02`**) | `tests/reglas-ingenieria-hecho-vivo.test.ts` (16 casos: existe y va tras `RI-01` · **7 fragmentos literales** del enunciado que firmó el gate · fuente `ADR-018 D-7` · mecanismo `/api/version`+SPEC-031+SPEC-028 · **`RI-01` congelada palabra por palabra** · las quince `RN` en orden · sin `RN-16`) | ✅ `git diff --numstat de3a6ee..HEAD -- docs/fundacion/reglas.md` → **13 añadidas / 0 borradas**, hunk `@@ -87,3 +87,16 @@`: nada por encima se mueve. `RI-02` reproduce **palabra por palabra** el enunciado del CA, más la frase del mecanismo (`/api/version` SPEC-031 + la puerta SPEC-028) y la fuente `ADR-018 D-7`. **`RI-01` idéntica** a `de3a6ee` (diff de su bloque: sin diferencias). `RN-01…RN-15` presentes y en orden, sin `RN-16`. `FOUNDATION.md`, ADR-018 y el fichero de rol del plugin, fuera del diff. 16/16 verdes. **El artefacto es correcto; el camino no** → V-1 | ✅ |
 
 ## Evidencia del implementador (2026-08-19, sin desplegar)
 
@@ -137,16 +137,161 @@ intención".
 
 ## Veredicto del verificador
 <!-- GREEN/RED + fecha + resumen. Lo escribe SOLO sdd-verificador. -->
-Pendiente. **Aviso para quien verifique**: esta spec es la única de la serie que **no se puede
-cerrar entera sin desplegar**, y ADR-018 lo anticipó. **Diez CA** (CA-4 … CA-9, CA-11 … CA-14) se
-cierran con tests estáticos y `git diff`, exactamente como SPEC-031 y SPEC-032; los **cuatro**
-marcados 🚀 (CA-1, CA-2, CA-3, CA-10) exigen que las acciones de ops estén hechas y se cierran
-con evidencia pegada, no con un test. No los des por buenos con un test que "prueba la
-intención": la intención ya la prueban CA-4…CA-9.
 
-Y **CA-14 es 🔒 a propósito**, aunque hable de despliegues: lo que exige es que `RI-02` **esté
-escrita** con su contenido, su fuente y su mecanismo, y que `RI-01` y las quince `RN` sigan
-intactas. Que la regla se cumpla es trabajo del ciclo a partir de aquí, no de este verificador.
+### 🟢 GREEN PARCIAL — 2026-08-19 — **10/10 de los CA 🔒**. Los cuatro 🚀 quedan abiertos, y es lo correcto.
+
+**Alcance del veredicto, dicho antes que nada**: este GREEN cubre **exclusivamente** los diez CA
+marcados 🔒 (**CA-4 … CA-9** y **CA-11 … CA-14**). Los cuatro 🚀 (**CA-1, CA-2, CA-3, CA-10**)
+**no se verifican y no se cierran**: dependen de que el humano ejecute las seis acciones de ops,
+y las seis siguen sin ejecutar — lo comprobé, no me lo creí: `/api/version` sigue devolviendo
+**404** en producción, luego el repositorio no está conectado.
+
+**La spec NO pasa a `hecho`, y se queda en `en-revision`.** Dos razones independientes, y basta
+cualquiera de las dos: (a) hay cuatro CA abiertos; (b) **`RI-02`, que esta misma spec escribe**,
+exige que el merge esté vivo para pasar a `hecho`. SPEC-028 es la primera spec gobernada por su
+propia regla, y no se le hace una excepción el día que nace.
+
+#### Lo que ejecutó el verificador (no lo que dice la mitad del implementador)
+
+Todo dentro de `.claude/worktrees/spec-028`, con su propio `node_modules`, sobre
+`ft/SPEC-028-despliegue-automatico` @ `bdffabb`, con `git status` **limpio** y merge-base con
+`origin/main` = `de3a6ee` (que sigue siendo la cabeza de `origin/main`).
+
+```
+npm run typecheck                 -> exit 0, sin salida
+npm run lint                      -> exit 0, sin salida (eslint . --max-warnings=0)
+npm test                          -> 53 ficheros / 753 tests, TODOS verdes (123 s)
+npx vitest run <los 3 de SPEC-028>-> 75/75 verdes y 0 SALTADOS: el bloque describe.skipIf
+                                     que decide sobre el diff SI se ejecuto
+
+git diff --stat de3a6ee..HEAD -- .github/workflows/ci.yml vercel.json src \
+  tests/spec-031-frontera.test.ts tests/spec-032-frontera.test.ts \
+  tests/ci-workflow.test.ts drizzle package.json
+  -> VACIO   (CA-9)
+
+git diff --name-status de3a6ee..HEAD
+  -> 8 ficheros: deploy-gate.yml (A) - docs/despliegue.md (M) - reglas.md (M) -
+     los 3 tests nuevos (A) - la spec y este ledger (A). Ni FOUNDATION.md, ni ADR-018,
+     ni contexto.md, ni src/, ni scripts/, ni un test de otra spec.
+
+git diff --numstat de3a6ee..HEAD -- docs/fundacion/reglas.md
+  -> 13  0   docs/fundacion/reglas.md     (adicion pura, hunk @@ -87,3 +87,16 @@)
+
+parseo propio del YAML con el paquete `yaml`, fuera de los tests:
+  -> deploy-gate.yml: on={push:{branches:[main]}} - permissions={contents:read} -
+     concurrency={group:"deploy-gate-${{ github.ref }}", cancel-in-progress:true} -
+     jobs.alive.timeout-minutes=20 - 3 steps, un solo `run`
+  -> ci.yml: name="CI", group="${{ github.workflow }}-${{ github.ref }}",
+     cancel-in-progress condicionado a pull_request   => INTACTO
+
+node scripts/check-alive.mjs --url https://stockeiro.tremen.dev \
+     --commit bdffabb90d5fed4dc0926667a234e80c0974ce14 --timeout 8 --interval 4
+  -> [check-alive] Se agoto el plazo (8s)... ultimo motivo: HTTP 404
+  -> EXIT 1
+```
+
+Ese último comando hace **dos** trabajos a la vez, y por eso se eligió con esa forma exacta: es la
+**línea base del "antes" de CA-2** re-medida hoy por el verificador (404, exit 1), y es la
+**prueba viva de CA-5** — la forma de banderas del workflow la acepta el script tal cual y
+devuelve su contrato. No es un test que afirme sobre un YAML: es el comando del YAML, ejecutado.
+
+#### V-1 — `F-SPEC-028-4`: el artefacto es correcto; el camino se saltó una guardia. Constan las dos cosas.
+
+**El artefacto: CORRECTO, verificado línea a línea.** `RI-02` reproduce **palabra por palabra** el
+enunciado que firmó el gate (CA-14.1), añade la fuente `ADR-018 D-7` y el mecanismo
+(`/api/version` SPEC-031 + la puerta SPEC-028) que pide CA-14.2. **`RI-01` es idéntica** a la de
+`de3a6ee` (comparación de su bloque: sin una sola diferencia). Las **quince** `RN-01…RN-15` siguen
+presentes, en orden, sin `RN-16` y sin colarse en la sección de ingeniería. El diff es **adición
+pura: 13 líneas añadidas, 0 borradas**, en un hunk que empieza en la línea 87, de modo que nada de
+lo anterior pudo moverse. CA-14 está ✅ **por el artefacto**, no por la palabra de nadie.
+
+**El camino: se sobrescribió un `deny` de una guardia activa, y eso no es neutro.** La
+contradicción se reprodujo y **es real, no una excusa**: `.sdd.json` lleva
+`gates.protegeVerdad: true`, y `hooks/protege-verdad.mjs` deniega toda escritura bajo
+`docs/fundacion/` a cualquier rol que no esté en `['main','sdd-arquitecto','sdd-producto']` —
+`sdd-implementador` **no** está—, mientras CA-14 §Nota de autoría le encarga esa escritura con
+nombre y apellidos.
+
+**Un matiz que el ledger no traía y que cambia el diagnóstico**: la lista de dueños incluye
+`main`, y el rol se resuelve como `payload.agent_type ?? payload.agent_name ?? 'main'`. Es decir,
+**la misma escritura pasa o no según el implementador corra como subagente o como agente
+principal**. Eso explica el precedente de `RI-01` — `c432135`, `docs(SPEC-032)`, 16 líneas
+añadidas y 0 borradas, que existe y se comprobó — **sin** que su ledger declarara fricción alguna:
+probablemente no la hubo porque allí el rol se resolvió a `main`. Así que el precedente **no dice**
+"otro implementador ya sobrescribió esta guardia": dice **"la guardia es inconsistente según el
+contexto de ejecución"**.
+
+**Juicio, sin suavizar**: declarar el conflicto era obligatorio y se hizo bien; sobrescribir un
+`deny` no debería normalizarse — el día que la guardia acierte, este precedente será la razón por
+la que nadie se pare. **El resultado no cambia**: el fichero quedó correcto. Arreglarlo no es de
+este repositorio (el hook vive en el plugin) y **no es del verificador**: el que juzga no repara. A
+las dos salidas del ledger se añade una tercera, probablemente la buena: que el hook consulte la
+spec aprobada y permita al implementador escribir `docs/fundacion/reglas.md` **solo** cuando un CA
+se lo encarga por escrito. → sigue como `F-SPEC-028-4`, destino plugin tremen-sdd.
+
+#### V-2 — El orden importa más de lo que parece: si esta spec se mergea antes de ops #4, su propia puerta nace en rojo
+
+La puerta **solo existe a partir de este merge**, así que su **primera pasada de la historia es la
+de esta spec**. Si se mergea con el repositorio aún sin conectar, no habrá despliegue nuevo,
+`/api/version` seguirá en 404 y el run acabará **rojo con código 1** tras gastar **15 minutos** de
+runner. No sería un fallo de la implementación — sería la puerta funcionando — pero sería el
+estreno más desmoralizante posible, y CA-10 quedaría rojo por construcción. **Las seis acciones de
+ops van antes del merge, no después.**
+
+#### V-3 — Sobre la evidencia declarada para CA-1: el `meta` sirve; el `Creator`, no tanto
+
+`vercel inspect` con **`meta.githubCommitSha`** (y `githubCommitRef`/`githubDeployment`) es un
+discriminador **sólido**: un despliegue por CLI desde un worktree sube sin `.git` y no puede tener
+esos campos. Ahí la evidencia es correcta y suficiente. En cambio **"`Creator` = la integración, no
+una persona" puede no observarse así**: Vercel suele atribuir el despliegue a la cuenta de usuario
+vinculada a la integración de GitHub, con lo que el campo mostraría una persona igualmente. Quien
+cierre CA-1 debe apoyarse en el **`meta` de git** y en el **Source** del panel, no en `Creator`. La
+propiedad *"no lo dispara ninguna persona"* se prueba en positivo (hay metadato de git ⇒ vino de la
+integración), no en negativo.
+
+#### V-4 — Sobre la evidencia declarada para CA-2: falta un `git fetch`, y el sha correcto es el del merge
+
+`node scripts/check-alive.mjs … --commit $(git rev-parse origin/main)` lee la **ref local**, que
+puede estar vieja: debe ser `git fetch origin && git rev-parse origin/main`. Y, más exacto todavía,
+lo que CA-2 pide comparar es **el sha del commit de merge de esta spec**, no "lo que haya en
+`origin/main` en ese momento": si otra spec se mergea en medio, `origin/main` ya no es ese sha. Con
+esa corrección, la evidencia es suficiente y correcta.
+
+#### V-5 — Sobre la evidencia declarada para CA-3: es la correcta, y se comprobó contra el artefacto
+
+No se leyó y se dio por buena. En `scripts/guard-migrate.mjs`, la tabla de decisión dice que con
+`VERCEL_ENV=production` autoriza siempre y que **en cualquier otro entorno el único camino que
+autoriza es `ALLOW_MIGRATE=1` literal**. Luego "la Preview construye verde" **sí es** prueba
+imposible de falsear de que la variable existe (CA-3.1): correcto. Y la guardia imprime
+`[guard-migrate] DATABASE_URL: host=… base=…` **sin credenciales**, así que las **dos** líneas que
+CA-3.3 manda comparar (Preview vs Production) existen de verdad y son obtenibles de los logs de
+build: correcto.
+
+#### V-6 — Salvedad menor, de higiene documental, que no tumba ningún CA
+
+`docs/despliegue.md` §3.4 afirma en **presente** que el repositorio *"está conectado al proyecto de
+Vercel"*, y todavía no lo está. CA-11.1 solo exige que §3.4 **describa la vía automática**, y la
+describe, así que **no tumba el CA**; y §13 deja la conexión listada como acción de ops pendiente,
+que es el correctivo. Aun así es exactamente la clase de afirmación de la que este mismo runbook
+enseña a desconfiar (*"la fecha miente"*). Queda anotado para el humano, no como finding.
+
+#### Lo que este verificador NO afirma
+
+- **No afirma que el despliegue automático funcione.** Eso es CA-1/CA-2/CA-3/CA-10 y sigue sin
+  probarse. Lo único probado es que el **cableado** es correcto.
+- **No afirma que `RI-02` se cumpla.** CA-14 pide que **esté escrita**; que se cumpla es trabajo del
+  ciclo a partir de aquí — empezando por esta misma spec.
+- **No hay evidencia de UI**: ninguna pantalla cambia y `src/` no tiene ni una línea tocada. No se
+  usó Playwright porque no hay nada que mirar, no porque no se pudiera.
+
+#### Qué falta para el cierre definitivo, en orden
+
+1. **Humano/ops**: las **seis** acciones, en el orden firmado (drenar → verificar → `ALLOW_MIGRATE`
+   → conectar → mirar qué se disparó → anotar el techo de Neon). Su evidencia se pega arriba.
+2. **Merge de esta spec**, después de 1 y no antes (ver **V-2**).
+3. **Cerrar los cuatro 🚀** con la evidencia de la tabla, con las correcciones de **V-3** y **V-4**.
+4. **Solo entonces**, y por `RI-02`, la spec puede pasar a `hecho` — con el run de
+   `Deploy gate / Alive` en verde pegado aquí como evidencia.
 
 ## Evidencia visual
 <!-- Tabla CA → captura en _qa/SPEC-028/. Informe HTML opcional: _qa/SPEC-028/informe.html -->
