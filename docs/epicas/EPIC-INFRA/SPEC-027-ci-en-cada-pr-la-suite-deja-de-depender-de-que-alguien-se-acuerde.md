@@ -157,7 +157,8 @@ Cada CA tiene forma verificable. La mayoría se comprueban con un **test estáti
 (`tests/ci-workflow.test.ts`, Vitest) que **parsea el YAML** del workflow — no con regex sobre
 el texto, que es la clase de test que parece comprobar y no comprueba; requiere añadir `yaml`
 como devDependency (hoy solo hay un `js-yaml` **transitivo** de eslint, del que no se debe
-depender). CA-3, CA-9, CA-10, CA-11 y CA-12 exigen además **demostrar el rojo**: un workflow
+depender). CA-3, CA-9, CA-10 y CA-11 exigen además **demostrar el rojo** (CA-11, en dos
+formas distintas): un workflow
 que solo se ha visto verde no es un gate.
 
 > **Cómo se verifica un workflow sin mezclarlo.** Para el evento `pull_request`, GitHub
@@ -288,43 +289,87 @@ que solo se ha visto verde no es un gate.
   *Nota*: los unitarios ya están cubiertos sin hacer nada — Vitest desactiva `allowOnly` cuando
   `process.env.CI` está definido, y GitHub Actions siempre lo define.
 
-- **CA-11 (R-1 — La guardia de esquema demuestra que sabe detectar).**
+- **CA-11 (R-1 — La guardia de esquema demuestra que sabe detectar, en sus propias condiciones).**
+  *(Enmendado el 2026-08-18 tras la medición de §Enmienda; la versión anterior usaba una sonda
+  **vacía** y tenía un punto ciego medido.)*
   Dada la guardia de SPEC-026 (`tests/schema-source.test.ts`, CA-6),
   cuando se ejecuta,
   entonces además de comprobar que `drizzle/` está al día ejecuta **la misma invocación de
-  `drizzle-kit generate`, con el mismo cwd, el mismo shell y los mismos argumentos, contra un
-  directorio de sonda vacío**, y **exige que aparezca al menos un `.sql`**. Si no aparece, el
-  test falla con un mensaje que dice **"la guardia no pudo ejecutarse"**, no "hay deriva".
-  *Por qué esto y no lo que pedía el follow-up*: es la única comprobación que distingue *"no
-  hay deriva"* de *"la guardia no llegó a correr"*, y **no depende de por qué** falle la
-  invocación (ruta, binario ausente, argumento renombrado, plataforma distinta). Es el patrón
-  que el proyecto ya usa: probar que el detector detecta.
-  *Coste medido hoy*: **25 s** la pasada extra, una vez por suite (no por test).
-  *Verificación, en los dos sentidos*: en **verde** (el canario genera su `.sql`) y en **rojo**
-  (se rompe la invocación a propósito —p. ej. `--schema` a un fichero inexistente— y el test
-  debe fallar señalando **la guardia**, no la deriva).
+  `drizzle-kit generate` —mismo cwd, mismo shell, mismos argumentos, y solo cambia el
+  directorio de sonda— contra una sonda SEMBRADA: una copia de `drizzle/` rebobinada a un
+  punto del historial cuya deriva pendiente es conocida y no vacía**; y **exige que aparezca al
+  menos un `.sql` nuevo**. Si no aparece, el test falla con un mensaje que dice **"la guardia no
+  pudo ejecutarse"**, no "hay deriva".
+  *Por qué sembrada y no vacía*: el canario debe atacar el **comportamiento** —¿sabe la guardia
+  detectar deriva **en el estado de partida en el que corre de verdad**?— y no la forma de la
+  ruta. Una sonda vacía es un estado que la guardia real no tiene nunca, y resulta ser
+  exactamente el estado en el que el modo de fallo mudo **no se reproduce** (§Enmienda, ronda
+  3): con sonda vacía el canario daba verde mientras la guardia se quedaba muda. Sigue sin
+  depender de **por qué** falle la invocación (ruta, binario ausente, argumento renombrado,
+  plataforma distinta, un cambio de banderas de `drizzle-kit` que aún no conocemos): solo
+  comprueba que el detector detecta.
+  *Punto de rebobinado (guía medida, no contrato)*: truncar la copia al **primer** apunte del
+  journal —`entries` recortado a `idx 0`, conservando `0000_*.sql` y `meta/0000_snapshot.json`,
+  y borrando el resto—. Se elige ese y no *"quitar el último apunte"* porque el delta contra
+  `0000` **solo puede crecer** con cada migración futura, mientras que el último apunte puede
+  ser una migración escrita a mano **sin cambio de esquema** (`0004_backfill_operating_mic` es
+  una) y dejaría el canario en rojo acusando a la guardia de algo que no pasa.
+  *Un solo sitio decide la forma de la ruta de sonda*: guardia y canario **no nombran su
+  `--out`**; lo reciben del mismo helper (`withProbe`), ya ligado a su propia sonda. Así, quien
+  "limpie" esa forma —a absoluta, a otra unidad, a lo que sea— la cambia **en los dos a la vez**
+  y el canario se entera. Es lo que convierte esto en un cierre y no en un parche.
+  *Coste*: la versión con sonda vacía costaba **2,0 s** por pasada de suite (medido, ledger
+  §CA-13; **no** los 25 s que estimé al redactar). La sembrada añade una copia de `drizzle/`
+  (17 ficheros, decenas de KB) y un recorte de JSON; el gasto sigue siendo la invocación de
+  `drizzle-kit`, así que se espera **el mismo orden: ~2-3 s**. Si midiera más de **10 s**,
+  parar y volver al gate en vez de tragárselo.
+  *Mensaje de fallo*: primero la lectura probable ("la guardia está muerta y lleva quién sabe
+  cuánto dando verde sin mirar nada"), y detrás la segunda ("…o alguien ha reescrito el
+  historial de `drizzle/` y el punto de rebobinado ya no tiene deriva pendiente"), para que
+  quien lo lea de madrugada no persiga el fantasma equivocado.
+  *Verificación, en los dos sentidos*: en **verde** (el canario reproduce las migraciones que le
+  faltan a la sonda rebobinada) y en **rojo**, con **dos** roturas distintas, ambas revertidas:
+  (1) se rompe la invocación a propósito —p. ej. `--schema` a un fichero inexistente— y el test
+  debe fallar señalando **la guardia**, no la deriva; y (2) **la que el canario viejo no
+  cazaba**: se cambia la sonda a **ruta absoluta** en `withProbe`; la guardia se queda **verde
+  en falso** y **el canario tiene que ponerse rojo**. Sin (2) la enmienda no está demostrada.
+  *Cierra **F-SPEC-027-3*** (la opción (a) de las tres que dejó abiertas el implementador). La
+  opción (b) —capturar `stderr` y exigirlo vacío— se descarta con motivo: ata la guardia a que
+  `drizzle-kit` no imprima nunca un aviso benigno por ese canal, y volvería a cubrir **una** sola
+  forma de morir mudo. Si algún día se quiere, es un follow-up nuevo, no este.
 
-- **CA-12 (R-1 — La guardia deja de apoyarse en una creencia, y se retira el código muerto).**
-  Dado el comentario de `tests/schema-source.test.ts:203-206` ("el probe vive DENTRO del repo a
+- **CA-12 (R-1 — Se retira el código muerto y el comentario dice lo medido, no lo creído).**
+  *(Enmendado el 2026-08-18: la versión anterior afirmaba que un `--out` absoluto es inocuo.
+  Esa afirmación se midió con sonda **vacía** y es falsa para el caso de la guardia; ver
+  §Enmienda. La retirada del código muerto, en cambio, era y sigue siendo correcta.)*
+  Dado el comentario de `tests/schema-source.test.ts` ("el probe vive DENTRO del repo a
   propósito… drizzle-kit descarta las rutas absolutas… termina con código 0 aunque falle") y la
-  inspección `/error|ENOENT/i` de las líneas **228-231**,
+  inspección `/error|ENOENT/i` sobre la salida del proceso,
   cuando se aplica CA-11,
-  entonces **la inspección desaparece** y el comentario se sustituye por lo **medido**:
-  1. `drizzle-kit generate` **sí** acepta un `--out` **absoluto** y escribe allí. Comprobado
-     hoy en tres formas: absoluto con `/` dentro del repo, absoluto con backslashes de Windows
-     a través de `shell: true`, y absoluto al temp del sistema **en otra unidad** (`C:`). Las
-     tres generaron el `.sql` en el destino pedido. **La regla "la sonda debe ser relativa" no
-     se sostiene**, y congelarla en un test habría fosilizado una superstición.
-  2. `drizzle-kit generate` **no siempre sale con 0**: con un `--schema` inexistente sale con
-     **1** y escribe el error en **stdout** (no en stderr, al revés de lo que anotó el
-     verificador de SPEC-026). Con `execFileSync`, ese caso **ya lanza** y el test ya falla:
-     por eso la inspección de stdout era inalcanzable — código muerto, sí, pero por una razón
-     distinta de la registrada.
-  *Verificación (medición registrada en el ledger, patrón de SPEC-026 CA-8)*: se ejecuta la
-  guardia con la sonda en **ruta absoluta** y debe comportarse **igual** — verde sin deriva y
-  roja con deriva. Eso demuestra que ya no depende de la forma de la ruta. La sonda se deja
-  **relativa** (`node_modules/.cache/…`, ya ignorado por git) porque funciona y no hay motivo
-  para moverla; lo que cambia es que **nada depende de ello**.
+  entonces:
+  1. **La inspección desaparece, y se queda fuera.** Era código muerto por partida doble:
+     miraba **stdout**, y el único fallo realmente mudo que existe escribe en **stderr** y sale
+     con **código 0** (no lo habría cazado nunca); y el caso que sí imprime por stdout
+     (`--schema` inexistente) sale con **1**, así que `execFileSync` ya lanza antes de llegar a
+     la inspección. Esto **ya está hecho y no se revierte**.
+  2. **El comentario se sustituye por lo medido**: las tres rondas de §Enmienda con su
+     resultado, incluido el mecanismo real —`drizzle-kit` concatena el cwd delante de la ruta
+     absoluta al buscar `meta/NNNN_snapshot.json`, por eso falla **solo con la sonda sembrada**,
+     en silencio, por stderr y con código 0—. El comentario documenta una **medición**, no una
+     regla que el test imponga.
+  3. **No se escribe ninguna aserción sobre la forma de la ruta**: ni "la sonda debe ser
+     relativa" ni su contraria. Un test sobre la **forma** fosiliza folklore, ata el fichero a
+     una versión concreta de `drizzle-kit` y —lo peor— **daría por cerrado un riesgo que
+     seguiría abierto**: cubriría esta manera de morir mudo y ninguna otra. Lo que cubre el
+     riesgo es el canario **sembrado** de CA-11, que ataca el comportamiento y detecta el fallo
+     venga de donde venga. Decisión del humano el 2026-08-18, elegida entre tres opciones.
+  *Qué desaparece respecto de la redacción anterior*: la afirmación "`drizzle-kit generate` sí
+  acepta un `--out` absoluto y escribe allí, luego la regla no se sostiene". Es cierta **solo**
+  con la sonda vacía, que no es el caso de la guardia.
+  *Verificación*: lectura del fichero —no queda ninguna inspección de la salida del proceso ni
+  ninguna aserción sobre la forma de la ruta, y el comentario contiene las tres rondas con sus
+  resultados—. El **comportamiento** lo verifica CA-11, que es donde ahora vive el riesgo; este
+  CA solo garantiza que no queda código muerto ni folklore escrito como si fuera hecho.
 
 - **CA-13 (Sin regresión, y con el coste y los tiempos escritos).**
   Dada la suite actual (**282** unitarios en 31 ficheros, **27** e2e en 8, typecheck y lint
@@ -332,12 +377,64 @@ que solo se ha visto verde no es un gate.
   cuando se aplica esta spec,
   entonces **todo sigue verde sin cambiar ninguna expectativa** de ningún test existente, y el
   ledger registra:
-  - el incremento de `npx vitest run` por el canario de CA-11 (referencia medida hoy: **145 s**
-    antes; **techo aceptable +25 %**; si se pasara, **parar y volver al gate**, no forzar);
+  - el incremento de `npx vitest run` por el canario de CA-11 (referencia del arquitecto:
+    **145 s** antes; **techo aceptable +25 %**; si se pasara, **parar y volver al gate**, no
+    forzar). *Ya medido en la primera pasada*: suite completa en **97,08 s** (Node 22) y
+    **104,55 s** (Node 24) con 308 tests, y el canario **de sonda vacía** en **2,0 s** — el
+    techo no se acerca. La enmienda de CA-11 (**sonda sembrada**) obliga a **volver a medir**
+    ese coste aislado y a escribirlo aquí; se espera el mismo orden (~2-3 s);
   - la duración de **cada job** y los **minutos facturados** de la primera pasada (fría) y de
     la segunda (cachés calientes).
   *Para qué sirve la segunda medición*: es lo que permite responder con datos, y no con
   opinión, si el e2e debe seguir corriendo en cada PR (pregunta 6 del gate de ADR-018).
+
+### Enmienda del 2026-08-18 — `drizzle-kit generate` y la sonda, medido en tres rondas
+
+Esto está escrito para **quien dentro de seis meses vea CA-11 o CA-12 y le parezca que hay algo
+por "limpiar"**. Sobre esta misma pregunta se han emitido ya tres veredictos, y **cada uno
+corrigió al anterior**; dos de ellos llegaron a colarse en un documento firmado. Lee las tres
+rondas antes de tocar nada.
+
+1. **Ronda 1 — verificador de SPEC-026.** Dijo que la guardia es honesta **porque la ruta de su
+   sonda es relativa**, y que con `--out` absoluto `drizzle-kit` sale con código 0 sin escribir
+   nada → guardia **verde muda**. *Veredicto de hoy*: la **conclusión era correcta**, pero el
+   **motivo atribuido no**, y como el motivo era folklore la regla quedó sin defensa.
+2. **Ronda 2 — arquitecto de SPEC-027 (yo), al redactar esta spec.** Medí `--out` absoluto en
+   tres formas (con `/` dentro del repo, con backslashes de Windows vía `shell: true`, y al temp
+   del sistema en **otra unidad**): las tres escribieron el `.sql` donde se les pidió. Concluí
+   *"la regla es superstición"* y redacté CA-12 sobre esa conclusión. *Error de método, y es el
+   que importa*: medí con la **sonda vacía**, un estado de partida que **la guardia nunca
+   tiene**. Una medición que no reproduce el estado real no mide lo que crees.
+3. **Ronda 3 — implementador, con el caso real: sonda SEMBRADA con el contenido de `drizzle/`**
+   (ledger §Mediciones):
+
+   | Sonda | `--out` | Resultado |
+   |---|---|---|
+   | sembrada, **sin** deriva | relativo | exit 0, `No schema changes…`, 8 → 8 `.sql` → guardia verde, **correcto** |
+   | sembrada, **con** deriva | relativo | exit 0, escribe `0008_*.sql`, 8 → 9 → guardia roja, **correcto** |
+   | sembrada, sin deriva | **absoluto** | exit 0, **stdout vacío**, 1395 B en **stderr**, 8 → 8 |
+   | sembrada, **con** deriva | **absoluto** | exit 0, **stdout vacío**, 1403 B en stderr, 8 → 8 → **VERDE EN FALSO** |
+   | **vacía**, sin deriva | absoluto | funciona: 0 → 1 `.sql` |
+
+   Causa medida: `drizzle-kit` **concatena el cwd delante de la ruta absoluta** al buscar el
+   snapshot previo (`ENOENT … 'D:\…\D:\…\meta\0000_snapshot.json'`). Por eso falla **solo con la
+   sonda sembrada** —el caso de la guardia— y no con la vacía —el caso del canario viejo—. Y
+   falla con **código 0**, así que `execFileSync` no lanza y nadie se entera.
+
+**Lo que queda establecido, y no se vuelve a discutir sin medir de nuevo:**
+
+- La creencia vieja era **cierta para la guardia**, por un motivo distinto del que se le
+  atribuía. Quien la "corrija" apoyándose en la ronda 2 estará repitiendo mi error.
+- **La retirada del código muerto es correcta y se queda** (CA-12.1): la inspección miraba
+  stdout y el único fallo mudo real escribe en stderr.
+- El canario **de sonda vacía no cubría** el punto ciego: de ahí la enmienda de CA-11 a **sonda
+  sembrada**.
+- **Regla de método para esta guardia**: toda medición se hace con **su** estado de partida —
+  sonda sembrada. Medir con sonda vacía ya ha producido dos conclusiones contradictorias.
+- **Y no se sustituye el canario por una aserción sobre la forma de la ruta.** Se propuso, se
+  discutió y el humano lo **descartó expresamente** el 2026-08-18: fosiliza folklore y cierra en
+  falso un riesgo que seguiría abierto. Si alguien quiere reabrirlo, que traiga una medición,
+  no una intuición.
 
 ## Entidades y reglas afectadas
 
@@ -353,7 +450,7 @@ producción**.
 | `.nvmrc` | **Nuevo.** Una línea: `24`. Fuente única de la versión de Node (CA-6). |
 | `package.json` | **`scripts`**: se añaden `"lint": "eslint ."` y `"test:e2e": "playwright test"`. **`devDependencies`**: se añade `yaml` (parser del test estático; trae sus propios tipos). Nada más. |
 | `tests/ci-workflow.test.ts` | **Nuevo.** Test estático del workflow: CA-1, CA-2, CA-3 (parte estática), CA-4, CA-5, CA-6, CA-7, CA-8. |
-| `tests/schema-source.test.ts` | **Único fichero existente que se toca**, y solo el bloque de CA-6 de SPEC-026: canario (CA-11), retirada de la inspección muerta y reescritura del comentario (CA-12). Ninguna otra expectativa cambia. |
+| `tests/schema-source.test.ts` | **Único fichero existente que se toca**, y solo el bloque de CA-6 de SPEC-026: canario **con sonda sembrada** (CA-11; la forma de la ruta de sonda se decide en un único sitio, `withProbe`), retirada de la inspección muerta y reescritura del comentario con lo medido (CA-12). Ninguna otra expectativa cambia. |
 | `docs/despliegue.md` | Nota corta: existe CI, qué mira, y —en voz alta— que **informa pero no impide**, con el motivo real (§Fuera de alcance). |
 
 ### Forma del workflow (guía para el implementador, no contrato)
@@ -431,19 +528,26 @@ Aparcado a propósito, no por descuido.
 
 ## Notas para el gate humano
 
-1. **Tu premisa sobre el residual R-1 no se sostiene, y por eso el CA es otro.** Dijiste que si
-   alguien "limpia" la sonda de la guardia a ruta absoluta, `drizzle-kit generate` sale con 0,
-   no escribe nada y no imprime nada. **Lo he medido y no ocurre**: con `--out` absoluto escribe
-   perfectamente —incluso con backslashes de Windows a través de `shell: true`, e incluso al
-   temp del sistema en otra unidad—. Y el otro medio-mito: con un `--schema` inexistente
-   **drizzle-kit sale con 1** y escribe el error **en stdout**, no en stderr (la anotación del
-   verificador de SPEC-026 también está del revés). Si hubiera escrito el CA que pedías —"un
-   test que afirme que la sonda es relativa"— habría **fosilizado una superstición** y, peor,
-   habría dado por cerrado un riesgo que seguiría abierto. Lo que sí es verdad y sí importa es
-   el riesgo genérico: **una guardia que no llegue a ejecutarse es indistinguible de una guardia
-   que no encuentra nada**. Eso lo cierra el **canario** de CA-11, que no depende de ninguna
-   teoría sobre por qué podría romperse. Cuesta **25 s** por pasada de suite; es el único precio
-   que te pido aprobar aquí.
+1. **CORREGIDO el 2026-08-18 — tu premisa sobre el residual R-1 era cierta; la mía, no.** Aquí
+   te dije que "no se sostiene" que dejar la sonda en ruta absoluta deje muda a la guardia. Lo
+   medí con una **sonda vacía**, que es un estado que la guardia real no tiene nunca, y por eso
+   me salió al revés. Medido el caso de verdad —sonda **sembrada** con `drizzle/`—, pasa
+   exactamente lo que decías: `drizzle-kit` concatena el cwd delante de la ruta absoluta, no
+   encuentra el snapshot previo, **escribe el error en stderr y sale con código 0**, y la guardia
+   se queda **verde en falso incluso habiendo deriva**. Las tres rondas de medición están en
+   §Enmienda del 2026-08-18, con nombres y fechas, para que nadie lo vuelva a "corregir" en la
+   dirección equivocada.
+   Lo que **no** se hace, y lo decidiste tú entre tres opciones: fijar en un test que la sonda
+   tiene que ser relativa. Eso ataca la **forma** y fosiliza folklore; peor, daría por cerrado un
+   riesgo que seguiría abierto. Lo que sí se hace: **el canario de CA-11 pasa a usar sonda
+   sembrada**, el mismo estado de partida que la guardia, de modo que ataca el **comportamiento**
+   y detecta el fallo mudo venga de donde venga —ruta absoluta, cambio de banderas de
+   `drizzle-kit`, o lo que traiga el año que viene—.
+   Dos consecuencias que te interesan: el precio real del canario son **2,0 s** medidos, no los
+   25 s que te estimé (y la versión sembrada debería quedarse ahí); y **F-SPEC-027-3 —el punto
+   ciego que abrió el implementador— queda absorbido por CA-11**, sin residual. Lo único que hay
+   que hacer ahora es re-implementar ese test y volver a demostrar el rojo, esta vez también con
+   la sonda absoluta.
 2. **El hallazgo que cambia el encargo: no puedes activar la protección de rama.** No es que se
    te haya olvidado hacerlo; es que **tu plan no la ofrece**. Repo privado + org en plan free →
    `403 Upgrade to GitHub Pro`, tanto en protección de rama clásica como en *rulesets*.
@@ -493,8 +597,8 @@ Aparcado a propósito, no por descuido.
    tuya): dime si quieres que el documentalista lo arregle y cómo.
 9. **Estimación de tiempo, para que juzgues la cuota.** Job `Checks` ~6-8 min (los unitarios
    mandan: 145 s en mis 16 núcleos → estimo 4-7 min en los 4 vCPU del runner, y el canario suma
-   25 s). Job `E2E` ~6-7 min (instalar navegador ~1 min, build ~1-1,5 min, 27 tests en serie
-   ~3-4 min). **Pared ~7-9 min, facturado ~13-16 min.** Con 2.000 min/mes de plan free eso son
+   **2,0 s medidos**, no los 25 s que estimé aquí). Job `E2E` ~6-7 min (instalar navegador
+   ~1 min, build ~1-1,5 min, 27 tests en serie ~3-4 min). **Pared ~7-9 min, facturado ~13-16 min.** Con 2.000 min/mes de plan free eso son
    ~125-150 pasadas mensuales: sobra de largo, incluso corriendo el e2e en cada PR (que es lo
    que recomienda ADR-018 y lo que especifico). Todas estas cifras son **estimaciones sobre
    medidas locales**; CA-13 obliga a sustituirlas por las reales del ledger en la primera pasada.
@@ -510,4 +614,13 @@ Aparcado a propósito, no por descuido.
 medida en este worktree (build, typecheck, lint y suite unitaria ejecutados; `drizzle-kit
 generate` probado con `--out` relativo, absoluto, con backslashes y fuera de la unidad del
 repo; estado de Actions, protección de rama, rulesets y plan de la organización consultados
-por API). Sigue en `borrador`: no la apruebo yo.*
+por API). Quedó en `borrador` al redactarla: no la aprobé yo.*
+
+*Enmienda del 2026-08-18, con la spec ya implementada y en `en-revision` (PR #31): se reescriben
+**CA-11** (el canario pasa de sonda vacía a **sonda sembrada**) y **CA-12** (se le quita la
+premisa falsa de que un `--out` absoluto es inocuo, y se conserva la retirada del código muerto),
+se añade §Enmienda del 2026-08-18 con las tres rondas de medición, y se ajustan las referencias
+cruzadas (§Criterios, tabla de ficheros, CA-13, notas 1 y 9 del gate). **No cambia el estado de
+la spec** —sigue `en-revision`—: es una corrección de contenido dentro del ciclo, no una
+transición. Decisión de fondo tomada por el humano el 2026-08-18: el canario ataca el
+comportamiento, no la forma de la ruta. Cierra **F-SPEC-027-3**. Ningún otro CA se toca.*
