@@ -475,20 +475,18 @@ Los cuatro gates de `Checks` se ejecutan **aunque uno falle**, para que el prime
 los demás. Cuando el e2e falla, el job sube un artefacto (`playwright-report/`,
 `test-results/` con trazas, `_qa/`) con 7 días de retención; en verde no sube nada.
 
-> ⚠️ **La CI informa, pero NO impide mezclar.** Esto no es un ajuste que falte por activar: el
-> **plan de GitHub de esta organización no lo ofrece**. Repo privado + org en plan free →
-> tanto la protección de rama clásica como los *rulesets* responden `403 — "Upgrade to GitHub
-> Pro or make this repository public"`. Es decir: **un merge con la CI en rojo sale igual de
-> bien que uno con la CI en verde**, y la única barrera sigue siendo la disciplina del ciclo
-> tremen-sdd. Las tres salidas —pagar GitHub Team (~4 $/asiento/mes, hoy 1 asiento), hacer
-> público el repo (descartado: app financiera privada) o asumirlo— están abiertas como
-> **F-SPEC-027-1**. **Mira el check antes de mezclar: nadie lo va a mirar por ti.**
+> ✅ **Estos dos checks IMPIDEN mezclar.** Desde el **2026-08-19** el repositorio es público y
+> `main` está protegida por el ruleset **`Protected main`** (`enforcement: active`), que exige
+> **PR** y los dos contextos de la tabla en verde —**`Checks`** y **`E2E`**— y **no admite
+> excepciones**: la lista de *bypass* está vacía (`bypass_actors: []`), así que la regla frena
+> también al dueño del repositorio. Con cualquiera de los dos en rojo, GitHub no deja mezclar.
+> Importa especialmente desde **SPEC-028**, porque **mezclar es desplegar**: esta protección es
+> lo que sostiene que ADR-018 retirase el gate humano previo a producción.
 >
-> 🟠 **Y desde SPEC-028 esa frase dejó de ser una molestia y pasó a ser la única barrera**: con
-> el despliegue automático, **entre un merge en rojo y producción no queda ninguna persona**.
-> El riesgo se llevó al gate del 2026-08-18 y el humano lo **aceptó a sabiendas**, sin comprar
-> la protección de rama, en contra de la recomendación del arquitecto → **F-SPEC-028-1**. Léelo
-> entero en **§12**.
+> ⚠️ **Lo que NO cubre**: no exige revisión de nadie (`required_approving_review_count: 0`), no
+> exige que la rama esté al día con `main`, y **`Alive` —la puerta post-deploy— no es ni debe ser
+> un check requerido**, porque corre en `push` a `main`, después del merge. Las piezas exactas,
+> cómo comprobarlas en un comando y qué hacer si alguien las cambia, en **§12.5**.
 
 Lo que este workflow **no** hace, y conviene no darlo por hecho:
 
@@ -795,25 +793,70 @@ Y no hay puerta para los despliegues de **Preview** (`F-SPEC-028-3`): exigiría 
 que solo se conoce con un token de Vercel — y un token es un secreto, justo lo que ADR-018 D-4.1
 evita. La PR ya muestra el check propio de Vercel con su URL.
 
-### 12.5 Mirar el check de la CI antes de mezclar es ahora el ÚNICO freno
+### 12.5 La CI IMPIDE mezclar: `main` está protegida — y lo que la protección NO cubre
 
-🟠 **Léelo entero antes de pulsar *Merge*.** La CI (§9) **informa**, pero **no impide** mezclar:
-el plan de GitHub de esta organización no ofrece protección de rama en repo privado
-(`403 — Upgrade to GitHub Pro`). Hasta SPEC-028 eso era tolerable porque **entre un merge malo y
-producción había una persona** que tenía que decidir desplegar.
+✅ **Léelo entero antes de pulsar *Merge*.** Desde el **2026-08-19** el repositorio es **público**
+y GitHub aplica **protección de rama** sobre `main`. Ya no es disciplina ni recomendación: es una
+regla que **GitHub hace cumplir**. Abajo van sus piezas con nombre y valor exacto, a propósito:
+para que puedas comprobarlas hoy, y para que este apartado quede **comprobablemente desfasado** el
+día que alguien las cambie.
 
-**Esta spec retira a esa persona.** A partir de aquí, un merge con `Typecheck`, `Lint`,
-`Unit tests`, `Migration scan` o el e2e en rojo **va a producción solo**, y la puerta post-deploy
-dirá alegremente que ese código roto está vivo — porque lo está. Dicho sin suavizar: **entre un
-merge en rojo y producción no queda ninguna persona.**
+| Pieza | Valor exacto, a 2026-08-19 |
+|---|---|
+| Ruleset | **`Protected main`** (id `21014989`), `enforcement: active`, sobre la rama por defecto |
+| Reglas | `pull_request` · `required_status_checks` · `deletion` · `non_fast_forward` |
+| Checks requeridos | **`Checks`** y **`E2E`** — en la lista de la PR: `CI / Checks` y `CI / E2E` |
+| Excepciones | **ninguna**: `bypass_actors: []` |
 
-**Mira el check antes de mezclar: nadie lo va a mirar por ti.**
+Se comprueba sin salir de la terminal:
 
-Es un riesgo **conocido, aceptado y fechado** por el humano en el gate del **2026-08-18**, en
-contra de la recomendación del arquitecto, y queda abierto como **`F-SPEC-028-1`** — no como
-tarea pendiente, sino como riesgo asumido. Las dos salidas, si algún día el criterio cambia:
-pagar **GitHub Team** (~4 $/asiento/mes, hoy 1 asiento) y exigir `CI / Checks` y `CI / E2E`
-sobre `main`; o hacer público el repositorio (descartado: app financiera privada).
+```bash
+gh api repos/tremen-dev/stockeiro/rulesets/21014989 \
+  --jq '{name, enforcement, bypass: .bypass_actors, rules: [.rules[].type]}'
+```
+
+**1. Todo cambio entra por PR.** `main` **no acepta push directo**. Y están bloqueados además el
+**borrado** de la rama (`deletion`) y el ***force-push*** (`non_fast_forward`): el historial desde
+el que se despliega producción no se reescribe.
+
+**2. `Checks` y `E2E` tienen que estar en verde para poder mezclar.** Son los dos contextos que el
+ruleset exige, con esos nombres exactos; en la lista de checks de la PR aparecen como
+`CI / Checks` y `CI / E2E` (§9). Con cualquiera de los dos **en rojo**, GitHub no deja mezclar.
+Traducido a lo que importa aquí: un `Typecheck`, `Lint`, `Unit tests`, `Migration scan` o e2e en
+rojo **ya no puede llegar a producción por la vía normal**, que es justo la premisa sobre la que
+ADR-018 aceptó retirar el gate humano previo a producción.
+
+**3. Y nadie puede saltárselo: la lista de *bypass* está vacía.** Eso **es parte de la protección,
+no un detalle de configuración**: sin excepciones, la regla frena también al dueño del
+repositorio. **El día que alguien se añada a esa lista, la red vuelve a ser un recordatorio** — y
+este apartado, mentira. Si al ejecutar el comando de arriba `bypass_actors` ya no sale vacío, o el
+ruleset no está en `active`, deja de fiarte de esta sección y arréglala antes de seguir.
+
+**4. Lo que la protección NO cubre**, dicho en el mismo sitio para que nadie se apoye de más:
+
+- **No exige revisión de nadie** (`required_approving_review_count: 0`). Exige PR y checks
+  verdes, **no un segundo par de ojos**: puedes abrir tu PR y mezclarla tú solo.
+- **No exige que la rama esté al día con `main`** antes de mezclar (la política *strict* está
+  desactivada). Los checks pueden haber corrido contra una base **más vieja** que la que acaba
+  desplegándose; si tu rama lleva días abierta, actualízala a mano antes de pulsar *Merge*.
+- **`Alive` no es un check requerido, y no debe serlo.** La puerta post-deploy (§12.2) corre en
+  `push` a `main`, o sea **después** del merge: en una PR no llega a existir, y exigirla ahí
+  bloquearía **todas** las PR para siempre, esperando un check que nunca va a aparecer. La puerta
+  no es un permiso para mezclar; es la confirmación de que lo mezclado **llegó**.
+
+**Qué sigue enteramente en tus manos**: el **cuándo**. Mezclar es desplegar (§12.1), y hay cambios
+cuyo momento importa — un cambio de época de credencial cierra la sesión de **todos** los usuarios
+en el instante del merge (ADR-016).
+
+*De dónde viene este apartado, porque hasta ayer decía lo contrario*: hasta el **2026-08-18** la
+CI informaba y no frenaba nada —repo privado + organización en plan free → `403 Upgrade to GitHub
+Pro`—, y el humano **aceptó ese riesgo** en el gate, en contra de la recomendación del arquitecto.
+El **2026-08-19** el repositorio pasó a público por una razón ajena a ese debate (Vercel no
+permite desplegar en plan **Hobby** desde un repositorio **privado de una organización**) y la
+protección llegó como **efecto colateral**: el riesgo no se corrigió, **se evaporó**. Con ello
+quedan **cerrados `F-SPEC-027-1` y `F-SPEC-028-1`**. Lo que queda es la fragilidad del punto 3: la
+protección vive en un ajuste de GitHub que nadie versiona ni audita — el mismo tipo de dependencia
+frágil que el *preview branching* de Neon (§13.3).
 
 ---
 
