@@ -1,6 +1,33 @@
+import { buildIdentity } from './src/lib/version/build-identity.mjs';
+
+/**
+ * SPEC-031 / ADR-018 D-6 — canal de tiempo de build de la identidad del despliegue.
+ *
+ * Este es el ÚNICO sitio del repositorio donde se leen las variables de git de
+ * Vercel. Se resuelven aquí, una vez, y se declaran abajo bajo `env`: Next
+ * sustituye entonces `process.env.STOCKEIRO_*` por literales en el bundle, así
+ * que el valor queda congelado con el artefacto. Si pudiera cambiar sin
+ * reconstruir, la comprobación de vida mentiría.
+ *
+ * Hoy `VERCEL_GIT_COMMIT_SHA` llega **vacía** (no hay integración Vercel↔GitHub,
+ * verificado en ADR-018 el 2026-08-17), así que en producción el endpoint dirá
+ * `unknown` — que es el diagnóstico correcto, no un fallo. En un build local sí
+ * hay `.git`, y `buildIdentity` cae a `git rev-parse HEAD` (CA-4). Ese fallback
+ * nunca lanza: un build que muere porque `git` no está sería peor que un build
+ * que no sabe de dónde viene.
+ *
+ * Ninguna de estas tres claves se configura en ninguna parte: se CALCULAN. No
+ * van a `.env.example` ni a los entornos de Vercel (CA-13.3).
+ */
+const deploymentIdentity = buildIdentity({
+  sha: process.env.VERCEL_GIT_COMMIT_SHA,
+  vercelEnv: process.env.VERCEL_ENV,
+});
+
 /** @type {import('next').NextConfig} */
 const nextConfig = {
   reactStrictMode: true,
+  env: deploymentIdentity,
   async headers() {
     return [
       {

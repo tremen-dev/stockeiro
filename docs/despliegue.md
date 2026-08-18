@@ -39,10 +39,13 @@
 > que la épica arreglaba seguía intacto **y además mudo**, porque el diagnóstico que lo
 > habría delatado tampoco estaba desplegado. Ningún paso del ciclo tremen-sdd lo detectó: el
 > verificador cierra specs con tests y flujo **local**, no comprueba producción.
-> **Antes de dar una spec por entregada, comprueba que su código está VIVO.** La forma
-> barata: `vercel ls --prod` para la fecha del despliegue y `curl` del CSS/HTML público
-> buscando una clase o cadena que solo exista tras ese cambio. Los despliegues por CLI no
-> dejan metadatos de git, así que la fecha es la única pista — y miente si el árbol era viejo.
+> **Antes de dar una spec por entregada, comprueba que su código está VIVO.** Desde
+> **SPEC-031** eso es un comando y no un truco distinto por entrega:
+> `node scripts/check-alive.mjs --url <origen>` interroga `/api/version` y responde con un
+> código de salida — **§10** lo documenta. Si contesta `unknown`, ese despliegue **no sabe de
+> qué commit viene**, que es lo que son hoy todos los hechos por CLI: no dejan metadatos de
+> git. La fecha de `vercel ls --prod` sigue siendo una pista, pero **miente** si el árbol era
+> viejo, y por eso ya no es la comprobación.
 
 ## 0. Qué vamos a aprovisionar
 
@@ -353,11 +356,14 @@ durante 6 días. Pasos, en este orden — el orden importa:
      nueva y **no** con la vieja.
    - Con sesión abierta en otro navegador: tras el reset, esa sesión **ya no sirve datos**.
    - Email inexistente → **el mismo acuse genérico** y ningún correo (CA-1).
-8. **Comprueba que está VIVO**, no solo mergeado:
+8. **Comprueba que está VIVO**, no solo mergeado (SPEC-031; contrato y códigos en **§10**):
    ```bash
-   curl -s https://stockeiro-lemon.vercel.app/forgot-password | grep -o "forgot-password"
+   node scripts/check-alive.mjs --url https://stockeiro.tremen.dev
    ```
-   Si no responde, el deploy no llevaba el cambio.
+   Sale con **0** si el despliegue sabe de qué commit viene, y con **2** si responde
+   `unknown` — que es lo que responderá mientras los despliegues se sigan haciendo por CLI.
+   Cuando la integración Git rellene el sha (SPEC-028), la forma exacta es
+   `--commit $(git rev-parse origin/main)`.
 
 ### Nota sobre Preview y la BD de producción (F-SPEC-023-1)
 
@@ -406,3 +412,71 @@ Lo que este workflow **no** hace, y conviene no darlo por hecho:
   valores de juguete (`postgres://ci:ci@localhost:5432/ci`); el e2e levanta su propio Postgres
   efímero y usa proveedores *fake*.
 - **No escribe en el repositorio** (`permissions: contents: read`).
+
+---
+
+## 10. ¿Qué está vivo? — `/api/version` y la comprobación de vida
+
+Desde **SPEC-031** (ADR-018 D-6) el despliegue **dice de qué commit viene**, y hay un
+comando que lo pregunta. Sustituye al `curl` de una cadena inventada que este runbook
+prescribía antes: aquello funcionaba una vez, para una spec, si a alguien se le ocurría una
+cadena que solo existiera tras ese cambio.
+
+> **Alcance**: esto es **uso manual**. Esta sección **no** describe despliegue automático,
+> ni puerta post-deploy, ni la conexión del repo a Vercel: eso es **SPEC-028**, que usará
+> este mismo script desde un paso sin secretos.
+
+### El contrato de `/api/version`
+
+Endpoint público (el `matcher` del proxy excluye `/api`), sin caché (`Cache-Control:
+no-store`) y **sin base de datos**: responde aunque Neon esté caída, que es justo cuando más
+falta hace. Devuelve **exactamente** tres claves y ninguna más:
+
+| Clave | Qué es | Valor si no se sabe |
+|---|---|---|
+| `commit` | Sha del commit del que se construyó el artefacto | `unknown` |
+| `environment` | `production`, `preview` o `development` | `unknown` |
+| `builtAt` | Instante del build, ISO-8601 | `unknown` |
+
+```bash
+curl -s https://stockeiro.tremen.dev/api/version
+# {"commit":"unknown","environment":"production","builtAt":"2026-08-18T…Z"}
+```
+
+Los tres valores van **congelados en el build** (canal `env` de `next.config.mjs`): no se
+pueden cambiar sin reconstruir. Si pudieran, la comprobación mentiría.
+
+> ⚠️ **Hoy `commit` responde `unknown`, y es el diagnóstico correcto.** No hay integración
+> Vercel↔GitHub, así que `VERCEL_GIT_COMMIT_SHA` llega vacía y el despliegue **no sabe de
+> dónde viene** — exactamente lo que son los despliegues hechos por CLI. Empezará a llevar
+> sha cuando **SPEC-028** conecte el repositorio. Mientras tanto sirve `builtAt`, que ya
+> distingue un despliegue de otro. En un `npm run build` **local** sí sale un sha real: el
+> build cae a `git rev-parse HEAD`.
+
+### El comando
+
+```bash
+node scripts/check-alive.mjs --url <origen> [--commit <sha>] [--timeout <s>] [--interval <s>]
+```
+
+- `--url` es lo único obligatorio; se consulta `<origen>/api/version`.
+- Sin `--commit` es un **smoke test**: basta con que la identidad sea legible y no sea
+  `unknown`.
+- Con `--commit` espera a que ese sha aparezca, reintentando cada `--interval` segundos
+  (por defecto 5) hasta agotar `--timeout` (por defecto 120): un despliegue tarda en
+  propagarse, y un fallo de red no es un veredicto.
+- No lee **ninguna** variable de entorno y no importa nada fuera de la biblioteca estándar
+  de Node: corre con el repositorio clonado y nada instalado.
+
+### Los códigos de salida
+
+Son el contrato, no un detalle de implementación: distinguen *"aún no ha llegado"* de
+*"este despliegue no sabe de dónde viene"*, y esa diferencia no se reconstruye después
+leyendo un log.
+
+| Código | Significa | Qué hacer |
+|---|---|---|
+| **0** | El despliegue lleva el commit esperado (o, sin `--commit`, sabe de dónde viene) | Nada: está vivo |
+| **1** | No coincide, o se agotó el plazo esperándolo | Mirar el sha *último visto* que imprime: dice qué hay vivo ahora |
+| **2** | El despliegue responde `unknown` | **No** es un desacuerdo de shas: ahí no hay metadatos de git. Hoy es lo normal (ver aviso de arriba) |
+| **3** | Uso incorrecto, o respuesta ininteligible | Revisar los argumentos; si el cuerpo no es el contrato, el origen no es esta app |

@@ -52,6 +52,7 @@ Actualizado: 2026-08-18
 | SPEC-010 — bump-de-drizzle-orm-por-cve-de-sql-injection | hecho | 2026-07-14 (sdd-verificador) |
 | SPEC-026 — una-sola-definicion-del-esquema-los-tests-corren-contra-las-migraciones-de-produccion | hecho | 2026-08-17 (sdd-verificador) |
 | SPEC-027 — ci-en-cada-pr-la-suite-deja-de-depender-de-que-alguien-se-acuerde | hecho | 2026-08-18 (sdd-verificador) |
+| SPEC-031 — el-despliegue-dice-de-que-commit-viene-api-version-y-comprobacion-de-vida | hecho | 2026-08-18 (sdd-verificador) |
 
 ## ADRs
 
@@ -79,4 +80,4 @@ Actualizado: 2026-08-18
 
 ## Resumen
 
-- hecho: 25
+- hecho: 26
