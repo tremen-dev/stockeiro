@@ -49,7 +49,7 @@ Actualizado: 2026-08-18
 | SPEC-009 — migracion-a-next-16-y-remediacion-de-cve-de-rsc | hecho | 2026-07-14 (sdd-verificador) |
 | SPEC-010 — bump-de-drizzle-orm-por-cve-de-sql-injection | hecho | 2026-07-14 (sdd-verificador) |
 | SPEC-026 — una-sola-definicion-del-esquema-los-tests-corren-contra-las-migraciones-de-produccion | hecho | 2026-08-17 (sdd-verificador) |
-| SPEC-027 — ci-en-cada-pr-la-suite-deja-de-depender-de-que-alguien-se-acuerde | aprobada | 2026-08-18 (Alberto Fojo) |
+| SPEC-027 — ci-en-cada-pr-la-suite-deja-de-depender-de-que-alguien-se-acuerde | hecho | 2026-08-18 (sdd-verificador) |
 
 ## ADRs
 
@@ -76,5 +76,4 @@ Actualizado: 2026-08-18
 
 ## Resumen
 
-- hecho: 22
-- aprobada: 1
+- hecho: 23

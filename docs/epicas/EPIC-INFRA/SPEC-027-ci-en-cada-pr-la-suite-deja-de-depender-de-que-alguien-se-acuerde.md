@@ -479,11 +479,10 @@ Los CA mandan; esto es el esqueleto que los satisface, para que no haya que rede
 
 - Decisión: **ADR-018 — *Despliegue continuo desde main*** (aprobado por el humano el
   2026-08-17), punto **D-4** y punto **1** de su desglose. **Esta spec no necesita ADR nuevo**:
-  la decisión ya está tomada y firmada; esto es su ejecución. Contexto: **ADR-018 — *El esquema
+  la decisión ya está tomada y firmada; esto es su ejecución. Contexto: **ADR-019 — *El esquema
   de test es el de producción*** (SPEC-026), cuya guardia se refuerza aquí.
-- **Colisión de ids detectada, y no la arregla esta spec**: hay **dos ADR con id `ADR-018`** en
-  `docs/adr/` (despliegue continuo y esquema de test). Los dos están `aprobada`. Está reportado
-  en §Notas para el gate.
+- **Colisión de ids resuelta en esta rama** (commit e930f1c): el ADR de despliegue continuo
+  conserva `ADR-018` y el del esquema de test pasó a `ADR-019` (SPEC-026).
 - Épica: **EPIC-INFRA**, alcance *"CI y salud técnica"*; refuerza su **R-1**.
 - Identificadores, código y nombres de step en inglés; documentación y comentarios en español.
 
@@ -591,11 +590,10 @@ Aparcado a propósito, no por descuido.
    integración Vercel↔GitHub, ningún push construye nada. Las dos guardias son prerrequisito de
    **SPEC-028** (conectar el repo), no de esta. Queda como **F-SPEC-027-2**, marcado bloqueante
    de SPEC-028. Si prefieres que entren aquí, la spec crece bastante y con ella el gate.
-8. **Colisión de ids que no es de esta spec pero que deberías querer resolver: hay dos
-   `ADR-018`.** `ADR-018-despliegue-continuo-…` y `ADR-018-el-esquema-de-test-…`, ambos
-   `aprobada`, ambos citados por specs distintas. Un ADR se cita por id; con dos, la cita es
-   ambigua para siempre. No lo he tocado (un ADR aceptado es inmutable, y renumerar es decisión
-   tuya): dime si quieres que el documentalista lo arregle y cómo.
+8. **Colisión de ids resuelta en esta rama** (commit e930f1c): había dos `ADR-018`
+   (`ADR-018-despliegue-continuo-…` y `ADR-018-el-esquema-de-test-…`), ambos en `aprobada`.
+   Ahora: `ADR-018` = despliegue continuo (que gobierna esta spec) y `ADR-019` = esquema de test
+   (SPEC-026). El renumerado a ADR-019 es inmutable.
 9. **Estimación de tiempo, para que juzgues la cuota.** Job `Checks` ~6-8 min (los unitarios
    mandan: 145 s en mis 16 núcleos → estimo 4-7 min en los 4 vCPU del runner, y el canario suma
    **2,0 s medidos**, no los 25 s que estimé aquí). Job `E2E` ~6-7 min (instalar navegador
