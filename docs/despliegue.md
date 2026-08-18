@@ -26,10 +26,11 @@
 >   y `RESEND_FROM` en Production, dominio `tremen.dev` verificado, y un reset real entregado.
 > - ✅ **`APP_BASE_URL`** — F-SPEC-023-3: **CERRADO y PROBADO** el 2026-08-18, con valor
 >   `https://stockeiro.tremen.dev` (CNAME en Cloudflare, sin proxy).
-> - ⏳ **F-SPEC-023-1**: `DATABASE_URL` sigue compartida entre `Production` y `Preview`
->   (confirmado en la propia integración de Neon: el recurso está conectado a *production* **y**
->   *preview*). Hoy es inocuo porque nada dispara builds de Preview; **conectar el repo a Vercel
->   lo activaría**. Lo resuelve ADR-018.
+> - ✅ **F-SPEC-023-1**: **CERRADO el 2026-08-18** por ops, activando *preview branching* en la
+>   integración nativa de Neon (`Create Database Branch For Deployment` = **Preview sí,
+>   Production no**, prefijo de variables `DATABASE`). Un build de Preview recibe la
+>   `DATABASE_URL` de **su propia rama copy-on-write**, no la de producción. Desde **SPEC-032**
+>   hay además una segunda línea que no depende de ese ajuste: la guardia `guard-migrate` (§11).
 > - **F-SPEC-011-1**: el build debe alcanzar `cdn.sheetjs.com` (dependencia `xlsx`); ver **§6**.
 > - **F-SPEC-020-1**: dialecto de `XSTO` (Estocolmo) sin resolver; sus valores no cotizan y lo dicen.
 
@@ -95,20 +96,26 @@ openssl rand -hex 32      # CRON_SECRET
 
 ### 1.1 Materializar el esquema en Neon
 
-**El deploy migra solo.** `vercel.json` define:
+**El deploy migra solo, si tiene permiso.** `vercel.json` define:
 
 ```json
-"buildCommand": "npm run db:migrate && npm run build"
+"buildCommand": "node scripts/guard-migrate.mjs && npm run db:migrate && npm run build"
 ```
 
-Es decir, **cada** deploy (incluido `vercel --prod`) ejecuta `drizzle-kit migrate` con el
-`DATABASE_URL` de ese entorno **antes** de construir, aplicando las migraciones versionadas
-de `drizzle/`. Es **idempotente** (Drizzle lleva registro de lo ya aplicado) y si la
+Es decir, **cada** deploy (incluido `vercel --prod`) pide permiso a la **guardia** (SPEC-032,
+§11) y solo entonces ejecuta `drizzle-kit migrate` con el `DATABASE_URL` de ese entorno
+**antes** de construir, aplicando las migraciones versionadas de `drizzle/`. Es
+**idempotente** (Drizzle lleva registro de lo ya aplicado) y si la guardia rechaza o la
 migración falla, el `&&` corta: **el build falla y no se despliega** — se queda la versión
-anterior. **No hay paso manual** tras una spec que cambie el esquema: basta desplegar.
+anterior. **No hay paso manual** tras una spec que cambie el esquema: basta desplegar. En
+Production la guardia autoriza siempre, así que un `vercel --prod` se comporta igual que
+antes de SPEC-032.
 
 Solo necesitas migrar a mano si quieres tocar la BD **fuera** de un deploy (p. ej. preparar
-Neon antes del primer despliegue, o depurar):
+Neon antes del primer despliegue, o depurar). Ese camino **no pasa por la guardia** a
+propósito —no hay `VERCEL_ENV` en tu máquina, y una defensa que estorba es una defensa que
+alguien acaba desactivando—, así que `npm run db:migrate` sigue siendo `drizzle-kit migrate`
+a secas:
 
 ```bash
 # con la connection string real de Neon:
@@ -247,13 +254,19 @@ vercel --prod     # deploy a producción
 - **Rotación de secretos**: si regeneras `CRON_SECRET`/`AUTH_SECRET`, actualiza la env en Vercel
   y **redeploy** (las envs se leen en build/arranque).
 - **Migraciones**: el deploy **SÍ migra solo** — `vercel.json` corre `npm run db:migrate`
-  dentro del `buildCommand` (ver **§1.1**). Tras una spec que cambie el esquema no hay paso
-  manual: basta desplegar. Si la migración falla, el build falla y no se despliega.
-- **Preview deployments** ⚠️: el `buildCommand` corre en **todos** los entornos, así que un
-  deploy de *Preview* **también migra** la BD a la que apunte su `DATABASE_URL`. Si el entorno
-  *Preview* comparte la Neon de producción, **una PR migraría producción**. Usa una **BD Neon
-  aparte para Preview** (no es una recomendación estética: con `db:migrate` en el build es lo
-  que separa producción de las PRs).
+  dentro del `buildCommand`, precedido por la guardia `guard-migrate` (ver **§1.1** y **§11**).
+  Tras una spec que cambie el esquema no hay paso manual: basta desplegar. Si la guardia
+  rechaza o la migración falla, el build falla y no se despliega.
+- **Preview deployments**: el `buildCommand` corre en **todos** los entornos, así que un deploy
+  de *Preview* también intenta migrar. Hoy hay dos cosas entre eso y un accidente, y conviene
+  no confundirlas:
+  1. **Contra qué base migra** lo responde el *preview branching* de Neon (cerró F-SPEC-023-1 el
+     2026-08-18): cada despliegue de Preview recibe la `DATABASE_URL` de **su propia rama
+     copy-on-write**, no la de producción.
+  2. **Si tiene permiso para migrar** lo responde la guardia `guard-migrate` (SPEC-032 / ADR-018
+     D-2), que vive en el repositorio y **no depende de ese ajuste del panel**: si alguien apaga
+     el branching, la guardia sigue ahí. Un Preview sin `ALLOW_MIGRATE=1` **no migra: falla en
+     rojo**, que es el comportamiento correcto. Ver **§11**.
 - **Dependencia del build con el CDN de SheetJS** (F-SPEC-011-1): `xlsx` es dependencia de
   producción instalada desde `https://cdn.sheetjs.com/...` (el paquete de npm está congelado
   y con CVEs; SPEC-011). El build de Vercel debe poder alcanzar ese host: si no, `npm install`
@@ -365,17 +378,31 @@ durante 6 días. Pasos, en este orden — el orden importa:
    Cuando la integración Git rellene el sha (SPEC-028), la forma exacta es
    `--commit $(git rev-parse origin/main)`.
 
-### Nota sobre Preview y la BD de producción (F-SPEC-023-1)
+### Nota sobre Preview y la BD de producción (F-SPEC-023-1, cerrado el 2026-08-18)
 
-Verificado el **2026-08-17** con `vercel env ls production`: `DATABASE_URL` está definida para
-**`Production, Preview`** con un único valor. Como el `buildCommand` migra en todos los
-entornos, **un build de Preview migraría producción** (§6).
+**Lo que había hasta el 2026-08-17**: `DATABASE_URL` definida para **`Production, Preview`** con
+un único valor (`vercel env ls production`). Como el `buildCommand` migra en todos los entornos,
+un build de Preview habría migrado producción. La trampa estaba *latente, no activa*, porque no
+había integración Vercel↔GitHub que disparase builds.
 
-Atenuante comprobado el mismo día: **hoy no hay integración Vercel↔GitHub** en este repo — la
-API de deployments de GitHub está vacía y la PR #24 no reporta ningún check, así que un `push`
-o una PR **no disparan build alguno**. La trampa está **latente, no activa**: se activaría en
-el momento en que alguien conecte el repo a Vercel. El arreglo (BD de Neon aparte para Preview)
-sigue pendiente y es lo que separa producción de las PRs.
+**Lo que hay desde el 2026-08-18**, y es el cierre de F-SPEC-023-1: la integración nativa de
+Neon tiene activado el ***preview branching*** — `Create Database Branch For Deployment` =
+**Preview sí, Production no**, con prefijo de variables `DATABASE`. Cada despliegue de Preview
+recibe la `DATABASE_URL` de **su propia rama copy-on-write** de Neon. Producción y las PRs ya
+no comparten base.
+
+**Y por qué eso no cierra el asunto del todo.** El *preview branching* es un ajuste de un panel
+que nadie audita y que nadie versiona: se puede desactivar, se puede desconectar y reconectar el
+recurso sin esa casilla, o se puede crear un entorno nuevo que herede la `DATABASE_URL` de
+siempre. Por eso SPEC-032 añade la guardia `guard-migrate` (§11), que vive en el repositorio,
+se prueba con tests y **sobrevive a cualquier reconfiguración de Vercel**. Las dos responden
+preguntas distintas: el branching responde *contra qué base migro*; la guardia, *si tengo
+permiso para migrar aquí*.
+
+Residual conocido, declarado como **F-SPEC-032-1**: `ALLOW_MIGRATE=1` en Preview es una
+autorización **permanente** que asume que el branching sigue encendido. Si alguien lo apaga, el
+permiso sobrevive. La mitigación que hay hoy es que la guardia **imprime en el log del build el
+host y el nombre de la base** contra los que autoriza (§11): no lo previene, lo delata.
 
 ---
 
@@ -387,11 +414,12 @@ en dos jobs paralelos que aparecen como dos checks separados en la PR:
 
 | Check | Steps (uno por gate) |
 |---|---|
-| `CI / Checks` | `Typecheck` · `Lint` · `Unit tests` |
+| `CI / Checks` | `Typecheck` · `Lint` · `Unit tests` · `Migration scan` |
 | `CI / E2E` | `Build` · `End-to-end tests` |
 
-Los tres gates de `Checks` se ejecutan **aunque uno falle**, para que el primer rojo no tape a
-los otros dos. Cuando el e2e falla, el job sube un artefacto (`playwright-report/`,
+`Migration scan` lo añadió **SPEC-032**: ejecuta `npm run db:scan` y nada más (ver **§11**).
+Los cuatro gates de `Checks` se ejecutan **aunque uno falle**, para que el primer rojo no tape a
+los demás. Cuando el e2e falla, el job sube un artefacto (`playwright-report/`,
 `test-results/` con trazas, `_qa/`) con 7 días de retención; en verde no sube nada.
 
 > ⚠️ **La CI informa, pero NO impide mezclar.** Esto no es un ajuste que falte por activar: el
@@ -480,3 +508,133 @@ leyendo un log.
 | **1** | No coincide, o se agotó el plazo esperándolo | Mirar el sha *último visto* que imprime: dice qué hay vivo ahora |
 | **2** | El despliegue responde `unknown` | **No** es un desacuerdo de shas: ahí no hay metadatos de git. Hoy es lo normal (ver aviso de arriba) |
 | **3** | Uso incorrecto, o respuesta ininteligible | Revisar los argumentos; si el cuerpo no es el contrato, el origen no es esta app |
+
+---
+
+## 11. Las dos guardias de migración (SPEC-032)
+
+Desde **SPEC-032** (ADR-018 D-2 y D-5.2) hay dos piezas entre una migración y el daño, y
+responden preguntas distintas:
+
+| Pieza | Pregunta que responde | Dónde corre |
+|---|---|---|
+| `scripts/guard-migrate.mjs` | ¿Tiene **este build** permiso para migrar? | Dentro del `buildCommand` de Vercel |
+| `scripts/scan-destructive-sql.mjs` | ¿Hay SQL **destructivo** sin justificar por escrito? | En la CI (`Migration scan`) y en `npm test` |
+
+> **Alcance**: esto es **uso manual y contrato**. Esta sección **no** describe despliegue
+> automático, ni conexión del repo a Vercel, ni puerta post-deploy: eso es **SPEC-028**.
+
+### 11.1 La guardia del build — `guard-migrate`
+
+`vercel.json` encadena:
+
+```
+node scripts/guard-migrate.mjs && npm run db:migrate && npm run build
+```
+
+La guardia **no acepta argumentos**: decide leyendo solo el entorno, y **nunca abre la base ni
+sale a la red**. La propiedad que fija ADR-018 D-2, en una línea: *un build que no sea de
+producción no migra, salvo que el entorno donde corre lo autorice de forma explícita; por
+omisión, no migra: falla.*
+
+| `VERCEL_ENV` | `ALLOW_MIGRATE` | Decisión |
+|---|---|---|
+| `production` | cualquier valor, o ausente | **autoriza** |
+| `preview` / `development` / cualquier otro | `1` | **autoriza** |
+| `preview` / `development` / cualquier otro | ausente, vacío, `0`, `true`, `yes`, otra cosa | **rechaza** |
+| **ausente** | `1` | **autoriza** |
+| **ausente** | cualquier otra cosa | **rechaza** |
+
+El valor se compara **tras recortar espacios** contra la cadena literal `1`: `true`, `yes` y `0`
+**no** autorizan, y el mensaje de rechazo lo dice.
+
+Códigos de salida — son el contrato, porque cualquier valor distinto de 0 corta el `&&` del
+`buildCommand`, y ese corte **es** el mecanismo:
+
+| Código | Significa | Qué hacer |
+|---|---|---|
+| **0** | Autoriza. Imprime el `VERCEL_ENV` que vio, por qué autorizó, y el **host y el nombre de base** de `DATABASE_URL` (nunca usuario, contraseña ni parámetros) | Nada: el build sigue |
+| **1** | Rechaza: ese entorno no tiene permiso. **La base no se ha tocado** | Si el build debía migrar, dar permiso a ese entorno (abajo). Si no, es que ha funcionado |
+| **2** | Uso incorrecto (se le pasó un argumento que no conoce) | Invocarla sin argumentos, o con `--help` |
+
+```bash
+node scripts/guard-migrate.mjs --help    # imprime el contrato y sale con 0
+```
+
+**`ALLOW_MIGRATE`: qué es, dónde debe existir y qué pasa si falta.** Es el permiso explícito de
+un entorno, y el único valor que autoriza es `ALLOW_MIGRATE=1`. Solo hace falta en los entornos
+de Vercel que **no** sean Production —hoy, en la práctica, **Preview**—. **Ponerla es una acción
+de ops que este runbook documenta pero que SPEC-032 no ejecuta** (`F-SPEC-032-2`):
+
+```bash
+vercel env add ALLOW_MIGRATE preview     # valor: 1
+```
+
+**Si falta**, ese entorno **no migra: su build falla en rojo**, y se queda la versión anterior.
+Hoy eso no rompe nada porque sin integración Git no se disparan builds de Preview; el día que
+**SPEC-028** conecte el repositorio sin esa variable, **todas las previews fallarán en la
+guardia**. Es el comportamiento correcto (ADR-018 D-3: *fallan en rojo y en la PR, nunca en
+silencio contra producción*), pero conviene que sea una decisión y no una sorpresa.
+
+En tu máquina no hay `VERCEL_ENV`, así que la guardia rechazaría — por eso el camino manual de
+**§1.1** (`DATABASE_URL="…" npm run db:migrate`) **no pasa por ella**.
+
+### 11.2 El escáner de SQL destructivo — `db:scan`
+
+```bash
+npm run db:scan                              # el drizzle/ del repositorio
+node scripts/scan-destructive-sql.mjs --help
+```
+
+Lee los `.sql` de `drizzle/` **en el orden del journal** —sin git, sin rama base, sin GitHub y
+sin red— y marca lo que enumera ADR-018 D-5.2: `DROP`, `RENAME`, `TRUNCATE`, `DELETE FROM`,
+`ALTER COLUMN … SET NOT NULL` y `ALTER COLUMN … TYPE` / `SET DATA TYPE`. **No** marca lo que
+esté dentro de un comentario o de un literal, ni nada aditivo, ni `UPDATE` (el relleno es la
+mitad sancionada de *expand/contract*, **RI-01**).
+
+Corre en dos sitios a propósito: el step **`Migration scan`** de la CI (§9), que impide el
+olvido, y `npm test`, que te lo dice **antes** de empujar. Una sola implementación, dos
+invocadores.
+
+| Código | Significa |
+|---|---|
+| **0** | Limpio, o todo lo marcado está desbloqueado por escrito |
+| **1** | Hay SQL destructivo sin desbloquear, o un desbloqueo inválido o huérfano |
+| **2** | Uso incorrecto, o `drizzle/` ilegible |
+
+### 11.3 Cómo se desbloquea una migración destructiva
+
+El desbloqueo es **explícito, escrito y versionado**: vive en `drizzle/destructive-waivers.json`,
+aparece en el diff justo al lado del `.sql` que justifica, y sobrevive al cierre de la PR. Una
+entrada por migración marcada, con **las cuatro claves**:
+
+```json
+{
+  "0007_tearful_roughhouse": {
+    "spec": "SPEC-024",
+    "reason": "…por qué hace falta destruir esto…",
+    "rollback": "…cómo se vuelve atrás si sale mal…",
+    "statements": 2
+  }
+}
+```
+
+- `spec` · `reason` · `rollback` — los tres son obligatorios y **no pueden estar vacíos**: un
+  desbloqueo sin justificación no es un desbloqueo, es una casilla marcada.
+- `statements` — cuántas sentencias destructivas autoriza. Ata el permiso a lo que permite: si
+  alguien edita una migración ya desbloqueada para colarle una sentencia más, el conteo deja de
+  cuadrar y el gate se pone en rojo.
+- Un desbloqueo **huérfano** (nombra un fichero que no existe, o que ya no marca nada) también
+  falla: un permiso que sobrevive a lo que permitía enseña a no leer el fichero.
+
+No hace falta escribirlo a mano desde cero: cuando el escáner falla, imprime el fichero, la
+línea, la sentencia y **el fragmento JSON exacto que hay que pegar**, entre las marcas `8<` y
+`>8`, con los campos vacíos por rellenar.
+
+Hoy el repositorio trae sembradas las **dos** entradas históricas —`0001_symbol_market_identity`
+(relaja una unicidad, SPEC-008) y `0007_tearful_roughhouse` (habilita borrados en cascada,
+SPEC-024)— con su justificación real y su plan de vuelta atrás. Y conviene recordar por qué el
+plan de vuelta atrás no es papeleo: **`vercel rollback` devuelve el código, no el esquema.**
+
+> **La regla detrás del gate es RI-01** (`docs/fundacion/reglas.md`, fuente ADR-018 D-5.1):
+> migraciones aditivas, *expand/contract*. El escáner es su vigilante, no su sustituto.
