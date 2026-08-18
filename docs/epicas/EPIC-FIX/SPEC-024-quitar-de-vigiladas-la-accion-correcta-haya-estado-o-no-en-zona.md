@@ -306,7 +306,8 @@ Aparcado a propósito, no por descuido:
   quita la fila correcta, pero **el usuario sigue viendo dos filas idénticas** ("SAN" y
   "SAN") y solo puede distinguirlas por precio y zonas. Es un problema de presentación, no de
   corrección, y esta spec no lo toca. → **F-SPEC-024-1** (EPIC-MEJORA): añadir mercado/divisa
-  a la columna de ticker.
+  a la columna de ticker. *(Cerrado después por **SPEC-029 CA-14**, gate del 2026-08-18. Se
+  anota; SPEC-024 no se reabre.)*
 - **El mismo defecto de identidad en la cartera**: `recordSell`, `recordSplit` y
   `recordDividend` (`src/lib/portfolio/service.ts:98,127,144`) también resuelven el símbolo
   con `getSymbolByTicker`. Es la misma clase de defecto, en otra pantalla, con otro impacto

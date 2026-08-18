@@ -8,7 +8,8 @@
 Stockeiro es un gestor de inversiones en bolsa a largo plazo (Next.js) que
 **vigila cotizaciones y avisa, no opera**: avisa cuando una acción entra en una
 zona de compra/venta definida por el usuario y mantiene su cartera con P/L actual
-y realizado (ver `vision.md`, FOUNDATION D-1..D-7). Estado: **EPIC-001** (núcleo:
+y realizado (ver `vision.md`, FOUNDATION D-1..D-7 — **D-7 supersedida por
+ADR-020** el 2026-08-18: el filtro es el mercado, no el tipo de instrumento). Estado: **EPIC-001** (núcleo:
 vigilancia + avisos + cartera) en curso. **SPEC-001 (Cuentas y multiusuario)
 HECHA GREEN** (8/8 CA) y **SPEC-002 (Cartera y P/L) HECHA GREEN** (11/11 CA:
 ledger de transacciones, P/L actual/realizado con `decimal.js` y redondeo
@@ -62,7 +63,10 @@ Lo realmente montado (decisión en **ADR-001**; ingesta en **ADR-002**):
   diario por Cron.
 - **FOUNDATION D-1..D-7** (locked): avisa no opera; no tiempo real; disparo por
   **zona** (rango), no por valor; la app no calcula zonas; multiusuario aislado;
-  P/L actual vs. realizado siempre separado; el instrumento es la **acción**.
+  P/L actual vs. realizado siempre separado; el instrumento es el que cotice en
+  un **mercado soportado** (**D-7 supersedida por ADR-020** el 2026-08-18: se
+  retira la lista blanca de tipos y el tipo se **muestra**; el **modelo** sigue
+  siendo el de la acción, ADR-003 y D-6 intactos).
 - Resoluciones del gate de **SPEC-001**: política de contraseña **delegada en
   Auth.js** (sin política propia); aislamiento **en capa de app** con test (CA-6),
   **RLS a futuro** (refuerzo, no ahora); errores de login genéricos; sin

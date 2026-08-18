@@ -41,6 +41,8 @@ Actualizado: 2026-08-18
 | SPEC-021 — precio-de-cadena-inambigua-en-mercados-pelados | hecho | 2026-08-11 (sdd-verificador) |
 | SPEC-024 — quitar-de-vigiladas-la-accion-correcta-haya-estado-o-no-en-zona | hecho | 2026-08-17 (sdd-verificador) |
 | SPEC-025 — cartera-vender-dividir-y-cobrar-dividendo-sobre-la-posicion-del-mercado-correcto | hecho | 2026-08-17 (sdd-verificador) |
+| SPEC-029 — el-buscador-ofrece-cualquier-instrumento-del-mercado-soportado-dice-de-que-tipo-es-y-por-que-descarta | borrador | 2026-08-18 (sdd-arquitecto) |
+| SPEC-030 — coma-decimal-en-el-alta-manual-y-errores-que-distinguen-el-dato-del-fallo | borrador | 2026-08-18 (sdd-arquitecto) |
 
 ## EPIC-INFRA (aprobada)
 
@@ -73,7 +75,9 @@ Actualizado: 2026-08-18
 | ADR-017 | aprobada | baja-de-una-accion-vigilada-los-episodios-de-zona-son-derivados-y-el-historial-de-avisos-se-conserva | 2026-08-17 (Alberto Fojo) |
 | ADR-018 | aprobada | despliegue-continuo-desde-main-verificacion-en-pr-deploy-automatico-al-mergear-y-comprobacion-de-vida | 2026-08-17 (humano (Alberto Fojo)) |
 | ADR-019 | aprobada | el-esquema-de-test-es-el-de-produccion-una-sola-fuente-aplicada-desde-las-migraciones | 2026-08-17 (Alberto Fojo) |
+| ADR-020 | aprobada | el-buscador-no-filtra-por-tipo-de-instrumento-y-ningun-descarte-es-mudo | 2026-08-18 (humano (Alberto Fojo)) |
 
 ## Resumen
 
 - hecho: 23
+- borrador: 2
