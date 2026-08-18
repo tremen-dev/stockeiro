@@ -71,3 +71,19 @@
   **no pierde** el aviso (queda in-app) ni aborta los avisos de otros usuarios (resiliencia
   por usuario, RN-01). Objetivo CE-2: 100 % de disparos con aviso registrado. Fuente:
   ADR-006; cierra R-4.
+
+## Reglas de ingeniería (RI-xx)
+
+> Serie aparte de la de dominio. Las **RN-xx** de arriba son reglas de negocio
+> —las vigilan `sdd-cartera` y `sdd-mercados`, y su fuente es un dictamen de
+> dominio—; las **RI-xx** son reglas de ingeniería: vinculan a cualquier spec que
+> toque el código o el esquema, y su fuente es un ADR. La numeración es
+> independiente y estable: no se borran, se marcan derogadas con fecha y motivo.
+
+- **RI-01** (Migraciones aditivas, *expand/contract*): una migración no borra, no
+  renombra y no estrecha una columna **en el mismo despliegue** que cambia el
+  código. Lo destructivo se parte en dos despliegues separados por al menos un
+  despliegue verde: primero se añade y se rellena; después, en otra spec, se
+  retira lo viejo. El incumplimiento se detecta automáticamente (SPEC-032) y
+  **solo se desbloquea por escrito**, con justificación y plan de vuelta atrás,
+  en `drizzle/destructive-waivers.json`. Fuente: ADR-018 D-5.1.
