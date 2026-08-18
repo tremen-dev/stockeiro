@@ -52,8 +52,20 @@ historial:
 >
 > **Gate humano celebrado el 2026-08-18 (Alberto Fojo): spec APROBADA**, con cuatro
 > resoluciones. Una de ellas añade trabajo —**D-7 se adopta como RI-02**, y es **CA-14**— y otra
-> va **en contra de la recomendación del arquitecto** (§Notas para el gate, punto 1). Las cuatro
+> iba **en contra de la recomendación del arquitecto** (§Notas para el gate, punto 1). Las cuatro
 > quedan escritas **con su resolución, no borradas**, porque la resolución es parte del contrato.
+>
+> **Actualización del 2026-08-19 — el mundo cambió debajo de la spec, y un CA cambió de signo.**
+> El repositorio pasó a ser **público** (razón inmediata: la documentación de Vercel no permite
+> desplegar en plan **Hobby** desde un repositorio **privado de una organización**, y el proyecto
+> vive en el ámbito personal `albertofojo-5908s-projects`; hacer público el repo fue la salida
+> frente a pagar Vercel Pro). Como **efecto colateral**, GitHub habilitó la protección de rama, y
+> **está activa**: ruleset `Protected main`, `enforcement: active`, PR obligatoria, `Checks` y
+> `E2E` requeridos, y **lista de *bypass* vacía**. Consecuencia: **`F-SPEC-028-1` y
+> `F-SPEC-027-1` quedan cerrados**, y **CA-12.5 se reescribe con el signo contrario** — pedía que
+> el runbook avisase de que no había red, y hoy la hay. Los otros trece CA, su clasificación
+> 🔒/🚀 y el estado de los cuatro 🚀 (abiertos: el repo aún **no está conectado** a Vercel) **no
+> cambian**.
 
 ## Problema
 
@@ -114,9 +126,11 @@ pero no la modifica.
   *"acordarse de ejecutar `vercel --prod` desde el árbol correcto"* a *"mirar un check"*. Es el
   rol que más cambia, y el runbook que lee cambia con él.
 - **Quien mergea una PR**: hereda una responsabilidad que antes no tenía. **Mergear pasa a ser
-  el acto que despliega a producción**, con dos consecuencias que hay que tener delante: la CI en
-  rojo ya no impide nada (F-SPEC-027-1, §Notas para el gate punto 1) y un cambio de época de
-  credencial cierra la sesión de todos los usuarios **en el instante del merge** (ADR-016).
+  el acto que despliega a producción**. Desde el **2026-08-19** no está solo en eso: `main` está
+  protegida (ruleset `Protected main`), así que **no puede mezclar con `Checks` o `E2E` en rojo**
+  ni empujar directamente, y **nadie puede saltárselo** —la lista de *bypass* está vacía—. Lo que
+  sigue enteramente en sus manos es el **cuándo**: un cambio de época de credencial cierra la
+  sesión de todos los usuarios **en el instante del merge** (ADR-016).
 - **sdd-verificador y sdd-orquestador**: **D-7 se adoptó en el gate del 2026-08-18** como
   **RI-02** (CA-14). El GREEN del verificador no cambia —sigue siendo sobre el árbol y antes del
   merge—; lo que cambia es que el paso a `hecho` ocurre **después**, con la puerta verde como
@@ -381,16 +395,50 @@ eso lleva tres CA en vez de una nota.
      el esquema*; tras una migración destructiva deja código viejo contra un esquema mutilado, y
      la red última es el historial de restauración de Neon (**cuya ventana sigue sin comprobar**,
      pregunta 7 del gate de ADR-018).
-  5. **Que mirar el check de la CI antes de mezclar es ahora el único freno, y que nadie lo va a
-     mirar por ti.** Es la consecuencia escrita del riesgo que el humano aceptó en el gate
-     (§Notas para el gate, punto 1, y `F-SPEC-028-1`): la CI **informa pero no impide**, y a
-     partir de esta spec **entre un merge en rojo y producción no queda ninguna persona**. El
-     runbook §9 ya lleva esa advertencia; aquí deja de ser una molestia y pasa a ser la barrera.
-     *Por qué es un punto de CA y no una nota suelta*: es lo único verificable que se deriva de
-     una decisión que, por lo demás, no deja rastro en el repositorio.
-  *Verificación*: test estático sobre el runbook (existe la sección; menciona el fichero del
-  workflow, el dominio, los cuatro códigos, `vercel rollback` junto a la frase de que no devuelve
-  el esquema, y la advertencia del punto 5 ligada al despliegue automático) + lectura humana.
+  5. **Que la CI IMPIDE mezclar: con qué mecanismo exacto, quién no puede saltárselo, y qué no
+     cubre.** Desde el **2026-08-19** `main` está protegida, así que esto dejó de ser una
+     recomendación y es una regla que aplica GitHub. El runbook tiene que decirlo **donde se lee
+     antes de mezclar**, y nombrar las piezas — para que el texto sea comprobable hoy y quede
+     **comprobablemente desfasado** el día que alguien las cambie:
+     1. **Todo cambio entra por PR**: `main` no acepta *push* directo, y están bloqueados además
+        el borrado de la rama y el *force-push* (`deletion`, `non_fast_forward`).
+     2. **`Checks` y `E2E` tienen que estar en verde para poder mezclar.** Son los dos contextos
+        que el ruleset exige, con esos nombres exactos; en la lista de la PR aparecen como
+        `CI / Checks` y `CI / E2E`.
+     3. **El ruleset se llama `Protected main`**, está en `enforcement: active` sobre la rama por
+        defecto, y **su lista de *bypass* está vacía**. Eso último **es parte de la protección, no
+        un detalle de configuración**: sin excepciones, la regla frena también al dueño del
+        repositorio. **El día que alguien se añada a esa lista, la red vuelve a ser un
+        recordatorio** — y este texto, mentira.
+     4. **Lo que la protección NO cubre**, dicho en el mismo sitio para que nadie se apoye de más:
+        (a) **no exige revisión de nadie** (`required_approving_review_count: 0`) — exige PR y
+        checks verdes, no un segundo par de ojos; (b) **no exige que la rama esté al día con
+        `main`** antes de mezclar (política *strict* desactivada), así que los checks pueden haber
+        corrido contra una base más vieja que la que acaba desplegándose; (c) **`Alive` no es un
+        check requerido, y no debe serlo**: corre en `push` a `main`, o sea **después** del merge,
+        y exigirlo en la PR bloquearía todas las PR para siempre, porque ahí no llega a existir.
+     5. **Y ningún pasaje del runbook sigue diciendo lo contrario.** Desaparecen del documento
+        entero —**§9 incluida**— las afirmaciones de que *"la CI informa, pero no impide mezclar"*
+        y de que *"nadie lo va a mirar por ti"*, y la mención a `F-SPEC-027-1` como residual
+        abierto.
+     *Por qué este punto cambió de signo, y por qué se deja escrito en vez de reescrito en
+     silencio*: hasta el 2026-08-18 era exacto —el plan de GitHub no ofrecía protección de rama en
+     repo privado, y el humano **aceptó ese riesgo en el gate**, en contra de mi recomendación—. El
+     **2026-08-19** el repositorio pasó a **público** por una razón ajena a este debate (Vercel no
+     permite desplegar en plan Hobby desde un repo privado de una organización), y GitHub habilitó
+     la protección como **efecto colateral**. El riesgo no se corrigió: **se evaporó por un
+     movimiento hecho por otro motivo**. Que el texto anterior sobreviviera un solo día sería el
+     peor fallo imaginable en un runbook — decirle a quien lo lee que no hay red **justo cuando sí
+     la hay**.
+     *Por qué es un punto de CA y no una nota suelta*: la protección vive en GitHub, **no en el
+     repositorio**; el runbook es el único sitio del árbol donde puede quedar escrita, y un test
+     estático puede comprobar que lo está — y que lo viejo ya no.
+  *Verificación*: test estático sobre el runbook. En positivo: existe la sección; menciona el
+  fichero del workflow, el dominio, los cuatro códigos de salida, `vercel rollback` junto a la
+  frase de que no devuelve el esquema, el ruleset `Protected main`, los contextos `Checks` y
+  `E2E`, y la lista de *bypass* vacía. **En negativo, que es la mitad que importa**: las frases
+  *"informa, pero no impide"* y *"nadie lo va a mirar por ti"* **no aparecen en ningún punto del
+  documento**. Más lectura humana en la revisión.
 
 - **CA-13 (La configuración que no vive en el repo queda escrita, con su evidencia y sus
   techos).** 🔒 sin desplegar
@@ -475,9 +523,13 @@ eso lleva tres CA en vez de una nota.
 - **ADR-018 D-3 / F-SPEC-023-1** — *ningún entorno que no sea Production tendrá credenciales de la
   BD de Production*. Cerrado por ops el 2026-08-18; **CA-3.3 lo comprueba una vez, con el pipeline
   vivo**, que es la primera oportunidad real de hacerlo.
-- **ADR-018 D-4 / SPEC-027** — la CI en cada PR. **No se toca** (CA-9.1). Y su
-  **F-SPEC-027-1** —*la CI informa pero no impide mezclar*— **cambia de peso** con esta spec, y no
-  a mejor: ver §Notas para el gate, punto 1.
+- **ADR-018 D-4 / SPEC-027** — la CI en cada PR. **No se toca** (CA-9.1). Su **`F-SPEC-027-1`**
+  —*la CI informa pero no impide mezclar*— llegó a **cambiar de peso** con esta spec y a peor
+  (retirado el humano que desplegaba, era el único freno), y quedó **cerrado el 2026-08-19**: con
+  el repositorio público, GitHub habilita la protección de rama y el ruleset `Protected main` está
+  activo. La CI pasa de *informa* a **impide**, que es exactamente la premisa sobre la que ADR-018
+  aceptó retirar el gate humano previo a producción. Lo único que esta spec debe hacer al respecto
+  es que **el runbook lo diga** → **CA-12.5**.
 - **ADR-018 D-5.1 → RI-01** (`docs/fundacion/reglas.md`) — la política de migraciones aditivas.
   **No se modifica**, pero conviene saber que a partir de aquí es lo que hace tolerable que un
   merge migre producción sin que nadie mire el SQL: es el contrapeso, y ya está firmado.
@@ -518,9 +570,11 @@ Aparcado a propósito, y casi todo con dueño y nombre:
 
 - **Todo lo que ya entregaron SPEC-027, SPEC-031 y SPEC-032.** No se reimplementa nada: ni la CI,
   ni `/api/version`, ni `check-alive.mjs`, ni las dos guardias. Esta spec **solo cablea**.
-- **Impedir el merge con la CI en rojo** → **F-SPEC-027-1**. No es un ajuste pendiente: el plan de
-  GitHub de la organización no lo ofrece en repo privado (`403 Upgrade to GitHub Pro`). Esta spec
-  **no lo resuelve y sube su gravedad** — por eso va a §Notas para el gate como punto 1, con precio.
+- **Configurar la protección de rama.** Dejó de ser residual el **2026-08-19**: `main` está
+  protegida (`Protected main`, PR obligatoria, `Checks` y `E2E` requeridos, *bypass* vacío), y con
+  ello se cierran **`F-SPEC-027-1`** y **`F-SPEC-028-1`**. **No lo hizo esta spec** y no lo mantiene:
+  es configuración de GitHub, del humano. Lo único que entra aquí es que el runbook lo **cuente
+  bien** (**CA-12.5**) — y que deje de contar lo contrario, que es la mitad urgente.
 - **Una puerta post-deploy para los despliegues de Preview.** Exigiría la URL de Preview, que solo
   se conoce por el evento `deployment_status` o con un token de Vercel — y un token es un secreto,
   que es justo lo que ADR-018 D-4.1 evita. La PR ya muestra el check propio de Vercel con su URL.
@@ -583,11 +637,27 @@ es parte del contrato — y en el punto 1, porque quien lo lea dentro de seis me
 que el riesgo **se conocía y se asumió**, no que se pasó por alto. Del punto 6 en adelante es
 información que sigue valiendo tal cual.
 
-1. 🟠 **RESUELTO (gate del 2026-08-18) — se conecta igualmente, SIN pagar la protección de rama.
-   Riesgo aceptado, en contra de mi recomendación.** El análisis se conserva íntegro, porque es lo
-   que hace que la aceptación signifique algo.
-   *El problema, tal cual lo llevé al gate*: al automatizar el despliegue, la CI en rojo deja de
-   tener quien la mire.
+1. ✅ **CERRADO el 2026-08-19 — la CI ya IMPIDE mezclar. El riesgo que el gate aceptó el
+   2026-08-18 dejó de existir, y no porque se siguiera mi recomendación.** Los dos actos, en orden
+   y con fecha, porque el segundo no anula al primero:
+   - **2026-08-18 (gate)**: 🟠 *"se conecta igualmente, SIN pagar la protección de rama. Riesgo
+     aceptado, en contra de la recomendación del arquitecto."*
+   - **2026-08-19**: el repositorio pasa a **público** —por la razón ajena que explica CA-12.5:
+     Vercel no permite desplegar en plan Hobby desde un repo privado de una organización, y hacer
+     público el repo era la salida frente a pagar Vercel Pro— y GitHub habilita la protección de
+     rama como **efecto colateral**. Queda activa el mismo día: ruleset `Protected main`,
+     `enforcement: active`, PR obligatoria, `Checks` y `E2E` requeridos, `deletion` y
+     `non_fast_forward` bloqueados, y **lista de *bypass* vacía**. **`F-SPEC-028-1` y
+     `F-SPEC-027-1`: cerrados.**
+   *Lo que cambia en la spec*: **CA-12.5 se reescribe con el signo contrario** —pedía que el
+   runbook avisara de que no había red— y añade la mitad negativa: que ninguna frase vieja
+   sobreviva en el documento.
+   *Por qué dejo el análisis de abajo íntegro y no lo borro*: porque la aceptación del riesgo fue
+   real y fechada, y porque **la protección es configuración de GitHub, no del repositorio**:
+   basta con que alguien la desactive o se añada a la lista de *bypass* para que todo lo de abajo
+   vuelva a ser cierto en un minuto. Es el análisis que hay que releer ese día, no reconstruirlo.
+   *El problema, tal cual lo llevé al gate del 2026-08-18*: al automatizar el despliegue, la CI en
+   rojo deja de tener quien la mire.
    Hoy `F-SPEC-027-1` dice que *"la CI informa, pero NO impide mezclar"* —el plan de GitHub de la
    organización no ofrece protección de rama en repo privado: `403 Upgrade to GitHub Pro`—. Hasta
    hoy eso era tolerable porque **entre un merge malo y producción había una persona** que tenía
@@ -603,18 +673,24 @@ información que sigue valiendo tal cual.
    ADR-018 aceptó retirar el gate humano.
    *Alternativas*: (a) asumirlo y confiar en la disciplina del ciclo tremen-sdd —era lo que había,
    pero había un humano detrás—; (b) hacer público el repo —descartado: app financiera privada—.
-   **Resolución del humano: (a).** Se conecta el repositorio **sin** comprar la protección de rama;
-   el freno pasa a ser **la disciplina de mirar el check antes de mezclar**. Es su decisión, va en
-   contra de lo que recomendé, y así queda escrita y fechada. Lo que se acepta con ella, sin
-   suavizar: **ADR-018 sustituyó el gate humano previo a producción por "una PR que verifica", y
-   esa PR hoy no puede decir que no**. Un merge con typecheck, lint, unitarios, `Migration scan` o
-   e2e en rojo llega a producción solo, y la puerta post-deploy confirmará que ese código roto está
-   vivo — porque lo estará.
-   *Lo verificable que se deriva*: el runbook tiene que decirlo donde se lee antes de mezclar →
-   **CA-12.5**.
-   *Lo que queda abierto*: **`F-SPEC-028-1`**, no como tarea pendiente sino como **riesgo aceptado
-   y fechado**, con este análisis intacto y las dos salidas (pagar GitHub Team, ~4 $/asiento/mes;
-   o hacer público el repo) escritas por si el criterio cambia.
+   **Resolución del humano el 2026-08-18: (a).** Se conectaba el repositorio **sin** comprar la
+   protección de rama; el freno pasaba a ser la disciplina de mirar el check antes de mezclar. Fue
+   su decisión, en contra de lo que recomendé, y así queda escrita y fechada. Lo que se aceptaba
+   con ella, sin suavizar: **ADR-018 sustituyó el gate humano previo a producción por "una PR que
+   verifica", y esa PR entonces no podía decir que no**.
+   **Y el 2026-08-19 la salida (b) ocurrió por otro motivo**, arrastrando consigo la protección de
+   rama. Merece decirse tal cual: **el riesgo no se corrigió, se evaporó**. La recomendación cara
+   (pagar GitHub Team) nunca hizo falta, y la barata (repo público) llegó empujada por una
+   restricción de Vercel que nada tenía que ver con este debate. Que salga bien por accidente no
+   convierte en buena la decisión de asumirlo — y por eso el análisis se queda escrito.
+   *Lo verificable que se deriva, ahora con el signo contrario*: el runbook tiene que decir que la
+   CI **impide**, con qué mecanismo y qué no cubre → **CA-12.5**.
+   *Lo que queda*: **nada abierto**. `F-SPEC-028-1` y `F-SPEC-027-1` pasan a **cerrados el
+   2026-08-19**. Lo que sí queda es una **dependencia frágil**: la protección vive en un ajuste de
+   GitHub que nadie versiona ni audita — el mismo tipo de fragilidad que ADR-018 D-2 describe para
+   el *preview branching* de Neon. CA-12.5.3 la mitiga como se puede: dejando escrito que la lista
+   de *bypass* vacía **es parte de la protección**, de modo que quien se añada rompa el runbook y
+   no solo la red.
 
 2. ✅ **RESUELTO (gate del 2026-08-18) — D-7 SE ADOPTA, como `RI-02`. Es CA-14, y cierra
    `F-SPEC-031-1`.** Era la **pregunta 3 del gate de ADR-018**, **aplazada explícitamente a este

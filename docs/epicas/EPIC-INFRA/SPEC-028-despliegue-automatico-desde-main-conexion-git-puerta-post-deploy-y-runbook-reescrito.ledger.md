@@ -22,10 +22,36 @@ epica: EPIC-INFRA
 
 | # | Qué se decidió | Efecto en la spec |
 |---|---|---|
-| 1 | **Se conecta igualmente, sin pagar la protección de rama de GitHub.** En contra de la recomendación del arquitecto: **riesgo aceptado y fechado**. | `F-SPEC-028-1` queda **abierto como riesgo aceptado**, con el análisis intacto. Lo verificable que se deriva es **CA-12.5** (el runbook dice que mirar el check es el único freno). |
+| 1 | **Se conecta igualmente, sin pagar la protección de rama de GitHub.** En contra de la recomendación del arquitecto: **riesgo aceptado y fechado**. ⚠️ **SUPERADA el 2026-08-19** — ver el bloque de abajo. | `F-SPEC-028-1` quedó abierto como riesgo aceptado y **está CERRADO desde el 2026-08-19**. **CA-12.5 se reescribió con el signo contrario.** |
 | 2 | **D-7 se adopta**, con el matiz de que el paso a `hecho` ocurre **después** del merge. | **CA-14 nuevo** (`RI-02` en `docs/fundacion/reglas.md`). **Cierra `F-SPEC-031-1`.** Total: **14 CA**. |
 | 3 | **El atraso se drena a mano ANTES de conectar.** | §Acciones de ops pasa a ser una **precondición ordenada**: drenar → verificar que `/api/version` deja de dar 404 → `ALLOW_MIGRATE=1` → conectar. |
 | 4 | **Sin cambios**: e2e en cada PR; la ventana de restauración de Neon la mira el humano por su cuenta y no bloquea. | `F-SPEC-028-2` (techo de 10 ramas de Neon) sigue abierto; la pregunta 7 de ADR-018 sigue sin medirse. |
+
+### ⚠️ Actualización del 2026-08-19 — el repositorio es público y `main` está protegida
+
+**Cambió el mundo, no la spec**, y un CA cambió de signo con él.
+
+- El repositorio `tremen-dev/stockeiro` es **público** (`isPrivate: false`). La razón inmediata no
+  era la protección de rama: la documentación de Vercel no permite desplegar en cuenta **Hobby**
+  desde un repositorio **privado de una organización**, y el proyecto vive en el ámbito personal
+  `albertofojo-5908s-projects`. Hacer público el repo fue la salida frente a pagar Vercel Pro.
+- **Efecto colateral**: GitHub habilita la protección de rama, y **está activa**. Verificado contra
+  la API (`gh api repos/tremen-dev/stockeiro/rulesets/21014989`): ruleset **`Protected main`**,
+  `enforcement: active`, sobre `~DEFAULT_BRANCH`, con `pull_request` requerido,
+  `required_status_checks` = **`Checks`** y **`E2E`**, `deletion` y `non_fast_forward` bloqueados,
+  y **`bypass_actors: []`** — lista vacía, así que la regla frena también al dueño del repositorio.
+
+**Consecuencias sobre esta spec**:
+
+| Qué | Efecto |
+|---|---|
+| `F-SPEC-028-1` y `F-SPEC-027-1` | **CERRADOS el 2026-08-19** |
+| **CA-12.5** | **Reescrito con el signo contrario** por el arquitecto: pedía que el runbook avisara de que *no* había red, y hoy la hay. Pedirlo tal cual haría que el runbook **afirmara algo falso en el sentido peligroso** |
+| Los otros trece CA, la clasificación 🔒/🚀, y los cuatro 🚀 abiertos | **Sin cambio**. El repo sigue **sin conectar** a Vercel: la conexión es el siguiente paso del humano |
+
+**Lo que hay que rehacer** (implementador, y después verificador): `docs/despliegue.md` **§12.5**
+entera y el aviso de **§9** —los dos dicen hoy lo contrario de lo que ocurre—, más las aserciones
+de `tests/runbook-despliegue-automatico.test.ts` que congelan las frases viejas.
 
 ### Prerrequisitos, verificados en este árbol (no supuestos)
 
@@ -70,9 +96,18 @@ sin un despliegue real**, y su fila de *Verif.* debe llevar la evidencia nombrad
 | CA-9 Nada más cableado; ni un test ajeno tocado | 🔒 sin desplegar | — (es lo que NO se tocó) | `tests/deploy-gate-workflow.test.ts` › *CA-9* (4 congelados: forma de `ci.yml` · `vercel.json` literal · `package.json` sin scripts nuevos · `drizzle/` con nueve `.sql`) **+ 3 sobre el diff real** (`src/` intacto · `ci.yml`/`vercel.json` fuera del diff · los tres tests ajenos sin editar). Evidencia adicional abajo | ✅ Sobre el **diff real** contra `de3a6ee`: el `git diff --stat` acotado sale **vacío**, y el diff completo son **8 ficheros**, ninguno ajeno. Suite completa **53 ficheros / 753 tests en verde**. Los 3 casos que dependen del commit base **se ejecutaron** (no se saltaron por `skipIf`). 7/7 verdes | ✅ |
 | CA-10 La puerta corre en el merge y sale verde | 🚀 despliegue real | **n-a**: la puerta existe (CA-4…CA-8); que *corra* exige el merge y el repo conectado | **n-a**: URL del run de Actions en verde. Las dos ramas rojas ya están probadas en `tests/check-alive.test.ts` (SPEC-031) y **no se re-prueban aquí** | 🚀 **ABIERTO.** El nombre del check declarado, **`Deploy gate / Alive`**, coincide con lo que produce el YAML (`name: Deploy gate` + job `alive` con `name: Alive`): la evidencia pedida es la correcta. Ver salvedad V-2: si esta spec se mergea **antes** de ops #4, su primera pasada es un rojo garantizado | ❌ |
 | CA-11 El despliegue manual pasa a emergencia | 🔒 sin desplegar | `docs/despliegue.md` §3.4 (reescrita), cabecera (lección del 2026-08-11 actualizada), §7 paso 3 | `tests/runbook-despliegue-automatico.test.ts` › *CA-11* (7 casos: merge→producción · PR→Preview · sin `vercel --prod` como paso normal · `--archive=tgz` marcado *emergencia* · las dos trampas · `unknown` + la puerta + *fuera de proceso* · la lección actualizada) | ✅ Leído `docs/despliegue.md`: §3.4 es ahora una tabla merge→producción / PR→Preview, y el bloque suelto ```vercel``` / ```vercel --prod``` **está borrado en el diff**; `--archive=tgz` queda bajo 🚨 *RECURSO DE EMERGENCIA* con las dos trampas (`"Not authorized"`, worktree) y la consecuencia nueva (`unknown` → puerta en rojo con **2**). La lección del 2026-08-11 **no se borró**: se reescribió en la cabecera. 7/7 verdes | ✅ |
-| CA-12 El runbook documenta el pipeline y el rojo | 🔒 sin desplegar | `docs/despliegue.md` **§12 nueva** (§12.1 disparador · §12.2 la puerta · §12.3 tabla de reacción · §12.4 no revierte · §12.5 el único freno) + aviso reforzado en §9 | `tests/runbook-despliegue-automatico.test.ts` › *CA-12* (8 casos, uno por punto del CA; **12.5** exige *"informa pero no impide"*, *"ninguna persona"*, `F-SPEC-028-1` y *"nadie lo va a mirar por ti"*) | ✅ §12 leída entera: 12.1 el encadenado `guard-migrate → db:migrate → next build`; 12.2 workflow, dominio, plazo y nombre del check; 12.3 los **cuatro** códigos con qué mirar en cada uno; 12.4 `vercel rollback` **con** *"devuelve el código, no el esquema"* y el PITR de Neon sin medir; **12.5 sin edulcorar** (*"informa pero no impide"*, *"va a producción solo"*, *"no queda ninguna persona"*, *"nadie lo va a mirar por ti"*, `F-SPEC-028-1` y las dos salidas), y además reforzada en §9, que es donde se lee antes de mezclar. 8/8 verdes | ✅ |
+| CA-12 El runbook documenta el pipeline y el rojo | 🔒 sin desplegar | `docs/despliegue.md` **§12** (§12.1 disparador · §12.2 la puerta · §12.3 tabla de reacción · §12.4 no revierte · **§12.5 REESCRITA el 2026-08-19**, con el signo contrario: `main` protegida, la tabla de piezas con el `gh api` que las comprueba, y los cuatro puntos del CA) + **aviso de §9 rehecho** (de *"la CI informa pero no impide"* a *"estos dos checks IMPIDEN mezclar"*, con lo que no cubre y el enlace a §12.5) | `tests/runbook-despliegue-automatico.test.ts` › *CA-12* (**14 casos**; 12.1–12.4 intactos. **12.5 rehecha**: 4 en positivo —PR obligatoria + `deletion`/`non_fast_forward` · `Checks`/`E2E` y `CI / Checks`/`CI / E2E` · ruleset `Protected main` + `enforcement: active` + `bypass_actors: []` · lo que NO cubre: revisión, rama al día, `Alive`— y **3 en negativo sobre el documento entero**: ni *"no impide mezclar"*, ni *"nadie lo va a mirar por ti"*, ni `F-SPEC-027-1`/`F-SPEC-028-1` presentados como abiertos) | ✅ §12 leída entera: 12.1 el encadenado `guard-migrate → db:migrate → next build`; 12.2 workflow, dominio, plazo y nombre del check; 12.3 los **cuatro** códigos con qué mirar en cada uno; 12.4 `vercel rollback` **con** *"devuelve el código, no el esquema"* y el PITR de Neon sin medir; **12.5 sin edulcorar** (*"informa pero no impide"*, *"va a producción solo"*, *"no queda ninguna persona"*, *"nadie lo va a mirar por ti"*, `F-SPEC-028-1` y las dos salidas), y además reforzada en §9, que es donde se lee antes de mezclar. 8/8 verdes | ✅ |
 | CA-13 La config de plataforma queda escrita, con techos | 🔒 sin desplegar | `docs/despliegue.md` **§13 nueva** (orden de ops · §13.1 conexión Git · §13.2 `ALLOW_MIGRATE` · §13.3 Neon y sus dos techos · §13.4 por qué ese orden) + §5 checklist y §6 gotchas al día | `tests/runbook-despliegue-automatico.test.ts` › *CA-13* (7 casos: conexión Git y cómo se comprueba · `ALLOW_MIGRATE` y qué pasa si falta · *preview branching* + 10 ramas + supervivencia · mantenimiento · el orden · §5 sin `vercel --prod verde` · §6 reencuadrado) | ✅ §13 leída entera: tabla de ops 1..6 en orden; 13.1 conexión Git con `vercel project inspect` / `vercel inspect` / *Source*; 13.2 `ALLOW_MIGRATE` con su fail-closed —**verificado contra `scripts/guard-migrate.mjs`**, no solo leído—; 13.3 *preview branching* con los dos techos (10 ramas, supervivencia al cierre de la PR) y su apartado de mantenimiento; 13.4 el porqué del orden. §5 pide la puerta en verde y ya no `vercel --prod verde`; §6 reencuadra el worktree como firma de despliegue fuera de proceso. 7/7 verdes | ✅ |
 | CA-14 `RI-02`: "hecho" significa "vivo" (D-7 adoptado) | 🔒 sin desplegar | `docs/fundacion/reglas.md` (+13 líneas, **solo añade `RI-02`**) | `tests/reglas-ingenieria-hecho-vivo.test.ts` (16 casos: existe y va tras `RI-01` · **7 fragmentos literales** del enunciado que firmó el gate · fuente `ADR-018 D-7` · mecanismo `/api/version`+SPEC-031+SPEC-028 · **`RI-01` congelada palabra por palabra** · las quince `RN` en orden · sin `RN-16`) | ✅ `git diff --numstat de3a6ee..HEAD -- docs/fundacion/reglas.md` → **13 añadidas / 0 borradas**, hunk `@@ -87,3 +87,16 @@`: nada por encima se mueve. `RI-02` reproduce **palabra por palabra** el enunciado del CA, más la frase del mecanismo (`/api/version` SPEC-031 + la puerta SPEC-028) y la fuente `ADR-018 D-7`. **`RI-01` idéntica** a `de3a6ee` (diff de su bloque: sin diferencias). `RN-01…RN-15` presentes y en orden, sin `RN-16`. `FOUNDATION.md`, ADR-018 y el fichero de rol del plugin, fuera del diff. 16/16 verdes. **El artefacto es correcto; el camino no** → V-1 | ✅ |
+
+> ⚠️ **Nota del arquitecto (2026-08-19): la fila de CA-12 está DESFASADA y su ✅ ya no
+> corresponde.** El CA cambió debajo de la implementación: **CA-12.5 pedía lo contrario de lo que
+> hoy es cierto**. Lo implementado y verificado era correcto contra el texto de ayer; contra el de
+> hoy, **§12.5 y el aviso de §9 del runbook afirman algo falso**. No toco las columnas
+> *Implementado*, *Test*, *Verif.* ni *Estado* —son del implementador y del verificador—, pero
+> **CA-12 debe volver a 🚧** y rehacerse: reescribir §12.5 y §9 con el signo contrario y sustituir
+> las aserciones de `tests/runbook-despliegue-automatico.test.ts` que congelan las frases viejas
+> por las dos aserciones **negativas** que ahora pide el CA. Los otros doce CA no se tocan.
 
 ## Evidencia del implementador (2026-08-19, sin desplegar)
 
@@ -134,6 +169,69 @@ exit 1
 **Las seis acciones de ops siguen las seis pendientes**, y por eso los cuatro CA 🚀 se devuelven
 sin cerrar. No se simularon, no se marcaron y no se sustituyeron por un test que "probase la
 intención".
+
+### Rehecho el 2026-08-19 (segunda pasada): CA-12.5, con el signo contrario
+
+Encargo acotado a **un solo CA**: CA-12.5 cambió debajo de la implementación. Nada más se tocó.
+
+**Lo que comprobé yo, antes de escribir una línea** (no me fié del encargo):
+
+```
+$ gh api repos/tremen-dev/stockeiro --jq '.private'            -> false
+$ gh api repos/tremen-dev/stockeiro/rulesets/21014989 --jq ...
+  name: "Protected main" · enforcement: "active" · bypass_actors: []
+  rules: deletion · non_fast_forward · pull_request · required_status_checks
+  required_status_checks: [{context:"E2E"},{context:"Checks"}]
+  strict_required_status_checks_policy: false
+  required_approving_review_count: 0
+```
+
+Cada afirmación del texto nuevo sale de ahí, y el runbook lleva ese mismo comando escrito para
+que el siguiente que lo lea pueda repetirlo en un segundo.
+
+**TDD, en este orden** (RED comprobado, no supuesto):
+
+```
+1e1dc6c  test(SPEC-028)  RED  -> 7 rojos / 23 verdes en el fichero
+268475e  docs(SPEC-028)  GREEN -> 30/30
+```
+
+Los 7 rojos eran exactamente los 7 casos nuevos: los 4 positivos de §12.5 y **los 3 negativos**.
+Los negativos merecen el subrayado porque son los que impiden la regresión de verdad: mientras la
+frase vieja siga en el fichero, el runbook miente en el sentido peligroso **diga lo que diga**
+§12.5 — y un `toContain` no lo detecta nunca.
+
+**Qué se sustituyó**, para que se vea que no se relajó nada: caían dos casos que **exigían**
+literalmente *"informa … no impide"*, *"ninguna persona"*, `F-SPEC-028-1` y *"nadie lo va a mirar
+por ti"*. Es un test **de esta misma spec** (CA-12), así que actualizarlo entra en el encargo y no
+roza CA-9.
+
+**Verificación completa tras el cambio**:
+
+```
+npx vitest run tests/runbook-despliegue-automatico.test.ts -> 30/30
+npm test      -> 53 ficheros / 758 tests, todos verdes (antes 753: −2 casos, +7)
+npm run typecheck -> OK      npm run lint -> OK
+```
+
+**CA-9 sigue intacto**, y el diff acotado lo dice sin adjetivos:
+
+```
+$ git diff --stat de3a6ee..HEAD -- .github/workflows/ci.yml vercel.json src \
+    tests/spec-031-frontera.test.ts tests/spec-032-frontera.test.ts tests/ci-workflow.test.ts \
+    drizzle package.json
+(vacio)
+```
+
+Esta segunda pasada toca **dos ficheros**: `docs/despliegue.md` y
+`tests/runbook-despliegue-automatico.test.ts` (más este ledger). Ni `.github/workflows/`, ni
+`vercel.json`, ni `src/`, ni `drizzle/`. **Nada se configuró en GitHub ni en Vercel**: la
+protección ya estaba puesta por el humano; aquí solo se cuenta bien.
+
+**Lo que NO hice, a propósito**: CA-13 no se tocó (decisión del orquestador: esto vive **solo** en
+§12.5, para no tener dos sitios que mantener en sync), no se movió el frontmatter de la spec
+(sigue en `en-revision`), y no se tocaron las columnas *Verif.* ni *Estado* de la fila CA-12 — el
+✅ que hay ahí es del verificador y le corresponde a él retirarlo.
 
 ## Veredicto del verificador
 <!-- GREEN/RED + fecha + resumen. Lo escribe SOLO sdd-verificador. -->
@@ -344,23 +442,30 @@ el repo sin `ALLOW_MIGRATE` deja **todas** las previews en rojo.
 <!-- IDs F-SPEC-028-1, F-SPEC-028-2… con destino (spec futura o EPIC-MEJORA). -->
 Declarados ya al nacer la spec (en §Fuera de alcance y §Notas para el gate):
 
-- **F-SPEC-028-1 — 🟠 RIESGO ACEPTADO (Alberto Fojo, 2026-08-18). Sin una CI capaz de impedir el
-  merge, esta spec pone producción a un merge de distancia de cualquier rojo.**
-  **Queda ABIERTO a propósito**: no es una tarea pendiente, es un riesgo que se conocía y se
-  asumió, con fecha y con nombre. El análisis, intacto: es `F-SPEC-027-1` heredado **con gravedad
-  subida**, porque hasta hoy entre un merge malo y producción había una persona que tenía que
-  decidir desplegar, y **esta spec la retira**. ADR-018 sustituyó ese gate humano por *"una PR con
-  typecheck, lint, 253 unitarios, 24 e2e, migraciones estrenadas y escáner de SQL destructivo"*, y
-  **esa PR hoy no puede decir que no** (repo privado + org en plan free → `403 Upgrade to GitHub
-  Pro`). Un merge en rojo llega a producción solo, y la puerta post-deploy confirmará que ese
-  código roto está vivo — porque lo estará.
-  *Lo que se decidió*: conectar igualmente, **sin** comprar la protección de rama. El freno pasa a
-  ser la disciplina de mirar el check antes de mezclar. **Va en contra de la recomendación del
-  arquitecto**, y así se deja escrito.
-  *Mitigación entregada aquí*: **CA-12.5** — el runbook lo dice donde se lee antes de mezclar.
-  *Salidas si el criterio cambia*: pagar GitHub Team (~4 $/asiento/mes, hoy 1 asiento) y exigir
-  `CI / Checks` y `CI / E2E` sobre `main`; o hacer público el repo (descartado: app financiera
-  privada). → destino: EPIC-INFRA, sin fecha.
+- **F-SPEC-028-1 — ✅ CERRADO el 2026-08-19. La CI ya IMPIDE mezclar.**
+  *Qué era*: sin una CI capaz de impedir el merge, esta spec ponía producción a un merge de
+  distancia de cualquier rojo. Era `F-SPEC-027-1` heredado **con gravedad subida**, porque entre un
+  merge malo y producción había una persona que tenía que decidir desplegar y **esta spec la
+  retira**. ADR-018 sustituyó ese gate humano por *"una PR con typecheck, lint, 253 unitarios, 24
+  e2e, migraciones estrenadas y escáner de SQL destructivo"*, y **esa PR entonces no podía decir
+  que no** (repo privado + org en plan free → `403 Upgrade to GitHub Pro`).
+  *Qué se decidió el 2026-08-18*: conectar igualmente, **sin** comprar la protección de rama, con
+  la disciplina de mirar el check como único freno. Fue **en contra de la recomendación del
+  arquitecto**, y así queda escrito.
+  *Qué lo cerró, el 2026-08-19*: el repositorio pasó a **público** por una razón ajena a este
+  debate (Vercel no despliega en plan Hobby desde un repo privado de una organización), y GitHub
+  habilitó la protección de rama como **efecto colateral**. Ruleset `Protected main`,
+  `enforcement: active`, PR obligatoria, `Checks` y `E2E` requeridos, `bypass_actors: []`. Dicho
+  como fue: **el riesgo no se corrigió, se evaporó** — la recomendación cara nunca hizo falta y la
+  barata llegó empujada por otra cosa. Que saliera bien por accidente no valida la decisión de
+  asumirlo, y por eso el análisis se conserva en vez de borrarse.
+  *Qué queda de él*: **CA-12.5, con el signo contrario** —el runbook cuenta la protección, sus
+  piezas y lo que no cubre— y una **fragilidad declarada**: la protección vive en un ajuste de
+  GitHub que nadie versiona ni audita, igual que el *preview branching* de Neon (ADR-018 D-2). Si
+  alguien la desactiva o se añade a la lista de *bypass*, todo lo de arriba vuelve a ser cierto en
+  un minuto — y este párrafo es lo que hay que releer ese día.
+- **F-SPEC-027-1 (heredado de SPEC-027) — ✅ CERRADO el 2026-08-19**, por lo mismo: *"la CI informa,
+  pero no impide mezclar"* dejó de ser verdad. `Checks` y `E2E` son requeridos y no hay excepciones.
 - **F-SPEC-028-2 — El techo de ramas de Neon (10 en el plan Free) pasa a ser un recurso escaso
   el día que el repo se conecte**, y las ramas de preview **sobreviven al cierre de la PR**
   (retención de 6 meses de Vercel). Sin mantenimiento, la preview número 11 no despliega
@@ -389,6 +494,14 @@ Añadido por el implementador el 2026-08-19:
   trabajo de esta spec. Las dos salidas razonables: que la lista de dueños de
   `docs/fundacion/reglas.md` incluya a `sdd-implementador`, o que las specs dejen de asignarle esa
   escritura. Hoy el ciclo dice una cosa y su guardia otra. → destino: plugin tremen-sdd / EPIC-INFRA.
+- **F-SPEC-028-5 — El cierre de `F-SPEC-027-1` solo consta en este ledger; SPEC-027 (y de rebote
+  SPEC-031 y SPEC-032) lo siguen listando abierto.** El runbook ya está al día —es lo que pedía
+  CA-12.5— y `docs/despliegue.md` no vuelve a presentarlo como residual pendiente. Pero
+  `SPEC-027…md`, su ledger y los ledgers de SPEC-031/032 conservan el texto de cuando *"la CI
+  informa pero no impide"* era verdad, así que cualquier lectura de residuales por spec lo
+  reportará abierto. **No lo arreglo aquí**: son artefactos de specs ajenas ya cerradas, y editarlos
+  no es del implementador de SPEC-028. → destino: `sdd-documentalista` (sincronizar residuales) /
+  EPIC-INFRA.
 
 Heredados, con su estado real:
 
@@ -421,6 +534,29 @@ Heredados, con su estado real:
 
 ## Cómo retomar (handoff)
 <!-- Estado real del trabajo para la siguiente sesión: qué está hecho, qué falta, dónde seguir. -->
+> ⚠️ **REABIERTO PARCIALMENTE el 2026-08-19 (arquitecto).** El repositorio pasó a público y
+> `main` quedó protegida; **CA-12.5 se reescribió con el signo contrario**. Lo que hay que rehacer,
+> y nada más que eso:
+> 1. `docs/despliegue.md` **§12.5** entera y el **aviso de §9**: hoy afirman que la CI *informa
+>    pero no impide* y que *nadie lo va a mirar por ti*. Es falso, y falso en el sentido peligroso.
+> 2. `tests/runbook-despliegue-automatico.test.ts`: las aserciones que **exigen** esas frases pasan
+>    a exigir lo contrario, más las dos **negativas** (ninguna de las dos frases aparece ya en el
+>    documento).
+> 3. **CA-12 vuelve a 🚧** en la matriz hasta que el verificador lo vuelva a mirar.
+> Los otros doce CA, el workflow, `RI-02` y los cuatro 🚀 **no se tocan**.
+
+> ✅ **REHECHO el 2026-08-19 (implementador), y solo eso.** Los puntos 1 y 2 de arriba están
+> hechos, con TDD y RED comprobado: `1e1dc6c` (test en rojo: 7/30) → `268475e` (§12.5 entera y el
+> aviso de §9 reescritos: 30/30) → `<este>` (ledger). El punto 3 **no me toca**: la fila CA-12
+> conserva el ✅ del verificador porque **retirarlo es suyo**; la nota del arquitecto queda ahí
+> justo para eso. Verificación: suite completa **53 ficheros / 758 tests** en verde, `typecheck` y
+> `lint` limpios, y el **diff acotado de CA-9 sigue vacío**. Detalle y evidencia en §Evidencia del
+> implementador → *Rehecho el 2026-08-19 (segunda pasada)*.
+> **Para el verificador**: lo nuevo que hay que mirar son las **tres aserciones negativas**
+> (`12.5 negativo — …`), que son la mitad que impide la regresión, y que el texto de §12.5 nombre
+> las piezas reales — se contrastan en un comando: `gh api
+> repos/tremen-dev/stockeiro/rulesets/21014989`.
+
 **Estado: implementación TERMINADA en lo que se puede terminar sin desplegar.** Diez CA cerrados
 con tests (CA-4 … CA-9 y CA-11 … CA-14); los **cuatro 🚀 se devuelven abiertos a propósito**
 (CA-1, CA-2, CA-3, CA-10), porque dependen de acciones de ops del humano que **no se han hecho** y
