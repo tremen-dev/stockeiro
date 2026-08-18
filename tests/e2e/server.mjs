@@ -45,7 +45,7 @@ await pg.createDatabase(DB);
 const url = `postgres://postgres:postgres@localhost:${PG_PORT}/${DB}`;
 
 // El esquema del e2e se obtiene aplicando las migraciones de `drizzle/` —las mismas
-// que se aplican a producción (ADR-018, SPEC-026)—. Ya no hay una copia del esquema
+// que se aplican a producción (ADR-019, SPEC-026)—. Ya no hay una copia del esquema
 // aquí que pudiera divergir en silencio, cláusulas ON DELETE incluidas (SPEC-024).
 const sql = postgres(url, { ssl: false, max: 1 });
 await migrate(drizzle(sql), { migrationsFolder });

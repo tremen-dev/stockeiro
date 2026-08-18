@@ -4,7 +4,6 @@ import {
   costeMedio,
   plActual,
   OversellError,
-  type LedgerEntry,
 } from '@/lib/portfolio/position';
 import { moneyStr } from '@/lib/portfolio/money';
 

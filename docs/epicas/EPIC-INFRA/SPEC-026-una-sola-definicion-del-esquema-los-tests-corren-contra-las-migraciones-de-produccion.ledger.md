@@ -79,7 +79,7 @@ Caused by: error: relation "tabla_que_no_existe" does not exist   (code 42P01)
 ```
 
 Fallo homogéneo en los 24 ficheros que levantan el arnés y el mensaje nombra literalmente la
-sentencia de la migración culpable. Es la consecuencia que ADR-018 pide aceptar explícitamente:
+sentencia de la migración culpable. Es la consecuencia que ADR-019 pide aceptar explícitamente:
 un rojo masivo se lee «la migración nueva no aplica», no «he roto el dominio». Cobertura nueva:
 hasta ahora **nada** comprobaba que `0000..0007` aplicaran limpio sobre una base vacía.
 Sonda revertida (`rm drizzle/0008_probe.sql` + `git checkout drizzle/meta/_journal.json`).

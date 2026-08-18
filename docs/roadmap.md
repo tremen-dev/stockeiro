@@ -46,7 +46,10 @@ tipo: roadmap
   resuelve identidad con fusión manual, registra idempotente y lo expone en
   `/cartera/importar`. Coste en EUR neto; sin re-escalar splits.
 - **EPIC-INFRA — Infraestructura y mantenimiento** (bucket, `aprobada`). Parcheo de
-  CVE y línea mantenida de Next.js (ADR-008).
+  CVE y línea mantenida de Next.js (ADR-008), una sola definición del esquema
+  (SPEC-026) y CI en cada PR (SPEC-027).
+  ↳ **Estado real a 2026-08-18**: sus cuatro specs (SPEC-009, 010, 026, 027) están
+  `hecho`; la épica sigue abierta como bucket.
 
 ## Después (comprometido, sin empezar)
 <!-- Sigue vacío. La regla que lo vaciaba ("nada nuevo hasta que EPIC-FIX restaure la
