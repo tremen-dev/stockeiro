@@ -96,7 +96,7 @@ sin un despliegue real**, y su fila de *Verif.* debe llevar la evidencia nombrad
 | CA-9 Nada más cableado; ni un test ajeno tocado | 🔒 sin desplegar | — (es lo que NO se tocó) | `tests/deploy-gate-workflow.test.ts` › *CA-9* (4 congelados: forma de `ci.yml` · `vercel.json` literal · `package.json` sin scripts nuevos · `drizzle/` con nueve `.sql`) **+ 3 sobre el diff real** (`src/` intacto · `ci.yml`/`vercel.json` fuera del diff · los tres tests ajenos sin editar). Evidencia adicional abajo | ✅ Sobre el **diff real** contra `de3a6ee`: el `git diff --stat` acotado sale **vacío**, y el diff completo son **8 ficheros**, ninguno ajeno. Suite completa **53 ficheros / 753 tests en verde**. Los 3 casos que dependen del commit base **se ejecutaron** (no se saltaron por `skipIf`). 7/7 verdes | ✅ |
 | CA-10 La puerta corre en el merge y sale verde | 🚀 despliegue real | **n-a**: la puerta existe (CA-4…CA-8); que *corra* exige el merge y el repo conectado | **n-a**: URL del run de Actions en verde. Las dos ramas rojas ya están probadas en `tests/check-alive.test.ts` (SPEC-031) y **no se re-prueban aquí** | 🚀 **ABIERTO.** El nombre del check declarado, **`Deploy gate / Alive`**, coincide con lo que produce el YAML (`name: Deploy gate` + job `alive` con `name: Alive`): la evidencia pedida es la correcta. Ver salvedad V-2: si esta spec se mergea **antes** de ops #4, su primera pasada es un rojo garantizado | ❌ |
 | CA-11 El despliegue manual pasa a emergencia | 🔒 sin desplegar | `docs/despliegue.md` §3.4 (reescrita), cabecera (lección del 2026-08-11 actualizada), §7 paso 3 | `tests/runbook-despliegue-automatico.test.ts` › *CA-11* (7 casos: merge→producción · PR→Preview · sin `vercel --prod` como paso normal · `--archive=tgz` marcado *emergencia* · las dos trampas · `unknown` + la puerta + *fuera de proceso* · la lección actualizada) | ✅ Leído `docs/despliegue.md`: §3.4 es ahora una tabla merge→producción / PR→Preview, y el bloque suelto ```vercel``` / ```vercel --prod``` **está borrado en el diff**; `--archive=tgz` queda bajo 🚨 *RECURSO DE EMERGENCIA* con las dos trampas (`"Not authorized"`, worktree) y la consecuencia nueva (`unknown` → puerta en rojo con **2**). La lección del 2026-08-11 **no se borró**: se reescribió en la cabecera. 7/7 verdes | ✅ |
-| CA-12 El runbook documenta el pipeline y el rojo | 🔒 sin desplegar | `docs/despliegue.md` **§12** (§12.1 disparador · §12.2 la puerta · §12.3 tabla de reacción · §12.4 no revierte · **§12.5 REESCRITA el 2026-08-19**, con el signo contrario: `main` protegida, la tabla de piezas con el `gh api` que las comprueba, y los cuatro puntos del CA) + **aviso de §9 rehecho** (de *"la CI informa pero no impide"* a *"estos dos checks IMPIDEN mezclar"*, con lo que no cubre y el enlace a §12.5) | `tests/runbook-despliegue-automatico.test.ts` › *CA-12* (**14 casos**; 12.1–12.4 intactos. **12.5 rehecha**: 4 en positivo —PR obligatoria + `deletion`/`non_fast_forward` · `Checks`/`E2E` y `CI / Checks`/`CI / E2E` · ruleset `Protected main` + `enforcement: active` + `bypass_actors: []` · lo que NO cubre: revisión, rama al día, `Alive`— y **3 en negativo sobre el documento entero**: ni *"no impide mezclar"*, ni *"nadie lo va a mirar por ti"*, ni `F-SPEC-027-1`/`F-SPEC-028-1` presentados como abiertos) | ✅ §12 leída entera: 12.1 el encadenado `guard-migrate → db:migrate → next build`; 12.2 workflow, dominio, plazo y nombre del check; 12.3 los **cuatro** códigos con qué mirar en cada uno; 12.4 `vercel rollback` **con** *"devuelve el código, no el esquema"* y el PITR de Neon sin medir; **12.5 sin edulcorar** (*"informa pero no impide"*, *"va a producción solo"*, *"no queda ninguna persona"*, *"nadie lo va a mirar por ti"*, `F-SPEC-028-1` y las dos salidas), y además reforzada en §9, que es donde se lee antes de mezclar. 8/8 verdes | ✅ |
+| CA-12 El runbook documenta el pipeline y el rojo | 🔒 sin desplegar | `docs/despliegue.md` **§12** (§12.1 disparador · §12.2 la puerta · §12.3 tabla de reacción · §12.4 no revierte · **§12.5 REESCRITA el 2026-08-19**, con el signo contrario: `main` protegida, la tabla de piezas con el `gh api` que las comprueba, y los cuatro puntos del CA) + **aviso de §9 rehecho** (de *"la CI informa pero no impide"* a *"estos dos checks IMPIDEN mezclar"*, con lo que no cubre y el enlace a §12.5) | `tests/runbook-despliegue-automatico.test.ts` › *CA-12* (**14 casos**; 12.1–12.4 intactos. **12.5 rehecha**: 4 en positivo —PR obligatoria + `deletion`/`non_fast_forward` · `Checks`/`E2E` y `CI / Checks`/`CI / E2E` · ruleset `Protected main` + `enforcement: active` + `bypass_actors: []` · lo que NO cubre: revisión, rama al día, `Alive`— y **3 en negativo sobre el documento entero**: ni *"no impide mezclar"*, ni *"nadie lo va a mirar por ti"*, ni `F-SPEC-027-1`/`F-SPEC-028-1` presentados como abiertos) | ✅ **RE-VERIFICADO el 2026-08-19 (segunda pasada), contra la API de GitHub y no contra el relato.** 12.1–12.4 releídas enteras y siguen cumpliendo (encadenado `guard-migrate → db:migrate → next build`; workflow, dominio `stockeiro.tremen.dev`, plazo 900 s y check `Deploy gate / Alive` —contrastado contra `deploy-gate.yml`: `name: Deploy gate` + job `alive`/`name: Alive`, `--timeout 900 --interval 10`—; los **cuatro** códigos con qué mirar; `vercel rollback` **con** *"devuelve el código, no el esquema"* y el PITR de Neon sin medir). **§12.5 rehecha: cada valor que afirma lo confirma `gh api repos/tremen-dev/stockeiro/rulesets/21014989`** — `Protected main` · id `21014989` · `enforcement: active` · `~DEFAULT_BRANCH` (y `default_branch: main`) · reglas `{deletion, non_fast_forward, pull_request, required_status_checks}` · contextos `Checks` y `E2E` · `bypass_actors: []` (+`current_user_can_bypass: "never"`) · `required_approving_review_count: 0` · `strict_required_status_checks_policy: false`; y `repos/tremen-dev/stockeiro` → `visibility: public`. **El comando que el runbook publica se ejecutó tal cual** y devuelve exactamente lo que la tabla dice. **Barrido negativo propio sobre el fichero entero** (no sobre los regex del test): cero apariciones de *"nadie lo va a mirar por ti"*, cero de *"no impide mezclar"*/*"informa … no impide"* —la única mención de la CI que no frenaba es la nota histórica de §12.5 en pasado y fechada, que es lo que el CA pide conservar—, y `F-SPEC-027-1`/`F-SPEC-028-1` aparecen **una vez cada uno y como CERRADOS**. **Los tres tests negativos no son vacíos**: ejecutados contra `git show f403b6a:docs/despliegue.md` fallan los tres (r1 `true`, r2 `true`, `F-SPEC-028-1` presentado abierto `true`) y contra HEAD pasan los tres. **No exagera la red**: dice que no exige revisión, que la política *strict* está desactivada (checks contra base más vieja) y que `Alive` no es ni debe ser requerido —confirmado en vivo: la PR #35 muestra `Checks`, `E2E` y `Vercel`, y **ningún** `Alive`—. 14/14 verdes (fichero completo 30/30) | ✅ |
 | CA-13 La config de plataforma queda escrita, con techos | 🔒 sin desplegar | `docs/despliegue.md` **§13 nueva** (orden de ops · §13.1 conexión Git · §13.2 `ALLOW_MIGRATE` · §13.3 Neon y sus dos techos · §13.4 por qué ese orden) + §5 checklist y §6 gotchas al día | `tests/runbook-despliegue-automatico.test.ts` › *CA-13* (7 casos: conexión Git y cómo se comprueba · `ALLOW_MIGRATE` y qué pasa si falta · *preview branching* + 10 ramas + supervivencia · mantenimiento · el orden · §5 sin `vercel --prod verde` · §6 reencuadrado) | ✅ §13 leída entera: tabla de ops 1..6 en orden; 13.1 conexión Git con `vercel project inspect` / `vercel inspect` / *Source*; 13.2 `ALLOW_MIGRATE` con su fail-closed —**verificado contra `scripts/guard-migrate.mjs`**, no solo leído—; 13.3 *preview branching* con los dos techos (10 ramas, supervivencia al cierre de la PR) y su apartado de mantenimiento; 13.4 el porqué del orden. §5 pide la puerta en verde y ya no `vercel --prod verde`; §6 reencuadra el worktree como firma de despliegue fuera de proceso. 7/7 verdes | ✅ |
 | CA-14 `RI-02`: "hecho" significa "vivo" (D-7 adoptado) | 🔒 sin desplegar | `docs/fundacion/reglas.md` (+13 líneas, **solo añade `RI-02`**) | `tests/reglas-ingenieria-hecho-vivo.test.ts` (16 casos: existe y va tras `RI-01` · **7 fragmentos literales** del enunciado que firmó el gate · fuente `ADR-018 D-7` · mecanismo `/api/version`+SPEC-031+SPEC-028 · **`RI-01` congelada palabra por palabra** · las quince `RN` en orden · sin `RN-16`) | ✅ `git diff --numstat de3a6ee..HEAD -- docs/fundacion/reglas.md` → **13 añadidas / 0 borradas**, hunk `@@ -87,3 +87,16 @@`: nada por encima se mueve. `RI-02` reproduce **palabra por palabra** el enunciado del CA, más la frase del mecanismo (`/api/version` SPEC-031 + la puerta SPEC-028) y la fuente `ADR-018 D-7`. **`RI-01` idéntica** a `de3a6ee` (diff de su bloque: sin diferencias). `RN-01…RN-15` presentes y en orden, sin `RN-16`. `FOUNDATION.md`, ADR-018 y el fichero de rol del plugin, fuera del diff. 16/16 verdes. **El artefacto es correcto; el camino no** → V-1 | ✅ |
 
@@ -108,6 +108,14 @@ sin un despliegue real**, y su fila de *Verif.* debe llevar la evidencia nombrad
 > **CA-12 debe volver a 🚧** y rehacerse: reescribir §12.5 y §9 con el signo contrario y sustituir
 > las aserciones de `tests/runbook-despliegue-automatico.test.ts` que congelan las frases viejas
 > por las dos aserciones **negativas** que ahora pide el CA. Los otros doce CA no se tocan.
+
+> ✅ **ATENDIDA por el verificador el 2026-08-19 (segunda pasada).** La nota de arriba se conserva
+> —es la historia de por qué esta fila se rehízo—, pero **ya no está pendiente**: §12.5 y el aviso
+> de §9 se reescribieron con el signo contrario, las aserciones que congelaban las frases viejas
+> se sustituyeron por tres negativas sobre el documento entero, y **volví a verificar el CA
+> entero**, no solo el trozo cambiado. **La fila de CA-12 vuelve a ✅**, ahora contra el texto de
+> hoy y contrastada pieza a pieza con `gh api`. El paso intermedio por 🚧 que la nota pedía no se
+> escenifica en la tabla: la transición es mía, y la hago con el veredicto en la mano.
 
 ## Evidencia del implementador (2026-08-19, sin desplegar)
 
@@ -235,6 +243,110 @@ protección ya estaba puesta por el humano; aquí solo se cuenta bien.
 
 ## Veredicto del verificador
 <!-- GREEN/RED + fecha + resumen. Lo escribe SOLO sdd-verificador. -->
+
+### 🟢 GREEN — 2026-08-19 — segunda pasada, **CA-12 y nada más**. La fila vuelve a ✅.
+
+**Encargo acotado a un CA.** El arquitecto dejó constancia de que **CA-12.5 cambió debajo de la
+implementación** y de que el ✅ anterior ya no correspondía. Verifico **solo CA-12** y transiciono
+**yo** su fila, que es lo que la nota reservaba. **El veredicto de la primera pasada sigue en pie
+tal cual está escrito abajo**: los otros nueve CA 🔒 no se re-verifican porque **no se movieron**
+—lo comprobé, no me lo creí—, y los cuatro 🚀 siguen abiertos. **La spec sigue en `en-revision` y
+no la toco.**
+
+#### Lo que ejecuté (worktree `.claude/worktrees/spec-028`, `ft/SPEC-028-despliegue-automatico` @ `90c0eeb`, `git status` limpio)
+
+```
+gh api repos/tremen-dev/stockeiro/rulesets/21014989      -> ver tabla de abajo
+gh api repos/tremen-dev/stockeiro                        -> visibility: public, default_branch: main
+gh api ... --jq '{name, enforcement, bypass, rules}'     -> el comando QUE PUBLICA EL RUNBOOK, tal cual
+gh pr view 35 --json statusCheckRollup,mergeStateStatus  -> Checks ✓ · E2E ✓ · Vercel ✓ · sin Alive
+npm run typecheck                                        -> exit 0, sin salida
+npm run lint                                             -> exit 0, sin salida
+npm test                                                 -> 53 ficheros / 758 tests, TODOS en verde
+npx vitest run tests/runbook-despliegue-automatico.test.ts -> 30/30 (14 de ellos, CA-12)
+```
+
+**1. Cada afirmación de §12.5, contra la API. Ninguna se dio por buena leyéndola.**
+
+| Lo que dice el runbook | Lo que devuelve la API |
+|---|---|
+| Ruleset `Protected main`, id `21014989` | `"name":"Protected main"`, `"id":21014989` ✅ |
+| `enforcement: active`, sobre la rama por defecto | `"enforcement":"active"`, `conditions.ref_name.include: ["~DEFAULT_BRANCH"]`, y `default_branch: "main"` ✅ |
+| Reglas `pull_request` · `required_status_checks` · `deletion` · `non_fast_forward` | exactamente esas cuatro, ni una más ✅ |
+| Checks requeridos `Checks` y `E2E` | `required_status_checks: [{context:"E2E"},{context:"Checks"}]` (integración 15368 = Actions) ✅ |
+| En la PR aparecen como `CI / Checks` y `CI / E2E` | `ci.yml` → `name: CI`, jobs `name: Checks` / `name: E2E` ✅ |
+| Excepciones: **ninguna**, `bypass_actors: []` | `"bypass_actors":[]` y `"current_user_can_bypass":"never"` ✅ |
+| No exige revisión: `required_approving_review_count: 0` | `0` ✅ |
+| No exige rama al día (*strict* desactivada) | `"strict_required_status_checks_policy":false` ✅ |
+| `Alive` no es check requerido, y no debe serlo | no figura entre los contextos requeridos; y **en vivo**, la PR #35 lista `Checks`, `E2E` y `Vercel`, y **ningún `Alive`** ✅ |
+| El repositorio es público desde el 2026-08-19 | `visibility: "public"`; el ruleset se creó `2026-08-19T01:17:08+02:00` ✅ |
+
+**Y el comando que el propio runbook publica se ejecutó literalmente**, que es la prueba de que el
+texto es contrastable y no decorativo:
+`{"bypass":[],"enforcement":"active","name":"Protected main","rules":["deletion","non_fast_forward","pull_request","required_status_checks"]}`.
+
+**2. El barrido negativo lo hice yo sobre el documento entero, no sobre los regex del test.** Un
+`toContain` no ve nunca una frase vieja que sobreviva en otra sección, así que la busqué a mano:
+
+```
+grep -in "nadie lo va a mirar por ti"          -> 0 apariciones
+grep -in "informa|impide|frena|nadie|en rojo"  -> revisadas UNA A UNA las 25 líneas que casan
+grep -n  "F-SPEC-027-1|F-SPEC-028-1"           -> 1 aparición cada uno, línea 857, "quedan CERRADOS"
+```
+
+Lo único que menciona la CI que no frenaba es la nota histórica del final de §12.5 (*"hasta el
+2026-08-18 la CI informaba y no frenaba nada"*), **en pasado, fechada y explicando el cambio de
+signo** — que es exactamente lo que el CA manda conservar (*"por qué se deja escrito en vez de
+reescrito en silencio"*), no un resto de lo viejo.
+
+**3. Los tres tests negativos no son vacíos** — lo probé por mutación, usando la versión anterior
+del documento como mutante (`git show f403b6a:docs/despliegue.md`):
+
+| Aserción | Contra el documento VIEJO | Contra HEAD |
+|---|---|---|
+| `not.toMatch(/no impide mezclar\|informa…no impide/i)` | **falla** (casa) | pasa |
+| `not.toMatch(/nadie lo va a mirar por ti/i)` | **falla** (casa) | pasa |
+| `F-SPEC-027-1` / `F-SPEC-028-1` sin "cerrad" cerca | **falla** (1 y 2 menciones huérfanas; `F-SPEC-028-1` además "abierto") | pasa (0 huérfanas) |
+
+**4. El texto no exagera la red, que era el riesgo simétrico.** §12.5 punto 4 dice las tres cosas
+incómodas —sin revisión obligatoria, sin rama al día (*"los checks pueden haber corrido contra una
+base más vieja que la que acaba desplegándose"*), y `Alive` fuera a propósito con el porqué—, y el
+punto 2 acota el alcance con *"por la vía normal"*, que es lo honesto dado que *strict* está
+desactivada. El punto 3 declara la fragilidad: el día que alguien entre en `bypass_actors`, el
+apartado pasa a ser mentira, **y el runbook lo dice él mismo**.
+
+**5. Nada más se movió.** Verificado sobre el diff real, no sobre la declaración:
+- `git diff --stat f403b6a..HEAD` → **4 ficheros**: `docs/despliegue.md`, la spec, este ledger y
+  `tests/runbook-despliegue-automatico.test.ts`. Ni uno más.
+- En `docs/despliegue.md` los **únicos** hunks son el aviso de §9 y §12.5. El resto del runbook,
+  intacto.
+- **CA-9 sigue verde**: `git diff --stat de3a6ee..HEAD -- .github/workflows/ci.yml vercel.json src/ drizzle/ package.json tests/ci-workflow.test.ts tests/spec-031-frontera.test.ts tests/spec-032-frontera.test.ts` → **VACÍO**. El diff completo contra `de3a6ee` siguen siendo **8 ficheros**, los mismos.
+- **Los otros trece CA no cambiaron en la spec**: comparé los cuerpos entre `f403b6a` y HEAD —
+  CA-1…CA-11 idénticos, CA-13 **idéntico** (el orquestador quería esto en un solo sitio, y así
+  está), Bloque D/CA-14 idéntico. Los 14 CA y su clasificación 🔒/🚀 (10 y 4) sin tocar.
+- Suite completa **758 tests en verde** (753 antes; +5 = 9 casos nuevos − 4 retirados en 12.5).
+
+#### Salvedades de esta pasada
+
+- **V-5 (nueva) — el aviso de §9 no tiene test propio.** Su contenido positivo (*"estos dos checks
+  IMPIDEN mezclar"*) sólo está protegido por el barrido negativo: si alguien borrase el aviso
+  entero, **ningún test se pondría rojo**. No es incumplimiento —el CA exige el aviso *"donde se
+  lee antes de mezclar"* y §12.5 se abre literalmente con *"Léelo entero antes de pulsar Merge"*,
+  y su *Verificación* sólo pide los positivos sobre la sección—, pero es el punto por donde este
+  CA se erosionaría sin avisar. Anotado, no bloqueante.
+- **La red que se documenta vive fuera del repositorio.** Este ✅ certifica que **el runbook dice
+  hoy la verdad**, no que la protección sea permanente: un cambio en la consola de GitHub la
+  desmiente sin tocar el árbol. El propio §12.5 punto 3 es la mitigación posible, y `F-SPEC-028-1`
+  la deja declarada como fragilidad al cerrarse.
+- **`F-SPEC-028-5` sigue bien declarado y NO lo arreglé**: comprobado que las frases viejas siguen
+  vivas en `SPEC-027*.md`, su ledger y los ledgers de SPEC-031/032, y que `docs/despliegue.md` ya
+  no las tiene. Es trabajo de `sdd-documentalista`.
+- **Me crucé con la Preview de CA-3, y lo digo aunque no sea mío**: la PR #35 trae un check
+  `Vercel` en **SUCCESS**
+  (`https://vercel.com/albertofojo-5908s-projects/stockeiro/DTKcqdeNtvkpfEQzySF3MZzEpAth`), o sea
+  que **la conexión Git ya está hecha y la primera Preview construyó verde**. **No cierro CA-3**:
+  su otra mitad —que esa Preview **no** migró la base de producción— no la he verificado, y sigue
+  🚀 abierto.
 
 ### 🟢 GREEN PARCIAL — 2026-08-19 — **10/10 de los CA 🔒**. Los cuatro 🚀 quedan abiertos, y es lo correcto.
 
@@ -556,6 +668,14 @@ Heredados, con su estado real:
 > (`12.5 negativo — …`), que son la mitad que impide la regresión, y que el texto de §12.5 nombre
 > las piezas reales — se contrastan en un comando: `gh api
 > repos/tremen-dev/stockeiro/rulesets/21014989`.
+
+> ✅ **CERRADO por el verificador el 2026-08-19: el punto 3 lo hago yo, y la fila vuelve a ✅.**
+> Re-verificado **solo CA-12**, contrastando cada pieza de §12.5 contra `gh api` (ruleset, id,
+> `enforcement`, reglas, contextos, `bypass_actors: []`, `review_count: 0`, *strict* off) y
+> haciendo **mi propio barrido negativo sobre el documento entero**, no sobre los regex del test.
+> Nada más se movió: diff de la segunda pasada = 4 ficheros, diff acotado de CA-9 **vacío**, los
+> otros trece CA idénticos en la spec. **La spec sigue en `en-revision`** y los cuatro 🚀 abiertos.
+> Detalle en §Veredicto del verificador → *GREEN — segunda pasada, CA-12 y nada más*.
 
 **Estado: implementación TERMINADA en lo que se puede terminar sin desplegar.** Diez CA cerrados
 con tests (CA-4 … CA-9 y CA-11 … CA-14); los **cuatro 🚀 se devuelven abiertos a propósito**
