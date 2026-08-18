@@ -370,3 +370,39 @@ API de deployments de GitHub está vacía y la PR #24 no reporta ningún check, 
 o una PR **no disparan build alguno**. La trampa está **latente, no activa**: se activaría en
 el momento en que alguien conecte el repo a Vercel. El arreglo (BD de Neon aparte para Preview)
 sigue pendiente y es lo que separa producción de las PRs.
+
+---
+
+## 9. Verificación automática en las PR (CI)
+
+Desde **SPEC-027** (ADR-018 D-4) existe `.github/workflows/ci.yml`. Corre en **cada PR contra
+`main`** y en **cada push a `main`**, en **Node 24** (la versión de Vercel, tomada de `.nvmrc`),
+en dos jobs paralelos que aparecen como dos checks separados en la PR:
+
+| Check | Steps (uno por gate) |
+|---|---|
+| `CI / Checks` | `Typecheck` · `Lint` · `Unit tests` |
+| `CI / E2E` | `Build` · `End-to-end tests` |
+
+Los tres gates de `Checks` se ejecutan **aunque uno falle**, para que el primer rojo no tape a
+los otros dos. Cuando el e2e falla, el job sube un artefacto (`playwright-report/`,
+`test-results/` con trazas, `_qa/`) con 7 días de retención; en verde no sube nada.
+
+> ⚠️ **La CI informa, pero NO impide mezclar.** Esto no es un ajuste que falte por activar: el
+> **plan de GitHub de esta organización no lo ofrece**. Repo privado + org en plan free →
+> tanto la protección de rama clásica como los *rulesets* responden `403 — "Upgrade to GitHub
+> Pro or make this repository public"`. Es decir: **un merge con la CI en rojo sale igual de
+> bien que uno con la CI en verde**, y la única barrera sigue siendo la disciplina del ciclo
+> tremen-sdd. Las tres salidas —pagar GitHub Team (~4 $/asiento/mes, hoy 1 asiento), hacer
+> público el repo (descartado: app financiera privada) o asumirlo— están abiertas como
+> **F-SPEC-027-1**. **Mira el check antes de mezclar: nadie lo va a mirar por ti.**
+
+Lo que este workflow **no** hace, y conviene no darlo por hecho:
+
+- **No despliega nada** ni conecta el repo con Vercel (eso es SPEC-028 / ADR-018 D-1). Un
+  runner que ejecuta `npm run build` **no** ejecuta el `buildCommand` de `vercel.json`, así que
+  **no** ejecuta `db:migrate`: añadir esta CI **no** activa la trampa de F-SPEC-023-1.
+- **No lleva ni un secreto.** Las variables que el build exige van en claro en el YAML con
+  valores de juguete (`postgres://ci:ci@localhost:5432/ci`); el e2e levanta su propio Postgres
+  efímero y usa proveedores *fake*.
+- **No escribe en el repositorio** (`permissions: contents: read`).
