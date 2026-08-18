@@ -41,6 +41,12 @@ test('SPEC-003: vigilar un ticker con zonas aparece en la lista', async ({ page 
   await expect(fila).toContainText('20 – 25'); // zona de compra
   await expect(fila).toContainText('35 – 40'); // zona de venta
   await page.screenshot({ path: `${SHOTS}/ca2-vigilar-con-zonas.png`, fullPage: true });
+
+  // TEMPORAL — SPEC-027 CA-9. Aserción falsa a propósito, al FINAL del test y
+  // después de las capturas, para que el e2e falle de verdad (no aborte antes de
+  // empezar como en CA-10) y `--trace=retain-on-failure` deje una traza con
+  // contenido que se pueda abrir. Se revierte.
+  await expect(page.locator('h1')).toHaveText('CA-9 TEMPORAL: este texto no existe');
 });
 
 // --- SPEC-024: el botón "Quitar" ---------------------------------------------------
