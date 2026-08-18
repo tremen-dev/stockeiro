@@ -39,8 +39,8 @@ epica: EPIC-INFRA
 | CA-9 Salida 0 cuando coincide (y modo *smoke*) | `scripts/check-alive.mjs` | `tests/check-alive.test.ts` → CA-9 (4 casos, subproceso contra servidor `node:http`) | | ❌ |
 | CA-10 Salida 1 cuando no llega, con esperado y visto | `scripts/check-alive.mjs` | `tests/check-alive.test.ts` → CA-10 (2 casos: sha discrepante y origen mudo; se asierta código, texto y tiempo transcurrido) | | ❌ |
 | CA-11 Salida 2 en `unknown`; reintento; 3 si el cuerpo no es el contrato | `scripts/check-alive.mjs` | `tests/check-alive.test.ts` → CA-11 (7 casos: `unknown` con y sin `--commit`, 500→200, ECONNREFUSED→200, no-JSON, claves de menos, claves de más) | | ❌ |
-| CA-12 El runbook retira el `curl \| grep` | | | | ❌ |
-| CA-13 Nada queda conectado (CI, `vercel.json`, red) | | | | ❌ |
+| CA-12 El runbook retira el `curl \| grep` | `docs/despliegue.md` (lección del 2026-08-11 reescrita · §8 paso 8 · **§10** nueva: contrato y códigos) | `tests/runbook-check-alive.test.ts` (6 casos, troceando el documento por secciones) | | ❌ |
+| CA-13 Nada queda conectado (CI, `vercel.json`, red) | Ninguno: es la ausencia de cambios lo que se verifica | `tests/spec-031-frontera.test.ts` (10 casos: steps de `ci.yml`, `vercel.json` congelado, `.env.example`, URLs de los 8 ficheros nuevos) | | ❌ |
 
 ## Veredicto del verificador
 <!-- GREEN/RED + fecha + resumen. Lo escribe SOLO sdd-verificador. -->
@@ -81,17 +81,64 @@ No afecta a **CA-7**, que se verifica contra el **código del ciclo de refresco*
 y no contra un documento; la spec ya está redactada así.
 
 ## Cómo retomar (handoff)
-Estado real: **solo existe la spec en `borrador` y este ledger**. No hay ni una línea de
-código, ni test, ni commit de implementación.
+Estado real: **implementada y lista para el verificador**. La spec está en `en-revision`.
+Rama `ft/SPEC-031-identidad-del-despliegue`, worktree `.claude/worktrees/spec-031`, sobre
+`origin/main` @ `2702111`. **Sin push y sin PR**: eso lo hace el orquestador tras el gate
+adversarial.
 
-Siguiente paso: **implementar**. El gate ya se celebró (2026-08-18, Alberto Fojo) y la spec
-está aprobada; sus dos resoluciones —sentinela `unknown` y D-7 aplazada— ya están aplicadas al
-texto, así que **no queda nada que preguntar antes de empezar**. Lo único que falta por
-registrar es la transición de estado a `aprobada`, que hace el orquestador con `estado.mjs`.
+Commits (en orden):
 
-El orden natural de implementación es: (a) la función pura de
-resolución de identidad con sus unitarios —es donde vive CA-3, el CA con más casos y el que
-recoge el fallo real de hoy (`VERCEL_GIT_COMMIT_SHA` **vacía**, no ausente)—; (b) el canal de
-build en `next.config.mjs` y la ruta; (c) `scripts/check-alive.mjs` con sus servidores de
-juguete; (d) el runbook. Los tests estáticos de CA-2, CA-5, CA-7 y CA-13 siguen el patrón de
-`tests/ci-workflow.test.ts` (SPEC-027): parsear de verdad, no pasarle regex al texto.
+1. `cd1ac9e` — `feat(SPEC-031): /api/version dice de qué commit viene el despliegue` (CA-1…CA-7).
+   Incluye la spec y este ledger, que el arquitecto dejó sin commitear.
+2. `38b5fa1` — `feat(SPEC-031): scripts/check-alive.mjs, la comprobación de vida reutilizable`
+   (CA-8…CA-11).
+3. El tercero cierra CA-12 y CA-13 (runbook y frontera) y deja la spec en `en-revision`.
+
+### Qué se ha construido, en cuatro piezas
+
+- `src/lib/version/identity.ts` — función pura `resolveIdentity` + la constante
+  `deploymentIdentity`, resuelta **una sola vez al cargar el módulo**. Aquí vive la sentinela
+  `unknown` y la regla de mirar el **contenido**, no la presencia.
+- `src/lib/version/build-identity.mjs` + `next.config.mjs` — el canal de tiempo de build.
+  `next.config.mjs` es el **único fichero del repo** que menciona `VERCEL_GIT_*`; el módulo
+  recibe el sha como parámetro justamente para que `grep VERCEL_GIT_ src/` no devuelva nada
+  (CA-2c). Es `.mjs` porque un `next.config.mjs` no puede importar TypeScript.
+- `src/app/api/version/route.ts` — el endpoint. Su **único** import es la identidad: eso es lo
+  que hace ciertas las propiedades de CA-5 y CA-7, y el test de grafo lo vigila.
+- `scripts/check-alive.mjs` — primer y único habitante de `scripts/`. Cero imports, cero
+  lecturas de `process.env`.
+
+### Cómo reproducir la verificación
+
+```bash
+npm ci                 # OJO: el worktree no traía node_modules y la resolución caía al
+                       # repo padre, que no tiene `yaml` (dep de SPEC-027)
+npm run typecheck      # limpio
+npm run lint           # limpio
+npm run test           # 45 ficheros, 524 tests (486 antes de esta spec + 38 nuevos)
+npm run build && npm run test:e2e   # 39 tests, incluidos los 4 de tests/e2e/version.spec.ts
+```
+
+Y la cadena completa contra la app real, que es la evidencia que ningún test estático da:
+
+```bash
+npm run build && npx next start -p 3210          # con DATABASE_URL/AUTH_SECRET de juguete
+node scripts/check-alive.mjs --url http://127.0.0.1:3210            # -> 0
+node scripts/check-alive.mjs --url http://127.0.0.1:3210 --commit ffff…ffff --timeout 3   # -> 1
+```
+
+En esa prueba el endpoint respondió el sha del árbol **con el que se construyó**, que no era
+el del `HEAD` del momento — es decir: el instrumento detectó por sí solo *"lo vivo es más
+viejo que lo que tienes delante"*, que es exactamente el fallo de 27 días que abre
+`docs/despliegue.md`.
+
+### Lo que NO se ha tocado, a propósito
+
+`.github/workflows/ci.yml` (ni un step), `vercel.json` (`git diff origin/main -- vercel.json`
+vacío), `.env.example`, `docs/adr/ADR-018-*.md` (inmutable). Ninguna variable de entorno
+nueva: las tres del canal de build **se calculan**, no se configuran.
+
+### Salvedades abiertas por el implementador
+
+**Ninguna nueva.** No apareció trabajo necesario fuera de los CA. `F-SPEC-031-1` (adopción de
+D-7) sigue como estaba, aplazada al gate de SPEC-028, y esta spec cierra sin ella.
