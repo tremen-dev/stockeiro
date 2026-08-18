@@ -10,11 +10,16 @@ epica: EPIC-INFRA
   sí misma: 6 ejecuciones, 3 de ellas en rojo a propósito y revertidas.
 - Rama: `ft/SPEC-027-ci-en-cada-pr` (worktree `.claude/worktrees/followups-024-025`)
 - PR: **<https://github.com/tremen-dev/stockeiro/pull/31>**
+- **Enmienda del 2026-08-18** (`9ae29ea`, arquitecto): CA-11 pasa a **sonda sembrada**.
+  Reimplementado en `231b2c6` con sus dos roturas demostradas — §CA-11 reimplementado.
 - Commits permanentes: `c5ba11f` (RED del test estático) · `dbcb7dc` (workflow + `.nvmrc` +
   scripts) · `6c2a625` (canario y retirada del código muerto) · `674de6f` (runbook) ·
-  `015536b` (ledger) · `c62a2b3` (arreglo del cuelgue de `--with-deps`)
-- Commits temporales, **los tres revertidos**: `4197e23`→`9094a2c` (CA-3) ·
-  `8f4185f`→(revert) (CA-10) · `e8036d4`→`e2f7b2a` (CA-9). `git diff c62a2b3 HEAD` = **vacío**.
+  `015536b` (ledger) · `c62a2b3` (arreglo del cuelgue de `--with-deps`) · `231b2c6` (canario sembrado)
+- Commits temporales en la rama, **los tres revertidos**: `4197e23`→`9094a2c` (CA-3) ·
+  `8f4185f`→(revert) (CA-10) · `e8036d4`→`e2f7b2a` (CA-9). `git diff c62a2b3 e2f7b2a` = **vacío**.
+- Las **dos roturas de CA-11** no se commitearon: son de una línea y se ejecutaron en local,
+  porque lo que demuestran ocurre en `npx vitest run` y no necesita un runner. Ambas revertidas;
+  el fichero no conserva ni un resto (`grep` de las marcas temporales = 0).
 
 ## Matriz de criterios de aceptación
 <!-- Escritores: sdd-implementador rellena Implementado y Test; sdd-verificador rellena Verif. y Estado. Nunca al revés. -->
@@ -32,9 +37,9 @@ epica: EPIC-INFRA
 | CA-8 | `.github/workflows/ci.yml` (`cache: npm` en setup-node; `actions/cache` de `~/.cache/ms-playwright` con clave de `package-lock.json`; sin caché de `node_modules` ni `.next/cache`, con el motivo escrito en el YAML) | `tests/ci-workflow.test.ts` › *CA-8* (4 casos) **+ ahorro medido** — ver §Ahorro de caché. Frío→caliente: `Install Playwright browser` **14 s → 1 s**; `Cache hit` de 261 MB (navegador) y 212 MB (npm) en el log | | ❌ |
 | CA-9 | `.github/workflows/ci.yml` › step `Upload e2e diagnostics` (`if: failure()`, `playwright-report/` + `test-results/` + `_qa/`, `retention-days: 7`) | Sin test estático a propósito: lo que se afirma es que el artefacto *existe y abre*. **Prueba en rojo**: [run 32087968719](https://github.com/tremen-dev/stockeiro/actions/runs/32087968719) → artefacto `e2e-diagnostics` de **9,8 MB**, descargado y abierto — ver §Artefacto. **Y en verde no sube nada**: [run 32088353875](https://github.com/tremen-dev/stockeiro/actions/runs/32088353875) tiene **0 artefactos**. Commit `e8036d4`, revertido en `e2f7b2a` | | ❌ |
 | CA-10 | `.github/workflows/ci.yml` › `npm run test:e2e -- --forbid-only …` | **Prueba en rojo**: [run 32087612615](https://github.com/tremen-dev/stockeiro/actions/runs/32087612615) → `End-to-end tests: failure` con el mensaje literal `Error: item focused with '.only' is not allowed due to the '--forbid-only' CLI flag: "vigiladas.spec.ts SPEC-003: …"`. Sin la bandera habría pasado en verde con **1 test de 27**. Commit `8f4185f`, revertido | | ❌ |
-| CA-11 | `tests/schema-source.test.ts` › bloque CA-6: invocación extraída a `generateInto()`, sonda a `withProbe()` | `tests/schema-source.test.ts` › *CA-6* › «la guardia sabe detectar: contra un directorio vacío genera migración». **Probado en los dos sentidos** — ver §Mediciones. Corre en CI en cada pasada (dentro de los 308) | | ❌ |
-| CA-12 | `tests/schema-source.test.ts`: desaparece la inspección `/error\|ENOENT/i` de stdout; el comentario de la sonda se sustituye por lo medido | `tests/schema-source.test.ts` › *CA-6* (la guardia sigue verde sin la inspección). **La medición prescrita CONTRADICE la premisa del CA — ver §Mediciones y F-SPEC-027-3** | | ❌ |
-| CA-13 | Sin cambios de expectativas en ningún test existente; único fichero de test existente tocado: `tests/schema-source.test.ts` (+ `tests/position.test.ts`, un import sin usar, autorizado en el gate) | Suite completa verde en Node 22 y Node 24 en local (308/308 en 32 ficheros) **y en CI** (32/32 ficheros, 27/27 e2e). **Tiempos y minutos facturados reales** — ver §Tiempos reales de CI | | ❌ |
+| CA-11 | `tests/schema-source.test.ts` › bloque CA-6, **reimplementado tras la enmienda del 2026-08-18** (`231b2c6`): canario sobre **sonda sembrada y rebobinada** al primer apunte del journal; la **forma de la ruta de sonda vive en un solo sitio** (`withProbe`), ni guardia ni canario nombran su `--out` | `tests/schema-source.test.ts` › *CA-6* › «la guardia sabe detectar: sobre una sonda rebobinada reproduce las migraciones que faltan». **Verde + las DOS roturas exigidas, ambas revertidas** — ver §CA-11 reimplementado | | ❌ |
+| CA-12 | `tests/schema-source.test.ts`: la inspección `/error\|ENOENT/i` sigue retirada (**no se revirtió**) y el comentario recoge las **tres rondas** medidas, incluido el mecanismo real: `drizzle-kit` concatena el cwd delante de la ruta absoluta al buscar `meta/NNNN_snapshot.json` | Lectura del fichero: **no queda ninguna inspección de la salida del proceso ni ninguna aserción sobre la forma de la ruta**, ni a favor ni en contra (descartado por el humano el 2026-08-18). El comportamiento lo verifica CA-11 | | ❌ |
+| CA-13 | Sin cambios de expectativas en ningún test existente; único fichero de test existente tocado: `tests/schema-source.test.ts` (+ `tests/position.test.ts`, un import sin usar, autorizado en el gate) | Suite completa verde en Node 22 y Node 24 en local (308/308 en 32 ficheros) **y en CI** (32/32 ficheros, 27/27 e2e). **Coste aislado del canario SEMBRADO medido** — ver §CA-11 reimplementado. Tiempos y minutos facturados reales — ver §Tiempos reales de CI | | ❌ |
 
 ## Veredicto del verificador
 <!-- GREEN/RED + fecha + resumen. Lo escribe SOLO sdd-verificador. -->
@@ -60,6 +65,9 @@ seis ejecuciones son el workflow de esta spec verificándose a sí mismo antes d
 | 4 | [32087612615](https://github.com/tremen-dev/stockeiro/actions/runs/32087612615) | `8f4185f` ⟳ | **rojo de CA-10** (`.only`) | failure — `--forbid-only` lo tumba; `Checks: success` |
 | 5 | [32087968719](https://github.com/tremen-dev/stockeiro/actions/runs/32087968719) | `e8036d4` ⟳ | **rojo de CA-9** (aserción falsa) | failure — **1 failed / 26 passed**, artefacto de 9,8 MB con traza |
 | 6 | [32088353875](https://github.com/tremen-dev/stockeiro/actions/runs/32088353875) | `e2f7b2a` | pasada final, **todo caliente** | **success** — Checks 3m48s · E2E 1m42s · **0 artefactos** |
+
+**Las seis corrieron con el canario ANTERIOR (sonda vacía)**: siguen probando CA-1…CA-10 y CA-13,
+pero **no CA-11** — ver el aviso de §Cómo retomar.
 
 ⟳ = commit temporal, revertido. `git diff c62a2b3 HEAD` está **vacío**: no queda ni un resto.
 
@@ -122,6 +130,85 @@ La traza **abre**: dentro del `.zip` están `test.trace`, `0-trace.trace`, `0-tr
 screencast completo en `resources/*.jpeg`. No es un fichero vacío con nombre bonito. Retención
 confirmada por la API: creado `2026-08-18T01:24:10Z`, expira `2026-08-25T01:24:09Z` — **7 días
 exactos**. Y la mitad que más se olvida: la pasada verde (run 6) tiene **`total_count: 0`**.
+
+## CA-11 reimplementado (enmienda del 2026-08-18)
+
+La enmienda (`9ae29ea`) cambia el **comportamiento** del canario, no su redacción: pasa de sonda
+**vacía** a sonda **sembrada y rebobinada**. Reimplementado en `231b2c6`.
+
+Qué hace ahora, y por qué así:
+
+- **Sonda sembrada, rebobinada al primer apunte del journal**: copia de `drizzle/` recortada a
+  `idx 0` (`0000_real_tusk.sql` + `meta/0000_snapshot.json`), borrando el resto. Al primero y no
+  *"quitando el último"* porque el delta contra `0000` **solo puede crecer**, mientras que el
+  último apunte puede ser una migración a mano sin cambio de esquema
+  —`0004_backfill_operating_mic` lo es— y dejaría el canario en rojo acusando a la guardia de
+  algo que no pasa.
+- **La forma de la ruta de sonda se decide en un único sitio** (`withProbe`, `const outArg`). Ni
+  la guardia ni el canario nombran su `--out`: lo reciben ya ligado junto con `dir`, `generate()`
+  y `sqlFiles()`. Esto es lo que convierte la enmienda en cierre y no en parche.
+- **Mensaje de fallo en dos lecturas**: primero la probable (*"la guardia está muerta y lleva
+  quién sabe cuánto dando verde sin mirar nada"*), detrás la segunda (*"…o alguien ha reescrito
+  el historial de `drizzle/` y el punto de rebobinado (0000_real_tusk) ya no tiene deriva
+  pendiente"*), con el tag interpolado para que no haya que ir a buscarlo.
+
+### Verde
+
+```
+✓ drizzle/ está al día respecto de src/db/schema.ts                              2.29 s
+✓ la guardia sabe detectar: sobre una sonda rebobinada reproduce las
+  migraciones que faltan                                                          2.05 s
+```
+
+El canario genera el delta `0000 → esquema actual`, es decir las 7 migraciones que le faltan a la
+sonda rebobinada, condensadas en un `.sql`.
+
+### Rojo (1) — se rompe la invocación (`--schema` inexistente)
+
+```
+× drizzle/ está al día respecto de src/db/schema.ts
+  → Command failed: npx drizzle-kit generate --dialect postgresql
+    --schema ./src/db/NO-EXISTE-rotura-1.ts --out node_modules/.cache/spec026-guard-…
+× la guardia sabe detectar: sobre una sonda rebobinada …
+  → Command failed: npx drizzle-kit generate --dialect postgresql
+    --schema ./src/db/NO-EXISTE-rotura-1.ts --out node_modules/.cache/spec027-canary-…
+```
+
+`drizzle-kit` sale con **1**, `execFileSync` lanza y **ninguno de los dos puede quedarse verde**.
+El fallo señala la **invocación**, no la deriva. Revertida.
+
+### Rojo (2) — la que el canario viejo NO cazaba: sonda en ruta absoluta
+
+Cambiando **una sola línea** en el sitio único (`const outArg = relPath` → `= dir`):
+
+```
+✓ drizzle/ está al día respecto de src/db/schema.ts                    2.30 s   <-- VERDE EN FALSO
+× la guardia sabe detectar: sobre una sonda rebobinada reproduce las migraciones que faltan
+  → La guardia de esquema NO PUDO EJECUTARSE. La lectura probable: la comprobación de
+    deriva está muerta y lleva quién sabe cuánto dando verde sin mirar nada — revisa la
+    invocación de `drizzle-kit generate` (argumentos, binario, cwd, la forma de la ruta
+    de sonda) antes de creerte el verde del test de arriba. La segunda lectura, menos
+    probable: alguien ha reescrito el historial de `drizzle/` y el punto de rebobinado
+    (0000_real_tusk) ya no tiene deriva pendiente, en cuyo caso lo que hay que arreglar
+    es este canario y no la guardia.
+```
+
+**Esta es la evidencia que faltaba y la razón de ser de la enmienda.** La guardia informa
+alegremente de que no hay deriva sin haber mirado nada, y **el canario es lo único que se entera**.
+Con la versión anterior —sonda vacía— este mismo cambio dejaba a los dos en verde: la sonda vacía
+es justo el estado en el que `drizzle-kit` sí acepta la ruta absoluta. Revertida.
+
+### Coste aislado del canario sembrado (CA-13)
+
+| Versión del canario | Coste por pasada de suite |
+|---|---|
+| sonda **vacía** (implementación anterior) | 1,96 s · 1,99 s |
+| sonda **sembrada y rebobinada** (actual) | **2,05 s · 2,80 s** |
+
+El mismo orden de magnitud, como preveía la enmienda: el gasto es la invocación de `drizzle-kit`,
+no la copia de 17 ficheros ni el recorte del JSON. **Techo declarado: 10 s. Margen sobrado**, sin
+necesidad de volver al gate. Suite completa tras el cambio: **308/308 en 32 ficheros, 105,9 s** en
+Node 24 — sin regresión.
 
 ## El primer run: por qué el gate no dependía de lo que creíamos
 
@@ -200,6 +287,15 @@ completa queda **por debajo** de la referencia de 145 s pese a sumar 26 tests, a
 de **+25 %** no se acerca siquiera. (El resto de la diferencia es varianza de máquina/caché
 entre la medición del arquitecto y estas; no se atribuye al cambio.)
 
+### CA-11 y CA-12 — mediciones de la PRIMERA implementación (histórico, superado)
+
+> ⚠️ **Lo de abajo está SUPERADO por la enmienda del 2026-08-18** y se conserva porque es la
+> medición que la provocó —y porque la spec (§Enmienda) pide explícitamente que no se vuelva a
+> "corregir" esto sin medir. El canario descrito aquí usaba **sonda vacía** y tenía el punto ciego
+> que se documenta más abajo. **El canario vigente es el de §CA-11 reimplementado.** La antigua
+> conclusión "CA-12 no se puede cerrar como está escrito" **ya no aplica**: el arquitecto enmendó
+> CA-11 y CA-12 el 2026-08-18 y ambos están ahora implementados y demostrados.
+
 ### CA-11 — el canario, probado en los dos sentidos
 
 - **Verde**: la misma invocación contra una sonda vacía escribe el esquema entero
@@ -276,13 +372,15 @@ la ejecución real, pero descarta el viaje de ida y vuelta por un error de sinta
 - **F-SPEC-027-2 — `guard-migrate` (ADR-018 D-2) y escáner de SQL destructivo (D-5.2).** Fuera
   de alcance aquí porque la ventana que protegen no se abre sin integración Vercel↔GitHub.
   **Bloqueante de SPEC-028**: deben entrar *antes* de conectar el repo.
-- **F-SPEC-027-3 — El canario tiene un punto ciego medido: la sonda absoluta con directorio
-  sembrado.** Abierto por esta implementación (ver §Mediciones, CA-12). El riesgo residual es
-  concreto y reproducible: cambiar la sonda de la guardia a ruta absoluta la deja muda **sin que
-  el canario lo note**. Tres salidas, todas baratas, ninguna elegida por mí: (a) sembrar también
-  la sonda del canario y exigir que reproduzca la última migración tras retirarla del journal;
-  (b) que la guardia capture `stderr` y exija que esté vacío (`spawnSync` en vez de
-  `execFileSync`); (c) asumirlo y dejarlo escrito. → **decisión del arquitecto/gate.**
+- ~~**F-SPEC-027-3 — El canario tiene un punto ciego medido: la sonda absoluta con directorio
+  sembrado.**~~ **CERRADO** el 2026-08-18, absorbido por la **enmienda de CA-11** (`9ae29ea`) y su
+  reimplementación (`231b2c6`). El humano eligió la opción **(a)** de las tres que dejé abiertas:
+  canario sobre **sonda sembrada**, con la forma de la ruta en un **único sitio**. Descartó
+  expresamente la aserción sobre la forma de la ruta —fosiliza folklore y cierra en falso un
+  riesgo que seguiría abierto—, y el arquitecto descartó con motivo la opción (b) —exigir `stderr`
+  vacío— porque ata la guardia a que `drizzle-kit` no imprima nunca un aviso benigno por ese canal
+  y volvería a cubrir **una** sola forma de morir mudo. **Demostrado con el rojo (2)**: ver
+  §CA-11 reimplementado.
 - ~~**F-SPEC-027-4 — Pruebas en rojo y evidencia viva pendientes de la PR.**~~ **CERRADO** el
   2026-08-18 con la PR #31: seis ejecuciones, tres rojos deliberados revertidos, artefacto
   descargado y traza abierta, tiempos reales medidos. Ver §Ejecuciones de CI.
@@ -321,30 +419,42 @@ e2e**, typecheck y lint limpios con `--max-warnings=0`, build verde con variable
 | `.nvmrc` | nuevo — `24` |
 | `package.json` | scripts `lint` y `test:e2e`; devDependency `yaml` |
 | `tests/ci-workflow.test.ts` | nuevo — 25 casos, CA-1…CA-8 |
-| `tests/schema-source.test.ts` | canario (CA-11) + retirada del código muerto y comentario medido (CA-12) |
+| `tests/schema-source.test.ts` | canario **sembrado y rebobinado** (CA-11, enmienda) + retirada del código muerto y comentario con las tres rondas medidas (CA-12) |
 | `tests/position.test.ts` | borrado el import sin usar (autorizado en el gate) |
 | `docs/despliegue.md` | §9 nueva |
 
 **El guion de verificación en CI está ejecutado y cerrado.** La PR #31 se verificó a sí misma en
 seis ejecuciones (§Ejecuciones de CI): una verde en frío, tres rojos deliberados —CA-3, CA-10,
 CA-9— cada uno revertido, y una verde final con las cachés calientes. El artefacto de diagnóstico
-se descargó y la traza se abrió. `git diff c62a2b3 HEAD` está vacío: la rama no lleva ni un resto
-de las pruebas en rojo.
+se descargó y la traza se abrió.
 
-**Estado para el verificador**: los 13 CA tienen implementación, test y —salvo CA-12— evidencia.
-No queda nada mío por hacer en esta spec. Lo que sigue abierto es de decisión, no de trabajo:
+**La enmienda de CA-11 está reimplementada y demostrada** (§CA-11 reimplementado): canario sobre
+sonda sembrada y rebobinada, forma de la ruta en un único sitio, y las **dos** roturas exigidas
+—invocación rota, y sonda en absoluta— ejecutadas y revertidas. Coste medido: **2,0-2,8 s**, muy
+por debajo del techo de 10 s. **F-SPEC-027-3 queda cerrado.**
 
-1. **CA-12 no se puede cerrar como está escrito.** Su verificación prescribe una medición que
-   **sale al revés de su premisa**: con la sonda sembrada, un `--out` absoluto deja la guardia
-   muda y verde en falso (§Mediciones). El código que CA-12 pedía retirar está retirado y el
-   comentario dice lo medido; lo que no puedo hacer es firmar una afirmación que he medido falsa.
-   **Decide el arquitecto/gate**: cerrar con salvedad, reescribir el CA, o reforzar el canario.
-2. **F-SPEC-027-3** sale de ahí y es el único riesgo técnico nuevo que deja esta spec: el canario
-   de sonda vacía no distingue ese fallo concreto. Tres salidas propuestas, ninguna elegida.
-3. **F-SPEC-027-1** sigue siendo la conversación cara: la CI informa y **no impide** mezclar,
-   porque el plan de GitHub no lo ofrece. Está escrito en `docs/despliegue.md` §9 para que un
-   check verde no se lea como una barrera.
+> ⚠️ **Aviso al verificador sobre las ejecuciones de CI.** Los seis runs de §Ejecuciones de CI
+> corrieron con el canario **anterior** (sonda vacía). Siguen siendo evidencia válida de CA-1…CA-10
+> y CA-13 —el workflow no ha cambiado desde entonces salvo el arreglo de `--with-deps`, anterior a
+> todos ellos—, pero **su verde ya no prueba CA-11**. La evidencia de CA-11 es la de §CA-11
+> reimplementado (local) más la pasada de CI del commit `231b2c6` en adelante, que sí lleva el
+> canario sembrado.
+
+**Estado para el verificador**: los 13 CA tienen implementación, test y evidencia. **No queda
+trabajo mío pendiente en esta spec.** Lo único abierto no es técnico:
+
+1. **F-SPEC-027-1** es la conversación cara: la CI informa y **no impide** mezclar, porque el plan
+   de GitHub no lo ofrece. Escrito en `docs/despliegue.md` §9 para que un check verde no se lea
+   como una barrera que no existe.
+2. **F-SPEC-027-2** (guardias de migración) es bloqueante de SPEC-028, no de esta.
+3. **F-SPEC-027-5** (actions deprecadas) es deuda con fecha, no urgencia.
 
 **Si hay que retomar el workflow**, lo único no obvio está en `.github/workflows/ci.yml` con su
 porqué al lado: por qué no se cachea `node_modules`, por qué `--with-deps` no está, y por qué
 `End-to-end tests` es el único gate que encadena.
+
+**Si alguien va a "limpiar" `tests/schema-source.test.ts`**: lee antes el comentario de
+`withProbe` y §Enmienda de la spec. Sobre la forma de la ruta de sonda se han emitido tres
+veredictos y cada uno corrigió al anterior; dos llegaron a colarse en un documento firmado. La
+regla de método está escrita: **toda medición sobre esta guardia se hace con su estado de partida
+—sonda sembrada—**; medir con sonda vacía ya produjo dos conclusiones contradictorias.
