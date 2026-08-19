@@ -35,12 +35,12 @@ Actualizado: 2026-08-19
 
 | Spec | Estado | Último cambio |
 |---|---|---|
-| SPEC-034 — rol-por-usuario-y-visibilidad-de-seccion | borrador | 2026-08-19 (sdd-arquitecto) |
-| SPEC-035 — paginas-legales-titular-y-descargo-de-no-asesoramiento | borrador | 2026-08-19 (sdd-arquitecto) |
-| SPEC-036 — borrar-mi-cuenta | borrador | 2026-08-19 (sdd-arquitecto) |
-| SPEC-037 — el-grifo-del-registro-y-la-pantalla-de-operacion | borrador | 2026-08-19 (sdd-arquitecto) |
-| SPEC-038 — la-version-visible-dentro-de-la-app | borrador | 2026-08-19 (sdd-arquitecto) |
-| SPEC-039 — ayuda-de-vigiladas-estados-vacios-que-guian-y-canal-de-feedback | borrador | 2026-08-19 (sdd-arquitecto) |
+| SPEC-034 — rol-por-usuario-y-visibilidad-de-seccion | aprobada | 2026-08-19 (humano (Alberto Fojo)) |
+| SPEC-035 — paginas-legales-titular-y-descargo-de-no-asesoramiento | aprobada | 2026-08-19 (humano (Alberto Fojo)) |
+| SPEC-036 — borrar-mi-cuenta | aprobada | 2026-08-19 (humano (Alberto Fojo)) |
+| SPEC-037 — el-grifo-del-registro-y-la-pantalla-de-operacion | aprobada | 2026-08-19 (humano (Alberto Fojo)) |
+| SPEC-038 — la-version-visible-dentro-de-la-app | aprobada | 2026-08-19 (humano (Alberto Fojo)) |
+| SPEC-039 — ayuda-de-vigiladas-estados-vacios-que-guian-y-canal-de-feedback | aprobada | 2026-08-19 (humano (Alberto Fojo)) |
 
 ## EPIC-FIX (aprobada)
 
@@ -91,13 +91,13 @@ Actualizado: 2026-08-19
 | ADR-018 | aprobada | despliegue-continuo-desde-main-verificacion-en-pr-deploy-automatico-al-mergear-y-comprobacion-de-vida | 2026-08-17 (humano (Alberto Fojo)) |
 | ADR-019 | aprobada | el-esquema-de-test-es-el-de-produccion-una-sola-fuente-aplicada-desde-las-migraciones | 2026-08-17 (Alberto Fojo) |
 | ADR-020 | aprobada | el-buscador-no-filtra-por-tipo-de-instrumento-y-ningun-descarte-es-mudo | 2026-08-18 (humano (Alberto Fojo)) |
-| ADR-021 | borrador | el-rol-de-usuario-vive-en-su-fila-y-se-revalida-en-cada-peticion-no-viaja-en-el-jwt | 2026-08-19 (sdd-arquitecto) |
-| ADR-022 | borrador | borrado-de-cuenta-cae-todo-lo-propio-se-conserva-lo-compartido-y-no-se-anonimiza-nada | 2026-08-19 (sdd-arquitecto) |
-| ADR-023 | borrador | el-grifo-del-registro-es-estado-de-aplicacion-y-el-ciclo-diario-deja-constancia-de-cada-ejecucion | 2026-08-19 (sdd-arquitecto) |
-| ADR-024 | borrador | la-version-de-producto-es-semver-en-package-json-y-viaja-en-el-contrato-de-api-version-enmienda-d-6-de-adr-018 | 2026-08-19 (sdd-arquitecto) |
+| ADR-021 | aprobada | el-rol-de-usuario-vive-en-su-fila-y-se-revalida-en-cada-peticion-no-viaja-en-el-jwt | 2026-08-19 (humano (Alberto Fojo)) |
+| ADR-022 | aprobada | borrado-de-cuenta-cae-todo-lo-propio-se-conserva-lo-compartido-y-no-se-anonimiza-nada | 2026-08-19 (humano (Alberto Fojo)) |
+| ADR-023 | aprobada | el-grifo-del-registro-es-estado-de-aplicacion-y-el-ciclo-diario-deja-constancia-de-cada-ejecucion | 2026-08-19 (humano (Alberto Fojo)) |
+| ADR-024 | aprobada | la-version-de-producto-es-semver-en-package-json-y-viaja-en-el-contrato-de-api-version-enmienda-d-6-de-adr-018 | 2026-08-19 (humano (Alberto Fojo)) |
 
 ## Resumen
 
 - hecho: 27
-- borrador: 6
+- aprobada: 6
 - en-revision: 2

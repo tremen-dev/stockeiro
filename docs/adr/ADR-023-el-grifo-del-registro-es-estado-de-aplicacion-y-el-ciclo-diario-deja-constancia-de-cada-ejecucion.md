@@ -1,9 +1,11 @@
 ---
 id: ADR-023
 tipo: adr
-estado: borrador
+estado: aprobada
 historial:
   - {estado: borrador, fecha: 2026-08-19, por: sdd-arquitecto}
+  - {estado: aprobada, fecha: 2026-08-19, por: humano (Alberto Fojo)}
+aprobada-por: humano (Alberto Fojo)
 ---
 # ADR-023: El grifo del registro es estado de aplicación, y el ciclo diario deja constancia de cada ejecución
 

@@ -1,9 +1,11 @@
 ---
 id: ADR-021
 tipo: adr
-estado: borrador
+estado: aprobada
 historial:
   - {estado: borrador, fecha: 2026-08-19, por: sdd-arquitecto}
+  - {estado: aprobada, fecha: 2026-08-19, por: humano (Alberto Fojo)}
+aprobada-por: humano (Alberto Fojo)
 ---
 # ADR-021: El rol de usuario vive en su fila y se revalida en cada petición, no viaja en el JWT
 

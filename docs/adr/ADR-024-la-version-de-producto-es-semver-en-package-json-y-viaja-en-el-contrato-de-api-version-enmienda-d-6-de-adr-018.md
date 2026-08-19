@@ -1,9 +1,11 @@
 ---
 id: ADR-024
 tipo: adr
-estado: borrador
+estado: aprobada
 historial:
   - {estado: borrador, fecha: 2026-08-19, por: sdd-arquitecto}
+  - {estado: aprobada, fecha: 2026-08-19, por: humano (Alberto Fojo)}
+aprobada-por: humano (Alberto Fojo)
 ---
 # ADR-024: La versión de producto es semver en `package.json` y viaja en el contrato de `/api/version` (enmienda D-6 de ADR-018)
 

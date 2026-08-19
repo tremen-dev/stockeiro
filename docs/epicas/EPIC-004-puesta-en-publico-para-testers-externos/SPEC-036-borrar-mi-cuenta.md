@@ -2,10 +2,11 @@
 id: SPEC-036
 tipo: spec
 epica: EPIC-004
-estado: borrador
-aprobada-por:
+estado: aprobada
+aprobada-por: humano (Alberto Fojo)
 historial:
   - {estado: borrador, fecha: 2026-08-19, por: sdd-arquitecto}
+  - {estado: aprobada, fecha: 2026-08-19, por: humano (Alberto Fojo)}
 ---
 # SPEC-036 — Borrar mi cuenta
 

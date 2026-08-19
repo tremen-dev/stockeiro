@@ -1,9 +1,11 @@
 ---
 id: ADR-022
 tipo: adr
-estado: borrador
+estado: aprobada
 historial:
   - {estado: borrador, fecha: 2026-08-19, por: sdd-arquitecto}
+  - {estado: aprobada, fecha: 2026-08-19, por: humano (Alberto Fojo)}
+aprobada-por: humano (Alberto Fojo)
 ---
 # ADR-022: Borrado de cuenta: cae todo lo propio, se conserva lo compartido y no se anonimiza nada
 
