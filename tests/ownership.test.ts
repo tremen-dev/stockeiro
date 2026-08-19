@@ -1,9 +1,7 @@
 import { describe, it, expect, beforeEach } from 'vitest';
 import { pgTable, uuid, text } from 'drizzle-orm/pg-core';
-import { drizzle } from 'drizzle-orm/pglite';
-import { PGlite } from '@electric-sql/pglite';
+import { makeTestDb } from '@/db/test-db';
 import { registerUser } from '@/lib/auth/users';
-import { users } from '@/db/schema';
 import { listForOwner, findByIdForOwner } from '@/lib/data/ownership';
 
 /**
@@ -17,23 +15,22 @@ const notes = pgTable('notes', {
   body: text('body').notNull(),
 });
 
+/**
+ * `users` sale de las migraciones (ADR-019, SPEC-026): este fichero llegó a tener su
+ * propia copia del DDL y se quedó atrás en cuanto la tabla ganó una columna —
+ * exactamente el fallo que ADR-019 describe—. Lo único que se crea aquí a mano es la
+ * tabla-fixture `notes`, que no es de producción y no existe en ninguna migración.
+ */
 async function makeDbWithNotes() {
-  const client = new PGlite();
+  const { db, client } = await makeTestDb();
   await client.exec(`
-    CREATE TABLE users (
-      id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
-      email text NOT NULL UNIQUE,
-      password_hash text NOT NULL,
-      password_changed_at timestamptz NOT NULL DEFAULT now(), -- época de credencial (ADR-016)
-      created_at timestamptz NOT NULL DEFAULT now()
-    );
     CREATE TABLE notes (
       id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
       user_id uuid NOT NULL,
       body text NOT NULL
     );
   `);
-  return drizzle(client, { schema: { users, notes } });
+  return db;
 }
 
 let db: Awaited<ReturnType<typeof makeDbWithNotes>>;

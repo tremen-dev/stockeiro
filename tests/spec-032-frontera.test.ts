@@ -114,29 +114,40 @@ describe('SPEC-032 CA-14.2: ni puerta post-deploy, ni /api/version, ni check-ali
   });
 });
 
+/**
+ * Las nueve migraciones que había cuando esta spec se cerró. La afirmación de CA-14.3
+ * es *"SPEC-032 no añade ninguna"*, y eso es un hecho sobre SU entrega, no una promesa
+ * de que el proyecto no vuelva a migrar nunca: por eso se comprueba que las nueve
+ * siguen ahí, en su sitio y en su orden, y no que sean las únicas que existen.
+ * Enmienda de SPEC-034, que sí trae una décima (`0009_user_role`); la propiedad que
+ * este bloque protege —que esta spec no tocó el esquema— queda intacta.
+ */
+const LAS_NUEVE = [
+  '0000_real_tusk.sql',
+  '0001_symbol_market_identity.sql',
+  '0002_symbol_aliases.sql',
+  '0003_import_idempotency.sql',
+  '0004_backfill_operating_mic.sql',
+  '0005_quote_diagnostics.sql',
+  '0006_chemical_chronomancer.sql',
+  '0007_tearful_roughhouse.sql',
+  '0008_puzzling_eddie_brock.sql',
+];
+
 describe('SPEC-032 CA-14.3: ni una migración nueva, ni un cambio de esquema', () => {
-  it('drizzle/ sigue con nueve .sql, los mismos de siempre', () => {
+  it('las nueve .sql de esta spec siguen ahí, las mismas de siempre y en su orden', () => {
     const sql = readdirSync(drizzleDir)
       .filter((f) => f.endsWith('.sql'))
       .sort();
-    expect(sql).toEqual([
-      '0000_real_tusk.sql',
-      '0001_symbol_market_identity.sql',
-      '0002_symbol_aliases.sql',
-      '0003_import_idempotency.sql',
-      '0004_backfill_operating_mic.sql',
-      '0005_quote_diagnostics.sql',
-      '0006_chemical_chronomancer.sql',
-      '0007_tearful_roughhouse.sql',
-      '0008_puzzling_eddie_brock.sql',
-    ]);
+    expect(sql.slice(0, LAS_NUEVE.length)).toEqual(LAS_NUEVE);
   });
 
-  it('el journal sigue enumerando nueve entradas', () => {
+  it('el journal sigue empezando por esas nueve entradas, sin reescribir el historial', () => {
     const journal = JSON.parse(
       readFileSync(join(drizzleDir, 'meta', '_journal.json'), 'utf8'),
-    ) as { entries: unknown[] };
-    expect(journal.entries).toHaveLength(9);
+    ) as { entries: { idx: number; tag: string }[] };
+    const primeras = [...journal.entries].sort((a, b) => a.idx - b.idx).slice(0, LAS_NUEVE.length);
+    expect(primeras.map((e) => `${e.tag}.sql`)).toEqual(LAS_NUEVE);
   });
 
   it('lo único que gana drizzle/ es el fichero de desbloqueos', () => {
