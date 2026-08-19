@@ -1,9 +1,11 @@
 ---
 id: EPIC-004
 tipo: epica
-estado: borrador
+estado: aprobada
 historial:
   - {estado: borrador, fecha: 2026-08-19, por: sdd-producto}
+  - {estado: aprobada, fecha: 2026-08-19, por: humano (Alberto Fojo)}
+aprobada-por: humano (Alberto Fojo)
 ---
 # EPIC-004 — Puesta en público para testers externos
 
@@ -126,7 +128,13 @@ tester que no recibe avisos evalúa media función.
   publicar en un hilo abierto es exactamente ese escenario, ahora en serio. Esta épica
   lo vuelve **visible**: las páginas legales de CE-4 tendrán que declarar de dónde
   vienen los precios. Mitigación conocida y fuera del alcance de la épica: plan Basic
-  ($9.99/mes), misma key, cero código. **Decisión del humano en el gate.**
+  ($9.99/mes), misma key, cero código.
+  ↳ **Resuelto en el gate (2026-08-19, Alberto Fojo): se publica con el free tier y se
+  pasa a Basic más adelante.** El riesgo queda **asumido a conciencia**, no ignorado.
+  Consecuencia para las specs: las páginas legales de CE-4 no pueden prometer una
+  licencia que no se tiene — declaran la fuente de los precios y su carácter
+  informativo, sin afirmar derechos de redistribución. Seguimiento: `F-EPIC-004-1`
+  en el roadmap, §Ops y despliegue.
 - **R-2 — La búsqueda de símbolos comparte cuota entre todos.** Va con el free tier de
   Twelve Data, con límite por minuto **global, no por usuario**. Varios testers buscando
   a la vez podrían ver errores. **Hipótesis a validar**, no medida: no se ha reproducido.

@@ -141,8 +141,11 @@ esquema no necesita paso manual.
   explícitamente *"porque la app se compartirá con testers"*. Publicar en un hilo abierto
   de un foro es ese escenario, ya sin ambigüedad — y las páginas legales de EPIC-004
   tendrán que declarar de dónde vienen los precios. **Mitigación conocida: plan Basic
-  ($9.99/mes), misma key, cero código.** No es una spec: es una decisión de ops, y es
-  del humano. Abierta desde 2026-08-19.
+  ($9.99/mes), misma key, cero código.** No es una spec: es una decisión de ops.
+  ↳ **Decidido en el gate de EPIC-004 (2026-08-19, Alberto Fojo): se publica con el
+  free tier; el paso a Basic queda para más adelante.** Riesgo **asumido a conciencia**.
+  Queda abierta como recordatorio, no como bloqueo. Se revisa si el uso crece, si
+  Marketstack lo reclama, o antes de cualquier cobro a usuarios.
 - ⏳ **F-SPEC-011-1** (el build debe alcanzar `cdn.sheetjs.com`; `xlsx` viene del CDN por
   los CVE del paquete npm) — registrado en el runbook §6.
 - ⏳ **F-SPEC-012-1** (validar el mapeo mercado→MIC contra el proveedor real) — **lo
