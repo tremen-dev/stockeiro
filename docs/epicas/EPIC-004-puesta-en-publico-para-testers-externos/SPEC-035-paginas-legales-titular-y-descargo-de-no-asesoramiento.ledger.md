@@ -6,7 +6,7 @@ epica: EPIC-004
 # Ledger — SPEC-035 Paginas legales titular y descargo de no asesoramiento
 
 ## Resumen
-- Fase: en-revision <!-- refleja el estado de la spec; la fuente de verdad es el frontmatter de la spec -->
+- Fase: en-revision (ronda 2, respuesta al RED del 2026-08-19) <!-- refleja el estado de la spec; la fuente de verdad es el frontmatter de la spec -->
 - Rama: `ft/SPEC-035-paginas-legales-titular-y-descargo`
 
 ## Matriz de criterios de aceptación
@@ -22,7 +22,7 @@ epica: EPIC-004
 | CA-5 | `src/lib/legal/content.ts` (`CATEGORIAS_DE_DATO`); `src/app/legal/privacidad/page.tsx` | `tests/legal-datos-y-esquema.test.ts` (5: los dos conjuntos son EXACTAMENTE el mismo) + `tests/e2e/legal.spec.ts` › *la privacidad describe las siete categorías de dato del esquema* | Contrastado por mí contra `src/db/schema.ts`: tablas con `user_id` = `password_reset_tokens`, `transactions`, `watched_symbols`, `zone_triggers`, `notifications`, `symbol_aliases`, más `users`. Son exactamente las 7 declaradas. Las 5 columnas de `users` (email, hash, `password_changed_at`, `role`, `created_at`) están descritas una a una. | ✅ |
 | CA-6 | `src/lib/legal/content.ts` (`ENCARGADOS`); `src/app/legal/privacidad/page.tsx` | `tests/e2e/legal.spec.ts` › *la privacidad nombra a los cinco terceros y para qué interviene cada uno* | Los cinco visibles con su «para qué» y su «qué ve». Contrastado con el código: precios **solo** Marketstack (`quote-provider-factory.ts`; `TwelveDataProvider` no está cableado), Twelve Data solo búsqueda, Resend en `resend-sender.ts`, cron diario `0 22 * * *` en `vercel.json`, Vercel/Neon por `docs/despliegue.md` §0. | ✅ |
 | CA-7 | `src/lib/legal/content.ts` (`DATOS_DE_MERCADO`, `FUENTE_DE_PRECIOS`); `src/app/legal/terminos/page.tsx` y `.../privacidad/page.tsx` (`data-testid="datos-de-mercado"`) | `tests/e2e/legal.spec.ts` › *CA-7: de dónde vienen los precios y qué son* (2 rutas × fuente + diferido + informativo) | Leído el bloque en las dos rutas: fuente (Marketstack), «precios de cierre diferidos… no precios en tiempo real», «fecha de referencia», «carácter meramente informativo». | ✅ |
-| CA-8 | `tests/legal-afirmaciones-prohibidas.ts` (lista cerrada, 13 entradas con motivo); redacción de `src/lib/legal/content.ts` y de las 4 páginas | `tests/e2e/legal.spec.ts` › *CA-8: y NADA más que eso* (4 rutas) | Barrido del texto renderizado de las 4 páginas con **mi propia** lista (20 patrones, incluidos `copyright`, `©`, «derecho de uso» y «reserva de derechos», que no están en la del implementador): **ninguna** afirmación prohibida. Único acierto, `tiempo real`, es la forma negada que CA-7 exige. | ✅ |
+| CA-8 | `tests/legal-afirmaciones-prohibidas.ts` (lista cerrada, **16** entradas con motivo: +`con antelación`, +`aviso previo`, +`se avisaría`, ronda 2); redacción de `src/lib/legal/content.ts` (`DISPONIBILIDAD`, `CONSERVACION`) y de las 4 páginas | `tests/e2e/legal.spec.ts` › *CA-8: y NADA más que eso* (4 rutas) + *la disponibilidad describe el servicio y no promete un cierre avisado*; `tests/legal-textos-veraces.test.ts` (21 casos: la caducidad publicada = `RESET_TOKEN_TTL_MINUTES`, veto a las vaguedades más laxas que la realidad, y barrido de **todas** las cadenas del módulo con la lista cerrada) | Barrido del texto renderizado de las 4 páginas con **mi propia** lista (20 patrones, incluidos `copyright`, `©`, «derecho de uso» y «reserva de derechos», que no están en la del implementador): **ninguna** afirmación prohibida. Único acierto, `tiempo real`, es la forma negada que CA-7 exige. | ✅ |
 | CA-9 | `src/app/app-footer.tsx`; `src/lib/legal/content.ts` (`DESCARGO_BREVE`, `DESCARGO_COMPLETO`); `src/app/legal/terminos/page.tsx` (`#no-asesoramiento`) | `tests/e2e/pie-legal.spec.ts` › *CA-9: el descargo de no asesoramiento, donde se ve* (5 públicas + «también con sesión iniciada» + «/legal/terminos contiene el texto completo») | Pie leído en 5 públicas y en `/dashboard`, `/cartera`, `/vigiladas`, `/avisos` con sesión real: descargo + enlace `#no-asesoramiento`. Texto completo en `/legal/terminos` con D-1 y D-4 explícitos. **Funcionalmente correcto; ver CA-17 por su presentación en móvil.** | ✅ |
 | CA-10 | `src/app/app-footer.tsx` (sin sesión, sin BD); `src/app/layout.tsx` | `tests/e2e/pie-legal.spec.ts` › *CA-10* (4) + `tests/legal-import-graph.test.ts` › *el pie no lee la sesión* y *no alcanza ningún módulo prohibido* | Pie idéntico con y sin sesión; en `/dashboard`…`/avisos` con sesión el pie **no contiene el email** del usuario; sin sesión no hay `nav.app-nav` ni enlaces autenticados. Grafo de imports revisado: no alcanza `src/db/` ni `next-auth`. | ✅ |
 | CA-11 | `src/app/app-footer.tsx`; `src/lib/legal/content.ts` (`MARCA`) | `tests/e2e/pie-legal.spec.ts` › *CA-11: de quién es esto* (6 rutas + «también con sesión iniciada») | «Stockeiro, un proyecto de tremen.dev» con exactamente **un** `a[href="https://tremen.dev"]` en las 6 rutas públicas y con sesión. **Funcionalmente correcto; ver CA-17.** | ✅ |
@@ -31,7 +31,7 @@ epica: EPIC-004
 | CA-14 | `src/lib/legal/content.ts` (módulo puro: 0 imports); las 4 páginas; `src/app/layout.tsx`; `src/app/app-footer.tsx` | `tests/legal-import-graph.test.ts` (21 casos: 6 entradas × existe / prefijos prohibidos / clientes de BD, + recorrido no vacío + pureza del módulo) | **Verificado con la base parada de verdad**: `pg_ctl stop -m fast` (puerto 54329 en `ECONNREFUSED` comprobado) y las 4 páginas siguen respondiendo **200** con su contenido real («Alberto Fojo Eiras» en el HTML). El build las emite como estáticas (`○` en la tabla de rutas). | ✅ |
 | CA-15 | `src/app/app-footer.tsx` montado en el layout raíz → alcanza al grupo `(auth)` | `tests/e2e/pie-legal.spec.ts` › *CA-15: se llega desde donde hace falta llegar* (3) | Desde `/login` y `/register`, sin teclear nada, pinchado el enlace del pie y alcanzada `/legal/privacidad`; aviso legal y términos también enlazados. | ✅ |
 | CA-16 | `src/lib/legal/content.ts` (`DERECHOS`); `src/app/legal/privacidad/page.tsx` (`data-testid="derechos"`) | `tests/e2e/legal.spec.ts` › *CA-16* (2: enunciado + ruta + residual F-ADR-022-1; y «esta spec NO crea el enlace a /cuenta») | El apartado enuncia la supresión, nombra `/cuenta` y recoge el residual de F-ADR-022-1. **Salvedad**: `/cuenta` **no existe todavía** (la entrega SPEC-036), así que hoy la página afirma al lector algo que no puede hacer. Es la frontera que la spec declara, pero **bloquea publicar en solitario** (F-SPEC-035-7). | ⚠️ |
-| CA-17 | — (no degradar) | `npm test` 878/878 · `npx playwright test` 95/95 · `npm run typecheck` · `npm run lint` — todos en verde, incl. `tests/guard.test.ts` (CA-15 de SPEC-023) con la lista ampliada | La suite sigue verde (**879/879** vitest, **95/95** playwright, typecheck, lint, db:scan, build). **Pero degrada lo entregado en móvil**: por debajo de ~720 px el sistema de diseño aplica `footer { flex-direction: column }` (`design/tremen-ds/responsive.css` §footer) y el `flex: 1 1 320px` de `.app-footer-descargo` pasa a ser **320 px de ALTO**, dejando ~280 px de hueco muerto en el pie de **todas** las páginas —públicas y autenticadas—. Medido a 700/640/390 px; en escritorio (≥760 px) es correcto. Ver captura `regresion-pie-movil-700px.png`. | ❌ |
+| CA-17 | **Ronda 2**: `src/app/globals.css` — `.app-footer` declara `flex-direction: row` (deja de heredar el `column` del sistema de diseño) y `.app-footer-descargo` cambia `flex: 1 1 320px` por `flex: 1 1 auto` + `min-width: min(320px, 100%)` | **`tests/e2e/pie-responsive.spec.ts`** (5 casos, /legal y /login × 390·640·700·760·1280 px): *su caja no se dispara al estrechar la ventana*, *el descargo no reserva alto que su texto no ocupa* (medido con `Range.getClientRects()`) y *el pie fija su eje y no lo hereda*. Suite completa: `npm test` **900/900** (64 ficheros) · `npm run test:e2e` **102/102** · `typecheck` · `lint` · `build` · `db:scan` — incl. `tests/guard.test.ts` (CA-15 de SPEC-023) con la lista ampliada. *(El 878 que ponía aquí en la ronda 1 estaba mal contado: eran 879, como midió el verificador.)* | La suite sigue verde (**879/879** vitest, **95/95** playwright, typecheck, lint, db:scan, build). **Pero degrada lo entregado en móvil**: por debajo de ~720 px el sistema de diseño aplica `footer { flex-direction: column }` (`design/tremen-ds/responsive.css` §footer) y el `flex: 1 1 320px` de `.app-footer-descargo` pasa a ser **320 px de ALTO**, dejando ~280 px de hueco muerto en el pie de **todas** las páginas —públicas y autenticadas—. Medido a 700/640/390 px; en escritorio (≥760 px) es correcto. Ver captura `regresion-pie-movil-700px.png`. | ❌ |
 
 ## Veredicto del verificador
 <!-- GREEN/RED + fecha + resumen. Lo escribe SOLO sdd-verificador. -->
@@ -135,6 +135,89 @@ tipografía realmente cargada y los tres flujos de credenciales de punta a punta
   que usa la misma dirección como canal de feedback (CE-8) — anotado aquí como
   referencia; cerrarlo en su ledger es de SPEC-039, no de esta spec.
 
+### Ronda 2 — lo cerrado contra el RED del 2026-08-19
+
+- **V-1 (CA-17, bloqueante) — ✅ CERRADO.** El pie ya no rompe el móvil.
+  - **La causa, confirmada:** `.app-footer` no declaraba `flex-direction`, así que por
+    debajo de 720 px heredaba el `footer { flex-direction: column }` que
+    `design/tremen-ds/responsive.css` §footer aplica al **selector de elemento**. Las
+    demás declaraciones de ese bloque (padding, gap, align-items) las ganaba
+    `.app-footer` por especificidad; el eje se colaba porque nadie competía por él. Y en
+    un contenedor en columna, `flex-basis` actúa sobre el eje vertical: los 320 px del
+    descargo pasaban a ser **alto**.
+  - **El arreglo, en `src/app/globals.css`:** `.app-footer` declara `flex-direction: row`
+    —el apilado en pantalla estrecha lo hace `flex-wrap`, que es quien debe hacerlo—, y
+    `.app-footer-descargo` cambia `flex: 1 1 320px` por `flex: 1 1 auto` +
+    `min-width: min(320px, 100%)`. Lo segundo es lo que impide que vuelva: dicho como
+    **ancho mínimo**, esos 320 px no pueden reinterpretarse como una altura. El `min()`
+    evita desbordar por debajo de 320 px de ventana.
+  - **Medido después, en `/legal`, `/login` y `/dashboard`:**
+
+    | ancho | `flex-direction` | `footerH` | `descargoH` | texto real | scroll horizontal |
+    |---|---|---|---|---|---|
+    | 390 | `row` | **171** | **39** | 37 | no |
+    | 640 | `row` | **171** | **39** | 37 | no |
+    | 700 | `row` | **171** | **39** | 37 | no |
+    | 760 | `row` | **171** | **39** | 37 | no |
+    | 1280 | `row` | **138** | **39** | 37 | no |
+
+    Antes: `footerH=452`, `descargoH=320`. Los 171 px de móvil frente a los 138 de
+    escritorio son la fila de enlaces legales bajando a su propia línea — eso es el
+    apilado que se quiere, no hueco muerto. Captura:
+    `_qa/SPEC-035/pie-movil-390px-arreglado.png` (las del verificador se conservan
+    intactas).
+  - **Cómo queda blindado — `tests/e2e/pie-responsive.spec.ts`, 5 casos.** El verificador
+    señaló, con razón, que el defecto llegó hasta él con 879 tests en verde porque
+    **todos preguntaban por el contenido del pie y ninguno por su forma**, y que la ronda
+    1 dio el móvil por bueno «por razonamiento… no con una captura». Este mide píxeles, y
+    a propósito **no** compara imágenes —una prueba de captura se rompe cuando cambia una
+    fuente o un color, que no es lo que hay que proteger—. Fija dos invariantes de caja y
+    una causa:
+    1. el pie no crece más de **2,2×** respecto a su alto de escritorio;
+    2. la caja del descargo no excede lo que ocupa **su propio texto**, medido con
+       `Range.getClientRects()` sobre el contenido del párrafo. Este es el que ata el
+       defecto por la causa y no por el síntoma: da igual que mañana el descargo tenga
+       tres líneas o que cambie el `padding`; si `flex-basis` vuelve a ser altura, el
+       hueco reaparece y se pone rojo;
+    3. `.app-footer` declara su eje (`flex-direction === 'row'`), para que el mensaje de
+       fallo apunte al sitio en vez de dejar buscando a quien lo lea.
+  - **RED reproducido antes de tocar nada** (TDD, commit `829f523`): las mismas cifras que
+    midió el verificador — `flex-direction=column altoPie=452 altoDescargo=320
+    altoTexto=37` a 390/640/700 px, en `/legal` y en `/login`.
+
+- **Caducidad de los enlaces de recuperación — ✅ CORREGIDA.** La privacidad decía
+  «caducan solos y a las pocas horas ya no sirven». **La ventana real son 30 minutos**:
+  `RESET_TOKEN_TTL_MINUTES = 30` en `src/lib/auth/reset-tokens.ts`, que es donde ADR-015
+  pto. 4 se materializa y de donde salen tanto `resetTokenExpiry()` como el texto del
+  correo («El enlace caduca en 30 minutos y solo sirve una vez») y el acuse de SPEC-023.
+  No era falso —a las pocas horas, en efecto, ya no sirve— pero describía una ventana
+  **seis veces mayor** que la real, y en un texto legal decir de más sobre la propia
+  exposición juega en contra de quien lo firma. El párrafo se muda a `CONSERVACION` en
+  `src/lib/legal/content.ts` para poder compararlo sin renderizar; el número **se copia**
+  (el módulo es puro por CA-14 y no puede importar la constante) y
+  `tests/legal-textos-veraces.test.ts` comprueba que la copia sigue coincidiendo — mismo
+  patrón que CA-5 con el esquema: si mañana cambia el TTL, ese test se pone rojo y dice
+  qué frase hay que tocar.
+
+- **La única promesa del texto — ✅ FUERA.** Los términos decían: «Si el servicio se fuera
+  a interrumpir de forma definitiva, se avisaría por correo con antelación suficiente para
+  que puedas quedarte con lo tuyo». Era el **único punto de las cuatro páginas donde se
+  prometía algo en vez de describirlo**; no lo pedía ningún CA; contradecía al párrafo de
+  al lado («no hay compromiso de servicio, ni horario de atención, ni plazo de
+  respuesta»); y comprometía al titular a una obligación que nadie decidió asumir y que
+  además es la más difícil de cumplir justo cuando tocaría —si el servicio se cae del
+  todo, no queda quien mande el correo—. Sustituido por descripción sin compromiso, en
+  `DISPONIBILIDAD`: «Tampoco hay compromiso de permanencia: el servicio puede dejar de
+  prestarse, y no hay plazo comprometido para anunciarlo». `AFIRMACIONES_PROHIBIDAS`
+  incorpora esa familia —`con antelación`, `aviso previo`, `se avisaría`— por la misma
+  razón por la que ya prohibía `garant`: allí se prometía exactitud, aquí permanencia.
+  **No** prohíbe «se avisa» a secas: los cambios de los términos sí se comunican cuando
+  ocurren, y eso es descripción de lo que se hace, no promesa de lo que se hará.
+
+- **Recuento de tests del ledger — ✅ CUADRADO.** La ronda 1 escribió `878/878`; eran
+  **879**, como midió el verificador. Corregido en la matriz, aquí y en el handoff. Hoy
+  son **900** vitest (64 ficheros) y **102** Playwright.
+
 ### Siguen abiertos
 
 - **F-SPEC-035-2 (residual asumido de R-1).** Sin cambios. Que las páginas no afirmen
@@ -181,7 +264,23 @@ tipografía realmente cargada y los tres flujos de credenciales de punta a punta
   cookies desde el middleware**. Se ha comprobado que no importa —`signIn` corre en una
   server action de Node— y toda la e2e de auth y de recuperación sigue verde (95/95),
   pero queda escrito por si algún flujo futuro de Auth.js las diera por puestas.
-- **F-SPEC-035-10 (deuda visual mínima).** `.auth-wrap` tenía `min-height: 100vh`, lo que
+- **F-SPEC-035-11 (ronda 2, ABIERTO — para el arquitecto).** El proyecto sigue **sin
+  disciplina general de regresión visual**: `tests/e2e/pie-responsive.spec.ts` mide la
+  geometría **del pie** y nada más, porque es lo que esta spec entregó. La causa de V-1 no
+  es exclusiva del pie: `design/tremen-ds/` estiliza por **selector de elemento**
+  (`footer`, `nav`, `h1`…) y su `responsive.css` cambia ejes y direcciones por debajo de
+  720 px, así que cualquier componente de `src/app/` que use uno de esos elementos y no
+  declare sus propias propiedades de flex hereda las del sistema **sin que ningún test lo
+  vea**. Merece decidirse arriba: o una convención escrita («todo componente propio
+  declara su eje»), o un puñado de comprobaciones de caja en las pantallas principales. No
+  lo resuelvo por mi cuenta: es política de proyecto, no un CA de esta spec.
+- **F-SPEC-035-10 (deuda visual mínima, ACTUALIZADO en ronda 2).** Lo que se advertía aquí
+  —«no hay test de regresión visual… esto se ha comprobado por razonamiento y con la e2e
+  funcional, no con una captura»— es exactamente por donde entró V-1. El pie ya no depende
+  del razonamiento: se mide. Y `.auth-wrap` queda cubierto de rebote, porque
+  `pie-responsive.spec.ts` mide también en `/login`, que es una página de auth. La
+  redacción original de la ronda 1 se conserva debajo, sin tocar.
+- **F-SPEC-035-10 (redacción original).** `.auth-wrap` tenía `min-height: 100vh`, lo que
   con el pie en el layout raíz lo empujaba fuera de pantalla en todas las páginas de auth.
   Ahora es `flex: 1 1 auto` dentro de un `.frame` en columna. Los formularios siguen
   centrados y el pie queda abajo, pero **no hay test de regresión visual** en el proyecto:
@@ -218,27 +317,47 @@ tipografía realmente cargada y los tres flujos de credenciales de punta a punta
 
 ## Cómo retomar (handoff)
 
-**Estado: implementación completa, los 17 CA cubiertos con test. Spec en `en-revision`.**
+**Estado: ronda 2 completa. V-1 (el bloqueante del RED) cerrado con test de geometría,
+más las tres correcciones de texto del encargo. Spec de vuelta en `en-revision`.**
 
 - **Rama:** `ft/SPEC-035-paginas-legales-titular-y-descargo`, salida de `origin/main`
   limpio (SPEC-034 ya mergeada). Sin push.
-- **Commits:** 5, todos con `Refs: SPEC-035`.
+- **Commits:** 5 de la ronda 1 y 4 de la ronda 2, todos con `Refs: SPEC-035`.
   1. `/legal` es pública por diseño, declarada en el único sitio que decide.
   2. La lista de datos guardados sale del esquema, no de la memoria.
   3. Páginas legales públicas, pie compartido y tipografía sin terceros.
   4. Titular, Marca, Descargo y Fuente de precios entran al glosario.
   5. El ledger (este fichero).
-- **Verde comprobado:** `npm run typecheck` ✓ · `npm run lint` (`--max-warnings=0`) ✓ ·
-  `npm test` **878/878** ✓ · `npx playwright test` **95/95** ✓ (la suite entera, no solo
-  la nueva). El e2e exige `npm run build` previo.
+  6. *(ronda 2)* RED de V-1: el pie mide 452 px de alto por debajo de 720 px.
+  7. *(ronda 2)* El pie declara su eje y deja de romper el móvil de toda la app.
+  8. *(ronda 2)* La caducidad real son 30 minutos, y fuera la única promesa del texto.
+  9. *(ronda 2)* El ledger.
+- **Verde comprobado (ronda 2, la suite entera):** `npm run typecheck` ✓ · `npm run lint`
+  (`--max-warnings=0`) ✓ · `npm test` **900/900** en 64 ficheros ✓ · `npm run build` ✓ ·
+  `npm run test:e2e` **102/102** ✓ · `npm run db:scan` ✓ (10 migraciones, 2 destructivas
+  con waiver escrito). El e2e exige `npm run build` previo. Aviso práctico: la suite e2e
+  **reescribe los PNG de `_qa/` de otras specs**; se restauraron con
+  `git checkout -- _qa/` antes de commitear, y lo único que entra de `_qa/` en la ronda 2
+  es la captura nueva `_qa/SPEC-035/pie-movil-390px-arreglado.png`.
 - **Ficheros nuevos:** `src/lib/legal/content.ts`, `src/app/app-footer.tsx`, las cuatro
   `src/app/legal/**/page.tsx`, `tests/legal-afirmaciones-prohibidas.ts`,
   `tests/legal-rutas-publicas.test.ts`, `tests/legal-datos-y-esquema.test.ts`,
   `tests/legal-import-graph.test.ts`, `tests/legal-sin-terceros.test.ts`,
-  `tests/e2e/legal.spec.ts`, `tests/e2e/pie-legal.spec.ts`.
+  `tests/e2e/legal.spec.ts`, `tests/e2e/pie-legal.spec.ts`; **ronda 2**:
+  `tests/e2e/pie-responsive.spec.ts`, `tests/legal-textos-veraces.test.ts`.
 - **Ficheros tocados:** `src/lib/auth/guard.ts`, `src/proxy.ts`, `src/app/layout.tsx`,
   `src/app/globals.css`, `design/tremen-ds/colors_and_type.css`,
-  `docs/fundacion/dominio.md`.
+  `docs/fundacion/dominio.md`; **ronda 2**: `src/app/globals.css` (el pie),
+  `src/lib/legal/content.ts` (`CONSERVACION`, `DISPONIBILIDAD`),
+  `src/app/legal/privacidad/page.tsx`, `src/app/legal/terminos/page.tsx`,
+  `tests/legal-afirmaciones-prohibidas.ts`, `tests/e2e/legal.spec.ts`.
+- **Lo que la ronda 2 NO tocó, a propósito:** los 15 CA que el verificador dejó verdes;
+  `src/proxy.ts` (matcher idéntico a `origin/main`, verificado); la tipografía y
+  `next/font` de CA-12; `package.json` y `next.config.mjs` (el semver es de SPEC-038);
+  `design/tremen-ds/responsive.css` (es el sistema de diseño, y su regla es legítima para
+  el `footer` de la web de marca: el que tenía que declarar su eje era el pie de la app);
+  y `docs/adr/ADR-015-*.md`, que es documento de verdad y le toca al arquitecto
+  (F-SPEC-035-8).
 - **Dónde mirar primero si algo falla:** los tres puntos donde la implementación tuvo que
   corregir el as-built son `src/proxy.ts` (F-SPEC-035-9), `src/app/layout.tsx` +
   `design/tremen-ds/colors_and_type.css` (F-SPEC-035-8) y `.auth-wrap` en
