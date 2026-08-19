@@ -3,7 +3,12 @@
    Two variants share a base; each overrides accent + bg warmth.
    ============================================================ */
 
-@import url('https://fonts.googleapis.com/css2?family=Geist:wght@300;400;500;600;700;800;900&family=Geist+Mono:wght@400;500;600&display=swap');
+/* SPEC-035 CA-12 — aquí había un `@import` a fonts.googleapis.com. Se ha quitado
+   porque hacía que TODAS las páginas de Stockeiro pidieran un recurso a un tercero,
+   incluidas las de /legal (que prometen no hacerlo) y /reset-password (sobre la que
+   ADR-015 pto. 9 lo daba por hecho). Las familias las resuelve ahora `next/font` en
+   tiempo de build y se sirven desde el propio origen; los tokens de abajo se
+   reapuntan a sus variables en `src/app/globals.css`. Misma letra, cero terceros. */
 
 :root {
   /* ---------- Type families ---------- */

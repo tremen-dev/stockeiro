@@ -20,8 +20,20 @@ export const LOGIN_PATH = '/login';
  * diseño: quien ha perdido el acceso no puede tener sesión. El resto de rutas de
  * datos sigue exigiéndola, y el emparejamiento es por segmento completo, así que
  * una ruta que solo SE PAREZCA (p. ej. `/reset-passwordX`) no entra.
+ *
+ * `/legal` y sus subrutas (SPEC-035, CE-4) son públicas por la misma clase de razón:
+ * quien llega de un foro tiene que poder leer quién opera esto y qué se hace con sus
+ * datos **antes** de teclear su email. Se declaran aquí y no en el `matcher` de
+ * `src/proxy.ts`, que no cambia: sacarlas del matcher las sacaría del middleware
+ * entero, que es otra cosa y peor.
  */
-export const PUBLIC_PREFIXES = ['/login', '/register', '/forgot-password', '/reset-password'];
+export const PUBLIC_PREFIXES = [
+  '/login',
+  '/register',
+  '/forgot-password',
+  '/reset-password',
+  '/legal',
+];
 
 export function isPublicPath(pathname: string): boolean {
   if (pathname === '/') return true;

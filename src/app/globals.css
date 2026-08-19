@@ -5,7 +5,11 @@
 /* Ajustes mínimos de formularios de auth (SPEC-001). El sistema tremen-ds no
    trae inputs; estilamos lo justo con sus tokens para coherencia visual. */
 .auth-wrap {
-  min-height: 100vh;
+  /* SPEC-035: era `min-height: 100vh`. Con el pie compartido montado en el layout
+     raíz, ese alto fijo empujaba el pie fuera de la pantalla en TODAS las páginas de
+     auth. Ahora el marco es la columna que ocupa la ventana y este bloque se queda
+     con lo que sobra, así que sigue centrado y el pie queda debajo, visible. */
+  flex: 1 1 auto;
   display: grid;
   align-content: center;
   justify-items: start;
@@ -513,3 +517,163 @@
 .quote-fail { color: var(--ember); }
 .quote-pending { color: var(--fg-dim); }
 td.num .quote-fail { text-align: right; }
+
+/* ============================================================
+   SPEC-035 — Páginas legales y pie compartido
+   ============================================================ */
+
+/* Tipografía sin terceros (CA-12). El design system declara `--font-sans` y
+   `--font-mono` apuntando a las familias que antes bajaban de Google; aquí se
+   reapuntan a las que `next/font` resuelve en build y sirve desde /_next/static.
+   La pila de reserva se conserva íntegra por si la familia no cargara. */
+:root {
+  --font-sans: var(--font-geist-sans), ui-sans-serif, system-ui, -apple-system,
+    'Helvetica Neue', sans-serif;
+  --font-mono: var(--font-geist-mono), ui-monospace, 'SF Mono', Menlo, Consolas, monospace;
+}
+
+/* El pie va en el layout raíz, así que el marco pasa a ser una columna que ocupa el
+   alto de la ventana: sin esto, en páginas cortas el pie quedaría flotando a media
+   pantalla en vez de al final. */
+.frame {
+  display: flex;
+  flex-direction: column;
+  min-height: 100vh;
+}
+
+/* --- Pie compartido (CA-9, CA-10, CA-11) --- */
+.app-footer {
+  margin-top: auto;
+  border-top: 1px solid var(--line);
+  padding: 28px 0 36px;
+  display: flex;
+  /* SPEC-035 V-1: el eje se declara, no se hereda. `design/tremen-ds/responsive.css`
+     §footer aplica `footer { flex-direction: column }` por debajo de 720px sobre el
+     SELECTOR DE ELEMENTO, así que alcanzaba a este pie aunque ninguna de sus otras
+     declaraciones lo hiciera (las demás las gana `.app-footer` por especificidad).
+     Con el eje en `column`, el `flex-basis` de los hijos deja de ser un ancho y pasa
+     a ser un ALTO: el descargo reservaba 320px de caja para 39px de texto, y el pie
+     —que va en el layout raíz— dejaba ~280px de hueco muerto en TODAS las páginas
+     de móvil y tablet. El apilado en pantalla estrecha lo hace `flex-wrap`, que es
+     quien debe hacerlo. Lo vigila `tests/e2e/pie-responsive.spec.ts`. */
+  flex-direction: row;
+  flex-wrap: wrap;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 14px 28px;
+  font-size: 13px;
+  line-height: 1.5;
+  color: var(--fg-muted);
+}
+.app-footer-descargo {
+  margin: 0;
+  max-width: 62ch;
+  /* SPEC-035 V-1: los 320px son un ANCHO MÍNIMO, no una base de reparto. Dicho como
+     `flex-basis` volverían a leerse como altura si alguien reintrodujera un eje en
+     columna; dicho como `min-width` no pueden significar otra cosa. El `min()` evita
+     desbordar en las pantallas más estrechas, donde 320px ya no caben. */
+  flex: 1 1 auto;
+  min-width: min(320px, 100%);
+}
+.app-footer-descargo a {
+  color: var(--fg);
+  text-decoration: underline;
+  text-underline-offset: 3px;
+}
+.app-footer-descargo a:hover { color: var(--accent); }
+.app-footer-links {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px 18px;
+}
+.app-footer-links a {
+  color: var(--fg-dim);
+  text-decoration: none;
+}
+.app-footer-links a:hover { color: var(--fg); }
+.app-footer-marca {
+  margin: 0;
+  flex-basis: 100%;
+  color: var(--fg-dim);
+}
+.app-footer-marca a {
+  color: var(--fg);
+  text-decoration: none;
+  border-bottom: 1px solid var(--line-strong);
+}
+.app-footer-marca a:hover { color: var(--accent); }
+
+/* --- Páginas legales --- */
+.legal {
+  width: min(72ch, 100%);
+  margin-inline: auto;
+  padding: 48px 0 24px;
+  display: grid;
+  gap: 22px;
+}
+.legal-title {
+  font: 700 clamp(30px, 5vw, 44px)/1.05 var(--font-sans);
+  letter-spacing: -0.03em;
+  color: var(--fg);
+  margin: 0;
+}
+.legal-lede {
+  margin: 0;
+  font-size: var(--t-body-lg);
+  line-height: 1.55;
+  color: var(--fg-muted);
+}
+.legal-aviso {
+  margin: 0;
+  padding: 12px 16px;
+  border-left: 2px solid var(--accent);
+  background: var(--bg-elev);
+  border-radius: 0 var(--r-md) var(--r-md) 0;
+  color: var(--fg);
+}
+.legal-seccion { display: grid; gap: 12px; }
+.legal-seccion h2 {
+  font: 600 var(--t-h3)/1.25 var(--font-sans);
+  color: var(--fg);
+  margin: 14px 0 0;
+}
+.legal-seccion p { margin: 0; line-height: 1.65; color: var(--fg-muted); }
+.legal-destacado {
+  font-size: var(--t-body-lg);
+  color: var(--fg) !important;
+}
+.legal-datos { margin: 0; display: grid; gap: 14px; }
+.legal-datos dt {
+  font: 600 14px/1.3 var(--font-sans);
+  color: var(--fg);
+}
+.legal-datos dd { margin: 4px 0 0; line-height: 1.6; color: var(--fg-muted); }
+.legal-indice { list-style: none; margin: 0; padding: 0; display: grid; gap: 16px; }
+.legal-indice li { display: grid; gap: 4px; }
+.legal-indice a {
+  font: 600 var(--t-body-lg)/1.3 var(--font-sans);
+  color: var(--fg);
+  text-decoration: none;
+  border-bottom: 1px solid var(--line-strong);
+  justify-self: start;
+}
+.legal-indice a:hover { color: var(--accent); }
+.legal-indice span { color: var(--fg-muted); }
+.legal-encargados { list-style: none; margin: 0; padding: 0; display: grid; gap: 14px; }
+.legal-encargados li {
+  display: grid;
+  gap: 3px;
+  padding: 12px 14px;
+  border: 1px solid var(--line);
+  border-radius: var(--r-md);
+}
+.legal-encargados strong { color: var(--fg); font-weight: 600; }
+.legal-encargado-para { color: var(--fg-muted); }
+.legal-encargado-ve { color: var(--fg-dim); font-size: 13px; }
+.legal-contacto { margin: 0; color: var(--fg-muted); }
+.legal a { color: inherit; }
+.legal-seccion a, .legal-contacto a {
+  color: var(--fg);
+  text-decoration: underline;
+  text-underline-offset: 3px;
+}
