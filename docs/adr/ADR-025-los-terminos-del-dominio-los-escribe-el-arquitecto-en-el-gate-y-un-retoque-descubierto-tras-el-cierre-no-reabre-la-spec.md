@@ -1,9 +1,11 @@
 ---
 id: ADR-025
 tipo: adr
-estado: borrador
+estado: aprobada
 historial:
   - {estado: borrador, fecha: 2026-08-19, por: sdd-arquitecto}
+  - {estado: aprobada, fecha: 2026-08-19, por: humano (Alberto Fojo)}
+aprobada-por: humano (Alberto Fojo)
 ---
 # ADR-025: Los términos del dominio los escribe el arquitecto en el gate, y un retoque descubierto tras el cierre no reabre la spec
 
