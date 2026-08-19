@@ -2,12 +2,13 @@
 id: SPEC-034
 tipo: spec
 epica: EPIC-004
-estado: en-progreso
+estado: en-revision
 aprobada-por: humano (Alberto Fojo)
 historial:
   - {estado: borrador, fecha: 2026-08-19, por: sdd-arquitecto}
   - {estado: aprobada, fecha: 2026-08-19, por: humano (Alberto Fojo)}
   - {estado: en-progreso, fecha: 2026-08-19, por: sdd-implementador}
+  - {estado: en-revision, fecha: 2026-08-19, por: sdd-implementador}
 ---
 # SPEC-034 — Rol por usuario y visibilidad de sección
 
