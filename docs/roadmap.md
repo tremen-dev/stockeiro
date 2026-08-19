@@ -58,6 +58,29 @@ tipo: roadmap
   ⚠️ **Convierte F-SPEC-006-1 en bloqueante** (ver "Ops y despliegue"): sin Resend con
   dominio verificado no hay recuperación posible — el email no tiene fallback aquí.
 
+- **EPIC-MEJORA — Mejoras de presentación y usabilidad** (estado: borrador; épica
+  *bucket*). Nace el 2026-08-20 con el mismo papel que EPIC-FIX y EPIC-INFRA, pero en
+  otro eje: EPIC-FIX protege la **verdad funcional**, EPIC-INFRA la **salud técnica**,
+  y esta la **fricción de uso** de lo que ya funciona. Existía como destino citado en
+  los "fuera de alcance" de otras épicas (EPIC-FIX manda aquí el backoff del proveedor
+  y el alerting del ciclo) sin tener carpeta donde caer.
+  **Por qué aparece ahora.** Hasta hoy la app tenía un solo usuario, que es su autor, y
+  un autor no se queja de una interfaz que él mismo entiende. EPIC-004 la abre a
+  desconocidos: a partir de ahí, un roce deja de ser molestia privada y pasa a ser la
+  razón por la que un tester se va sin dejar feedback.
+  **Por qué en "Ahora" y no en "Después".** Es *bucket*: no ocupa turno, acompaña. Está
+  en "Ahora" porque tiene trabajo vivo — la tabla de `/vigiladas`, la pantalla que el
+  tester va a mirar a diario: identifica las acciones **solo por su ticker** teniendo el
+  nombre en la base de datos, **no se puede ordenar**, y el formulario de alta ocupa
+  sitio permanente al servicio de una acción ocasional.
+  ⚠️ **No adelanta a EPIC-004** (R-M4): EPIC-004 sigue siendo lo único que separa el
+  producto de su primer usuario real. Si esta mejora entra antes es porque es barata y
+  toca esa misma pantalla, no porque haya cambiado la prioridad.
+  ⚠️ **Colisiona con SPEC-039** (R-M1), que está en vuelo sobre `/vigiladas` y **aún no
+  está en `main`**. Decidido contigo el 2026-08-20: se trabaja **en paralelo desde
+  `main`**, en worktree propio; la segunda rama en llegar rebasa y reconcilia, y el
+  estado vacío se respeta como territorio de SPEC-039.
+
 ## Entregado
 > Lo que ya cumple su promesa. El detalle por spec vive en `docs/tablero.md`.
 
