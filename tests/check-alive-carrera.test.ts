@@ -143,7 +143,7 @@ describe('SPEC-033 CA-2: el plazo se usa de verdad, y solo al expirar hay veredi
   it('`unknown` para siempre con --commit: agota el plazo y entonces sale 2', async () => {
     const toy = await toyServer(servidorSiempreUnknown());
     try {
-      const { code, stderr, transcurrido } = await runCronometrado([
+      const { code, transcurrido } = await runCronometrado([
         '--url',
         toy.origin,
         '--commit',
