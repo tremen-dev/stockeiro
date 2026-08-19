@@ -44,9 +44,7 @@ describe('SPEC-039 CA-16: la clave del canal de feedback, declarada y explicada'
 
   it('la dirección se escribe UNA vez: el canal la lee del contacto del titular', () => {
     // Si alguien vuelve a teclear el correo en el módulo del canal, esto se pone rojo.
-    expect(leer('src', 'lib', 'feedback', 'channel.ts')).not.toMatch(
-      new RegExp(TITULAR.contacto.replace('.', '\.')),
-    );
+    expect(leer('src', 'lib', 'feedback', 'channel.ts')).not.toContain(TITULAR.contacto);
   });
 
   it('esta spec no añade NINGUNA otra variable de entorno', () => {

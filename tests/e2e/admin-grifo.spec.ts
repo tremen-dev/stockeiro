@@ -207,18 +207,38 @@ test('SPEC-037 CA-10/CA-24: solo el admin ve /admin, y solo él encuentra el cam
     await page.goto('/admin');
     await expect(page, rol).toHaveURL(/\/dashboard/);
     const cuerpo = (await page.locator('body').innerText()).toLowerCase();
+    /*
+      Rótulos EXCLUSIVOS de la pantalla de operación: fuera de `/admin` no significan
+      nada, así que verlos en el cuerpo de un tester solo puede ser una fuga.
+
+      «El ciclo diario» ESTABA en esta lista y ya no, y conviene entender por qué antes
+      de devolverlo. Era el encabezado del bloque de operación y a la vez una frase que
+      cualquiera puede escribirle a un usuario — SPEC-039 CA-3 le cuenta precisamente
+      eso a quien acaba de registrarse («el resto se irá llenando a medida que el ciclo
+      diario tenga algo que contarte»), y ahí la coincidencia de subcadena delataba una
+      fuga que no existía. Lo que vigilaba de verdad no era la frase sino el BLOQUE, así
+      que se comprueba como bloque: que no aparezca como encabezado y que su `data-testid`
+      no esté. La propiedad —«un tester no recibe ni un dato de operación»— queda igual
+      de cerrada, y ahora no se rompe cada vez que alguien le explica al usuario que hay
+      un ciclo al día.
+    */
     for (const rastro of [
       'símbolos en el ciclo',
       'símbolos sin precio',
-      'el ciclo diario',
       'aceptar altas nuevas',
       'cupo de cuentas',
       'última ejecución registrada',
     ]) {
       expect(cuerpo, `un ${rol} ha recibido "${rastro}"`).not.toContain(rastro);
     }
-    await expect(page.getByTestId('grifo'), rol).toHaveCount(0);
-    await expect(page.getByTestId('contadores'), rol).toHaveCount(0);
+    // El bloque del ciclo, por su encabezado y por su identificador.
+    await expect(
+      page.locator('h1, h2, h3').filter({ hasText: /el ciclo diario/i }),
+      rol,
+    ).toHaveCount(0);
+    for (const bloque of ['grifo', 'contadores', 'ultimo-ciclo']) {
+      await expect(page.getByTestId(bloque), `${rol} recibió el bloque ${bloque}`).toHaveCount(0);
+    }
 
     await page.click('button:has-text("Cerrar sesión")');
     await page.waitForURL('**/login');
