@@ -47,14 +47,18 @@ Reglas en juego: **RN-01** (aislamiento: irse **no puede** dañar los datos de o
 
 - **Tester que decide que esto no es para él**: borra su cuenta desde la app, en dos pasos,
   sin escribirle a nadie y sin esperar. Se lleva la certeza de que no queda nada suyo.
-- **Cualquier usuario, sea `tester` o `completo`**: `/cuenta` **no** es una sección sujeta al
-  rol. Irse no se le puede cerrar a nadie: el catálogo de secciones de **SPEC-034** no la
-  incluye y su visibilidad no depende del rol.
+- **Cualquier usuario, con cualquiera de los tres roles**: `/cuenta` **no** es una sección
+  sujeta al catálogo de **SPEC-034** —no está en él— y se alcanza siempre. La única
+  diferencia por rol es la del punto siguiente, y es sobre **el botón de borrado**, no sobre
+  la pantalla.
 - **El resto de usuarios**: no se enteran de nada. Los símbolos que compartían siguen ahí,
   con su última cotización, y su cartera y su vigilancia no cambian ni un dígito.
-- **El operador**: **no puede borrar su cuenta desde la app** (**ADR-022** pto. 8). Si su
-  email quedara libre y siguiera en la lista de operadores, quien lo registrase entraría a la
-  pantalla de operación. Para irse de verdad, primero sale de la configuración.
+- **El operador (rol `admin`)**: **no puede borrar su cuenta desde la app** (**ADR-022**
+  pto. 8), y da igual cuántos `admin` haya. Motivo: sin operador no hay grifo del registro ni
+  pantalla de operación, y **no existe UI para nombrar otro** (**F-ADR-021-1**), así que el
+  servicio quedaría sin gobierno hasta un `UPDATE` a mano en Neon. Para irse de verdad,
+  primero se degrada a `tester` o a `completo`; **entonces** puede borrarse como cualquiera
+  (CA-13).
 - **Quien borra por error**: no tiene vuelta atrás. Por eso hay contraseña (**ADR-022**
   pto. 6) y por eso la pantalla lo dice antes (**ADR-022** pto. 10).
 
@@ -66,7 +70,7 @@ sesiones con **Playwright** sobre Postgres efímero.
 - **CA-1 (La pantalla existe, exige sesión y se alcanza desde la app — CE-5, RN-03).**
   Dado `/cuenta`,
   cuando la visita alguien **sin sesión**, entonces va a `/login`; y cuando la visita un
-  usuario autenticado —**con cualquiera de los dos roles**—, entonces la ve y **hay camino
+  usuario autenticado —**con cualquiera de los tres roles**—, entonces la ve y **hay camino
   visible hasta ella desde la navegación** sin teclear la URL.
 
 - **CA-2 (Se dice qué desaparece y que no hay vuelta atrás, antes de pulsar — ADR-022
@@ -135,19 +139,35 @@ sesiones con **Playwright** sobre Postgres efímero.
   sus datos se han borrado, **sin** error de Next, **sin** una pantalla autenticada a medio
   pintar y **sin** cookie de sesión válida.
 
-- **CA-11 (La cuenta del operador no se puede borrar desde la app — ADR-022 pto. 8).**
-  Dada una cuenta cuyo email figura en la configuración de operador,
-  cuando visita `/cuenta`, entonces **no se le ofrece el borrado** y se le explica por qué;
-  y cuando se invoca la acción directamente, entonces **se rechaza y no se borra nada**.
-  Ocultar el botón sin cerrar la acción no cumple este CA.
+- **CA-11 (Una cuenta `admin` no se borra desde la app — ADR-022 pto. 8).**
+  Dada una cuenta con rol **`admin`**,
+  cuando visita `/cuenta`, entonces **no se le ofrece el borrado** y se le explica por qué y
+  cómo proceder (degradarse primero); y cuando se invoca la acción directamente, entonces
+  **se rechaza y no se borra nada**. Ocultar el botón sin cerrar la acción no cumple este CA.
 
-- **CA-12 (La política de privacidad enlaza aquí — frontera con SPEC-035 CA-14).**
+- **CA-12 (La regla no tiene casos frontera: da igual cuántos `admin` haya — ADR-022 pto. 8).**
+  Dadas tres bases: una con **un solo** `admin`, otra con **dos**, y otra con dos donde
+  ambos intentan borrarse **a la vez**,
+  cuando cada `admin` intenta borrar su cuenta,
+  entonces **ninguno lo consigue en ningún caso** y **siempre queda al menos un `admin`**.
+  Se prueba explícitamente el escenario simultáneo: la regla no cuenta administradores, así
+  que no puede perder esa carrera — a diferencia de un *"solo el último no puede"*, que sí
+  la pierde y dejaría el servicio con cero operadores.
+
+- **CA-13 (Degradarse primero SÍ permite irse — ADR-022 pto. 8).**
+  Dado un `admin` que pasa a `tester` o a `completo` en la base,
+  cuando vuelve a `/cuenta`,
+  entonces **ya se le ofrece el borrado** y este funciona con normalidad (CA-4). La
+  restricción es sobre el **rol**, no sobre la persona: irse es siempre posible, solo exige
+  dejar de ser el operador primero.
+
+- **CA-14 (La política de privacidad enlaza aquí — frontera con SPEC-035 CA-14).**
   Dada `/legal/privacidad`,
   cuando se lee el apartado de derechos,
   entonces contiene un **enlace navegable** a `/cuenta`, y ese enlace lleva a la pantalla de
   esta spec. SPEC-035 enuncia el derecho; **este CA es el que lo hace clicable**.
 
-- **CA-13 (No degrada lo entregado).**
+- **CA-15 (No degrada lo entregado).**
   Dada la suite existente,
   cuando se ejecuta completa,
   entonces sigue verde: en particular **CA-6 de SPEC-001** (aislamiento), **CA-13 de
@@ -219,10 +239,10 @@ Aparcado a propósito, no por descuido:
   antes del borrado siguen en el buzón del destinatario y en los registros del proveedor.
   Está fuera de nuestro alcance y **SPEC-035** CA-14 obliga a decirlo en vez de prometer más
   de lo que se puede.
-- **F-SPEC-036-3 (DESPLIEGUE).** Esta spec **no migra el esquema**, así que no activa
-  `F-SPEC-023-1` por sí sola. Sí depende de que exista `ADMIN_EMAILS` (**F-ADR-023-1**) para
-  CA-11: **sin esa variable, ninguna cuenta es de operador y todas pueden borrarse**,
-  incluida la tuya.
+- **F-SPEC-036-3 (DESPLIEGUE).** Esta spec **no migra el esquema y no necesita ninguna
+  variable de entorno**, así que no activa `F-SPEC-023-1` por sí sola. Es la más barata de
+  desplegar de las tres que bloquean publicar, junto con SPEC-035. Su única dependencia es
+  la columna `role` de **SPEC-034** (CA-11 a CA-13).
 - **F-SPEC-036-4 (higiene).** El borrado deja `symbols` sin referencias (F-ADR-022-2) y
   `quotes`/`quote_diagnostics` de esos símbolos congeladas. Inocuo y reutilizable si alguien
   vuelve a vigilarlos.
@@ -242,28 +262,39 @@ Aparcado a propósito, no por descuido:
    quien pide el borrado está pidiendo que esa memoria desaparezca. Usar una regla de
    confianza para retener datos contra la voluntad de su beneficiario sería darle la vuelta.
 
-3. **CA-11 cierra un agujero que no es obvio.** Si el operador pudiera borrarse, su email
-   quedaría **libre** y **seguiría en `ADMIN_EMAILS`**: el siguiente en registrarlo entraría
-   a la pantalla de operación. Lo tapa por dos sitios: aquí (no se puede borrar) y en
-   **ADR-023** pto. 9 (ser operador exige además rol `completo`, y toda cuenta nueva nace
-   `tester`). Con las dos, el agujero está cerrado dos veces.
+3. **El caso del último `admin`: he elegido la regla ANCHA, y quiero que lo veas.** Me
+   pediste que el último `admin` no pudiera borrarse. He escrito algo más fuerte —**ningún
+   `admin` puede**— porque la regla estrecha exige **contar administradores dentro del
+   borrado**, y ese conteo **pierde una carrera**: dos `admin` que se borran a la vez ven
+   ambos un censo de dos, ambos se creen "no el último" y el servicio se queda con cero
+   operadores. Cerrarlo de verdad obligaría a serializar `users` en cada baja. La regla ancha
+   no tiene el caso, no cuesta una consulta y **cubre por construcción** lo que pediste. Su
+   precio es un paso más para el `admin` que quiera irse: degradarse primero (CA-13), que
+   además es la misma disciplina con la que se nombra a un operador. Si prefieres la regla
+   estrecha, dilo: cambian CA-11, CA-12 y ADR-022 pto. 8, y hay que decidir si se paga el
+   bloqueo o se asume la carrera.
 
-4. **La contraseña como confirmación (CA-3) frente a "teclea tu email".** He elegido la
+4. **Tu veredicto cerró dos riesgos que yo había levantado.** Con el operador como rol,
+   ya **no hay email liberado que siga dando acceso** (borrar una cuenta se lleva su rol) ni
+   **variable de entorno que pueda faltar** y dejar a todas las cuentas desprotegidas.
+   R-nuevo-1 y R-nuevo-2 de mi informe quedan **cerrados por diseño**, no mitigados.
+
+5. **La contraseña como confirmación (CA-3) frente a "teclea tu email".** He elegido la
    contraseña porque el email está a la vista de cualquiera que tenga el portátil abierto y
    porque reutiliza código ya probado. Es más fricción; es fricción **útil**. Si prefieres
    la variante suave, afecta solo a CA-3.
 
-5. **No hay marcha atrás y no ofrezco ninguna.** Ni papelera, ni periodo de gracia, ni
+6. **No hay marcha atrás y no ofrezco ninguna.** Ni papelera, ni periodo de gracia, ni
    correo de confirmación (**F-ADR-022-3**). Si te incomoda, la pieza más barata de las tres
    es el correo posterior —pero tiene la ironía de escribir a alguien de quien acabas de
    prometer no conservar nada—.
 
-6. **Secuencia.** Va **después de SPEC-035** (para que CA-12 tenga a qué enlazar) y
-   **después de SPEC-034** (CA-8 comprueba que la cuenta renacida es `tester`). Necesita
-   `ADMIN_EMAILS` para CA-11 (**F-SPEC-036-3**), que llega formalmente con **SPEC-037**: si
-   quieres publicar antes de SPEC-037, la variable hay que aprovisionarla igualmente, o
-   CA-11 no se puede verificar en producción.
+7. **Secuencia.** Va **después de SPEC-035** (para que CA-14 tenga a qué enlazar) y
+   **después de SPEC-034**, que le da la columna `role` (CA-8, CA-11 a CA-13). **No depende
+   de SPEC-037 en absoluto** —eso cambió con tu veredicto: al ser el operador un rol y no una
+   lista de emails, esta spec ya no necesita ninguna variable de entorno— así que **puede
+   publicarse antes** que SPEC-037 sin dejar ningún CA sin verificar.
 
-7. **Aprobación**: la spec queda en **`borrador`** y **no la firmo yo**. **ADR-022** nace
+8. **Aprobación**: la spec queda en **`borrador`** y **no la firmo yo**. **ADR-022** nace
    también en `borrador` y se aprueba en este mismo gate; si prefieres la anonimización,
    decaen CA-4, CA-5 y CA-8 y CE-5 pasa a cumplirse solo a medias.

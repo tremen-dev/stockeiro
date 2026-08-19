@@ -16,7 +16,7 @@ historial:
   transacciones), **ADR-005** (episodios de zona), **ADR-006/RN-15** (registro in-app de
   avisos), **ADR-009** (alias de import), **ADR-015** (tokens de recuperación) y
   **ADR-016** (época de credencial). Interactúa con **SPEC-037** (el cupo del registro
-  cuenta cuentas vivas) y con **ADR-023** (quién opera la app).
+  cuenta cuentas vivas) y con **ADR-021** (el rol `admin` es quien opera la app: pto. 8).
 
 ## Contexto
 
@@ -111,12 +111,22 @@ de esos episodios con `zone_trigger_id` a null (set null, ADR-017) — sin rompe
    pero se prueba en **SPEC-036**: heredar una garantía sin comprobarla es confiar, no
    diseñar.
 
-8. **La cuenta del operador no se puede borrar desde la app.** Si el email de una cuenta
-   figura en la configuración de operador (**ADR-023**), el botón no está y la acción se
-   rechaza. Motivo: borrarla dejaría ese email **libre y todavía en la lista de operadores**
-   —quien lo registrase a continuación entraría directo a la pantalla de operación—. El
-   operador que quiera irse de verdad se saca antes de la configuración; eso es un cambio de
-   despliegue y debe serlo.
+8. **Una cuenta con rol `admin` no se borra desde la app. Ninguna, no solo la última.**
+   El botón no está y la acción se rechaza (**ADR-021** pto. 1: el operador es un rol, no
+   una lista de emails). El motivo directo es que el servicio no puede quedarse **sin
+   operador y sin forma de recuperarlo**: no hay UI para nombrar a otro (**F-ADR-021-1**),
+   así que un borrado sin red dejaría el grifo del registro y la pantalla de operación
+   inalcanzables hasta un `UPDATE` a mano en Neon.
+
+   **Por qué "ningún `admin`" y no "el último `admin`"**, que es la regla que primero se le
+   ocurre a cualquiera: contar administradores dentro del borrado introduce una **carrera**
+   —dos `admin` que se borran a la vez ven ambos un censo de dos, ambos se creen "no el
+   último", y el servicio se queda con cero— y cerrarla exige serializar la tabla `users`
+   en cada baja. La regla simple no tiene ese caso, no cuesta una consulta y **cubre por
+   construcción** el escenario que preocupa. El precio es una fricción para el `admin` que
+   quiere irse de verdad: **primero se degrada a `tester` o a `completo`, y luego se borra**
+   — dos pasos deliberados en una operación que debe serlo, exactamente la misma disciplina
+   que ya rige el nombramiento.
 
 9. **Un borrado libera plaza en el cupo del registro** (**SPEC-037**): el cupo cuenta
    **cuentas vivas**, y quien se fue no ocupa ninguna. No es una fuga —recuperar la plaza
@@ -139,8 +149,8 @@ de esos episodios con `zone_trigger_id` a null (set null, ADR-017) — sin rompe
 - **Sin código nuevo de sesión**: la expulsión inmediata de todas las sesiones sale gratis
   de ADR-016.
 - **Sin coste en el ciclo diario**: el universo de símbolos se encoge solo.
-- **El agujero del operador se cierra en el mismo sitio donde se abre** (pto. 8), en vez de
-  descubrirse el día que alguien registre un email interesante.
+- **El servicio no puede quedarse sin operador** (pto. 8), y la regla que lo impide **no
+  tiene casos frontera**: no cuenta, no compara y no puede perder una carrera.
 
 ### Negativas / follow-ups
 
@@ -194,6 +204,13 @@ de esos episodios con `zone_trigger_id` a null (set null, ADR-017) — sin rompe
 - **Exigir teclear el email en vez de la contraseña.** **Rechazada**: es teatro de fricción,
   no una prueba de identidad — el email está a la vista de cualquiera que tenga el portátil
   abierto. La contraseña demuestra quién eres y reutiliza código ya probado.
+
+- **Permitir el borrado a un `admin` mientras quede otro `admin` vivo** ("el último no").
+  **Rechazada** (pto. 8): exige contar dentro de la transacción de borrado, y ese conteo
+  pierde ante dos bajas simultáneas —ambas se creen no-últimas y el servicio se queda con
+  cero operadores—. Cerrarlo de verdad obliga a serializar `users` en cada baja. La regla
+  simple no tiene el caso, y su coste es un `UPDATE` previo en una operación que ya es
+  deliberada.
 
 - **Que el borrado lo ejecute el operador a petición del usuario.** **Rechazada de plano**:
   es exactamente el modelo que EPIC-003 acaba de desmontar para la contraseña ("nadie

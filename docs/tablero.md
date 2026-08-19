@@ -93,7 +93,8 @@ Actualizado: 2026-08-19
 | ADR-020 | aprobada | el-buscador-no-filtra-por-tipo-de-instrumento-y-ningun-descarte-es-mudo | 2026-08-18 (humano (Alberto Fojo)) |
 | ADR-021 | borrador | el-rol-de-usuario-vive-en-su-fila-y-se-revalida-en-cada-peticion-no-viaja-en-el-jwt | 2026-08-19 (sdd-arquitecto) |
 | ADR-022 | borrador | borrado-de-cuenta-cae-todo-lo-propio-se-conserva-lo-compartido-y-no-se-anonimiza-nada | 2026-08-19 (sdd-arquitecto) |
-| ADR-023 | borrador | el-grifo-del-registro-es-estado-de-aplicacion-en-base-de-datos-y-el-operador-se-identifica-por-configuracion | 2026-08-19 (sdd-arquitecto) |
+| ADR-023 | borrador | el-grifo-del-registro-es-estado-de-aplicacion-y-el-ciclo-diario-deja-constancia-de-cada-ejecucion | 2026-08-19 (sdd-arquitecto) |
+| ADR-024 | borrador | la-version-de-producto-es-semver-en-package-json-y-viaja-en-el-contrato-de-api-version-enmienda-d-6-de-adr-018 | 2026-08-19 (sdd-arquitecto) |
 
 ## Resumen
 

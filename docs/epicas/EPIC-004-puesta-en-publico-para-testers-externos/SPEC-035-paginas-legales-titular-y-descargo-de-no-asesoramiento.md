@@ -265,7 +265,7 @@ Aparcado a propósito, no por descuido:
    decisiones con dinero mirando estas pantallas, y **D-4** dice que la app no da criterio.
    Si te parece demasiado ruido, dilo: se queda en las páginas legales y en el registro.
 
-5. **Ninguna migración, ningún dato.** A diferencia de SPEC-034 y SPEC-036, esta spec **no
+5. **Ninguna migración, ningún dato.** A diferencia de SPEC-034 y SPEC-037, esta spec **no
    toca la base**, así que **no** activa el problema de `F-SPEC-023-1` (abrir la PR migra
    producción). De las tres que bloquean publicar, es la que se puede desplegar con menos
    ceremonia — buena candidata a ir la primera si quieres ver algo vivo pronto.

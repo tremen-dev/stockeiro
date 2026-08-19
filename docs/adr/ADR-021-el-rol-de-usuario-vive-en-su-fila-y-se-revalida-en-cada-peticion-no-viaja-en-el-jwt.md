@@ -9,11 +9,16 @@ historial:
 
 - Deciders: propone **sdd-arquitecto** (2026-08-19) a partir de la decisión de producto
   tomada en el gate de **EPIC-004** (2026-08-19, Alberto Fojo): *"el gating es por **rol**
-  por usuario (`tester`/`completo`), no por flags individuales ni por variable de entorno
-  global"*. Lo que el gate **ya resolvió** es **qué** gobierna la visibilidad; lo que este
-  ADR decide es **dónde vive ese dato y cuándo surte efecto** — que es lo que constriñe el
-  trabajo futuro y lo que determina si degradar a alguien tiene efecto hoy o dentro de un
-  mes. Pendiente de aprobación por el humano en el gate de **SPEC-034**.
+  por usuario, no por flags individuales ni por variable de entorno global"*. Lo que el gate
+  **ya resolvió** es **qué** gobierna la visibilidad; lo que este ADR decide es **dónde vive
+  ese dato y cuándo surte efecto** — que es lo que constriñe el trabajo futuro y lo que
+  determina si degradar a alguien tiene efecto hoy o dentro de un mes.
+  **Revisión del 2026-08-19 (mismo día, gate de veredictos)**: el humano resolvió ampliar el
+  enum a **tres** valores (`tester` / `completo` / `admin`), aceptando lo que ese tercer
+  valor cuesta a cambio de que la identificación del operador sea **autocontenida** —sin
+  variable de entorno—. Ese cambio se absorbe aquí; **ADR-023** deja de decidir la identidad
+  del operador y se limita al grifo. Pendiente de aprobación por el humano en el gate de
+  **SPEC-034**.
 - Specs relacionadas: la origina **SPEC-034** (Rol por usuario y visibilidad de sección).
   La consumen **SPEC-037** (la pantalla de operación lee el rol de las cuentas) y
   **SPEC-039** (la ayuda y los estados vacíos no ofrecen lo que el rol no permite).
@@ -64,10 +69,27 @@ sirve ni un dato**.
 ## Decisión
 
 1. **El rol es una columna de `users`**: `role text NOT NULL`, con dominio cerrado
-   `'tester' | 'completo'` — los dos valores que fijó el gate de EPIC-004, ni uno más. La
-   validación del valor vive en el código como unión de tipos y en la base como `CHECK`; no
-   se crea un tipo `enum` de Postgres, porque ampliarlo después es una migración
+   `'tester' | 'completo' | 'admin'` — los tres valores que fijó el gate de EPIC-004, ni uno
+   más. La validación del valor vive en el código como unión de tipos y en la base como
+   `CHECK`; no se crea un tipo `enum` de Postgres, porque ampliarlo después es una migración
    destructiva-en-espíritu y **RI-01** prefiere lo aditivo.
+
+   **1.a — Los tres roles son una cadena, no tres islas.** `tester` ⊂ `completo` ⊂ `admin`:
+   todo lo que ve un `tester` lo ve un `completo`, y todo lo que ve un `completo` lo ve un
+   `admin`, que además es el único que alcanza la pantalla de operación. La jerarquía se
+   escribe **una vez**, en la función pura del pto. 5, y no se reconstruye a base de
+   condicionales por pantalla. Un `admin` es un `completo` que además opera: **no** es una
+   cuenta distinta ni una cuenta de servicio, y por eso sigue teniendo sus propios datos
+   aislados por **RN-01** como cualquier otra.
+
+   **1.b — Que `admin` esté en el mismo enum que la visibilidad tiene un precio, y se asume
+   con los ojos abiertos.** Mezcla *qué ves de lo tuyo* con *quién opera el servicio*, que
+   son preguntas distintas, y obliga a que promover a alguien a operador le dé también
+   Cartera. A cambio compra dos propiedades que la alternativa —una lista de emails en
+   configuración— no tiene: **no hay email liberado que siga dando acceso** (borrar una
+   cuenta se lleva su rol con ella) y **no hay variable que pueda faltar** y dejar el
+   servicio sin operador o sin la protección que depende de saber quién lo es. Con un solo
+   operador previsible, esas dos fragilidades pesan más que la pureza del enum.
 
 2. **El rol NO se estampa en el JWT.** `base-config.ts` sigue exactamente igual: sigue sin
    DB, sigue estampando solo `id` y `credentialEpoch`. Ni una línea nueva en el camino Edge.
@@ -86,7 +108,9 @@ sirve ni un dato**.
 5. **La decisión de visibilidad es una función pura**, aislada del acceso a datos y de Next
    —mismo patrón que `isPublicPath`/`requireSession` (SPEC-001) e `isSessionEpochCurrent`
    (ADR-016 pto. 7)—: dado un rol y una sección, ¿puede? El runtime la invoca; el test no
-   necesita levantar Auth.js ni una base de datos.
+   necesita levantar Auth.js ni una base de datos. **La pantalla de operación entra en ese
+   mismo catálogo de secciones**: no hay un segundo mecanismo de acceso conviviendo con el
+   primero, que es exactamente lo que la lista de emails habría creado.
 
 6. **La protección de ruta vive en la frontera de Node, no en el middleware Edge.** Toda
    página y **toda server action** de una sección restringida pasa por la misma frontera.
@@ -99,18 +123,28 @@ sirve ni un dato**.
    el componente que la pinta.
 
 8. **Valor por defecto asimétrico, y a propósito.** La migración añade la columna con
-   `DEFAULT 'completo'` —de modo que las cuentas **existentes**, que son del operador y
-   preceden a la apertura al público, conservan todo lo que hoy ven— y **acto seguido**
-   cambia el default a `'tester'`, de modo que **toda cuenta nueva nace `tester`**. Las dos
-   sentencias son aditivas (**RI-01**): ni borran, ni renombran, ni estrechan nada. Un
-   `DEFAULT 'tester'` de una sola pasada convertiría al operador en tester en el mismo
-   despliegue que le quita Cartera, y eso es un incidente, no una migración.
+   `DEFAULT 'admin'` —de modo que las cuentas **existentes** quedan como `admin`— y **acto
+   seguido** cambia el default a `'tester'`, de modo que **toda cuenta nueva nace
+   `tester`**. Las dos sentencias son aditivas (**RI-01**): ni borran, ni renombran, ni
+   estrechan nada. Un `DEFAULT 'tester'` de una sola pasada convertiría al operador en
+   tester en el mismo despliegue que le quita Cartera **y la pantalla de operación**, y eso
+   es un incidente, no una migración.
 
-9. **El rol no relaja ni sustituye a RN-01.** El aislamiento por usuario sigue siendo el de
-   `src/lib/data/ownership.ts` y no depende del rol: un `completo` no ve datos de nadie más.
-   El rol responde a *"¿qué secciones de **lo tuyo** se te enseñan?"*, nunca a *"¿de quién
-   son los datos que se te sirven?"*. Confundir las dos preguntas es cómo se construye un
-   rol de administrador por accidente.
+   El backfill a `admin` —y no a `completo`— es lo que hace la solución **autocontenida**:
+   el despliegue queda operable sin ningún `UPDATE` manual posterior. Se sostiene sobre un
+   hecho comprobable, no sobre una suposición: **toda cuenta anterior a esta migración
+   precede a la apertura al público**, porque hasta EPIC-004 la app no se había anunciado en
+   ningún sitio. Ese hecho tiene una **condición de verificación** que el humano debe
+   cumplir antes del *merge* (**F-ADR-021-3**): confirmar el censo. Si hubiera alguna cuenta
+   ajena, se degrada a mano **antes** de desplegar, no después.
+
+9. **El rol no relaja ni sustituye a RN-01, ni siquiera para `admin`.** El aislamiento por
+   usuario sigue siendo el de `src/lib/data/ownership.ts` y no depende del rol: un
+   `completo` no ve datos de nadie más — **y un `admin` tampoco**. El rol responde a *"¿qué
+   secciones de **lo tuyo** se te enseñan?"*, nunca a *"¿de quién son los datos que se te
+   sirven?"*. `admin` abre **una pantalla de agregados** (**ADR-023** pto. 15: cuenta filas,
+   no lista personas), no una puerta a las carteras ajenas. Es la línea que impide que
+   "administrador" signifique lo que suele significar, y se prueba en **SPEC-034** CA-13.
 
 ## Consecuencias
 
@@ -139,14 +173,24 @@ sirve ni un dato**.
 - **Una petición de `tester` a `/cartera` atraviesa el middleware Edge** y solo se corta un
   salto más tarde, en Node. No sirve ni un dato, pero el redirect se paga después. Es
   literalmente el mismo residuo que ADR-016 pto. 4 aceptó y por el mismo motivo.
+- **`admin` hereda Cartera quiera o no.** Al ser una cadena (pto. 1.a), no se puede ser
+  operador sin ver el producto entero. Con un solo operador que además es el autor, es lo
+  natural; el día que haya un operador que no deba ver Cartera, este enum se queda corto y
+  habrá que separar las dos preguntas con otro ADR.
 - **F-ADR-021-1 (higiene, futuro).** No hay UI para cambiar el rol de una cuenta: se cambia
   con un `UPDATE` en Neon. Con un operador y veinte testers es correcto —promover a alguien
   es un evento raro y deliberado—, pero es un follow-up conocido, no un olvido. Ponerlo en
   la pantalla de operación de **SPEC-037** sería la evolución natural; **no entra** ahí.
-- **F-ADR-021-2 (residual asumido).** Un tercer rol (p. ej. `admin`) tentará el día que
-  alguien quiera operar la app sin ser el titular del despliegue. Este ADR **no lo abre**:
-  quién opera se decide en **ADR-023** por configuración, precisamente para no meter el
-  operador en el mismo enum que la visibilidad de producto.
+  Con el tercer rol adquiere **más** peso: es también el único camino para nombrar a un
+  segundo operador o para degradarse a uno mismo antes de irse (**ADR-022** pto. 8).
+- **F-ADR-021-2 (residual asumido).** El enum mezcla visibilidad de producto y operación del
+  servicio (pto. 1.b). Se acepta a cambio de eliminar las dos fragilidades de la
+  configuración externa. Si algún día el operador no debe ver Cartera, se separa con un ADR
+  nuevo — y entonces la migración será la incómoda, no esta.
+- **F-ADR-021-3 (DESPLIEGUE, condición previa al *merge*).** El backfill del pto. 8 deja
+  `admin` a **todas** las cuentas existentes. **El humano debe confirmar el censo antes de
+  abrir la PR**: si hay alguna cuenta que no sea suya, se degrada a mano antes de desplegar.
+  Es barato de comprobar y caro de descubrir tarde.
 
 ## Alternativas consideradas
 
@@ -178,8 +222,14 @@ sirve ni un dato**.
   aditivo. `text` + `CHECK` da la misma garantía en la base y una unión de tipos en
   TypeScript, que es donde de verdad se comprueba.
 
-- **Derivar el rol de una lista de emails en configuración** (como sí se hace para el
-  operador en ADR-023). **Rechazada para el rol de producto**: el rol de un tester cambia
-  con la relación (alguien pasa a `completo` cuando se le abre la app entera), y eso no
-  puede exigir un redespliegue. Para el **operador** —que cambia prácticamente nunca y no es
-  un atributo de producto— la conclusión es la contraria, y por eso vive en otro ADR.
+- **Derivar el rol de una lista de emails en configuración** (`ADMIN_EMAILS`), para el rol
+  de producto o para el de operador. **Rechazada en el gate del 2026-08-19**, y por dos
+  motivos que ninguna variable de entorno puede quitarse de encima:
+  (a) **un email liberado sigue abriendo la puerta** — si la cuenta listada se borra, su
+  dirección vuelve a estar libre (**RN-02**) y sigue en la lista, así que el siguiente que
+  la registre hereda el acceso; taparlo exigía prohibir el borrado de esa cuenta *y* exigir
+  una segunda condición de rol, dos parches para un mecanismo que no debería necesitarlos;
+  y (b) **una variable puede faltar** — sin ella no hay operador, la pantalla no es
+  accesible para nadie y, peor, ninguna cuenta queda protegida contra su propio borrado.
+  Un valor en la fila del usuario no tiene ninguna de las dos propiedades. Además, el rol de
+  un tester cambia con la relación y eso no puede exigir un redespliegue.

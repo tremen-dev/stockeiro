@@ -159,9 +159,11 @@ con **Vitest**.
   Dado el enlace de feedback,
   cuando se activa,
   entonces el mensaje que se compone lleva **prefijada la versión del despliegue**, tomada de
-  `deploymentIdentity` (`src/lib/version/identity.ts`, **SPEC-031**). El tester no tiene que
-  saber qué es un commit para que su reporte sea útil. **No depende de SPEC-038**: ambas
-  beben de la misma fuente, no una de otra.
+  `deploymentIdentity` (`src/lib/version/identity.ts`, **SPEC-031** y **ADR-024**). El tester
+  no tiene que saber qué es una versión para que su reporte sea útil. **No depende de
+  SPEC-038**: ambas beben de la misma fuente, no una de otra — y por eso el dato que viaja es
+  exactamente el que el pie enseña y el que `/api/version` responde. Si SPEC-038 ya está
+  entregada, el prefijo incluirá el semver sin ningún cambio aquí.
 
 - **CA-14 (Nada de terceros y nada de dato de usuario en las páginas públicas).**
   Dadas la primera pantalla y `/ayuda`,
@@ -178,7 +180,18 @@ con **Vitest**.
   entonces **lo consigue sin salir de la app y sin ninguna instrucción externa**. Es el
   recorrido literal de CE-1 y se prueba entero, no por partes.
 
-- **CA-16 (No degrada lo entregado).**
+- **CA-16 (La clave nueva se declara donde el proyecto declara sus claves — SPEC-031
+  CA-13.3).**
+  Dado `.env.example` y la **lista cerrada** de claves que congela
+  `tests/spec-031-frontera.test.ts`,
+  cuando se añade la dirección del canal de feedback,
+  entonces la lista se **amplía con esa entrada y solo con esa** —de diez claves a once—, con
+  su explicación en `.env.example` y su anotación en el runbook. Es la **única** spec de
+  EPIC-004 que añade una variable de entorno, y por eso se declara aquí en vez de descubrirse
+  en una CI roja. Las tres variables **calculadas** del canal de build siguen sin aparecer ni
+  en `.env.example` ni en el workflow.
+
+- **CA-17 (No degrada lo entregado).**
   Dada la suite existente,
   cuando se ejecuta completa,
   entonces sigue verde: en particular los CA de **SPEC-003** (alta de vigiladas),
@@ -209,7 +222,8 @@ la redirección al panel para quien la tiene (CA-2).
 - **`deploymentIdentity`** (`src/lib/version/identity.ts`, **SPEC-031**): fuente de la
   versión que acompaña al feedback (CA-13).
 
-**Configuración nueva**: la dirección del canal de feedback. Es la misma que el contacto del
+**Configuración nueva** (la única de toda EPIC-004, CA-16): la dirección del canal de
+feedback. Es la misma que el contacto del
 titular de **SPEC-035** (**F-SPEC-035-1**) y **no se duplica**: se lee de una sola constante
 de configuración, en `.env.example` con su explicación.
 
