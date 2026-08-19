@@ -6,8 +6,12 @@ import { fileURLToPath } from 'node:url';
 import { makeTestDb, type TestDb } from '@/db/test-db';
 import { registerUser } from '@/lib/auth/users';
 import { users } from '@/db/schema';
-// @ts-expect-error — script de node sin tipos; se consume tal cual (SPEC-032).
-import { escanear } from '../scripts/scan-destructive-sql.mjs';
+// El escáner de SPEC-032 se consume tal cual, sin tipos: es un script de node.
+import * as escaner from '../scripts/scan-destructive-sql.mjs';
+
+type Marcada = { tag: string; hallazgos: unknown[] };
+const escanear = (dir: string) =>
+  (escaner as unknown as { escanear: (d: string) => { ficheros: Marcada[] } }).escanear(dir);
 
 /**
  * SPEC-034 CA-1 / CA-2 / CA-3 — la columna `role` en `users`.
@@ -123,12 +127,10 @@ describe('SPEC-034 CA-1: la columna existe, con dominio cerrado y por migración
   });
 
   it('RI-01: la migración no borra, no renombra y no estrecha nada', () => {
-    const marcada = escanear(migrationsDir).ficheros.find(
-      (f: { tag: string; hallazgos: unknown[] }) => f.tag === TAG,
-    );
+    const marcada = escanear(migrationsDir).ficheros.find((f) => f.tag === TAG);
     expect(marcada, `no existe la migración ${TAG}`).toBeDefined();
     expect(
-      marcada.hallazgos,
+      marcada!.hallazgos,
       'La migración de SPEC-034 tiene que ser puramente aditiva (RI-01): ' +
         'si el escáner la marca, o sobra una sentencia o hace falta un desbloqueo escrito.',
     ).toEqual([]);

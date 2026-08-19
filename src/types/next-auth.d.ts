@@ -1,11 +1,18 @@
 import 'next-auth';
 import 'next-auth/jwt';
+import type { Role } from '@/lib/auth/sections';
 
 declare module 'next-auth' {
   interface Session {
     user: {
       id: string;
       email?: string | null;
+      /**
+       * Rol de cuenta (SPEC-034, ADR-021). Lo pone la frontera de sesión de NODE
+       * leyéndolo de la base en cada petición, no el token: por eso está aquí y
+       * NO en la interfaz `JWT` de abajo.
+       */
+      role?: Role;
     };
   }
 
