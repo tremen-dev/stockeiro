@@ -1,5 +1,17 @@
 import { sql } from 'drizzle-orm';
-import { pgTable, uuid, text, timestamp, numeric, date, unique, index, check } from 'drizzle-orm/pg-core';
+import {
+  pgTable,
+  uuid,
+  text,
+  timestamp,
+  numeric,
+  date,
+  integer,
+  boolean,
+  unique,
+  index,
+  check,
+} from 'drizzle-orm/pg-core';
 import { ROLES, DEFAULT_ROLE, type Role } from '../lib/auth/sections';
 
 /**
@@ -335,3 +347,96 @@ export const symbolAliases = pgTable(
 
 export type SymbolAlias = typeof symbolAliases.$inferSelect;
 export type NewSymbolAlias = typeof symbolAliases.$inferInsert;
+
+/**
+ * `registration_settings` — el GRIFO DEL REGISTRO (SPEC-037, ADR-023 ptos. 1 y 2).
+ *
+ * Primera tabla del proyecto que no es dato **de usuario** (aislado por RN-01) ni
+ * dato **de mercado** (compartido, ADR-002): es **estado operativo**. No tiene
+ * `userId`, no la lee ningún usuario y RN-01 no le aplica.
+ *
+ * UNA SOLA FILA, y lo impone la BASE: la clave primaria es un entero fijado a `1`
+ * por un CHECK. No es un adorno — dos filas de configuración es un defecto
+ * silencioso esperando a ocurrir: la app leería una y el operador estaría mirando la
+ * otra. Con el CHECK, el segundo INSERT falla se escriba el id que se escriba.
+ *
+ * Tabla TIPADA y no un `app_settings(key, value text)` genérico (ADR-023 pto. 2):
+ * un almacén clave-valor invita a que todo ajuste futuro acabe siendo una cadena sin
+ * tipo ni validación. Cuando haya un segundo ajuste, tendrá su columna con su tipo.
+ *
+ * `capacity` NULLABLE: null = **sin cupo**. La decisión de si el registro está
+ * abierto NO vive aquí sino en `registrationState` (`src/lib/registration/gate.ts`),
+ * que es pura y no sabe de esta tabla.
+ *
+ * `updatedBy` guarda el **id** del operador que hizo el cambio, nunca su email:
+ * CA-22 prohíbe que la pantalla de operación contenga un email, y el modo más
+ * seguro de que no lo contenga es que la fila no lo tenga. Sin clave foránea a
+ * propósito: es una anotación de auditoría, no una relación, y no debe poder
+ * impedir nada. Es `null` en la fila que siembra la migración, que no la cambió
+ * ninguna persona.
+ */
+export const registrationSettings = pgTable(
+  'registration_settings',
+  {
+    id: integer('id').primaryKey(),
+    openManually: boolean('open_manually').notNull().default(true),
+    capacity: integer('capacity'), // null = sin cupo
+    updatedAt: timestamp('updated_at', { withTimezone: true }).notNull().defaultNow(),
+    updatedBy: text('updated_by'), // id del operador; null = sembrado por la migración
+  },
+  (t) => ({
+    // La unicidad de la fila, impuesta por el esquema y no por convenio (ADR-023 pto. 1).
+    onlyRow: check('registration_settings_single_row', sql.raw(`"${t.id.name}" = 1`)),
+  }),
+);
+
+export type RegistrationSettingsRow = typeof registrationSettings.$inferSelect;
+
+/** El id de LA fila. Constante porque la base no admite otro (ADR-023 pto. 1). */
+export const REGISTRATION_SETTINGS_ID = 1;
+
+/**
+ * `cron_runs` — una fila por ejecución AUTORIZADA del ciclo diario (SPEC-037,
+ * ADR-023 ptos. 11 a 13). Estado operativo, como la anterior: sin `userId`.
+ *
+ * Existe porque derivar el estado del ciclo de `quotes.updated_at` y
+ * `quote_diagnostics.attempted_at` —que fue la propuesta inicial del arquitecto y el
+ * humano rechazó— deja dos agujeros que son justo lo que CE-7 pregunta: un ciclo que
+ * corre **sin cambiar nada** es indistinguible de uno que no corrió, y uno que
+ * **revienta a mitad** no deja rastro ninguno.
+ *
+ * LA FILA SE ABRE AL EMPEZAR Y SE CIERRA AL TERMINAR, y esa es toda la gracia:
+ * `startedAt` se escribe ANTES de ingerir nada; `finishedAt`, el desenlace y los
+ * contadores al acabar. Una fila con `finishedAt` **nulo** significa «empezó y no
+ * volvió».
+ *
+ * Los contadores NO son nuevos: son los de `CycleResult` (`src/lib/triggers/cycle.ts`),
+ * los mismos que el endpoint del cron ya devolvía y nadie leía (ADR-023 pto. 13). Son
+ * nullable porque mientras la ejecución está en curso todavía no existen.
+ *
+ * Una petición NO autorizada no escribe fila (ADR-023 pto. 14, CA-17): un 401 no es
+ * una ejecución, y quien sondee el endpoint no llena la tabla.
+ *
+ * FRONTERA NORMATIVA (ADR-023 pto. 15, CA-19): esto se **registra y se muestra**, y
+ * nada más. No envía correo, no manda aviso, no escribe en `notifications` y no
+ * despierta a nadie. La alerta proactiva al operador está fuera del alcance de
+ * EPIC-004 por decisión escrita; esta tabla no es la puerta de atrás por la que se
+ * cuela.
+ */
+export const cronRuns = pgTable('cron_runs', {
+  id: uuid('id').defaultRandom().primaryKey(),
+  startedAt: timestamp('started_at', { withTimezone: true }).notNull().defaultNow(),
+  finishedAt: timestamp('finished_at', { withTimezone: true }), // null = empezó y no volvió
+  outcome: text('outcome'), // 'success' | 'failure'; null mientras corre
+  requested: integer('requested'),
+  updated: integer('updated'),
+  skipped: integer('skipped'),
+  triggersOpened: integer('triggers_opened'),
+  triggersClosed: integer('triggers_closed'),
+  notificationsEntries: integer('notifications_entries'),
+  notificationsDigests: integer('notifications_digests'),
+  error: text('error'),
+});
+
+export type CronRun = typeof cronRuns.$inferSelect;
+export type NewCronRun = typeof cronRuns.$inferInsert;

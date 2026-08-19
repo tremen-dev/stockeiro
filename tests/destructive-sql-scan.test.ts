@@ -243,12 +243,13 @@ describe('SPEC-032 CA-7: y no marca folklore', () => {
 });
 
 describe('SPEC-032 CA-8: calibración medida sobre el árbol de hoy', () => {
-  it('el drizzle/ real tiene diez migraciones en el journal', () => {
-    // Nueve hasta SPEC-032; la décima es `0009_user_role` (SPEC-034), aditiva.
-    expect(escanear(drizzleDir).ficheros).toHaveLength(10);
+  it('el drizzle/ real tiene once migraciones en el journal', () => {
+    // Nueve hasta SPEC-032; la décima es `0009_user_role` (SPEC-034) y la undécima
+    // `0010_registration_gate_and_cron_runs` (SPEC-037). Las dos, aditivas.
+    expect(escanear(drizzleDir).ficheros).toHaveLength(11);
   });
 
-  it('marca exactamente 0001 y 0007, y ninguna de las otras ocho', () => {
+  it('marca exactamente 0001 y 0007, y ninguna de las otras nueve', () => {
     const marcados = escanear(drizzleDir)
       .ficheros.filter((f) => f.hallazgos.length > 0)
       .map((f) => f.tag);
