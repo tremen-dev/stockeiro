@@ -2,7 +2,8 @@
 
 import type { Decimal } from 'decimal.js';
 import { revalidatePath } from 'next/cache';
-import { auth } from '@/lib/auth/config';
+import { sectionUserOrNull } from '@/lib/auth/session';
+import { notaDeRebote } from '@/lib/auth/section-messages';
 import { db } from '@/db/client';
 import { recordBuy, recordSell } from '@/lib/portfolio/service';
 import { readSymbolSelection } from '@/lib/market/symbol-selection';
@@ -11,11 +12,19 @@ import { toFormError } from '@/lib/format/action-error';
 
 export type FormState = { error: string } | { ok: true } | undefined;
 
-async function requireUserId(): Promise<string> {
-  const session = await auth();
-  if (!session?.user?.id) throw new Error('No autenticado');
-  return session.user.id;
+/**
+ * Frontera de la sección (SPEC-034 CA-7, ADR-021 pto. 7). Una sección oculta cuyas
+ * acciones siguen aceptando `POST` no está cerrada, solo escondida: quitar el enlace
+ * y el guard de la página no basta, porque la action es una puerta que la URL ni
+ * siquiera necesita. Devuelve `null` —no lanza— para que el formulario pueda enseñar
+ * el motivo en vez de una pantalla de error.
+ */
+async function carteraUserId(): Promise<string | null> {
+  return (await sectionUserOrNull('cartera'))?.id ?? null;
 }
+
+/** El mismo motivo que lee quien rebota al panel, en forma de error de formulario. */
+const CERRADA: FormState = { error: notaDeRebote('cartera') };
 
 interface CommonInput {
   quantity: Decimal | null;
@@ -42,7 +51,8 @@ function readCommon(formData: FormData): CommonInput {
 
 /** Registrar compra (CA-1/CA-2). El símbolo se elige del buscador (SPEC-008). */
 export async function addBuyAction(_prev: FormState, formData: FormData): Promise<FormState> {
-  const userId = await requireUserId();
+  const userId = await carteraUserId();
+  if (!userId) return CERRADA;
   const selection = readSymbolSelection(formData);
   if (!selection) return { error: 'Busca y elige una acción de la lista.' };
 
@@ -82,7 +92,8 @@ export async function addBuyAction(_prev: FormState, formData: FormData): Promis
  * la consulta (RN-01), no esta capa.
  */
 export async function addSellAction(_prev: FormState, formData: FormData): Promise<FormState> {
-  const userId = await requireUserId();
+  const userId = await carteraUserId();
+  if (!userId) return CERRADA;
   const symbolId = String(formData.get('symbolId') ?? '').trim();
   if (!symbolId) return { error: 'Elige la posición que vendes.' };
 

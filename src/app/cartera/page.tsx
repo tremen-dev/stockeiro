@@ -1,5 +1,5 @@
 import Link from 'next/link';
-import { requireUser } from '@/lib/auth/session';
+import { requireSectionUser } from '@/lib/auth/session';
 import { db } from '@/db/client';
 import { portfolioSummary } from '@/lib/portfolio/service';
 import { getDiagnosticMap, getPriceMap, getQuoteViews } from '@/lib/market/quotes';
@@ -11,7 +11,9 @@ import { BuyForm, SellForm } from './portfolio-forms';
 // actual usa el último cierre no ajustado ingerido (RN-06/RN-12). Sin cotización
 // para un símbolo, ese P/L actual sigue "—" (D-6). SPEC-007: nav compartida + estilo.
 export default async function CarteraPage() {
-  const user = await requireUser(); // SPEC-023 CA-13: sesión revocada -> login
+  // SPEC-023 CA-13: sesión revocada -> login. SPEC-034 CA-6: rol sin Cartera -> panel
+  // con la nota, y sin servir NI UN DATO por el camino (ADR-021 pto. 6).
+  const user = await requireSectionUser('cartera');
   // SPEC-025: precios y diagnósticos van indexados por `symbolId`, no por ticker: con
   // el mismo ticker en dos mercados, la clave por ticker valoraba las dos posiciones
   // con el mismo precio (y con la divisa de una sola).

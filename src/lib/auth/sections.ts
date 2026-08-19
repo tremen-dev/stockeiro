@@ -60,6 +60,16 @@ export function canSee(role: Role, section: Section): boolean {
   return RANK[role] >= RANK[REQUIERE[section]];
 }
 
+/** Nombre de cada sección tal y como se le enseña a una persona. */
+export const SECTION_LABEL: Record<Section, string> = {
+  panel: 'Panel',
+  cartera: 'Cartera',
+  vigiladas: 'Vigiladas',
+  avisos: 'Avisos',
+  importar: 'Importar',
+  operacion: 'Operación',
+};
+
 /** Las secciones que un rol ve, en el orden del catálogo. Lo que consume el menú (CA-5). */
 export function visibleSections(role: Role): Section[] {
   return SECTIONS.filter((s) => canSee(role, s));

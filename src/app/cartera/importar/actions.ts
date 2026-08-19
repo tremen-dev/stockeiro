@@ -2,7 +2,8 @@
 
 import { revalidatePath } from 'next/cache';
 import { inArray } from 'drizzle-orm';
-import { auth } from '@/lib/auth/config';
+import { sectionUserOrNull } from '@/lib/auth/session';
+import { notaDeRebote } from '@/lib/auth/section-messages';
 import { db } from '@/db/client';
 import { symbols } from '@/db/schema';
 import { IngXlsStatementReader } from '@/lib/import/ing-xls-reader';
@@ -26,9 +27,14 @@ import type { SymbolMatch } from '@/lib/market/search-provider';
  * estado y reciben las operaciones ya parseadas en cada paso.
  */
 async function requireUserId(): Promise<string | null> {
-  const session = await auth();
-  return session?.user?.id ?? null;
+  // SPEC-034 CA-7 / ADR-021 pto. 7: además de la sesión (RN-03), la SECCIÓN. Cada
+  // action de import pasa por aquí; dejar una sola sin pasar deja el import abierto
+  // a quien no puede ni ver la pantalla que lo lanza.
+  return (await sectionUserOrNull('importar'))?.id ?? null;
 }
+
+/** Mismo motivo que en la página, para que el asistente no enseñe un error opaco. */
+const CERRADA = notaDeRebote('importar');
 
 export type ReadResult =
   | { ok: true; operaciones: OperacionImportada[]; numOperaciones: number; numValores: number; titular: string }
@@ -36,7 +42,7 @@ export type ReadResult =
 
 /** CA-2/CA-3: lee el `.xls` subido a operaciones; error legible si no es válido. */
 export async function readStatementAction(formData: FormData): Promise<ReadResult> {
-  if (!(await requireUserId())) return { ok: false, error: 'Sesión no válida.' };
+  if (!(await requireUserId())) return { ok: false, error: CERRADA };
   const file = formData.get('file');
   if (!(file instanceof File) || file.size === 0) {
     return { ok: false, error: 'Elige el fichero .xls del extracto de tu bróker.' };
@@ -93,7 +99,7 @@ export type ResolveResult = { ok: true; resoluciones: ValorResolucionUI[] } | { 
  */
 export async function resolveAction(operaciones: OperacionImportada[]): Promise<ResolveResult> {
   const uid = await requireUserId();
-  if (!uid) return { ok: false, error: 'Sesión no válida.' };
+  if (!uid) return { ok: false, error: CERRADA };
   const provider = symbolSearchProvider();
 
   const primera = await resolverValores(db, uid, provider, operaciones);
@@ -130,7 +136,7 @@ export async function confirmSelectionAction(
   match: SymbolMatch,
 ): Promise<ConfirmResult> {
   const uid = await requireUserId();
-  if (!uid) return { ok: false, error: 'Sesión no válida.' };
+  if (!uid) return { ok: false, error: CERRADA };
   const { symbolId, fused } = await confirmarSeleccion(db, uid, { nombreBroker, etiquetaMercado }, match);
   return { ok: true, fused, symbolId };
 }
@@ -142,7 +148,7 @@ export async function fuseAction(
   symbolId: string,
 ): Promise<ConfirmResult> {
   const uid = await requireUserId();
-  if (!uid) return { ok: false, error: 'Sesión no válida.' };
+  if (!uid) return { ok: false, error: CERRADA };
   const { fused } = await fusionarValor(db, uid, { nombreBroker, etiquetaMercado }, symbolId);
   return { ok: true, fused, symbolId };
 }
@@ -157,7 +163,7 @@ export type PreviewResult = { ok: true; preview: ImportPreview } | { ok: false; 
 /** CA-7: previsualiza (a-crear/a-saltar/pendientes/avisos) SIN escribir. */
 export async function previewAction(operaciones: OperacionImportada[]): Promise<PreviewResult> {
   const uid = await requireUserId();
-  if (!uid) return { ok: false, error: 'Sesión no válida.' };
+  if (!uid) return { ok: false, error: CERRADA };
   const { resueltas, pendientes } = await partir(uid, operaciones);
   const preview = await previsualizarImport(db, uid, resueltas, pendientes);
   return { ok: true, preview };
@@ -168,7 +174,7 @@ export type ImportResultOutcome = { ok: true; result: ImportResult } | { ok: fal
 /** CA-8/CA-9/CA-10: confirma y escribe (idempotente); refresca la cartera. */
 export async function confirmImportAction(operaciones: OperacionImportada[]): Promise<ImportResultOutcome> {
   const uid = await requireUserId();
-  if (!uid) return { ok: false, error: 'Sesión no válida.' };
+  if (!uid) return { ok: false, error: CERRADA };
   const { resueltas, pendientes } = await partir(uid, operaciones);
   const result = await confirmarImport(db, uid, resueltas, pendientes);
   revalidatePath('/cartera');

@@ -1,5 +1,5 @@
 import Link from 'next/link';
-import { requireUser } from '@/lib/auth/session';
+import { requireSectionUser } from '@/lib/auth/session';
 import { AppNav } from '../../app-nav';
 import { ImportWizard } from './import-wizard';
 
@@ -9,7 +9,9 @@ import { ImportWizard } from './import-wizard';
  * de 3 pasos (Subir → Resolver → Previsualizar/Confirmar).
  */
 export default async function ImportarPage() {
-  await requireUser(); // SPEC-023 CA-13: sesión revocada -> login
+  // SPEC-023 CA-13: sesión revocada -> login. SPEC-034 CA-6: rol sin Importar ->
+  // panel con la nota, antes de pintar el asistente (ADR-021 pto. 6).
+  await requireSectionUser('importar');
   return (
     <>
       <AppNav active="cartera" />
