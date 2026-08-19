@@ -27,6 +27,12 @@ export const LOGIN_PATH = '/login';
  * `src/proxy.ts`, que no cambia: sacarlas del matcher las sacaría del middleware
  * entero, que es otra cosa y peor.
  *
+ * `/ayuda` (SPEC-039, CE-1) es la tercera de la misma familia y la que más lo pide:
+ * quien llega de un hilo de un foro tiene que poder leer **qué hace esto y con qué
+ * cadencia** ANTES de teclear su correo. Una ayuda que exige cuenta para explicar si
+ * merece la pena tener cuenta no ayuda a nadie — y la cadencia (una vez al día tras
+ * el cierre, D-2) es justo el malentendido que puede gastar la publicación (R-4).
+ *
  * `/cuenta-borrada` (SPEC-036 CA-10) es la más forzosa de todas: quien acaba de
  * borrar su cuenta **ya no tiene usuario**, así que una página autenticada no podría
  * enseñarle la confirmación de que se ha ido — le daría un rebote a `/login`. Ojo con
@@ -40,6 +46,7 @@ export const PUBLIC_PREFIXES = [
   '/reset-password',
   '/legal',
   '/cuenta-borrada',
+  '/ayuda',
 ];
 
 export function isPublicPath(pathname: string): boolean {
