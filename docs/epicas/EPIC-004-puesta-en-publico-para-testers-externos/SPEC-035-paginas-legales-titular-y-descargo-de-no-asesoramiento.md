@@ -2,7 +2,7 @@
 id: SPEC-035
 tipo: spec
 epica: EPIC-004
-estado: en-revision
+estado: hecho
 aprobada-por: humano (Alberto Fojo)
 historial:
   - {estado: borrador, fecha: 2026-08-19, por: sdd-arquitecto}
@@ -11,6 +11,7 @@ historial:
   - {estado: en-revision, fecha: 2026-08-19, por: sdd-implementador}
   - {estado: en-progreso, fecha: 2026-08-19, por: sdd-orquestador}
   - {estado: en-revision, fecha: 2026-08-19, por: sdd-implementador}
+  - {estado: hecho, fecha: 2026-08-19, por: sdd-verificador}
 ---
 # SPEC-035 — Páginas legales, titular y descargo de no asesoramiento
 
