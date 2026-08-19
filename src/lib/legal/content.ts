@@ -163,6 +163,50 @@ export const DERECHOS: string[] = [
 ];
 
 /**
+ * Cuánto tiempo se conserva cada cosa (`/legal/privacidad`).
+ *
+ * El plazo de los enlaces de recuperación es un NÚMERO, y los números de una página
+ * legal se copian del código o no se escriben. Decía «caducan solos y a las pocas
+ * horas ya no sirven» cuando la ventana real son **30 minutos**
+ * (`RESET_TOKEN_TTL_MINUTES` en `src/lib/auth/reset-tokens.ts`, ADR-015 pto. 4). No
+ * era falso —a las pocas horas, en efecto, ya no sirven—, pero describía una
+ * exposición mayor que la real, y eso en un texto legal juega contra quien lo firma.
+ *
+ * El número no se importa de allí: este módulo es puro por CA-14 y no puede tener ni
+ * un `import`. Se copia, y `tests/legal-textos-veraces.test.ts` comprueba que la
+ * copia sigue coincidiendo — el día que cambie la constante, ese test se pone rojo y
+ * dice qué frase hay que tocar.
+ */
+export const CONSERVACION: string[] = [
+  'Mientras tengas la cuenta abierta. Los enlaces de recuperación de contraseña son la ' +
+    'excepción: caducan solos a los 30 minutos de emitirse y a partir de ahí no sirven, ni ' +
+    'aunque alguien los tenga.',
+];
+
+/**
+ * Qué esperar del servicio (`/legal/terminos`). Aquí se DESCRIBE; no se promete.
+ *
+ * Este apartado llegó a decir: *«Si el servicio se fuera a interrumpir de forma
+ * definitiva, se avisaría por correo con antelación suficiente para que puedas
+ * quedarte con lo tuyo»*. Era el único punto de las cuatro páginas donde se prometía
+ * algo en vez de describirlo; no lo pedía ningún CA; contradecía al párrafo de al
+ * lado («no hay compromiso de servicio»); y comprometía al titular a una obligación
+ * que nadie decidió asumir y que además es la más difícil de cumplir justo cuando
+ * toca —si el servicio se cae del todo, no queda quien mande el correo—.
+ *
+ * `tests/legal-afirmaciones-prohibidas.ts` incorpora ahora esa familia de promesas
+ * (`con antelación`, `aviso previo`, `se avisaría`) por la misma razón por la que ya
+ * prohibía `garant`: allí se prometía exactitud, aquí permanencia.
+ */
+export const DISPONIBILIDAD: string[] = [
+  'Esto es un proyecto personal en fase de pruebas. Puede caerse, puede tardar en actualizar ' +
+    'los precios y puede cambiar de un día para otro. No hay compromiso de servicio, ni ' +
+    'horario de atención, ni plazo de respuesta.',
+  'Tampoco hay compromiso de permanencia: el servicio puede dejar de prestarse, y no hay ' +
+    'plazo comprometido para anunciarlo.',
+];
+
+/**
  * Cookies y analítica (CA-13). Lo que la página promete se comprueba en la misma
  * prueba que la lee: un navegador anónimo recorre `/legal` y `/login` y se cuentan
  * las cookies que le quedan.

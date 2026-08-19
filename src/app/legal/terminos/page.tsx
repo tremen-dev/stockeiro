@@ -1,6 +1,11 @@
 import type { Metadata } from 'next';
 import Link from 'next/link';
-import { DATOS_DE_MERCADO, DESCARGO_COMPLETO, TITULAR } from '@/lib/legal/content';
+import {
+  DATOS_DE_MERCADO,
+  DESCARGO_COMPLETO,
+  DISPONIBILIDAD,
+  TITULAR,
+} from '@/lib/legal/content';
 
 export const metadata: Metadata = {
   title: 'Términos de uso · Stockeiro',
@@ -70,17 +75,11 @@ export default function TerminosPage() {
         </p>
       </section>
 
-      <section className="legal-seccion">
+      <section className="legal-seccion" data-testid="disponibilidad">
         <h2>Disponibilidad</h2>
-        <p>
-          Esto es un proyecto personal en fase de pruebas. Puede caerse, puede tardar en
-          actualizar los precios y puede cambiar de un día para otro. No hay compromiso de
-          servicio, ni horario de atención, ni plazo de respuesta.
-        </p>
-        <p>
-          Si el servicio se fuera a interrumpir de forma definitiva, se avisaría por correo con
-          antelación suficiente para que puedas quedarte con lo tuyo.
-        </p>
+        {DISPONIBILIDAD.map((parrafo) => (
+          <p key={parrafo.slice(0, 24)}>{parrafo}</p>
+        ))}
       </section>
 
       <section className="legal-seccion">

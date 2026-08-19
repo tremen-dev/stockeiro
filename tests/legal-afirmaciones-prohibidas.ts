@@ -104,6 +104,27 @@ export const AFIRMACIONES_PROHIBIDAS: AfirmacionProhibida[] = [
     patron: /(nos\s+pertenecen|son\s+de\s+nuestra\s+propiedad|propiedad\s+de\s+Stockeiro)/i,
     motivo: 'Las cotizaciones no pertenecen a Stockeiro ni a quien lo opera.',
   },
+  {
+    patron: /con\s+antelaci[oó]n/i,
+    motivo:
+      'Prometer aviso ANTICIPADO de algo —del cierre del servicio, de una migración, de ' +
+      'lo que sea— es asumir una obligación de continuidad que nadie ha decidido asumir y ' +
+      'que un proyecto personal en pruebas no puede sostener: si el servicio se cae del ' +
+      'todo, no hay quien mande el correo. Es la misma familia que `garant`, por el otro ' +
+      'lado: allí se prometía exactitud, aquí permanencia. La sección de disponibilidad ' +
+      'DESCRIBE ("puede caerse, puede cambiar de un día para otro"); no promete.',
+  },
+  {
+    patron: /aviso\s+previo/i,
+    motivo: 'La fórmula habitual de la anterior. Prometerlo o negarlo por escrito: ninguna.',
+  },
+  {
+    patron: /se\s+avisar[ií]a/i,
+    motivo:
+      'La misma promesa en condicional, que es como se cuela: suena a cortesía y es un ' +
+      'compromiso. Ojo: no prohíbe "se avisa" a secas (los cambios de estos términos sí ' +
+      'se comunican cuando ocurren) — lo que no se compromete es un aviso ANTES.',
+  },
 ];
 
 /**

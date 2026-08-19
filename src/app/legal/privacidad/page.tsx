@@ -2,6 +2,7 @@ import type { Metadata } from 'next';
 import Link from 'next/link';
 import {
   CATEGORIAS_DE_DATO,
+  CONSERVACION,
   COOKIES_Y_ANALITICA,
   DATOS_DE_MERCADO,
   DERECHOS,
@@ -127,13 +128,11 @@ export default function PrivacidadPage() {
         ))}
       </section>
 
-      <section className="legal-seccion">
+      <section className="legal-seccion" data-testid="conservacion">
         <h2>Cuánto tiempo se conservan</h2>
-        <p>
-          Mientras tengas la cuenta abierta. Los enlaces de recuperación de contraseña son la
-          excepción: caducan solos y a las pocas horas ya no sirven ni aunque alguien los
-          tenga.
-        </p>
+        {CONSERVACION.map((parrafo) => (
+          <p key={parrafo.slice(0, 24)}>{parrafo}</p>
+        ))}
       </section>
     </main>
   );

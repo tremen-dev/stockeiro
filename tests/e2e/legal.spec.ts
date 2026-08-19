@@ -268,3 +268,32 @@ test.describe('CA-16: el derecho de supresión, enunciado y honesto', () => {
     await expect(page.locator('main a[href="/cuenta"]')).toHaveCount(0);
   });
 });
+
+test.describe('los plazos que publica la privacidad son los que aplica el código', () => {
+  test('la caducidad del enlace de recuperación se dice en minutos, y son 30', async ({ page }) => {
+    // `tests/legal-textos-veraces.test.ts` ata el número al `RESET_TOKEN_TTL_MINUTES`
+    // real (ADR-015 pto. 4). Aquí se comprueba lo otro: que ese número llegue a la
+    // página, que es donde lo lee una persona. Antes ponía «a las pocas horas», que
+    // no era falso pero describía una ventana seis veces mayor que la real.
+    await page.goto('/legal/privacidad');
+    const bloque = await page.locator('[data-testid="conservacion"]').innerText();
+
+    expect(bloque).toMatch(/30\s*minutos/);
+    expect(bloque, 'la ventana real son minutos, no horas').not.toMatch(/pocas\s+horas/i);
+  });
+
+  test('la disponibilidad describe el servicio y no promete un cierre avisado', async ({
+    page,
+  }) => {
+    await page.goto('/legal/terminos');
+    const bloque = await page.locator('[data-testid="disponibilidad"]').innerText();
+
+    // Lo que sí es verdad y tiene que seguir dicho.
+    expect(bloque).toMatch(/pruebas/i);
+    expect(bloque).toMatch(/no\s+hay\s+compromiso/i);
+    // Y lo que no se promete. La lista cerrada de CA-8 vigila las cuatro páginas
+    // enteras; esto deja el motivo escrito donde se lee el apartado.
+    expect(bloque).not.toMatch(/con\s+antelaci[oó]n/i);
+    expect(bloque).not.toMatch(/se\s+avisar[ií]a/i);
+  });
+});
