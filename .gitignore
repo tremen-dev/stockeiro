@@ -20,6 +20,10 @@ playwright-report/
 # vercel
 .vercel/
 
+# claude code (local, por máquina)
+.claude/settings.local.json
+.claude/worktrees/
+
 # os
 .DS_Store
 Thumbs.db
