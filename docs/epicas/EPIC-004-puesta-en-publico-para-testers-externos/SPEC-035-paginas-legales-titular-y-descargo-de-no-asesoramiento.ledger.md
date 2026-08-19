@@ -15,29 +15,106 @@ epica: EPIC-004
 <!-- Un CA está ✅ solo cuando Implementado + Test + Verif. aplicables están en verde. Una salvedad se marca ⚠️, nunca ✅. -->
 | CA | Implementado (fichero) | Test (fichero/caso) | Verif. | Estado |
 |---|---|---|---|---|
-| CA-1 | `src/lib/auth/guard.ts` (`PUBLIC_PREFIXES` += `/legal`); `src/app/legal/page.tsx`, `.../aviso-legal/page.tsx`, `.../privacidad/page.tsx`, `.../terminos/page.tsx` | `tests/e2e/legal.spec.ts` › *CA-1: las cuatro se leen sin sesión, y las de datos no* (4 rutas + «las rutas de datos siguen exigiendo sesión») | | 🚧 |
-| CA-2 | `src/lib/auth/guard.ts`; `src/proxy.ts` (matcher intacto) | `tests/legal-rutas-publicas.test.ts` › *CA-2: /legal y sus subrutas son públicas* (4) + *el matcher del proxy no cambia* (2) | | 🚧 |
-| CA-3 | `src/lib/legal/content.ts` (`TITULAR`); `src/app/legal/aviso-legal/page.tsx` | `tests/e2e/legal.spec.ts` › *CA-3: quién opera esto y cómo escribirle* (3, incl. «ninguna página legal contiene texto de relleno»); lista en `tests/legal-afirmaciones-prohibidas.ts` (`MARCADORES_DE_POSICION`) | | 🚧 |
-| CA-4 | `src/app/legal/aviso-legal/page.tsx` (`data-testid="titular"`); `src/app/legal/privacidad/page.tsx` (`data-testid="responsable"`); `src/lib/legal/content.ts` (`MARCA`) | `tests/e2e/legal.spec.ts` › *CA-4: el responsable es la persona, no la marca* (4) | | 🚧 |
-| CA-5 | `src/lib/legal/content.ts` (`CATEGORIAS_DE_DATO`); `src/app/legal/privacidad/page.tsx` | `tests/legal-datos-y-esquema.test.ts` (5: los dos conjuntos son EXACTAMENTE el mismo) + `tests/e2e/legal.spec.ts` › *la privacidad describe las siete categorías de dato del esquema* | | 🚧 |
-| CA-6 | `src/lib/legal/content.ts` (`ENCARGADOS`); `src/app/legal/privacidad/page.tsx` | `tests/e2e/legal.spec.ts` › *la privacidad nombra a los cinco terceros y para qué interviene cada uno* | | 🚧 |
-| CA-7 | `src/lib/legal/content.ts` (`DATOS_DE_MERCADO`, `FUENTE_DE_PRECIOS`); `src/app/legal/terminos/page.tsx` y `.../privacidad/page.tsx` (`data-testid="datos-de-mercado"`) | `tests/e2e/legal.spec.ts` › *CA-7: de dónde vienen los precios y qué son* (2 rutas × fuente + diferido + informativo) | | 🚧 |
-| CA-8 | `tests/legal-afirmaciones-prohibidas.ts` (lista cerrada, 13 entradas con motivo); redacción de `src/lib/legal/content.ts` y de las 4 páginas | `tests/e2e/legal.spec.ts` › *CA-8: y NADA más que eso* (4 rutas) | | 🚧 |
-| CA-9 | `src/app/app-footer.tsx`; `src/lib/legal/content.ts` (`DESCARGO_BREVE`, `DESCARGO_COMPLETO`); `src/app/legal/terminos/page.tsx` (`#no-asesoramiento`) | `tests/e2e/pie-legal.spec.ts` › *CA-9: el descargo de no asesoramiento, donde se ve* (5 públicas + «también con sesión iniciada» + «/legal/terminos contiene el texto completo») | | 🚧 |
-| CA-10 | `src/app/app-footer.tsx` (sin sesión, sin BD); `src/app/layout.tsx` | `tests/e2e/pie-legal.spec.ts` › *CA-10* (4) + `tests/legal-import-graph.test.ts` › *el pie no lee la sesión* y *no alcanza ningún módulo prohibido* | | 🚧 |
-| CA-11 | `src/app/app-footer.tsx`; `src/lib/legal/content.ts` (`MARCA`) | `tests/e2e/pie-legal.spec.ts` › *CA-11: de quién es esto* (6 rutas + «también con sesión iniciada») | | 🚧 |
-| CA-12 | `src/app/layout.tsx` (`next/font/google`); `design/tremen-ds/colors_and_type.css` (fuera el `@import` remoto); `src/app/globals.css` (tokens reapuntados) | `tests/e2e/legal.spec.ts` › *CA-12: ni un recurso de terceros* (4 rutas, interceptando `page.on('request')`) + `tests/legal-sin-terceros.test.ts` (3) | | 🚧 |
-| CA-13 | `src/proxy.ts` (la ruta pública sale antes de instanciar Auth.js); `src/lib/legal/content.ts` (`COOKIES_Y_ANALITICA`); `src/app/legal/privacidad/page.tsx` | `tests/e2e/legal.spec.ts` › *CA-13* (recorrer `/legal` no deja NINGUNA cookie; en `/login` solo las de Auth.js) | | 🚧 |
-| CA-14 | `src/lib/legal/content.ts` (módulo puro: 0 imports); las 4 páginas; `src/app/layout.tsx`; `src/app/app-footer.tsx` | `tests/legal-import-graph.test.ts` (21 casos: 6 entradas × existe / prefijos prohibidos / clientes de BD, + recorrido no vacío + pureza del módulo) | | 🚧 |
-| CA-15 | `src/app/app-footer.tsx` montado en el layout raíz → alcanza al grupo `(auth)` | `tests/e2e/pie-legal.spec.ts` › *CA-15: se llega desde donde hace falta llegar* (3) | | 🚧 |
-| CA-16 | `src/lib/legal/content.ts` (`DERECHOS`); `src/app/legal/privacidad/page.tsx` (`data-testid="derechos"`) | `tests/e2e/legal.spec.ts` › *CA-16* (2: enunciado + ruta + residual F-ADR-022-1; y «esta spec NO crea el enlace a /cuenta») | | 🚧 |
-| CA-17 | — (no degradar) | `npm test` 878/878 · `npx playwright test` 95/95 · `npm run typecheck` · `npm run lint` — todos en verde, incl. `tests/guard.test.ts` (CA-15 de SPEC-023) con la lista ampliada | | 🚧 |
+| CA-1 | `src/lib/auth/guard.ts` (`PUBLIC_PREFIXES` += `/legal`); `src/app/legal/page.tsx`, `.../aviso-legal/page.tsx`, `.../privacidad/page.tsx`, `.../terminos/page.tsx` | `tests/e2e/legal.spec.ts` › *CA-1: las cuatro se leen sin sesión, y las de datos no* (4 rutas + «las rutas de datos siguen exigiendo sesión») | Ejecutado por mí (Playwright propio, app real en :3200): las 4 rutas responden **200** y se quedan en su `pathname` con contexto **sin cookies**; `/dashboard`, `/cartera`, `/cartera/importar`, `/vigiladas` y `/avisos` acaban en `/login`. | ✅ |
+| CA-2 | `src/lib/auth/guard.ts`; `src/proxy.ts` (matcher intacto) | `tests/legal-rutas-publicas.test.ts` › *CA-2: /legal y sus subrutas son públicas* (4) + *el matcher del proxy no cambia* (2) | `git diff origin/main...HEAD -- src/proxy.ts`: el literal del `matcher` es idéntico. Contra la app: `/legalX`, `/legal-admin`, `/legales` y `/legal.json` acaban en `/login`. La excepción vive solo en `PUBLIC_PREFIXES`. | ✅ |
+| CA-3 | `src/lib/legal/content.ts` (`TITULAR`); `src/app/legal/aviso-legal/page.tsx` | `tests/e2e/legal.spec.ts` › *CA-3: quién opera esto y cómo escribirle* (3, incl. «ninguna página legal contiene texto de relleno»); lista en `tests/legal-afirmaciones-prohibidas.ts` (`MARCADORES_DE_POSICION`) | Texto **renderizado** leído por mí en el navegador: «Alberto Fojo Eiras, persona física», domicilio completo, `hola@tremen.dev` (con `mailto:`) y `stockeiro.tremen.dev`. Barrido con **mi propia** lista de marcadores (13 patrones): ninguno. | ✅ |
+| CA-4 | `src/app/legal/aviso-legal/page.tsx` (`data-testid="titular"`); `src/app/legal/privacidad/page.tsx` (`data-testid="responsable"`); `src/lib/legal/content.ts` (`MARCA`) | `tests/e2e/legal.spec.ts` › *CA-4: el responsable es la persona, no la marca* (4) | Leídas las dos frases marcadas: el sujeto es la persona en ambas. `tremen.dev` solo aparece en la sección «Marca y proyecto» y en el pie, nunca como titular ni responsable. | ✅ |
+| CA-5 | `src/lib/legal/content.ts` (`CATEGORIAS_DE_DATO`); `src/app/legal/privacidad/page.tsx` | `tests/legal-datos-y-esquema.test.ts` (5: los dos conjuntos son EXACTAMENTE el mismo) + `tests/e2e/legal.spec.ts` › *la privacidad describe las siete categorías de dato del esquema* | Contrastado por mí contra `src/db/schema.ts`: tablas con `user_id` = `password_reset_tokens`, `transactions`, `watched_symbols`, `zone_triggers`, `notifications`, `symbol_aliases`, más `users`. Son exactamente las 7 declaradas. Las 5 columnas de `users` (email, hash, `password_changed_at`, `role`, `created_at`) están descritas una a una. | ✅ |
+| CA-6 | `src/lib/legal/content.ts` (`ENCARGADOS`); `src/app/legal/privacidad/page.tsx` | `tests/e2e/legal.spec.ts` › *la privacidad nombra a los cinco terceros y para qué interviene cada uno* | Los cinco visibles con su «para qué» y su «qué ve». Contrastado con el código: precios **solo** Marketstack (`quote-provider-factory.ts`; `TwelveDataProvider` no está cableado), Twelve Data solo búsqueda, Resend en `resend-sender.ts`, cron diario `0 22 * * *` en `vercel.json`, Vercel/Neon por `docs/despliegue.md` §0. | ✅ |
+| CA-7 | `src/lib/legal/content.ts` (`DATOS_DE_MERCADO`, `FUENTE_DE_PRECIOS`); `src/app/legal/terminos/page.tsx` y `.../privacidad/page.tsx` (`data-testid="datos-de-mercado"`) | `tests/e2e/legal.spec.ts` › *CA-7: de dónde vienen los precios y qué son* (2 rutas × fuente + diferido + informativo) | Leído el bloque en las dos rutas: fuente (Marketstack), «precios de cierre diferidos… no precios en tiempo real», «fecha de referencia», «carácter meramente informativo». | ✅ |
+| CA-8 | `tests/legal-afirmaciones-prohibidas.ts` (lista cerrada, 13 entradas con motivo); redacción de `src/lib/legal/content.ts` y de las 4 páginas | `tests/e2e/legal.spec.ts` › *CA-8: y NADA más que eso* (4 rutas) | Barrido del texto renderizado de las 4 páginas con **mi propia** lista (20 patrones, incluidos `copyright`, `©`, «derecho de uso» y «reserva de derechos», que no están en la del implementador): **ninguna** afirmación prohibida. Único acierto, `tiempo real`, es la forma negada que CA-7 exige. | ✅ |
+| CA-9 | `src/app/app-footer.tsx`; `src/lib/legal/content.ts` (`DESCARGO_BREVE`, `DESCARGO_COMPLETO`); `src/app/legal/terminos/page.tsx` (`#no-asesoramiento`) | `tests/e2e/pie-legal.spec.ts` › *CA-9: el descargo de no asesoramiento, donde se ve* (5 públicas + «también con sesión iniciada» + «/legal/terminos contiene el texto completo») | Pie leído en 5 públicas y en `/dashboard`, `/cartera`, `/vigiladas`, `/avisos` con sesión real: descargo + enlace `#no-asesoramiento`. Texto completo en `/legal/terminos` con D-1 y D-4 explícitos. **Funcionalmente correcto; ver CA-17 por su presentación en móvil.** | ✅ |
+| CA-10 | `src/app/app-footer.tsx` (sin sesión, sin BD); `src/app/layout.tsx` | `tests/e2e/pie-legal.spec.ts` › *CA-10* (4) + `tests/legal-import-graph.test.ts` › *el pie no lee la sesión* y *no alcanza ningún módulo prohibido* | Pie idéntico con y sin sesión; en `/dashboard`…`/avisos` con sesión el pie **no contiene el email** del usuario; sin sesión no hay `nav.app-nav` ni enlaces autenticados. Grafo de imports revisado: no alcanza `src/db/` ni `next-auth`. | ✅ |
+| CA-11 | `src/app/app-footer.tsx`; `src/lib/legal/content.ts` (`MARCA`) | `tests/e2e/pie-legal.spec.ts` › *CA-11: de quién es esto* (6 rutas + «también con sesión iniciada») | «Stockeiro, un proyecto de tremen.dev» con exactamente **un** `a[href="https://tremen.dev"]` en las 6 rutas públicas y con sesión. **Funcionalmente correcto; ver CA-17.** | ✅ |
+| CA-12 | `src/app/layout.tsx` (`next/font/google`); `design/tremen-ds/colors_and_type.css` (fuera el `@import` remoto); `src/app/globals.css` (tokens reapuntados) | `tests/e2e/legal.spec.ts` › *CA-12: ni un recurso de terceros* (4 rutas, interceptando `page.on('request')`) + `tests/legal-sin-terceros.test.ts` (3) | Intercepción **mía** de `page.on("request")` en 8 rutas públicas + 4 autenticadas + `/reset-password/<token>`: **cero** peticiones fuera del origen. Las `.woff2` salen de `/_next/static/media/…`; `document.fonts` confirma que Geist y Geist Mono cargan de verdad (no es una pila de reserva). | ✅ |
+| CA-13 | `src/proxy.ts` (la ruta pública sale antes de instanciar Auth.js); `src/lib/legal/content.ts` (`COOKIES_Y_ANALITICA`); `src/app/legal/privacidad/page.tsx` | `tests/e2e/legal.spec.ts` › *CA-13* (recorrer `/legal` no deja NINGUNA cookie; en `/login` solo las de Auth.js) | Contextos vírgenes por separado: recorrer las 4 de `/legal` deja **0 cookies** y **ninguna cabecera `Set-Cookie`** (comprobado también con `fetch` crudo); `/login` a pelo deja **0 cookies**. Registro, login, `forgot-password` → correo → `reset-password` → entrar con la nueva: **todo verde de punta a punta** tras el cambio de `src/proxy.ts`. | ✅ |
+| CA-14 | `src/lib/legal/content.ts` (módulo puro: 0 imports); las 4 páginas; `src/app/layout.tsx`; `src/app/app-footer.tsx` | `tests/legal-import-graph.test.ts` (21 casos: 6 entradas × existe / prefijos prohibidos / clientes de BD, + recorrido no vacío + pureza del módulo) | **Verificado con la base parada de verdad**: `pg_ctl stop -m fast` (puerto 54329 en `ECONNREFUSED` comprobado) y las 4 páginas siguen respondiendo **200** con su contenido real («Alberto Fojo Eiras» en el HTML). El build las emite como estáticas (`○` en la tabla de rutas). | ✅ |
+| CA-15 | `src/app/app-footer.tsx` montado en el layout raíz → alcanza al grupo `(auth)` | `tests/e2e/pie-legal.spec.ts` › *CA-15: se llega desde donde hace falta llegar* (3) | Desde `/login` y `/register`, sin teclear nada, pinchado el enlace del pie y alcanzada `/legal/privacidad`; aviso legal y términos también enlazados. | ✅ |
+| CA-16 | `src/lib/legal/content.ts` (`DERECHOS`); `src/app/legal/privacidad/page.tsx` (`data-testid="derechos"`) | `tests/e2e/legal.spec.ts` › *CA-16* (2: enunciado + ruta + residual F-ADR-022-1; y «esta spec NO crea el enlace a /cuenta») | El apartado enuncia la supresión, nombra `/cuenta` y recoge el residual de F-ADR-022-1. **Salvedad**: `/cuenta` **no existe todavía** (la entrega SPEC-036), así que hoy la página afirma al lector algo que no puede hacer. Es la frontera que la spec declara, pero **bloquea publicar en solitario** (F-SPEC-035-7). | ⚠️ |
+| CA-17 | — (no degradar) | `npm test` 878/878 · `npx playwright test` 95/95 · `npm run typecheck` · `npm run lint` — todos en verde, incl. `tests/guard.test.ts` (CA-15 de SPEC-023) con la lista ampliada | La suite sigue verde (**879/879** vitest, **95/95** playwright, typecheck, lint, db:scan, build). **Pero degrada lo entregado en móvil**: por debajo de ~720 px el sistema de diseño aplica `footer { flex-direction: column }` (`design/tremen-ds/responsive.css` §footer) y el `flex: 1 1 320px` de `.app-footer-descargo` pasa a ser **320 px de ALTO**, dejando ~280 px de hueco muerto en el pie de **todas** las páginas —públicas y autenticadas—. Medido a 700/640/390 px; en escritorio (≥760 px) es correcto. Ver captura `regresion-pie-movil-700px.png`. | ❌ |
 
 ## Veredicto del verificador
 <!-- GREEN/RED + fecha + resumen. Lo escribe SOLO sdd-verificador. -->
 
+**RED — 2026-08-19 (sdd-verificador).** 15/17 CA cerrados, 1 con salvedad (CA-16) y
+**1 incumplido (CA-17)**.
+
+El contenido legal es lo mejor de esta entrega y lo he verificado a mano, no por test:
+los datos del titular son reales y completos, la lista de datos **coincide columna a
+columna** con `src/db/schema.ts`, los cinco terceros coinciden con el código y el runbook,
+y **no hay ni una afirmación de derechos sobre las cotizaciones** —lo he barrido con mi
+propia lista de 20 patrones, más amplia que la del implementador—. Los seis gates pasan.
+Las páginas responden **con Postgres parado de verdad** y **no piden nada a ningún
+tercero**, ni ellas ni el resto de la app.
+
+**Lo que devuelve la spec es una regresión visual, no de contenido.** El pie nuevo se monta
+en el layout raíz, así que aparece en **todas** las páginas; por debajo de ~720 px de ancho
+el sistema de diseño le aplica `footer { flex-direction: column }` y el `flex: 1 1 320px`
+del párrafo del descargo deja de ser un ancho y pasa a ser **320 px de alto**. Resultado:
+~280 px de hueco muerto en el pie de cada pantalla en móvil y tablet, en la release que
+bloquea publicar y que se va a enseñar a desconocidos. El ledger afirmaba que el pie
+quedaba bien (F-SPEC-035-10) «por razonamiento, no con una captura»: la captura lo
+desmiente. Es un arreglo de una línea de CSS.
+
+**Findings — ver «Findings del verificador» abajo.**
+
+## Findings del verificador (RED)
+
+- **V-1 (BLOQUEANTE, CA-17). El pie rompe el aspecto de toda la app por debajo de ~720 px.**
+  - **Reproducir**: `npm run build` + `node tests/e2e/server.mjs`; abrir cualquier página
+    (`/legal`, `/login`, `/dashboard`…) con el viewport a 700, 640 o 390 px.
+  - **Medido**: `footer.app-footer` mide **452 px** de alto en vez de ~138; dentro,
+    `.app-footer-descargo` mide **320 px** con dos líneas de texto. A 760 px y más, correcto
+    (`footerH=138`, `descargoH=39`).
+  - **Causa exacta**: `design/tremen-ds/responsive.css` §footer aplica
+    `footer { flex-direction: column; align-items: flex-start; }` en su breakpoint. Como
+    `.app-footer` (`src/app/globals.css`) no fija `flex-direction`, hereda `column`, y ahí
+    `flex: 1 1 320px` del `.app-footer-descargo` se interpreta sobre el **eje vertical**:
+    `flex-basis` pasa a ser altura.
+  - **Qué hacer**: en `.app-footer` (`src/app/globals.css`) fijar explícitamente el eje
+    —`flex-direction: row`— y/o cambiar `.app-footer-descargo` a `flex: 1 1 320px` solo
+    cuando la dirección sea `row` (p. ej. `min-width: 320px` + `flex: 1 1 auto`). Comprobar
+    a 390, 640, 700, 760 y 1280 px.
+  - **Evidencia**: `_qa/SPEC-035/regresion-pie-movil-700px.png` y
+    `_qa/SPEC-035/movil-login-con-pie.png`.
+
+- **V-2 (no bloqueante, informativo, CA-16 ⚠️).** `/legal/privacidad` dice hoy «Puedes
+  borrar tu cuenta y todos tus datos desde la propia app, en la pantalla de cuenta
+  (/cuenta). Es inmediato». **`/cuenta` no existe.** CA-16 pide exactamente eso y la
+  frontera con SPEC-036 está declarada, así que no es un defecto de implementación — pero
+  es una afirmación **falsa mientras 036 no entre**. Confirmado: **035 y 036 salen juntas**
+  (F-SPEC-035-7), o hay que reescribir `DERECHOS` en `src/lib/legal/content.ts`.
+
 ## Evidencia visual
 <!-- Tabla CA → captura en _qa/SPEC-035/. Informe HTML opcional: _qa/SPEC-035/informe.html -->
+
+| CA | Captura | Qué demuestra |
+|---|---|---|
+| CA-1 | `_qa/SPEC-035/ca1-legal-indice.png` | El índice legal servido a un navegador sin cookies. |
+| CA-3, CA-4 | `_qa/SPEC-035/ca3-ca4-aviso-legal.png` | Titular, domicilio, contacto y dominio reales; `tremen.dev` solo como marca. |
+| CA-5, CA-6 | `_qa/SPEC-035/ca5-ca6-privacidad.png` | Las siete categorías de dato y los cinco terceros. |
+| CA-7, CA-8, CA-9 | `_qa/SPEC-035/ca7-ca8-ca9-terminos.png` | Descargo completo y bloque de precios, sin afirmar ningún derecho. |
+| CA-9, CA-10, CA-11 | `_qa/SPEC-035/ca9-pie-autenticado-dashboard.png` | El mismo pie con sesión iniciada, sin filtrar dato de usuario. |
+| CA-12 | `_qa/SPEC-035/reset-password-sin-terceros.png` | `/reset-password/<token>` sin una sola petición externa (ADR-015 pto. 9, ahora cierto). |
+| CA-15 | `_qa/SPEC-035/ca15-login-con-pie.png` | Camino a lo legal desde el formulario de acceso, sin teclear nada. |
+| **CA-17 (fallo)** | `_qa/SPEC-035/regresion-pie-movil-700px.png`, `_qa/SPEC-035/movil-login-con-pie.png`, `_qa/SPEC-035/movil-privacidad.png` | El hueco muerto de ~280 px en el pie por debajo de ~720 px. |
+
+## Gates ejecutados por el verificador (2026-08-19)
+
+| Gate | Resultado |
+|---|---|
+| `npm run typecheck` | ✅ exit 0, sin salida |
+| `npm run lint` | ✅ exit 0 (`--max-warnings=0`), sin salida |
+| `npm test` | ✅ **63 ficheros, 879/879** |
+| `npm run build` | ✅ compilado; `/legal`, `/legal/aviso-legal`, `/legal/privacidad` y `/legal/terminos` como **estáticas (○)** |
+| `npm run test:e2e` | ✅ **95/95** |
+| `npm run db:scan` | ✅ 10 migraciones, 2 destructivas con waiver escrito |
+
+**Comprobaciones propias fuera de la suite:** 41/42 en verde (la única «roja» era un fallo
+de diseño de mi propio script, no del producto: mezclaba `/legal` con rutas protegidas, y
+las cookies venían del `/login` al que redirigen). Añadidas: base de datos parada de
+verdad, intercepción de red en la app entera, rutas que solo se parecen a `/legal`,
+tipografía realmente cargada y los tres flujos de credenciales de punta a punta.
 
 ## Salvedades / follow-ups
 
