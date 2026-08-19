@@ -33,9 +33,14 @@ tipo: roadmap
   ve "sin cotización"). La app está desplegada, así que lleva desde el despliegue sin
   cumplir lo prometido. Nada de lo demás importa hasta que esto funcione.
   Aprobada por humano el 2026-07-15.
-  ↳ **Estado real a 2026-08-17**: sus seis specs (SPEC-015, 016, 020, 021, 024, 025)
-  están `hecho`. La promesa está restaurada **de facto**; falta el cierre formal de la
-  épica (moverla a "Entregado" cuando lo sanciones).
+  ↳ **Estado real a 2026-08-19**: **ocho** specs en `hecho` (SPEC-015, 016, 020, 021,
+  024, 025, **029, 030**) y **SPEC-033 en `en-revision`**. La promesa está restaurada
+  **de facto**; falta el cierre formal de la épica (moverla a "Entregado" cuando lo
+  sanciones).
+  ⚠️ **Cabo suelto detectado el 2026-08-19**: SPEC-033 está **mergeada en `main`** (PR #36,
+  con su commit de GREEN) pero su frontmatter sigue diciendo `en-revision`. El estado no se
+  cerró al mergear. No se toca desde aquí —`hecho` lo firma el verificador que juzgó, no
+  otro— así que hay que cerrarlo en su propia línea de trabajo.
 
 - **EPIC-003 — Recuperación y cambio de contraseña** (estado: borrador).
   **Por qué está aquí y no en "Después", pese al criterio de corte.** El criterio dice
