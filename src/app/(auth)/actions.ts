@@ -4,8 +4,9 @@ import { AuthError } from 'next-auth';
 import { after } from 'next/server';
 import { redirect } from 'next/navigation';
 import { db } from '@/db/client';
-import { registerUser } from '@/lib/auth/users';
 import { signIn, signOut } from '@/lib/auth/config';
+import { registerIfOpen } from '@/lib/registration/service';
+import { REGISTRO_CERRADO_MOTIVO } from '@/lib/registration/messages';
 import { credentialsSchema, emailSchema } from '@/lib/auth/validation';
 import { EmailAlreadyRegisteredError } from '@/lib/auth/errors';
 import { requestPasswordReset, resetPasswordWithToken } from '@/lib/auth/password-reset';
@@ -18,6 +19,15 @@ export type FormState = { error: string } | undefined;
 /**
  * CA-1 / CA-2: registro. Crea la cuenta (email único), y si va bien inicia sesión
  * y redirige al panel. Email duplicado -> mensaje claro (CA-2).
+ *
+ * SPEC-037 CA-4/CA-5 — EL GRIFO SE CONSULTA AQUÍ, antes de crear nada, y no solo al
+ * pintar el formulario (ADR-023 pto. 5). Ocultar el formulario y dejar esta acción
+ * aceptando envíos no sería cerrar el registro: sería esconderlo, y un `POST`
+ * fabricado a mano seguiría creando cuentas. Es el mismo criterio que ADR-021 pto. 7
+ * aplica a las secciones por rol.
+ *
+ * El motivo del cierre viaja hasta el formulario porque quien llega con la puerta
+ * cerrada tiene que leer POR QUÉ (R-7), también si llegó por este camino.
  */
 export async function registerAction(_prev: FormState, formData: FormData): Promise<FormState> {
   const parsed = credentialsSchema.safeParse({
@@ -29,7 +39,10 @@ export async function registerAction(_prev: FormState, formData: FormData): Prom
   }
 
   try {
-    await registerUser(db, parsed.data.email, parsed.data.password);
+    const alta = await registerIfOpen(db, parsed.data.email, parsed.data.password);
+    if (!alta.ok) {
+      return { error: REGISTRO_CERRADO_MOTIVO[alta.reason] };
+    }
   } catch (e) {
     if (e instanceof EmailAlreadyRegisteredError) {
       return { error: e.message };
