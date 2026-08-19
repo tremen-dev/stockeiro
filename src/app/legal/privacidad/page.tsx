@@ -1,5 +1,7 @@
 import type { Metadata } from 'next';
+import type { ReactNode } from 'react';
 import Link from 'next/link';
+import { CUENTA_PATH } from '@/lib/account/routes';
 import {
   CATEGORIAS_DE_DATO,
   CONSERVACION,
@@ -14,6 +16,31 @@ export const metadata: Metadata = {
   title: 'Privacidad · Stockeiro',
   description: 'Qué datos guarda Stockeiro, para qué, quién más los ve y cómo borrarlos.',
 };
+
+/**
+ * SPEC-036 CA-14 — el derecho de supresión, ahora CLICABLE.
+ *
+ * SPEC-035 dejó el texto nombrando la ruta (`/cuenta`) pero sin enlace, y con un
+ * motivo escrito: la pantalla no existía todavía, y un enlace roto en una página
+ * legal es peor que una ruta escrita a mano. Ahora existe, así que el texto se
+ * convierte en enlace **sin reescribir el texto**: se parte el párrafo por la ruta y
+ * se le pone un `Link` en medio.
+ *
+ * Que la ruta venga de `@/lib/account/routes` y no de un literal es lo que impide
+ * que este enlace y la pantalla se separen: si mañana cambia la ruta, cambia aquí.
+ * Ese módulo no importa nada, así que la página legal sigue sin poder tocar la base
+ * de datos (SPEC-035 CA-14, `tests/legal-import-graph.test.ts`).
+ */
+function conEnlaceACuenta(parrafo: string): ReactNode {
+  const partes = parrafo.split(CUENTA_PATH);
+  if (partes.length === 1) return parrafo;
+  return partes.map((trozo, i) => (
+    <span key={i}>
+      {i > 0 ? <Link href={CUENTA_PATH}>{CUENTA_PATH}</Link> : null}
+      {trozo}
+    </span>
+  ));
+}
 
 /**
  * Política de privacidad (SPEC-035 CA-4, CA-5, CA-6, CA-7, CA-13, CA-16). Pública.
@@ -124,7 +151,7 @@ export default function PrivacidadPage() {
       <section className="legal-seccion" data-testid="derechos">
         <h2>Tus derechos</h2>
         {DERECHOS.map((parrafo) => (
-          <p key={parrafo.slice(0, 24)}>{parrafo}</p>
+          <p key={parrafo.slice(0, 24)}>{conEnlaceACuenta(parrafo)}</p>
         ))}
       </section>
 
