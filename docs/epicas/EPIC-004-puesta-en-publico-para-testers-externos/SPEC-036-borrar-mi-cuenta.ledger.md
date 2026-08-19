@@ -6,7 +6,7 @@ epica: EPIC-004
 # Ledger — SPEC-036 Borrar mi cuenta
 
 ## Resumen
-- Fase: en-revisión (implementación terminada, 2026-08-19) <!-- refleja el estado de la spec; la fuente de verdad es el frontmatter de la spec -->
+- Fase: hecho (verificada GREEN 15/15, 2026-08-19; pasada posterior de residuales sobre la misma rama, sin reabrir la spec) <!-- refleja el estado de la spec; la fuente de verdad es el frontmatter de la spec -->
 - Rama: `ft/SPEC-036-borrar-mi-cuenta` (apilada sobre `ft/SPEC-035-paginas-legales-titular-y-descargo`)
 
 ## Matriz de criterios de aceptación
@@ -21,7 +21,7 @@ epica: EPIC-004
 | CA-4 | `src/lib/account/deletion.ts` (`purgeUserData`, `DELETION_ORDER` = el orden de ADR-022 pto. 4; `zone_triggers` cae por cascade y **no** tiene sentencia propia) | `tests/account-deletion.test.ts` › *CA-4* (4: **la siembra deja filas en las siete tablas** —sin eso el test siguiente no probaría nada—; censo cero tabla por tabla; los episodios caen con su vigilada; y **ninguna tabla del esquema con `user_id` conserva filas de un usuario que ya no existe**) | Borrado ejecutado desde la pantalla sobre un usuario sembrado en las 7 tablas: censo posterior **cero en las siete**, y consulta de huérfanos (`NOT EXISTS (select 1 from users …)`) a **cero en las 6** tablas con `user_id` | ✅ |
 | CA-5 | `src/lib/account/deletion.ts` (`ACCOUNT_DELETION_COVERAGE`: la cobertura se declara **una vez** y de ahí salen el orden del borrado, la lista de CA-2 y esta comprobación) | `tests/account-deletion-coverage.test.ts` (12 casos): el conjunto de tablas del esquema con `user_id` (más `users`) es **exactamente** el conjunto cubierto, en los dos sentidos; el orden explícito es el de ADR-022; `zone_triggers` está declarada `cascade` desde `watched_symbols` y **no** en el orden explícito; y ninguna tabla compartida entra en la cobertura | Censo hecho por mí desde `src/db/schema.ts`: 10 tablas, 6 con `user_id` (`password_reset_tokens`, `transactions`, `watched_symbols`, `zone_triggers`, `notifications`, `symbol_aliases`) + `users` = **exactamente** las 7 cubiertas; las 3 compartidas no tienen columna de dueño y no aparecen. El test introspecciona de verdad (`getTableConfig`) y compara en los dos sentidos | ✅ |
 | CA-6 | `src/lib/account/deletion.ts` (`SHARED_TABLES` no se toca; el borrado filtra siempre por `userId`) | `tests/account-deletion.test.ts` › *CA-6: irse no daña a nadie más* (4: `symbols`/`quotes`/`quote_diagnostics` con **mismo recuento y mismos valores** —comparación de las filas enteras—; el otro usuario conserva censo y zonas y sigue viendo el precio; el símbolo sin dueño queda **inerte, no borrado**; y las compartidas no tienen columna `user_id`) + *el borrado no toca las operaciones de otro usuario* (1) + `tests/account-deletion-coverage.test.ts` › *CA-6: lo compartido no entra en el borrado, por construcción* (3) | Dos usuarios sobre el **mismo** símbolo: `symbols`+`quotes`+`quote_diagnostics` idénticas **fila por fila** (snapshot JSON completo antes/después) y el vecino conserva sus 6 tablas byte a byte; en `/vigiladas` sigue viendo `VERIF` con su precio 111,11 | ✅ |
-| CA-7 | `src/lib/account/deletion.ts` (`purgeUserData`: una sola transacción, elegida **por capacidad del driver** — `batch()` en neon-http, `transaction()` en postgres-js y PGlite); `src/app/cuenta/actions.ts` (el fallo se traduce a «no se ha borrado nada, vuelve a intentarlo» y se registra en el servidor) | `tests/account-deletion.test.ts` › *CA-7: si una sentencia intermedia falla, la base queda como estaba* (3: una referencia externa tumba el `DELETE FROM users` y el censo queda **entero**; **la carrera de F-SPEC-036-1 simulada de verdad** —una regla que inserta un aviso entre el borrado de `notifications` y el de `users`— cae entera; y el reintento posterior funciona) | PGlite cubre la transacción; **el camino de producción lo he ejercitado yo**: sonda con doble de `fetchFunction` sobre `drizzle-orm/neon-http` — el purge entero viaja en **UNA** petición a `/sql` con `{queries:[6]}` en el orden de ADR-022 y filtrando siempre por ese `userId`; un 400 del servidor propaga el error; y si `batch()` faltara, el fallback **revienta** («No transactions support in neon-http driver») en vez de degradar a 6 sentencias sueltas. Residual: el `BEGIN`/`COMMIT` lo ejecuta el servidor de Neon (contrato documentado), y ningún test del repo lo cubre — ver R-1 | ✅ |
+| CA-7 | `src/lib/account/deletion.ts` (`purgeUserData`: una sola transacción, elegida **por capacidad del driver** — `batch()` en neon-http, `transaction()` en postgres-js y PGlite); `src/app/cuenta/actions.ts` (el fallo se traduce a «no se ha borrado nada, vuelve a intentarlo» y se registra en el servidor) | `tests/account-deletion.test.ts` › *CA-7: si una sentencia intermedia falla, la base queda como estaba* (3: una referencia externa tumba el `DELETE FROM users` y el censo queda **entero**; **la carrera de F-SPEC-036-1 simulada de verdad** —una regla que inserta un aviso entre el borrado de `notifications` y el de `users`— cae entera; y el reintento posterior funciona). **Y desde el cierre de R-1, también el camino de producción**: `tests/account-deletion-neon-http.test.ts` (15 casos) monta `drizzle-orm/neon-http` **de verdad** sobre `@neondatabase/serverless` con un doble en `neonConfig.fetchFunction` y fija que se toma la rama `batch()`, que el purge sale en **una sola** petición `POST …/sql` con las **seis** sentencias en el orden de ADR-022 pto. 4, cada una con su `where` y parametrizada con ese `userId`, que **no** aparece ninguna tabla compartida ni sentencia para `zone_triggers`, y que un error del servidor **propaga**. Su límite está escrito en la cabecera del propio fichero | PGlite cubre la transacción; **el camino de producción lo he ejercitado yo**: sonda con doble de `fetchFunction` sobre `drizzle-orm/neon-http` — el purge entero viaja en **UNA** petición a `/sql` con `{queries:[6]}` en el orden de ADR-022 y filtrando siempre por ese `userId`; un 400 del servidor propaga el error; y si `batch()` faltara, el fallback **revienta** («No transactions support in neon-http driver») en vez de degradar a 6 sentencias sueltas. Residual: el `BEGIN`/`COMMIT` lo ejecuta el servidor de Neon (contrato documentado), y ningún test del repo lo cubre — ver R-1 | ✅ |
 | CA-8 | Sin código propio: es la consecuencia directa de que desaparezca la fila y con ella el índice único (ADR-022 pto. 5). Se apoya en `registerUser` (`src/lib/auth/users.ts`) | `tests/account-deletion.test.ts` › *CA-8: el email vuelve a estar libre (RN-02)* (4: el alta funciona y es **otra** cuenta; censo cero en todas sus tablas; **nace `tester`** aunque la anterior fuera `completo`; y la credencial vieja ya no sirve) + `tests/e2e/cuenta.spec.ts` › *y desde ella se puede volver a registrarse con el mismo email* | Tras el borrado, alta con el **mismo** email → `/dashboard`; id distinto del borrado, rol `tester`, censo cero en sus 6 tablas, y entra de verdad con la contraseña nueva | ✅ |
 | CA-9 | **Sin código nuevo** — propiedad heredada de ADR-016: sin fila en `users`, `readSessionRow` devuelve `null`, `isSessionEpochCurrent(claim, undefined)` es `false` y `resolveSessionWithEpoch` resuelve la sesión **anónima**. Lo único que aporta esta spec es el `signOut` de la sesión desde la que se borra (`src/app/cuenta/actions.ts`) | `tests/e2e/cuenta.spec.ts` › *CA-9: la otra sesión, en otro navegador, deja de autenticar en su siguiente petición* — **dos `BrowserContext` distintos**; se comprueba que las dos autentican ANTES, y después la segunda acaba en `/login` en `/avisos`, `/dashboard`, `/vigiladas` y `/cuenta`, sin que su cuerpo contenga el email | Dos `BrowserContext` distintos, ambos autenticando antes. Tras el borrado el segundo acaba en `/login` en `/avisos`, `/dashboard`, `/vigiladas` y `/cuenta`, y su cuerpo **no contiene** ni el email ni el ticker del borrado | ✅ |
 | CA-10 | `src/app/cuenta-borrada/page.tsx` (pública, **sin imports de `src/db` ni de sesión**); `src/lib/auth/guard.ts` (`PUBLIC_PREFIXES` += `/cuenta-borrada`); `src/app/cuenta/actions.ts` (`signOut({ redirectTo })`) | `tests/cuenta-rutas.test.ts` › *CA-10* (6: pública, declarada en `PUBLIC_PREFIXES`, `/cuenta-borradaX` **no** lo es, `/cuenta` sigue exigiendo sesión, y el matcher del proxy **no cambia**) + `tests/e2e/cuenta.spec.ts` › *CA-10* (3: se pinta entera, sin `nav`, sin texto de error de Next y **sin cookie de sesión con valor**; se lee tecleando la URL sin sesión; y desde ella se vuelve a registrar) | Aterriza en `/cuenta-borrada`, se pinta entera, sin error de Next, **sin `.app-nav`** (el único `<nav>` es el pie legal de SPEC-035), sin cookie de sesión con valor y sin filtrar el email. Geometría idéntica a `/login` y `/register` (`.auth-wrap` left 430 / width 420 a 1280 px) y sin desbordamiento a los cinco anchos | ✅ |
@@ -204,7 +204,8 @@ Y los que abre esta implementación:
   que apunta responda **200** y no un 404 — sin sesión, RN-03 la lleva a `/login`, que es
   una pantalla y no un error. La propiedad («ningún enlace roto en una página legal») se
   conserva entera; lo que cambia es cuál de los dos estados del mundo es el correcto.
-- **F-SPEC-036-7 (residual técnico, declarado).** `purgeUserData` elige el primitivo
+- **F-SPEC-036-7 (CERRADO en su mitad cubrible; ver «Cierre de residuales» al final de
+  esta sección).** `purgeUserData` elige el primitivo
   atómico **por capacidad del driver**: `batch()` si existe (neon-http, que es
   **producción**) y `transaction()` si no (PGlite en los tests unitarios, postgres-js en
   el e2e). Los dos dan la misma garantía —el `batch()` de neon-http manda todas las
@@ -219,6 +220,71 @@ Y los que abre esta implementación:
   contraseña desde sesión (EPIC-003) y el de email no tienen sitio, y esta pantalla es el
   sitio natural cuando lo tengan. No entra aquí: la spec lo pone explícitamente fuera de
   alcance.
+
+### Cierre de residuales (pasada posterior al GREEN, misma rama)
+
+La spec **no se reabre**: sigue en `hecho`, que es terminal. Esta pasada no toca ningún CA
+—los 15 siguen verdes— y se limita a los dos residuales pequeños que el verificador dejó
+antes de la PR.
+
+- **R-1 → CERRADO en todo lo que depende de este repositorio.** La sonda que el verificador
+  corrió a mano vive ahora en la suite: `tests/account-deletion-neon-http.test.ts`, 15
+  casos, sin Neon y sin red. Usa el driver **de verdad** (`drizzle-orm/neon-http` sobre
+  `@neondatabase/serverless`) e interpone un doble en `neonConfig.fetchFunction`, que es el
+  único punto por el que ese driver sale al mundo. Fija las cuatro afirmaciones, y **las
+  cuatro resultaron ciertas**:
+
+  1. Con el cliente de producción se toma la rama `batch()` —y la prueba no es el `typeof`
+     sino que sale **una** petición con las seis sentencias, no seis sueltas—. `PGlite` y
+     `postgres-js` **no** exponen `batch()` (comprobado sobre los clientes reales, no sobre
+     el tipo), que es exactamente lo que hace correcta la elección por capacidad. Se fija
+     además que el `transaction()` de neon-http **lanza** (`No transactions support in
+     neon-http driver`): si alguien "simplificara" `purgeUserData`, el fallo sería ruidoso.
+  2. El borrado entero viaja en **una sola** petición `POST https://…/sql`, con las **seis**
+     sentencias en el orden de ADR-022 pto. 4 (`notifications`, `watched_symbols`,
+     `transactions`, `symbol_aliases`, `password_reset_tokens`, `users`), cada una con su
+     `where` —por `user_id`, y `users` por su `id`— y parametrizada con **ese** `userId` (el
+     id no se interpola en el SQL, y dos borrados seguidos producen dos lotes distintos).
+  3. En el lote **no aparece ninguna** tabla compartida (`symbols`, `quotes`,
+     `quote_diagnostics`) y **`zone_triggers` no lleva sentencia propia**: cae por su
+     `on delete cascade`, y el test comprueba además que `watched_symbols` va antes que
+     `users`.
+  4. Un error del servidor **propaga**: un 400 del lote sube con el mensaje del servidor y
+     `purgeUserData` no resuelve; un fallo de red también. Nada se da por borrado.
+
+  El test se verificó **no vacío** por mutación: rompiendo `purgeUserData` (forzar la rama
+  `transaction()` y quitar el `where` de `transactions`) caen 11 de los 15 casos.
+
+  **EL LÍMITE, escrito también en la cabecera del fichero de test:** aquí se comprueba que
+  el borrado **sale** en una sola petición; **no** se comprueba —ni se puede— que esa
+  petición se ejecute envuelta en `BEGIN`/`COMMIT`. Ese `BEGIN`/`COMMIT` lo pone el
+  **servidor de Neon**, no este código: es contrato documentado del proveedor
+  (`@neondatabase/serverless`, varias consultas por HTTP en una petición se ejecutan como
+  *«a single, non-interactive Postgres transaction»*) y ningún doble local puede probarlo,
+  porque probaría el doble y no a Neon. Si Neon dejara de ser transaccional en `/sql`, este
+  test seguiría verde y el borrado podría quedar a medias. Esa mitad sigue siendo
+  **verificación operativa**: borrar una cuenta de prueba en el primer despliegue y contar.
+  La atomicidad **observable** (o cae todo o no cae nada) se sigue probando contra Postgres
+  de verdad en `tests/account-deletion.test.ts`, por la rama `transaction()`.
+
+- **F-SPEC-036-9 (R-4 NO cerrado — bloqueado por el gate `require-spec`).** El cambio es de
+  una línea: `/cuenta` rotula el rol como «Tipo de cuenta» y el término de
+  `docs/fundacion/dominio.md` es «**Rol de cuenta**» (`src/app/cuenta/page.tsx`, el `<dt>`
+  de `data-testid="datos-de-cuenta"`). **No hay ningún test que fije ese rótulo** —ni
+  unitario ni e2e: `tests/e2e/cuenta.spec.ts` mira el enlace, el email y la zona de
+  borrado, nunca la etiqueta—, así que el cambio no rompe nada.
+
+  **Por qué no se ha hecho:** `src/` es ruta vigilada (`.sdd.json`) y el gate L1
+  `require-spec` deniega toda edición ahí mientras la spec no esté en `aprobada` o
+  `en-progreso`. SPEC-036 está en **`hecho`**, que es terminal, y el encargo de esta pasada
+  era explícitamente **no reabrirla**. Las dos salidas sancionadas —transicionar la spec o
+  `SDD_SKIP_GATE=1`— quedan fuera de mi alcance: la primera me está prohibida y la segunda
+  es una variable del arnés que un subagente no puede poner. **No se ha rodeado el gate por
+  otra vía**, que es lo que un `sed` habría hecho en silencio.
+
+  **Destino sugerido:** al **arquitecto**, junto con **R-3** (el término «Borrado de cuenta»
+  que falta en `docs/fundacion/dominio.md`). Son el mismo asunto —lenguaje ubicuo— y R-3 ya
+  iba ahí. Alternativa: una spec mínima bajo **EPIC-FIX**.
 
 ## Residuales abiertos tras la verificacion (los abre sdd-verificador)
 
@@ -250,8 +316,12 @@ Ninguno bloquea publicar. Los cuatro son para el arquitecto o para EPIC-MEJORA.
 ## Cómo retomar (handoff)
 <!-- Estado real del trabajo para la siguiente sesión: qué está hecho, qué falta, dónde seguir. -->
 
-- **Estado:** los 15 CA implementados con test. Spec en `en-revisión`; el `hecho` es del
-  verificador.
+- **Estado:** los 15 CA implementados con test, y **verificados GREEN 15/15**. Spec en
+  **`hecho`** (terminal) — esta pasada posterior **no la reabre**. Sobre el GREEN se ha
+  hecho una pasada de residuales: **R-1 cerrado** (`tests/account-deletion-neon-http.test.ts`),
+  **R-4 bloqueado** por el gate `require-spec` (F-SPEC-036-9). Los cinco gates en verde:
+  `typecheck`, `lint`, `test` (68 ficheros / **965** casos), `test:e2e` (**124** casos) y
+  `build`.
 - **Rama:** `ft/SPEC-036-borrar-mi-cuenta`, apilada sobre
   `ft/SPEC-035-paginas-legales-titular-y-descargo`. **Se mergean juntas** (F-SPEC-035-7):
   hasta que esta entre, `/legal/privacidad` promete un derecho que la app no sabe ejercer.
@@ -264,7 +334,8 @@ Ninguno bloquea publicar. Los cuatro son para el arquitecto o para EPIC-MEJORA.
   `src/app/cuenta/actions.ts`, `src/app/cuenta/delete-account-form.tsx`,
   `src/app/cuenta-borrada/page.tsx`, `tests/account-deletion.test.ts`,
   `tests/account-deletion-coverage.test.ts`, `tests/cuenta-rutas.test.ts`,
-  `tests/e2e/cuenta.spec.ts`, `tests/e2e/cuenta-responsive.spec.ts`.
+  `tests/e2e/cuenta.spec.ts`, `tests/e2e/cuenta-responsive.spec.ts`, y de la pasada de
+  residuales `tests/account-deletion-neon-http.test.ts`.
 - **Ficheros tocados:** `src/lib/auth/guard.ts` (un prefijo público más),
   `src/app/app-nav.tsx` (el enlace a `/cuenta`), `src/app/globals.css` (bloque nuevo al
   final), `src/app/legal/privacidad/page.tsx` (el enlace de CA-14),
@@ -281,7 +352,9 @@ Ninguno bloquea publicar. Los cuatro son para el arquitecto o para EPIC-MEJORA.
 - **Cuidado al commitear:** la suite e2e **reescribe los PNG de `_qa/` de otras specs**.
   En esta rama se restauraron con `git checkout -- _qa/` antes de commitear; lo único de
   `_qa/` que entra es `_qa/SPEC-036/`.
-- **Dónde mirar primero si algo falla:** si el borrado no es atómico en producción, es
-  F-SPEC-036-7 (el camino `batch()` de neon-http). Si la pantalla se descuadra, las
+- **Dónde mirar primero si algo falla:** si el borrado no es atómico en producción, el sitio
+  es `tests/account-deletion-neon-http.test.ts` — y si ese test está verde, lo que queda es
+  el `BEGIN`/`COMMIT` del servidor de Neon, que ningún test del repo puede cubrir (ver
+  «Cierre de residuales»). Si la pantalla se descuadra, las
   medidas de referencia están en `_qa/SPEC-036/medidas-*.txt` y el test que las produce es
   `tests/e2e/cuenta-responsive.spec.ts`.
