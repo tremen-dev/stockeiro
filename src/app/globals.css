@@ -547,6 +547,16 @@ td.num .quote-fail { text-align: right; }
   border-top: 1px solid var(--line);
   padding: 28px 0 36px;
   display: flex;
+  /* SPEC-035 V-1: el eje se declara, no se hereda. `design/tremen-ds/responsive.css`
+     §footer aplica `footer { flex-direction: column }` por debajo de 720px sobre el
+     SELECTOR DE ELEMENTO, así que alcanzaba a este pie aunque ninguna de sus otras
+     declaraciones lo hiciera (las demás las gana `.app-footer` por especificidad).
+     Con el eje en `column`, el `flex-basis` de los hijos deja de ser un ancho y pasa
+     a ser un ALTO: el descargo reservaba 320px de caja para 39px de texto, y el pie
+     —que va en el layout raíz— dejaba ~280px de hueco muerto en TODAS las páginas
+     de móvil y tablet. El apilado en pantalla estrecha lo hace `flex-wrap`, que es
+     quien debe hacerlo. Lo vigila `tests/e2e/pie-responsive.spec.ts`. */
+  flex-direction: row;
   flex-wrap: wrap;
   align-items: baseline;
   justify-content: space-between;
@@ -558,7 +568,12 @@ td.num .quote-fail { text-align: right; }
 .app-footer-descargo {
   margin: 0;
   max-width: 62ch;
-  flex: 1 1 320px;
+  /* SPEC-035 V-1: los 320px son un ANCHO MÍNIMO, no una base de reparto. Dicho como
+     `flex-basis` volverían a leerse como altura si alguien reintrodujera un eje en
+     columna; dicho como `min-width` no pueden significar otra cosa. El `min()` evita
+     desbordar en las pantallas más estrechas, donde 320px ya no caben. */
+  flex: 1 1 auto;
+  min-width: min(320px, 100%);
 }
 .app-footer-descargo a {
   color: var(--fg);
