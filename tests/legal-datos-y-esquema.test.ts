@@ -34,7 +34,10 @@ const TABLA_DE_CUENTA = 'users';
 
 /** Toda tabla del esquema, con su nombre real de Postgres y sus columnas. */
 function tablasDelEsquema(): Array<{ nombre: string; columnas: string[] }> {
-  return Object.values(schema)
+  // `as unknown[]` para poder estrechar con `instanceof`: los valores del módulo
+  // llegan con su tipo exacto (`PgTableWithColumns<{name: "users"…}>`), y un
+  // predicado hacia el `PgTable` genérico no es asignable a cada uno de ellos.
+  return (Object.values(schema) as unknown[])
     .filter((v): v is PgTable => v instanceof PgTable)
     .map((t) => {
       const cfg = getTableConfig(t);

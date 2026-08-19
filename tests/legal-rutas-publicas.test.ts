@@ -51,7 +51,21 @@ describe('SPEC-035 CA-2: el matcher del proxy no cambia', () => {
   it('sigue siendo el de siempre — quien decide es el guard, no el matcher', () => {
     const proxy = readFileSync(join(rootDir, 'src', 'proxy.ts'), 'utf8');
     expect(proxy).toContain("matcher: ['/((?!api|_next/static|_next/image|favicon.ico).*)']");
-    // Ni una excepción de `/legal` colada en el matcher: ahí no se decide nada.
-    expect(proxy).not.toContain('legal');
+  });
+
+  it('ninguna ruta concreta se cuela como excepción DENTRO del matcher', () => {
+    // La propiedad es "el matcher no conoce rutas de producto", no "el fichero no
+    // menciona /legal": los comentarios del proxy explican por qué la decisión vive
+    // en el guard, y eso es justamente lo que se quiere que siga escrito ahí. Se
+    // mira, por tanto, el literal del matcher y no el fichero entero.
+    const proxy = readFileSync(join(rootDir, 'src', 'proxy.ts'), 'utf8');
+    const literal = proxy.match(/matcher:\s*\[([\s\S]*?)\]/);
+    expect(literal, 'no se encuentra el matcher en src/proxy.ts').not.toBeNull();
+
+    for (const ruta of ['legal', 'login', 'register', 'forgot-password', 'reset-password']) {
+      expect(literal![1], `"${ruta}" no se decide en el matcher, se decide en el guard`).not.toContain(
+        ruta,
+      );
+    }
   });
 });
