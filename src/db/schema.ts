@@ -1,22 +1,51 @@
-import { pgTable, uuid, text, timestamp, numeric, date, unique, index } from 'drizzle-orm/pg-core';
+import { sql } from 'drizzle-orm';
+import { pgTable, uuid, text, timestamp, numeric, date, unique, index, check } from 'drizzle-orm/pg-core';
+import { ROLES, DEFAULT_ROLE, type Role } from '../lib/auth/sections';
 
 /**
  * `users` — identidad mínima y ancla de propiedad (SPEC-001).
  * Toda entidad de dominio futura (posición, acción vigilada, zona, aviso)
  * llevará un `userId` -> users.id para el aislamiento (RN-01, ADR-001).
  */
-export const users = pgTable('users', {
-  id: uuid('id').defaultRandom().primaryKey(),
-  email: text('email').notNull().unique(), // RN-02: email único
-  passwordHash: text('password_hash').notNull(),
-  // ÉPOCA DE CREDENCIAL (ADR-016 pto. 1): marca de la última vez que cambió la
-  // contraseña. El JWT la estampa al hacer login y la frontera Node la revalida:
-  // si no coinciden, la sesión ya no autentica (invalidación de sesiones previas).
-  passwordChangedAt: timestamp('password_changed_at', { withTimezone: true })
-    .notNull()
-    .defaultNow(),
-  createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
-});
+export const users = pgTable(
+  'users',
+  {
+    id: uuid('id').defaultRandom().primaryKey(),
+    email: text('email').notNull().unique(), // RN-02: email único
+    passwordHash: text('password_hash').notNull(),
+    // ÉPOCA DE CREDENCIAL (ADR-016 pto. 1): marca de la última vez que cambió la
+    // contraseña. El JWT la estampa al hacer login y la frontera Node la revalida:
+    // si no coinciden, la sesión ya no autentica (invalidación de sesiones previas).
+    passwordChangedAt: timestamp('password_changed_at', { withTimezone: true })
+      .notNull()
+      .defaultNow(),
+    // ROL DE CUENTA (SPEC-034, ADR-021 pto. 1): qué secciones de LO SUYO se le
+    // enseñan a esta persona. No es un permiso sobre datos ajenos —eso es RN-01 y
+    // no depende del rol (ADR-021 pto. 9)—, ni viaja en el JWT (pto. 2): se lee en
+    // la frontera de sesión de Node, en la MISMA consulta que ya lee la época, de
+    // modo que degradar o promover surte efecto en el clic siguiente (pto. 4).
+    //
+    // `text` + CHECK y no un enum de Postgres: `ALTER TYPE ... ADD VALUE` es
+    // incómodo de revertir y RI-01 empuja a lo aditivo. El dominio se comprueba
+    // dos veces — aquí en la base y arriba como unión de tipos (`Role`).
+    //
+    // El default es 'tester': toda cuenta nueva nace así. Las que ya existían
+    // quedaron 'admin' por el backfill de la migración (pto. 8), que es lo que
+    // hace el despliegue autocontenido; su contrapartida es F-SPEC-034-5.
+    role: text('role').$type<Role>().notNull().default(DEFAULT_ROLE),
+    createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
+  },
+  (t) => ({
+    // El dominio se escribe UNA vez, en `ROLES` (src/lib/auth/sections.ts), y de ahí
+    // sale tanto la unión de tipos de TypeScript como este CHECK: añadir un rol en un
+    // sitio y olvidarlo en el otro deja de ser posible. `sql.raw` porque esto es DDL:
+    // un parámetro ligado no vale dentro de una restricción.
+    roleDomain: check(
+      'users_role_check',
+      sql.raw(`"${t.role.name}" in (${ROLES.map((r) => `'${r}'`).join(', ')})`),
+    ),
+  }),
+);
 
 export type User = typeof users.$inferSelect;
 export type NewUser = typeof users.$inferInsert;

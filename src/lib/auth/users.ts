@@ -1,6 +1,7 @@
 import { eq } from 'drizzle-orm';
 import type { PgDatabase } from 'drizzle-orm/pg-core';
 import { users, type User } from '@/db/schema';
+import type { Role } from './sections';
 import { hashPassword, verifyPassword } from './passwords';
 import { EmailAlreadyRegisteredError, InvalidCredentialsError } from './errors';
 
@@ -12,7 +13,14 @@ type Db = PgDatabase<any, any, any>;
  * `passwordChangedAt` es la época de credencial (ADR-016 pto. 1) — no es material
  * de la credencial, solo la marca temporal que el JWT estampa al hacer login.
  */
-export type PublicUser = { id: string; email: string; passwordChangedAt: Date; createdAt: Date };
+export type PublicUser = {
+  id: string;
+  email: string;
+  passwordChangedAt: Date;
+  /** Rol de cuenta (SPEC-034, ADR-021). Toda cuenta nueva nace `tester`. */
+  role: Role;
+  createdAt: Date;
+};
 
 function normalizeEmail(email: string): string {
   return email.trim().toLowerCase();
@@ -23,6 +31,7 @@ function toPublic(u: User): PublicUser {
     id: u.id,
     email: u.email,
     passwordChangedAt: u.passwordChangedAt,
+    role: u.role,
     createdAt: u.createdAt,
   };
 }

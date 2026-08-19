@@ -1,7 +1,7 @@
 <!-- GENERADO por tremen-sdd (scripts/tablero.mjs). NO EDITAR A MANO. -->
 # Tablero
 
-Actualizado: 2026-08-18
+Actualizado: 2026-08-19
 
 ## EPIC-001 — vigilancia-de-zonas-de-compra-venta-con-cartera-y-avisos (hecho)
 
@@ -31,6 +31,17 @@ Actualizado: 2026-08-18
 |---|---|---|
 | SPEC-023 — recuperacion-de-contrasena-por-email | hecho | 2026-08-12 (sdd-verificador) |
 
+## EPIC-004 — puesta-en-publico-para-testers-externos (aprobada)
+
+| Spec | Estado | Último cambio |
+|---|---|---|
+| SPEC-034 — rol-por-usuario-y-visibilidad-de-seccion | hecho | 2026-08-19 (sdd-verificador) |
+| SPEC-035 — paginas-legales-titular-y-descargo-de-no-asesoramiento | aprobada | 2026-08-19 (humano (Alberto Fojo)) |
+| SPEC-036 — borrar-mi-cuenta | aprobada | 2026-08-19 (humano (Alberto Fojo)) |
+| SPEC-037 — el-grifo-del-registro-y-la-pantalla-de-operacion | aprobada | 2026-08-19 (humano (Alberto Fojo)) |
+| SPEC-038 — la-version-visible-dentro-de-la-app | aprobada | 2026-08-19 (humano (Alberto Fojo)) |
+| SPEC-039 — ayuda-de-vigiladas-estados-vacios-que-guian-y-canal-de-feedback | aprobada | 2026-08-19 (humano (Alberto Fojo)) |
+
 ## EPIC-FIX (aprobada)
 
 | Spec | Estado | Último cambio |
@@ -43,6 +54,7 @@ Actualizado: 2026-08-18
 | SPEC-025 — cartera-vender-dividir-y-cobrar-dividendo-sobre-la-posicion-del-mercado-correcto | hecho | 2026-08-17 (sdd-verificador) |
 | SPEC-029 — el-buscador-ofrece-cualquier-instrumento-del-mercado-soportado-dice-de-que-tipo-es-y-por-que-descarta | hecho | 2026-08-18 (sdd-verificador) |
 | SPEC-030 — coma-decimal-en-el-alta-manual-y-errores-que-distinguen-el-dato-del-fallo | hecho | 2026-08-18 (sdd-verificador) |
+| SPEC-033 — la-puerta-post-deploy-deja-de-perder-la-carrera-con-commit-unknown-es-transitorio | en-revision | 2026-08-19 (sdd-implementador) |
 
 ## EPIC-INFRA (aprobada)
 
@@ -52,6 +64,7 @@ Actualizado: 2026-08-18
 | SPEC-010 — bump-de-drizzle-orm-por-cve-de-sql-injection | hecho | 2026-07-14 (sdd-verificador) |
 | SPEC-026 — una-sola-definicion-del-esquema-los-tests-corren-contra-las-migraciones-de-produccion | hecho | 2026-08-17 (sdd-verificador) |
 | SPEC-027 — ci-en-cada-pr-la-suite-deja-de-depender-de-que-alguien-se-acuerde | hecho | 2026-08-18 (sdd-verificador) |
+| SPEC-028 — despliegue-automatico-desde-main-conexion-git-puerta-post-deploy-y-runbook-reescrito | en-revision | 2026-08-18 (sdd-implementador) |
 | SPEC-031 — el-despliegue-dice-de-que-commit-viene-api-version-y-comprobacion-de-vida | hecho | 2026-08-18 (sdd-verificador) |
 | SPEC-032 — las-guardias-de-migracion-nada-migra-sin-permiso-y-ningun-drop-pasa-mudo | hecho | 2026-08-18 (sdd-verificador) |
 
@@ -78,7 +91,13 @@ Actualizado: 2026-08-18
 | ADR-018 | aprobada | despliegue-continuo-desde-main-verificacion-en-pr-deploy-automatico-al-mergear-y-comprobacion-de-vida | 2026-08-17 (humano (Alberto Fojo)) |
 | ADR-019 | aprobada | el-esquema-de-test-es-el-de-produccion-una-sola-fuente-aplicada-desde-las-migraciones | 2026-08-17 (Alberto Fojo) |
 | ADR-020 | aprobada | el-buscador-no-filtra-por-tipo-de-instrumento-y-ningun-descarte-es-mudo | 2026-08-18 (humano (Alberto Fojo)) |
+| ADR-021 | aprobada | el-rol-de-usuario-vive-en-su-fila-y-se-revalida-en-cada-peticion-no-viaja-en-el-jwt | 2026-08-19 (humano (Alberto Fojo)) |
+| ADR-022 | aprobada | borrado-de-cuenta-cae-todo-lo-propio-se-conserva-lo-compartido-y-no-se-anonimiza-nada | 2026-08-19 (humano (Alberto Fojo)) |
+| ADR-023 | aprobada | el-grifo-del-registro-es-estado-de-aplicacion-y-el-ciclo-diario-deja-constancia-de-cada-ejecucion | 2026-08-19 (humano (Alberto Fojo)) |
+| ADR-024 | aprobada | la-version-de-producto-es-semver-en-package-json-y-viaja-en-el-contrato-de-api-version-enmienda-d-6-de-adr-018 | 2026-08-19 (humano (Alberto Fojo)) |
 
 ## Resumen
 
-- hecho: 27
+- hecho: 28
+- aprobada: 5
+- en-revision: 2

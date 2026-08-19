@@ -13,6 +13,11 @@ export default tseslint.config(
     ignores: [
       'node_modules/**',
       '.next/**',
+      // Worktrees locales de sesiones paralelas: están en .gitignore y traen su
+      // propio `.next/` compilado. Sin esto, `npm run lint` intenta analizar miles
+      // de ficheros de build ajenos y falla por ruido en cualquier máquina que los
+      // tenga — en CI, que clona limpio, no existían y por eso pasaba desapercibido.
+      '.claude/**',
       'drizzle/**',
       'next-env.d.ts',
       'design/**',

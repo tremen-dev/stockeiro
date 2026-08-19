@@ -340,12 +340,12 @@ describe('SPEC-028 CA-9: nada más queda cableado', () => {
     );
   });
 
-  it('9.3 — drizzle/ no gana ningún .sql', () => {
-    expect(
-      readdirSync(join(rootDir, 'drizzle'))
-        .filter((f) => f.endsWith('.sql'))
-        .sort(),
-    ).toEqual([
+  it('9.3 — drizzle/ no gana ningún .sql en ESTA entrega', () => {
+    // Las nueve que había al cerrar SPEC-028, en su sitio y en su orden. Lo que CA-9.3
+    // afirma es que esta spec no migró nada, no que nadie pueda migrar después: la
+    // ventana la fija el rango de commits de abajo, no un recuento eterno. Enmienda de
+    // SPEC-034, que trae `0009_user_role` (aditiva, RI-01).
+    const previas = [
       '0000_real_tusk.sql',
       '0001_symbol_market_identity.sql',
       '0002_symbol_aliases.sql',
@@ -355,7 +355,11 @@ describe('SPEC-028 CA-9: nada más queda cableado', () => {
       '0006_chemical_chronomancer.sql',
       '0007_tearful_roughhouse.sql',
       '0008_puzzling_eddie_brock.sql',
-    ]);
+    ];
+    const sql = readdirSync(join(rootDir, 'drizzle'))
+      .filter((f) => f.endsWith('.sql'))
+      .sort();
+    expect(sql.slice(0, previas.length)).toEqual(previas);
   });
 });
 
@@ -375,11 +379,25 @@ describe('SPEC-028 CA-9: nada más queda cableado', () => {
  */
 const BASE = 'de3a6ee';
 
+/**
+ * Hasta dónde llega ESTA entrega: el merge de SPEC-028 en `main` (PR #35).
+ *
+ * Antes el rango terminaba en `HEAD`, y eso convertía un CA sobre el diff de una PR
+ * en una condena perpetua: cualquier spec posterior que tocara `src/` ponía en rojo
+ * el CA-9 de SPEC-028 sin que SPEC-028 hubiera cambiado nada. La ventana correcta es
+ * la de su propia entrega, y así la comprobación sigue diciendo exactamente lo que se
+ * verificó — ni más ni menos. Enmienda de SPEC-034, la primera que tocó `src/`
+ * después. Si alguno de los dos sha no está en el clon, el bloque se salta igual.
+ */
+const HASTA = '0d389c8';
+
 function baseDisponible(): boolean {
   try {
-    execFileSync('git', ['-C', rootDir, 'rev-parse', '--verify', `${BASE}^{commit}`], {
-      stdio: 'ignore',
-    });
+    for (const rev of [BASE, HASTA]) {
+      execFileSync('git', ['-C', rootDir, 'rev-parse', '--verify', `${rev}^{commit}`], {
+        stdio: 'ignore',
+      });
+    }
     return true;
   } catch {
     return false;
@@ -387,7 +405,7 @@ function baseDisponible(): boolean {
 }
 
 function ficherosTocados(): string[] {
-  return execFileSync('git', ['-C', rootDir, 'diff', '--name-only', `${BASE}...HEAD`], {
+  return execFileSync('git', ['-C', rootDir, 'diff', '--name-only', `${BASE}...${HASTA}`], {
     encoding: 'utf8',
   })
     .split('\n')

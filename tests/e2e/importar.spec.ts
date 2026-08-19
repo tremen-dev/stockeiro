@@ -1,5 +1,6 @@
 import { test, expect, type Page } from '@playwright/test';
 import * as XLSX from 'xlsx';
+import { ponerRol } from './roles';
 
 // UI del import desde bróker (SPEC-014). Sube un extracto .xls SINTÉTICO (sin datos
 // personales), resuelve identidad (auto + manual + fusión), previsualiza y confirma;
@@ -44,6 +45,9 @@ async function registrarYEntrar(page: Page, email: string) {
   await page.fill('input[name="password"]', PWD);
   await page.click('button[type="submit"]');
   await page.waitForURL('**/dashboard');
+  // SPEC-034 (F-SPEC-034-4): el import vive dentro de Cartera y un `tester` no la ve.
+  // Se declara el rol que esta prueba necesita, en vez de relajar el default.
+  await ponerRol(email, 'completo');
 }
 
 async function subir(page: Page, buffer: Buffer) {

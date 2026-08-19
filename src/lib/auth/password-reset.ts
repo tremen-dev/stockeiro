@@ -193,12 +193,3 @@ export async function resetPasswordWithToken(
   return { ok: true, userId };
 }
 
-/** Época de credencial actual del usuario (ADR-016 pto. 3). null si no existe. */
-export async function getCredentialEpoch(db: Db, userId: string): Promise<Date | null> {
-  const [row] = await db
-    .select({ epoch: users.passwordChangedAt })
-    .from(users)
-    .where(eq(users.id, userId))
-    .limit(1);
-  return row?.epoch ?? null;
-}

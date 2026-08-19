@@ -198,6 +198,15 @@ confirmar antes de contar con ella — §Preguntas del gate).
 
 ### D-6. El despliegue publica su identidad, y se comprueba desde fuera
 
+> **D-6 enmendado por ADR-024 (2026-08-19)**: el contrato de `/api/version` pasa de tres
+> claves a cuatro — se le añade `version` (semver de producto, con fuente en
+> `package.json`). El resto de D-6 queda **intacto**: sigue respondiendo con la BD caída,
+> sigue sin exponer dato personal, el valor sigue congelado con el artefacto y la sentinela
+> de lo desconocido sigue siendo la alarma. Ningún otro punto de este ADR (D-1 a D-5, D-7)
+> queda afectado.
+> *La decisión original no se reescribe: esta nota solo evita que alguien lea D-6 aislado y
+> actúe sobre un contrato caduco.*
+
 Se añade un endpoint público `/api/version` que responde, como mínimo, **el sha del commit
 del que se construyó el artefacto**, el entorno y el instante del build. Restricciones de
 diseño (mecanismo libre, propiedades obligatorias):

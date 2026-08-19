@@ -1,5 +1,6 @@
 import { test, expect, type Browser, type Page } from '@playwright/test';
 import { existsSync, readFileSync } from 'node:fs';
+import { ponerRol } from './roles';
 
 const SHOTS = '_qa/SPEC-023';
 const OUTBOX = './.e2e-outbox.jsonl'; // mismo path que tests/e2e/server.mjs
@@ -209,6 +210,9 @@ test('CA-13: la sesión abierta en otro navegador deja de valer tras el reset', 
   // Navegador A: el usuario (o el intruso) tiene sesión abierta.
   const a = await nuevaSesion(browser);
   await registrar(a.page, email);
+  // SPEC-034 (F-SPEC-034-4): esta prueba usa /cartera como "ruta con datos"; el rol se
+  // declara aquí para que siga midiendo la ÉPOCA DE CREDENCIAL y no la visibilidad.
+  await ponerRol(email, 'completo');
   await a.page.goto('/cartera');
   await expect(a.page).toHaveURL(/\/cartera$/);
   await a.page.screenshot({ path: `${SHOTS}/ca13-a-antes-con-sesion.png`, fullPage: true });

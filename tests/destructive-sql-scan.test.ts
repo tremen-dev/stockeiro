@@ -25,7 +25,7 @@ import {
  *     de falsos positivos es parte del contrato: si un día alguien "mejora" el
  *     detector para que marque `ADD COLUMN`, se cae aquí el mismo día.
  *   - **El `drizzle/` real del repositorio** (CA-8), que fija la calibración
- *     medida: exactamente `0001` y `0007` de nueve.
+ *     medida: exactamente `0001` y `0007` de diez.
  *   - **Subprocesos** contra directorios sintéticos en un temporal, porque el
  *     código de salida es el contrato y solo existe cuando hay proceso.
  *
@@ -243,11 +243,12 @@ describe('SPEC-032 CA-7: y no marca folklore', () => {
 });
 
 describe('SPEC-032 CA-8: calibración medida sobre el árbol de hoy', () => {
-  it('el drizzle/ real tiene nueve migraciones en el journal', () => {
-    expect(escanear(drizzleDir).ficheros).toHaveLength(9);
+  it('el drizzle/ real tiene diez migraciones en el journal', () => {
+    // Nueve hasta SPEC-032; la décima es `0009_user_role` (SPEC-034), aditiva.
+    expect(escanear(drizzleDir).ficheros).toHaveLength(10);
   });
 
-  it('marca exactamente 0001 y 0007, y ninguna de las otras siete', () => {
+  it('marca exactamente 0001 y 0007, y ninguna de las otras ocho', () => {
     const marcados = escanear(drizzleDir)
       .ficheros.filter((f) => f.hallazgos.length > 0)
       .map((f) => f.tag);
