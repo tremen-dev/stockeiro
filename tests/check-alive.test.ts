@@ -259,13 +259,34 @@ describe('SPEC-031 CA-10: rojo cuando no llega, con qué se necesita para diagno
 });
 
 describe('SPEC-031 CA-11: `unknown` tiene su propio rojo', () => {
-  it('commit `unknown` con --commit -> 2, y el mensaje NO dice "no coincide"', async () => {
+  /**
+   * Retitulado por **SPEC-033** (con su permiso explícito, escrito en §Fuera de
+   * alcance y acotado por CA-8: este caso y ningún otro de este fichero).
+   *
+   * La regla de CA-11 sobrevive —`unknown` tiene su propio rojo, el **2**, y su
+   * propio mensaje— pero **cuándo** se emite depende ahora del modo: con
+   * `--commit` el script espera a un despliegue que viene, así que `unknown` es
+   * transitorio y el 2 solo llega **al agotar el plazo**. El título anterior
+   * decía "-> 2" a secas y el caso seguiría pasando sin tocarlo, sólo que un par
+   * de segundos más tarde: un test que pasa por una razón distinta de la que
+   * anuncia su título es peor que un test roto. La aserción de tiempo es lo que
+   * lo ata a la regla que de verdad rige.
+   *
+   * El modo *smoke*, aquí abajo, no cambia ni una palabra (SPEC-033 CA-5).
+   */
+  it('commit `unknown` con --commit -> 2 al AGOTAR EL PLAZO, y el mensaje NO dice "no coincide"', async () => {
     const toy = await toyServer(identityServer('unknown'));
     try {
+      const inicio = Date.now();
       const { code, stderr } = await run(['--url', toy.origin, '--commit', SHA, '--timeout', '2']);
+      const transcurrido = Date.now() - inicio;
+
       expect(code).toBe(2);
       expect(stderr).toMatch(/no sabe de qué commit viene/i);
       expect(stderr).not.toMatch(/no coincide/i);
+      // El 2 llega al final del plazo, no al primer sondeo (SPEC-033 CA-2).
+      expect(transcurrido).toBeGreaterThanOrEqual(1800);
+      expect(transcurrido).toBeLessThan(9000);
     } finally {
       await toy.close();
     }
