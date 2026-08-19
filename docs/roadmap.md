@@ -7,7 +7,8 @@ tipo: roadmap
 > El estado fino por spec vive en el tablero; aquí vive la INTENCIÓN.
 
 ## Ahora (en curso)
-- **EPIC-004 — Puesta en público para testers externos** (estado: borrador).
+- **EPIC-004 — Puesta en público para testers externos** (estado: aprobada;
+  gate humano el 2026-08-19, Alberto Fojo).
   **Por qué manda ahora.** No entrega capacidad nueva de vigilancia: entrega la
   posibilidad de **enseñársela a alguien**. Y es lo único que queda entre el producto
   y su primer usuario real. El criterio de corte que exigía no comprometer alcance
