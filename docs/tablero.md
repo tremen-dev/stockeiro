@@ -36,7 +36,7 @@ Actualizado: 2026-08-19
 | Spec | Estado | Último cambio |
 |---|---|---|
 | SPEC-034 — rol-por-usuario-y-visibilidad-de-seccion | hecho | 2026-08-19 (sdd-verificador) |
-| SPEC-035 — paginas-legales-titular-y-descargo-de-no-asesoramiento | aprobada | 2026-08-19 (humano (Alberto Fojo)) |
+| SPEC-035 — paginas-legales-titular-y-descargo-de-no-asesoramiento | hecho | 2026-08-19 (sdd-verificador) |
 | SPEC-036 — borrar-mi-cuenta | aprobada | 2026-08-19 (humano (Alberto Fojo)) |
 | SPEC-037 — el-grifo-del-registro-y-la-pantalla-de-operacion | aprobada | 2026-08-19 (humano (Alberto Fojo)) |
 | SPEC-038 — la-version-visible-dentro-de-la-app | aprobada | 2026-08-19 (humano (Alberto Fojo)) |
@@ -98,6 +98,6 @@ Actualizado: 2026-08-19
 
 ## Resumen
 
-- hecho: 28
-- aprobada: 5
+- hecho: 29
+- aprobada: 4
 - en-revision: 2
