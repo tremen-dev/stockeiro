@@ -94,10 +94,18 @@ jobs:
       # Sin tolerancia al fallo, sin `|| true` y sin `if:` (CA-7.2): un codigo de
       # salida distinto de 0 tiene que pintar el check de rojo. Una puerta que
       # nunca se pone roja es peor que no tener puerta, porque ademas tranquiliza.
-      # Los codigos
-      # de salida son el contrato de SPEC-031: 0 llego · 1 no llego en el plazo ·
-      # 2 hay un despliegue que no viene de la integracion Git (alguien desplego
-      # por CLI) · 3 el origen no responde el contrato. La tabla de reaccion vive
-      # en docs/despliegue.md §12.
+      #
+      # Los codigos de salida son el contrato de SPEC-031, corregido por SPEC-033:
+      #   0  llego
+      #   1  no llego en el plazo
+      #   2  se espero el plazo ENTERO y lo unico vivo NO tiene metadatos de git
+      #      (commit=unknown). Dos causas, y el builtAt que imprime el script las
+      #      separa: el build nuevo no llego y sigue vivo el despliegue anterior,
+      #      o alguien desplego por CLI. Hasta el 2026-08-19 este 2 salia al
+      #      PRIMER sondeo, en 1 s, y perdia la carrera contra el build de Vercel
+      #      —el merge 0d389c8 se desplego bien y la puerta salio roja igual—,
+      #      asi que el --timeout de aqui abajo no se usaba nunca.
+      #   3  el origen no responde el contrato
+      # La tabla de reaccion vive en docs/despliegue.md §12.3.
       - name: Wait for the deployment to go live
         run: node scripts/check-alive.mjs --url https://stockeiro.tremen.dev --commit ${{ github.sha }} --timeout 900 --interval 10

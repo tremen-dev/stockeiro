@@ -10,7 +10,9 @@
  *   node scripts/check-alive.mjs --url <origen> [--commit <sha>] [--timeout <s>] [--interval <s>]
  *
  *   --url <origen>      OBLIGATORIO. Origen de la app (p. ej. https://stockeiro.tremen.dev).
- *   --commit <sha>      Sha que el despliegue debe contener. Sin él, modo *smoke*:
+ *   --commit <sha>      Sha que el despliegue debe contener. Es lo que separa los dos
+ *                       modos (SPEC-033 D-A): con él se ESPERA a un despliegue que
+ *                       viene; sin él, modo *smoke* — se pregunta por el que hay, y
  *                       basta con que la identidad sea legible y no sea `unknown`.
  *   --timeout <s>       Segundos que se espera a que llegue el sha. Por defecto 120.
  *   --interval <s>      Segundos entre intentos. Por defecto 5.
@@ -24,6 +26,9 @@
  *   1  No coincide, o se agotó el plazo esperándolo.
  *   2  El despliegue responde `unknown`: NO sabe de qué commit viene. No es un
  *      desacuerdo de shas — es que ahí no hay metadatos de git que comparar.
+ *      En modo *smoke* es TERMINAL e inmediato. Con `--commit` es TRANSITORIO
+ *      —significa "todavía no ha llegado el mío", que es la ventana entre el
+ *      push y la publicación— y el 2 solo llega al AGOTAR el plazo (SPEC-033).
  *   3  Uso incorrecto, o respuesta ininteligible (no es JSON, o no es el contrato).
  *
  * PROPIEDADES QUE HAY QUE CONSERVAR (las prueba tests/check-alive.test.ts):
@@ -46,7 +51,8 @@ const USO = `check-alive.mjs — comprueba qué código está vivo en un desplie
   node scripts/check-alive.mjs --url <origen> [--commit <sha>] [--timeout <s>] [--interval <s>]
 
   --url <origen>    OBLIGATORIO. Origen de la app; se consulta <origen>/api/version.
-  --commit <sha>    Sha que el despliegue debe contener. Sin él: modo smoke.
+  --commit <sha>    Sha que el despliegue debe contener. Con él se espera a que
+                    llegue; sin él: modo smoke, se pregunta por lo que hay.
   --timeout <s>     Segundos de espera total. Por defecto 120.
   --interval <s>    Segundos entre intentos. Por defecto 5.
   --help            Esto.
@@ -54,7 +60,9 @@ const USO = `check-alive.mjs — comprueba qué código está vivo en un desplie
 Códigos de salida:
   0  coincide (o, sin --commit, la identidad es legible y no es ${UNKNOWN})
   1  no coincide, o se agotó el plazo
-  2  el despliegue responde ${UNKNOWN}: no sabe de qué commit viene
+  2  el despliegue responde ${UNKNOWN}: no sabe de qué commit viene. Terminal e
+     inmediato en modo smoke; con --commit es transitorio, y este 2 solo llega al
+     agotar el plazo (SPEC-033)
   3  uso incorrecto o respuesta ininteligible`;
 
 function fallarPorUso(mensaje) {
@@ -160,6 +168,10 @@ async function main() {
 
   let ultimoVisto = null;
   let ultimoMotivo = 'ninguna respuesta';
+  /** La última identidad legible que respondió el origen: decide el veredicto final. */
+  let ultimaIdentidad = null;
+  /** D-C: se avisa UNA vez por ejecución, no una por sondeo. */
+  let avisadoDeLaEspera = false;
 
   for (;;) {
     const restante = Math.max(0, limite - Date.now());
@@ -174,25 +186,44 @@ async function main() {
 
     if (resultado.tipo === 'identidad') {
       const { identidad } = resultado;
+      ultimaIdentidad = identidad;
 
       if (identidad.commit === UNKNOWN) {
-        console.error(
-          `[check-alive] ${endpoint}: el despliegue NO sabe de qué commit viene ` +
-            `(commit=${UNKNOWN}). No es que el sha discrepe: es que ahí no hay ` +
-            'metadatos de git que comparar.\n' +
-            `[check-alive] identidad: ${describir(identidad)}`,
-        );
-        process.exit(SALIDA.DESCONOCIDO);
-      }
+        // Sin --commit la pregunta es "¿este despliegue sabe de dónde viene?", y la
+        // respuesta inmediata es la útil: TERMINAL (SPEC-031 CA-11, ADR-018 D-6).
+        if (esperado === null) {
+          console.error(
+            `[check-alive] ${endpoint}: el despliegue NO sabe de qué commit viene ` +
+              `(commit=${UNKNOWN}). No es que el sha discrepe: es que ahí no hay ` +
+              'metadatos de git que comparar.\n' +
+              `[check-alive] identidad: ${describir(identidad)}`,
+          );
+          process.exit(SALIDA.DESCONOCIDO);
+        }
 
-      if (esperado === null || identidad.commit.trim().toLowerCase() === esperado) {
+        // Con --commit la pregunta es otra —"¿ha llegado YA el mío?"— y `unknown`
+        // significa "todavía no": es la ventana entre el push y la publicación, en la
+        // que el origen sigue sirviendo el despliegue anterior. TRANSITORIO (D-B).
+        if (!avisadoDeLaEspera) {
+          avisadoDeLaEspera = true;
+          console.error(
+            `[check-alive] ${endpoint}: sigo esperando a ${esperado} — lo que hay vivo ` +
+              `responde commit=${UNKNOWN} (builtAt=${identidad.builtAt}), o sea el ` +
+              `despliegue anterior, o uno hecho por CLI. Reintento cada ${interval}s ` +
+              `hasta agotar los ${timeout}s del plazo.`,
+          );
+        }
+
+        ultimoVisto = UNKNOWN;
+        ultimoMotivo = `lo vivo no sabe de qué commit viene (commit=${UNKNOWN})`;
+      } else if (esperado === null || identidad.commit.trim().toLowerCase() === esperado) {
         console.log(`[check-alive] VIVO en ${endpoint}`);
         console.log(`[check-alive] ${describir(identidad)}`);
         process.exit(SALIDA.COINCIDE);
+      } else {
+        ultimoVisto = identidad.commit;
+        ultimoMotivo = `el despliegue lleva ${identidad.commit}`;
       }
-
-      ultimoVisto = identidad.commit;
-      ultimoMotivo = `el despliegue lleva ${identidad.commit}`;
     } else {
       ultimoMotivo = resultado.motivo;
     }
@@ -200,6 +231,29 @@ async function main() {
     const queda = limite - Date.now();
     if (queda <= 0) break;
     await dormir(Math.min(intervalo, queda));
+  }
+
+  // Se agotó el plazo y lo último legible seguía sin metadatos de git. Sigue siendo
+  // un 2 y no un 1: son preguntas distintas y mandan a mirar sitios distintos
+  // (docs/despliegue.md §12.3). Lo que esta rama añade es la INFORMACIÓN para
+  // desempatarlas — el `builtAt` la da, sin que ningún `if` compare el reloj del
+  // runner con el de la máquina de build, que no se hablan (SPEC-033 D-B y D-D).
+  if (ultimaIdentidad !== null && ultimaIdentidad.commit === UNKNOWN) {
+    console.error(
+      `[check-alive] Se agotó el plazo (${timeout}s) esperando a ${endpoint}.\n` +
+        `[check-alive] esperado:       ${esperado}\n` +
+        '[check-alive] lo que hay vivo NO sabe de qué commit viene ' +
+        `(commit=${UNKNOWN}): ahí no hay metadatos de git que comparar, no es un ` +
+        'desacuerdo de shas.\n' +
+        `[check-alive] identidad viva: ${describir(ultimaIdentidad)}\n` +
+        '[check-alive] Dos causas posibles, y el builtAt de arriba es lo que las separa:\n' +
+        '[check-alive]   a) el build nuevo no llegó —falló, o aún no ha terminado— y sigue\n' +
+        '[check-alive]      vivo el despliegue ANTERIOR: builtAt viejo, de antes del merge.\n' +
+        '[check-alive]   b) alguien desplegó por CLI: sube un directorio sin `.git`, así que\n' +
+        `[check-alive]      responde ${UNKNOWN}; builtAt reciente, de dentro de esta espera.\n` +
+        '[check-alive] Mira el build en Vercel y la tabla de docs/despliegue.md §12.3.',
+    );
+    process.exit(SALIDA.DESCONOCIDO);
   }
 
   console.error(

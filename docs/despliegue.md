@@ -555,6 +555,13 @@ node scripts/check-alive.mjs --url <origen> [--commit <sha>] [--timeout <s>] [--
 - Con `--commit` espera a que ese sha aparezca, reintentando cada `--interval` segundos
   (por defecto 5) hasta agotar `--timeout` (por defecto 120): un despliegue tarda en
   propagarse, y un fallo de red no es un veredicto.
+- **La presencia de `--commit` es lo que separa los dos modos**, y con ella cambia lo que
+  significa un `unknown` (SPEC-033). Sin `--commit` la pregunta es *"¿este despliegue sabe
+  de dónde viene?"*: `unknown` la responde, y el **2** sale al instante. Con `--commit` la
+  pregunta es otra —*"¿ha llegado ya el mío?"*— y ahí `unknown` significa **"todavía no"**:
+  se reintenta, y el **2** solo llega **al agotar el plazo**. En cuanto ve el primer
+  `unknown` el script escribe **una** línea diciendo que sigue esperando y con qué `builtAt`,
+  para que una espera larga no se confunda con un cuelgue.
 - No lee **ninguna** variable de entorno y no importa nada fuera de la biblioteca estándar
   de Node: corre con el repositorio clonado y nada instalado.
 
@@ -568,7 +575,7 @@ leyendo un log.
 |---|---|---|
 | **0** | El despliegue lleva el commit esperado (o, sin `--commit`, sabe de dónde viene) | Nada: está vivo |
 | **1** | No coincide, o se agotó el plazo esperándolo | Mirar el sha *último visto* que imprime: dice qué hay vivo ahora |
-| **2** | El despliegue responde `unknown` | **No** es un desacuerdo de shas: ahí no hay metadatos de git. Hoy es lo normal (ver aviso de arriba) |
+| **2** | El despliegue responde `unknown` | **No** es un desacuerdo de shas: ahí no hay metadatos de git. Lo que hay que hacer depende del **modo**. Sin `--commit` (smoke): es **terminal e inmediato**, y con el repositorio conectado (§13) un `unknown` en producción es una **anomalía** —ver el aviso de arriba—, no el estado normal. Con `--commit`: es **transitorio**, el script sigue esperando, y si el 2 llega es porque **se agotó el plazo entero** sin que apareciera nada con metadatos de git (§12.3) |
 | **3** | Uso incorrecto, o respuesta ininteligible | Revisar los argumentos; si el cuerpo no es el contrato, el origen no es esta app |
 
 ---
@@ -757,6 +764,20 @@ El plazo es generoso a sabiendas. ADR-018 midió builds de ~40 s, pero desde ent
 aire. **Una puerta que se pone roja porque el build fue lento enseña a ignorarla, y una puerta
 ignorada no es una puerta.** Si algún día 15 minutos sobran, bajarlo es cambiar un número.
 
+**Y el plazo se usa de verdad — desde el 2026-08-19, y no antes.** Hasta ese día no se usaba
+nunca: la puerta salía **roja en 1 segundo**. GitHub Actions arranca el job en el instante del
+`push`, Vercel tarda del orden de 35 s en construir y publicar, y en esa ventana
+`/api/version` sigue sirviendo el **despliegue anterior** — que si vino de la CLI responde
+`commit: unknown` (§10 y §3.4). `check-alive` trataba ese `unknown` como veredicto **terminal**
+y salía con **2** al primer sondeo, sin llegar a usar `--timeout` ni `--interval`. Le pasó al
+**primer despliegue automático del proyecto**: el merge de la PR #35, sha `0d389c8`, que se
+desplegó **bien** y sacó la puerta en rojo igual; relanzado a mano minutos después, verde.
+Lo corrige **SPEC-033**: con `--commit`, `unknown` pasa a ser **transitorio** y el **2** solo
+llega al agotar el plazo. El precio está asumido y dicho en voz alta: un merge cuyo build falle
+deja el job corriendo los 15 minutos antes de ponerse rojo, en vez de 1 segundo. A cambio, el
+rojo significa algo — y el script no se queda mudo: en cuanto ve el primer `unknown` escribe
+una línea diciendo que sigue esperando y con qué `builtAt`.
+
 ### 12.3 Tabla de reacción: qué hacer con cada código
 
 Son los cuatro códigos de salida de `check-alive` (§10), leídos **en este contexto**:
@@ -765,7 +786,7 @@ Son los cuatro códigos de salida de `check-alive` (§10), leídos **en este con
 |---|---|---|
 | **0** | El sha mergeado está vivo en producción | Nada. Es la evidencia que **RI-02** pide para pasar la spec a `hecho` |
 | **1** | No llegó en los 15 minutos | El build de Vercel: ¿falló, y en qué eslabón? La **guardia** (`ALLOW_MIGRATE`), la **migración** (`db:migrate` contra Neon) o el **build** (`next build`, `cdn.sheetjs.com`). El mensaje del script imprime además el **último sha visto**: dice qué hay vivo ahora |
-| **2** | Hay un despliegue vivo que **no viene de la integración Git** | Alguien desplegó por **CLI** (§3.4): sube sin `.git`, así que `/api/version` responde `unknown`. Es la firma de un despliegue fuera de proceso — averigua quién y por qué antes de volver a mergear |
+| **2** | Se esperó el plazo **entero** y lo único vivo **no viene de la integración Git**: responde `unknown` | **Dos causas posibles, y el `builtAt` que imprime el script es lo que las separa.** (a) *El build nuevo no llegó* —falló o seguía en curso— y sigue vivo el despliegue **anterior**: `builtAt` **viejo**, de antes del merge → mira el build de Vercel, como en el código **1**. (b) *Alguien desplegó por **CLI*** (§3.4): sube sin `.git`, así que `/api/version` responde `unknown`; `builtAt` **reciente**, de dentro de la espera → es la firma de un despliegue fuera de proceso: averigua quién y por qué antes de volver a mergear. El desempate lo haces tú con el dato delante: no lo automatiza ningún `if`, porque exigiría comparar el reloj del runner con el de la máquina de build (SPEC-033 D-D) |
 | **3** | El origen no responde el contrato | El **dominio** y el **DNS**: si el cuerpo no es el JSON de tres claves, lo que hay al otro lado no es esta app (alias mal apuntado, CNAME de Cloudflare, proxy) |
 
 ### 12.4 Lo que la puerta NO hace: no revierte nada
