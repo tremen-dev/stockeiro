@@ -1,5 +1,6 @@
 import { test, expect, type Page } from '@playwright/test';
 import postgres from 'postgres';
+import { ponerRol } from './roles';
 
 // Flujo real ingesta -> cartera (SPEC-004, CA-4/CA-5). No se llama a Twelve Data:
 // se SIEMBRA la cotización en la tabla `quotes` (lo que el refresco persistiría) y
@@ -14,6 +15,9 @@ async function registrarYEntrar(page: Page, email: string) {
   await page.fill('input[name="password"]', PWD);
   await page.click('button[type="submit"]');
   await page.waitForURL('**/dashboard');
+  // SPEC-034 (F-SPEC-034-4): toda cuenta nueva nace `tester` y un tester NO ve Cartera.
+  // Esta prueba la ejercita, así que DECLARA el rol que necesita en vez de heredarlo.
+  await ponerRol(email, 'completo');
 }
 
 /** Simula la ingesta: upsert de la última cotización del ticker (como refreshQuotes). */

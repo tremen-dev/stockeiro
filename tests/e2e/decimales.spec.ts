@@ -1,5 +1,6 @@
 import { test, expect, type Page } from '@playwright/test';
 import postgres from 'postgres';
+import { ponerRol } from './roles';
 
 /**
  * SPEC-030 CA-16/CA-17 — el usuario escribe la coma decimal en el navegador y la app
@@ -16,6 +17,9 @@ async function registrarYEntrar(page: Page, email: string) {
   await page.fill('input[name="password"]', PWD);
   await page.click('button[type="submit"]');
   await page.waitForURL('**/dashboard');
+  // SPEC-034 (F-SPEC-034-4): toda cuenta nueva nace `tester` y un tester NO ve Cartera.
+  // Esta prueba la ejercita, así que DECLARA el rol que necesita en vez de heredarlo.
+  await ponerRol(email, 'completo');
 }
 
 async function withSql<T>(fn: (sql: ReturnType<typeof postgres>) => Promise<T>): Promise<T> {

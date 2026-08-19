@@ -1,4 +1,5 @@
 import { test, expect, type Page } from '@playwright/test';
+import { ponerRol } from './roles';
 
 /**
  * SPEC-029 — el buscador ofrece cualquier instrumento del mercado soportado, dice de
@@ -141,6 +142,8 @@ test('SPEC-029 CA-14: dos vigiladas del mismo ticker en mercados distintos dejan
 
 test('SPEC-029 CA-18: el mismo buscador en /cartera no regresa', async ({ page }) => {
   await registrarYEntrar(page, 'spec029-cartera@example.com');
+  // SPEC-034 (F-SPEC-034-4): este —y solo este— test de SPEC-029 entra en Cartera.
+  await ponerRol('spec029-cartera@example.com', 'completo');
   await page.goto('/cartera');
 
   const form = page.locator('form', { hasText: 'Registrar compra' });
