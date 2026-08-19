@@ -184,7 +184,10 @@ dice en voz alta en vez de disimularlo (`data-testid="ciclo-residual"`).
 
 Nuevos, de la implementación:
 
-- **F-SPEC-037-7 (documental, para sdd-arquitecto — ADR-025 pto. 1).** La §Entidades pide
+- **F-SPEC-037-7 (documental — CERRADO, ya no espera a nadie).** Lo escribió el arquitecto
+  en `9de6325` y el verificador comprobó que las cuatro filas dicen la verdad respecto al
+  código (**F-SPEC-037-15**). Se deja el texto original debajo para que se lea por qué
+  estuvo abierto, pero **no hay nada pendiente**. Enunciado original: La §Entidades pide
   añadir a `docs/fundacion/dominio.md` los términos **Grifo del registro**, **Cupo**,
   **Operador** y **Ejecución del ciclo**. **No están escritos** y este rol no los escribe:
   ADR-025 (aprobado el 2026-08-19, posterior a la aprobación de esta spec) da la pluma del
@@ -241,6 +244,29 @@ Del verificador (**ninguno bloquea publicar ni el GREEN**):
   glosario —*Grifo del registro*, *Cupo*, *Operador*, *Ejecución del ciclo*— **ya existen** en
   `docs/fundacion/dominio.md` (las escribió el arquitecto en `9de6325`), y este rol ha
   verificado que **lo que dicen es cierto** respecto al código. No queda nada pendiente ahí.
+
+Cierre de los tres residuales de calidad de test (sdd-implementador, después del GREEN —
+**solo `tests/`; no se ha tocado `src/`, ni la spec, ni su estado**):
+
+- **F-SPEC-037-12 — CERRADO, y el arreglo propuesto NO servía.** Medido: el bucle generaba
+  5.000 pares y la base guardaba **500** filas. `simbolos[i % 10]` **tampoco lo arregla**:
+  `i % 10` está determinado por `i % 500` (10 divide a 500), así que la pareja sigue siendo
+  función de un solo índice y colapsa otra vez a 500 — comprobado. Ahora las vigiladas se
+  generan con dos bucles anidados (500 cuentas × 10 símbolos, desplazando el símbolo con la
+  vuelta), lo que da **5.000 pares distintos** y además reparte las filas sobre los 500
+  símbolos. La cuenta **ya no es un comentario**: el `INSERT … RETURNING` se afirma contra
+  5.000, de modo que si los índices vuelven a colapsar el test se pone rojo con el número a
+  la vista. Coste: el caso pasa de ~1,9 s a ~2,0–2,6 s. `tests/ops-snapshot.test.ts` › *CA-23*.
+- **F-SPEC-037-13 — CERRADO.** Las dos referencias a `tests/e2e/admin.spec.ts` apuntan ya a
+  `tests/e2e/admin-grifo.spec.ts` (`tests/e2e/roles.spec.ts`, `tests/ops-snapshot.test.ts`).
+  Barrido el repo entero: **no había ninguna más**; la única mención que queda del nombre
+  muerto es la del propio F-SPEC-037-13 aquí arriba, que describe el defecto.
+- **F-SPEC-037-14 — CERRADO, y las dos funciones SÍ coinciden en vacío.** El test añade dos
+  comparaciones antes de los cuatro escenarios: base recién creada, y `symbols` con seis
+  filas pero nadie vigilando ni operando —el caso que de verdad ejerce el `return []`
+  temprano de `symbolUniverse` frente al `UNION` agregado de `countUniverseSymbols`—. Las
+  dos dan **0**. `tests/ops-snapshot.test.ts` › *CA-13* («el contador del universo y
+  `symbolUniverse` no pueden divergir»).
 
 Nota sobre la evidencia visual: la suite e2e regenera los PNG de **todas** las specs al
 correr. Se han restaurado todos a su estado commiteado —incluidos los de SPEC-037— para no
