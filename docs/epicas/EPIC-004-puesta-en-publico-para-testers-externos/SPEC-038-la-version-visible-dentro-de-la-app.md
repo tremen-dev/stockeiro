@@ -285,11 +285,11 @@ Aparcado a propósito, no por descuido:
   —Vercel deja su variable **vacía** sin integración Git—, el pie mostrará el commit como
   `desconocida` (CA-9). El **semver sí llegará siempre**, porque sale de un fichero del
   repositorio; conviene tenerlo presente para no leer ese "desconocida" como un fallo nuevo.
-- **F-SPEC-038-6 (discoverability, ADR-018).** **ADR-018 no se modifica** —está `aprobada` y
-  es inmutable, y este proyecto ya sentó el precedente con ADR-016, que extendió ADR-001 sin
-  anotarlo—, así que quien lea D-6 aislado **no verá** que ha sido enmendado. Se mitiga
-  citando ADR-024 desde esta spec, desde el endpoint y desde el módulo de identidad. Está en
-  las notas del gate por si prefieres otra cosa.
+- **F-SPEC-038-6 (discoverability) — ✅ RESUELTO el 2026-08-19.** Por veredicto del humano,
+  **D-6 de ADR-018 lleva una nota** que apunta a ADR-024 y acota qué no cambia. La decisión
+  original **no se reescribe**: la nota solo evita que alguien lea D-6 aislado y actúe sobre
+  un contrato caduco. Precedente rectificado: ADR-016 extendió ADR-001 sin anotarlo, y eso
+  era un hueco, no una regla a preservar.
 
 ## Notas para el gate humano
 
@@ -301,14 +301,17 @@ Aparcado a propósito, no por descuido:
    con la base caída y no exponer dato personal—, y **ADR-024** pto. 2 lo reafirma por
    escrito en vez de darlo por supuesto.
 
-2. **La forma de la enmienda: ADR-024 enmienda D-6, no supersede ADR-018.** ADR-018 decide el
+2. **La forma de la enmienda: ADR-024 enmienda D-6, no supersede ADR-018 — y ADR-018 lleva
+   ya el puntero, por decisión tuya.** ADR-018 decide el
    despliegue continuo, la verificación en PR, el deploy al mergear y la comprobación de
    vida; aquí solo cambia el juego de propiedades de un endpoint. Superseder el ADR entero
-   para enmendar una cláusula haría ilegible la historia de las decisiones. **ADR-018 no se
-   edita** (es inmutable, y ADR-016 ya sentó ese precedente con ADR-001). El coste es
-   **F-SPEC-038-6**: quien lea D-6 suelto no sabrá que hay una enmienda. Si prefieres que
-   ADR-018 lleve una nota apuntando a ADR-024 —lo que significa **editar un ADR aprobado**—,
-   es tu decisión y no la tomo yo.
+   para enmendar una cláusula haría ilegible la historia de las decisiones. La **decisión** de
+   ADR-018 no se reescribe; lo que sí lleva ahora, tras tu veredicto, es **una nota de dos
+   líneas bajo el encabezado de D-6** apuntando a ADR-024 y enumerando lo que **no** cambia.
+   Yo me había amparado en el precedente ADR-016/ADR-001 para no tocarlo; tu argumento
+   —*"que alguien lea D-6 aislado y actúe sobre información caduca es un fallo real, no
+   teórico"*— es mejor: ese precedente era un hueco que nadie tapó, no una regla. La
+   inmutabilidad protege la **decisión**, no impide señalizarla.
 
 3. **Dónde vive el número y quién lo sube (lo que me pediste que decidiera).** Vive en
    **`package.json`**: es el sitio convencional, ya existe con `0.1.0`, `npm version` lo mueve
@@ -337,10 +340,12 @@ Aparcado a propósito, no por descuido:
    SPEC-031 hecha visible para cualquiera. Nota práctica: hoy, sin integración Git en Vercel,
    **el commit va a salir así**; el semver no, porque sale del repositorio.
 
-8. **Esta spec no bloquea publicar** y no toca la base de datos: se puede desplegar en
-   cualquier momento después de SPEC-035, con poca ceremonia — salvo por el gate de CI, que
-   a partir de su merge afecta a **todas** las PR de código, incluidas las de las specs
-   hermanas. Convendría que fuera de las últimas, o de las primeras, pero no en medio.
+8. **Secuencia: va la ÚLTIMA de las seis** (gate del 2026-08-19). **Secuencia sancionada:
+   034 → 035 → 036 → 037 → 039 → 038.** El motivo es el gate de CI de CA-12: protege de
+   desplegar código sin subir versión, y ese valor **empieza cuando hay usuarios fuera** —es
+   decir, al publicar, que es después de toda esta épica—. Ponerla antes cargaría de
+   ceremonia a las cinco specs restantes sin ganar nada. Sigue dependiendo de **SPEC-035**
+   por el pie (F-SPEC-038-1), lo cual es compatible con ir la última.
 
 9. **Aprobación**: la spec queda en **`borrador`** y **no la firmo yo**. **ADR-024** nace
    también en `borrador` y se aprueba en este mismo gate; si decae, esta spec vuelve a la

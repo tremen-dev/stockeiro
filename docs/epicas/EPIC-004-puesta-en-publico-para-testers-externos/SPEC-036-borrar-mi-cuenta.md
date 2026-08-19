@@ -161,7 +161,7 @@ sesiones con **Playwright** sobre Postgres efímero.
   restricción es sobre el **rol**, no sobre la persona: irse es siempre posible, solo exige
   dejar de ser el operador primero.
 
-- **CA-14 (La política de privacidad enlaza aquí — frontera con SPEC-035 CA-14).**
+- **CA-14 (La política de privacidad enlaza aquí — frontera con SPEC-035 CA-16).**
   Dada `/legal/privacidad`,
   cuando se lee el apartado de derechos,
   entonces contiene un **enlace navegable** a `/cuenta`, y ese enlace lleva a la pantalla de
@@ -237,7 +237,7 @@ Aparcado a propósito, no por descuido:
   serializa contra el cron: el remedio costaría más que el mal.
 - **F-SPEC-036-2 (residual asumido, F-ADR-022-1).** Los correos ya **entregados** por Resend
   antes del borrado siguen en el buzón del destinatario y en los registros del proveedor.
-  Está fuera de nuestro alcance y **SPEC-035** CA-14 obliga a decirlo en vez de prometer más
+  Está fuera de nuestro alcance y **SPEC-035** CA-16 obliga a decirlo en vez de prometer más
   de lo que se puede.
 - **F-SPEC-036-3 (DESPLIEGUE).** Esta spec **no migra el esquema y no necesita ninguna
   variable de entorno**, así que no activa `F-SPEC-023-1` por sí sola. Es la más barata de
@@ -289,7 +289,8 @@ Aparcado a propósito, no por descuido:
    es el correo posterior —pero tiene la ironía de escribir a alguien de quien acabas de
    prometer no conservar nada—.
 
-7. **Secuencia.** Va **después de SPEC-035** (para que CA-14 tenga a qué enlazar) y
+7. **Secuencia.** **Secuencia sancionada en el gate del 2026-08-19: 034 → 035 → 036 → 037 → 039 → 038.** Esta va **tercera**: después de **SPEC-035** (para que CA-14 tenga a
+   qué enlazar) y
    **después de SPEC-034**, que le da la columna `role` (CA-8, CA-11 a CA-13). **No depende
    de SPEC-037 en absoluto** —eso cambió con tu veredicto: al ser el operador un rol y no una
    lista de emails, esta spec ya no necesita ninguna variable de entorno— así que **puede

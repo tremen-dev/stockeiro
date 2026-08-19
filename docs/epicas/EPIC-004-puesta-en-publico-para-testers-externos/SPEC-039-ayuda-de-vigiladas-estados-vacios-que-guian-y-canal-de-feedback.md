@@ -223,7 +223,7 @@ la redirección al panel para quien la tiene (CA-2).
   versión que acompaña al feedback (CA-13).
 
 **Configuración nueva** (la única de toda EPIC-004, CA-16): la dirección del canal de
-feedback. Es la misma que el contacto del
+feedback, **`hola@tremen.dev`**. Es exactamente la misma que el contacto del
 titular de **SPEC-035** (**F-SPEC-035-1**) y **no se duplica**: se lee de una sola constante
 de configuración, en `.env.example` con su explicación.
 
@@ -264,10 +264,12 @@ Aparcado a propósito, no por descuido:
 - **F-SPEC-039-1 (dependencia de secuencia).** CA-12 añade el feedback al **pie que entrega
   SPEC-035**. Va **después** de SPEC-035. CA-13 depende solo de **SPEC-031** (ya `hecho`), no
   de SPEC-038.
-- **F-SPEC-039-2 (contenido, requiere al humano).** La dirección del canal de feedback la da
-  el humano, y es la misma que el contacto de **F-SPEC-035-1**. Publicarla en abierto la
-  expone a recolectores de correo: es el precio de un canal sin infraestructura, y era la
-  decisión de la épica.
+- **F-SPEC-039-2 (contenido) — ✅ CERRADO el 2026-08-19.** La dirección es
+  **`hola@tremen.dev`**, la misma que el contacto legal de **SPEC-035** CA-3
+  (F-SPEC-035-1, también cerrado). Se lee de **una** constante de configuración: que no se
+  dupliquen es parte de CA-16. Residual asumido: publicarla en abierto la expone a
+  recolectores de correo — es el precio de un canal sin infraestructura, y era la decisión de
+  la épica (*"un enlace, no una bandeja"*).
 - **F-SPEC-039-3 (mantenimiento, buscado).** CA-6 y CA-8 **fallarán a propósito** cuando
   alguien añada un mercado o un motivo de fallo sin actualizar la ayuda. Es la intención: la
   ayuda mintió una vez —cuando decía cubrir mercados que el proveedor no servía— y costó
@@ -280,6 +282,12 @@ Aparcado a propósito, no por descuido:
   la cuota de Twelve Data es **global, no por usuario**: si varios testers buscan a la vez
   puede fallar. La ayuda **no puede arreglarlo**; a lo sumo el mensaje de error debe ser
   honesto, y eso ya lo es (**ADR-020** pto. 5: ningún descarte es mudo).
+- **F-SPEC-039-6 (DESPLIEGUE, prerrequisito de publicación — hereda F-SPEC-035-6).**
+  **El buzón `hola@tremen.dev` todavía no existe.** El dominio ya está verificado en Resend,
+  así que es crear el buzón, no montar nada. Sin él, **CE-8 no tiene canal**: el enlace de
+  feedback compone un mensaje a una dirección muerta. No bloquea implementar ni verificar
+  (los CA comprueban que el enlace se compone bien, no que alguien lea el buzón); bloquea
+  **publicar**.
 
 ## Notas para el gate humano
 
@@ -312,10 +320,15 @@ Aparcado a propósito, no por descuido:
    añadido por mi cuenta es **prefijar la versión**, porque un reporte sin versión obliga a
    una ida y vuelta que con veinte testers se nota.
 
-6. **Necesito la dirección de feedback, y es la misma que el contacto del titular
-   (F-SPEC-035-1).** Un solo dato para las dos specs; que no se dupliquen es un CA.
+6. **La dirección ya está: `hola@tremen.dev`**, la misma que el contacto legal. Un solo dato
+   para las dos specs, leído de una sola constante; que no se dupliquen es parte de CA-16.
+   **Pero el buzón no existe todavía** (F-SPEC-039-6 / F-SPEC-035-6): crearlo es
+   prerrequisito de **publicar**, no de implementar. Si se publica sin él, CE-8 tiene enlace
+   y no tiene canal, que es peor que no tener enlace.
 
-7. **Secuencia.** Va **la última** de EPIC-004: necesita saber qué ve un tester
+7. **Secuencia.** **Secuencia sancionada en el gate del 2026-08-19: 034 → 035 → 036 → 037 → 039 → 038.** Esta va **quinta** —ya no la última: **SPEC-038** pasó detrás en el
+   gate, porque su gate de CI solo empieza a valer cuando hay usuarios fuera—. Necesita saber
+   qué ve un tester
    (**SPEC-034**) y el pie de **SPEC-035**. No bloquea publicar — pero publicar sin ella
    significa recoger feedback sobre un malentendido, que es peor que no recogerlo.
 

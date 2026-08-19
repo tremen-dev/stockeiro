@@ -363,7 +363,7 @@ Aparcado a propósito, no por descuido:
 
 2. **Descarté Edge Config, y quiero que sepas que era una opción legítima.** Da ajuste sin
    redespliegue de verdad. La rechacé porque mete **un proveedor más** en la arquitectura y,
-   por tanto, en la lista de subencargados de **SPEC-035** CA-5, para guardar un dato que la
+   por tanto, en la lista de subencargados de **SPEC-035** CA-6, para guardar un dato que la
    app ya lee de la base en cada alta. Si prefieres Edge Config, dilo: cambia ADR-023 y
    cambian CA-1 y CA-7, pero la spec sobrevive.
 
@@ -388,10 +388,20 @@ Aparcado a propósito, no por descuido:
    de esta épica.
    Coste de la decisión: la spec pasa de 18 a **25 CA** (estimé +2 y son +7 — los conté mal:
    la fila hay que abrirla, cerrarla, no escribirla si el 401, mostrarla, y **no** alertar).
-   Si prefieres partirla, la costura natural es limpia: **CA-1..CA-12 el grifo** y
-   **CA-13..CA-25 la pantalla de operación y el registro del ciclo**. No lo he hecho porque
-   el interruptor vive **en** esa pantalla y separarlas dejaría el grifo sin forma de
-   moverse; pero si al implementador se le hace grande, ese es el corte. **Dímelo tú.**
+
+   **Resuelto en el gate: la spec NO se parte**, y con mi propio argumento —el interruptor
+   vive **en** esa pantalla, y separarlas dejaría el grifo sin forma de moverse; una spec que
+   no se puede verificar sola no es una spec, es media—. Los 25 CA se asumen.
+
+   **Costura documentada, por si el verificador quiere atacarla en dos pasadas** (esto es una
+   sugerencia de método, **no** una división de la spec: se aprueba, se implementa y se cierra
+   como **una**):
+   - **Pasada 1 — el grifo (CA-1..CA-12)**: ajustes, decisión pura, cierre manual, cupo,
+     mensajes de puerta cerrada, efecto inmediato, plaza liberada y acceso por rol. Se puede
+     ejercitar entera desde `/register` y la fila de ajustes.
+   - **Pasada 2 — operación y ciclo (CA-13..CA-25)**: contadores, `cron_runs` (incluido el
+     CA negativo de "no alertar"), pantalla, rendimiento y no-regresión. Necesita ejecutar el
+     ciclo, que es un montaje distinto.
 
 5. **El cupo puede rebasarse en uno (F-SPEC-037-3).** Asumido y declarado. Hacerlo exacto
    exige serializar las altas, y pagar contención permanente por una plaza que nadie va a
@@ -408,9 +418,9 @@ Aparcado a propósito, no por descuido:
    que es **semilla, no política**: se cambia desde `/admin` sin desplegar (CA-7/CA-21), que
    es exactamente lo que CE-6 exige. Si el hilo va bien y quieres 120, son dos clics.
 
-8. **Secuencia.** Va **después de SPEC-034** (necesita `role` para CA-10 y el catálogo para
-   CA-24) y **después de SPEC-036** (CA-9 comprueba que un borrado libera plaza). No bloquea
-   publicar, pero es lo primero que echarás de menos si el hilo funciona.
+8. **Secuencia.** **Secuencia sancionada en el gate del 2026-08-19: 034 → 035 → 036 → 037 → 039 → 038.** Esta va **cuarta**: después de **SPEC-034** (necesita `role` para
+   CA-10 y el catálogo para CA-24) y de **SPEC-036** (CA-9 comprueba que un borrado libera
+   plaza). No bloquea publicar, pero es lo primero que echarás de menos si el hilo funciona.
 
 9. **Aprobación**: la spec queda en **`borrador`** y **no la firmo yo**. **ADR-023** nace
    también en `borrador` y se aprueba en este mismo gate.

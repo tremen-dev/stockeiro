@@ -334,10 +334,11 @@ Aparcado a propósito, no por descuido:
    ajenas. Es la línea que más fácilmente se erosionará el día que quieras depurar el
    problema de un tester concreto, así que está escrita como CA y no como buena intención.
 
-8. **Secuencia.** Esta spec va **primera** de EPIC-004: **SPEC-037** depende de su columna
-   `role` (ADR-023 pto. 9) y **SPEC-039** necesita saber qué ve un tester para escribir su
-   ayuda y sus estados vacíos. Las que bloquean publicar son esta, **SPEC-035** y
-   **SPEC-036**.
+8. **Secuencia.** Esta spec va **primera** de EPIC-004: **SPEC-036** necesita su columna
+   `role` (CA-11 a CA-13), **SPEC-037** su catálogo de secciones (ADR-023 pto. 9) y
+   **SPEC-039** saber qué ve un tester para escribir su ayuda y sus estados vacíos. Las que
+   bloquean publicar son esta, **SPEC-035** y **SPEC-036**.
+   **Secuencia sancionada en el gate del 2026-08-19: 034 → 035 → 036 → 037 → 039 → 038.**
 
 9. **Aprobación**: la spec queda en **`borrador`** y **no la firmo yo**. **ADR-021** nace
    también en `borrador` y se aprueba en este mismo gate; si prefieres el rol en el JWT,
