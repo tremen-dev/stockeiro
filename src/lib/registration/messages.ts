@@ -41,3 +41,19 @@ export const REGISTRO_CERRADO_QUE_HACER: Record<ClosedReason, string> = {
     'Las plazas se liberan cuando alguien borra su cuenta, así que vuelve a probar de vez en cuando. ' +
     'Mientras tanto puedes leer los términos y la política de privacidad para saber en qué consiste esto.',
 };
+
+/**
+ * Lo que lee el OPERADOR en `/admin` al mover el grifo (CA-21).
+ *
+ * Vive aquí y no en `src/app/admin/actions.ts` por una razón mecánica que conviene
+ * dejar escrita: un módulo `'use server'` **solo puede exportar funciones async**, así
+ * que una constante compartida entre la acción y su test no cabe ahí. Que además
+ * queden todos los textos del grifo en el mismo fichero es una ventaja, no la causa.
+ */
+
+/** El cupo que se rechaza (CA-21). Dice qué se acepta y que no se ha cambiado nada. */
+export const CUPO_INVALIDO =
+  'El cupo tiene que ser un número entero de cero o más, o quedar vacío para no poner tope. No se ha cambiado nada.';
+
+/** Acuse del cambio. La pantalla enseña además el estado resultante. */
+export const GRIFO_GUARDADO = 'Listo: el registro queda como se ve arriba.';

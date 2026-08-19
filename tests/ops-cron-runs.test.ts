@@ -33,7 +33,9 @@ beforeEach(async () => {
 
 const filas = () => db.select().from(cronRuns);
 
-const autorizado = (extra: Record<string, unknown>) => ({
+type Extras = { provider: MarketDataProvider; sender?: FakeNotificationSender };
+
+const autorizado = (extra: Extras) => ({
   authHeader: `Bearer ${SECRET}`,
   secret: SECRET,
   db,
@@ -296,7 +298,7 @@ describe('SPEC-037 CA-19: registrar NO es alertar, y se prueba', () => {
       }
     }
     // Y no habla con el mundo exterior por su cuenta: ni HTTP ni webhooks.
-    expect(fuente).not.toMatch(/fetch\s*\(/);
+    expect(fuente).not.toContain('fetch(');
   });
 });
 

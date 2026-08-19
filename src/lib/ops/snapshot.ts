@@ -1,6 +1,6 @@
 import { count, desc } from 'drizzle-orm';
 import type { PgDatabase } from 'drizzle-orm/pg-core';
-import { cronRuns, quoteDiagnostics, users, watchedSymbols } from '@/db/schema';
+import { cronRuns, quoteDiagnostics, watchedSymbols } from '@/db/schema';
 import { countUniverseSymbols } from '@/lib/market/refresh';
 import { FAIL_REASON_TEXT } from '@/lib/market/fail-reason-text';
 import type { QuoteFailureReason } from '@/lib/market/provider';

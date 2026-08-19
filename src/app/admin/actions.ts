@@ -6,15 +6,14 @@ import { sectionUserOrNull } from '@/lib/auth/session';
 import { SECCION_NO_DISPONIBLE } from '@/lib/auth/section-messages';
 import { parseCapacity } from '@/lib/registration/gate';
 import { saveRegistrationSettings } from '@/lib/registration/service';
+import { CUPO_INVALIDO, GRIFO_GUARDADO } from '@/lib/registration/messages';
 
+/**
+ * Este módulo es `'use server'`, así que SOLO puede exportar funciones async: los
+ * textos y el tipo del estado viven fuera (`@/lib/registration/messages`). No es un
+ * capricho de organización — Next rechaza el build si aquí aparece una constante.
+ */
 export type GateFormState = { error: string } | { ok: string } | undefined;
-
-/** Lo que se le dice al operador cuando escribe un cupo que no es un cupo (CA-21). */
-export const CUPO_INVALIDO =
-  'El cupo tiene que ser un número entero de cero o más, o quedar vacío para no poner tope. No se ha cambiado nada.';
-
-/** Acuse del cambio. La pantalla muestra además el estado resultante. */
-export const GRIFO_GUARDADO = 'Listo: el registro queda como se ve arriba.';
 
 /**
  * Mueve el grifo del registro (SPEC-037 CA-11, CA-21).
