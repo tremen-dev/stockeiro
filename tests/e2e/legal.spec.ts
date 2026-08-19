@@ -260,12 +260,21 @@ test.describe('CA-16: el derecho de supresión, enunciado y honesto', () => {
     expect(bloque).toMatch(/registros del proveedor/i);
   });
 
-  test('esta spec NO crea el enlace a /cuenta: eso es SPEC-036', async ({ page }) => {
-    // La frontera está declarada. Si mañana aparece el enlace tiene que ser porque
-    // SPEC-036 entregó la pantalla, con su CA — no porque se coló aquí y apunta a
-    // una ruta que todavía no existe.
+  test('el enlace a /cuenta no está roto: apunta a una pantalla que existe', async ({ page }) => {
+    // RE-ENCUADRADA POR SPEC-036 (CA-14). Antes decía «esta spec NO crea el enlace a
+    // /cuenta: eso es SPEC-036» y exigía cero enlaces, porque la pantalla todavía no
+    // existía. La propiedad que protegía no era «no hay enlace» sino **no hay enlace
+    // roto en una página legal**, así que ahora se comprueba lo mismo por el otro
+    // lado: el enlace está, y lo que hay al otro lado no es un 404.
     await page.goto('/legal/privacidad');
-    await expect(page.locator('main a[href="/cuenta"]')).toHaveCount(0);
+    await expect(page.locator('main a[href="/cuenta"]')).toHaveCount(1);
+
+    const respuesta = await page.goto('/cuenta');
+    expect(respuesta?.status(), '/cuenta responde 404: el enlace de la privacidad está roto').toBe(
+      200,
+    );
+    // Sin sesión, RN-03 manda a login — que es una pantalla, no un error.
+    expect(new URL(page.url()).pathname).toBe('/login');
   });
 });
 

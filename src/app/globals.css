@@ -677,3 +677,177 @@ td.num .quote-fail { text-align: right; }
   text-decoration: underline;
   text-underline-offset: 3px;
 }
+
+/* ============================================================
+   SPEC-036 — Pantalla de cuenta y borrado definitivo
+   ============================================================ */
+
+/* --- Acceso a la cuenta, a la derecha de la barra --- */
+/* Hermano de `.app-nav-links` pero con su propio grupo: lo de la izquierda son las
+   SECCIONES (las decide el rol, ADR-021) y esto es la cuenta, que no es una sección
+   y se ofrece a los tres roles. Comparte la tipografía y el subrayado de activo para
+   que la barra siga leyéndose como una sola cosa. */
+.app-nav-user {
+  display: flex;
+  align-items: center;
+  gap: 18px;
+}
+.app-nav-user a {
+  position: relative;
+  color: var(--fg-muted);
+  text-decoration: none;
+  font: 500 14px/1 var(--font-sans);
+  letter-spacing: -0.01em;
+  padding: 6px 0;
+  transition: color .15s ease;
+}
+.app-nav-user a:hover { color: var(--fg); }
+.app-nav-user a.active { color: var(--fg); }
+.app-nav-user a.active::after {
+  content: '';
+  position: absolute;
+  left: 0; right: 0; bottom: -1px;
+  height: 2px;
+  background: var(--accent);
+}
+
+/* --- Los datos de la cuenta --- */
+.account-facts {
+  margin: 0;
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(min(200px, 100%), 1fr));
+  gap: 14px 28px;
+  padding: 18px 20px;
+  border: 1px solid var(--line);
+  border-radius: var(--radius-card);
+}
+.account-facts > div { display: grid; gap: 4px; min-width: 0; }
+.account-facts dt {
+  font: 600 11px/1 var(--font-mono);
+  letter-spacing: .08em;
+  text-transform: uppercase;
+  color: var(--fg-dim);
+}
+.account-facts dd {
+  margin: 0;
+  color: var(--fg);
+  font-size: var(--t-body);
+  overflow-wrap: anywhere; /* un correo largo no puede empujar la caja */
+}
+
+/* --- Zona de borrado ---
+   `display: grid` y no `flex`: aquí el eje es SIEMPRE vertical y no hay nada que
+   repartir. Es la lección de SPEC-035 V-1 — un contenedor flex que no declara su eje
+   lo hereda del sistema de diseño por debajo de 720px, y entonces un `flex-basis`
+   deja de ser ancho y pasa a ser alto. Un grid de una columna no tiene ese modo.
+   `tests/e2e/cuenta-responsive.spec.ts` mide que la caja no reserve alto de más. */
+.danger-zone {
+  display: grid;
+  gap: 18px;
+  padding: 22px 24px;
+  border: 1px solid color-mix(in srgb, var(--error) 45%, var(--line-strong));
+  border-left: 3px solid var(--error);
+  border-radius: var(--radius-card);
+  background: color-mix(in srgb, var(--error) 4%, transparent);
+}
+.danger-zone h2 {
+  margin: 0;
+  font: 600 var(--t-h3)/1.25 var(--font-sans);
+  color: var(--fg);
+}
+.danger-zone h3 {
+  margin: 0 0 8px;
+  font: 600 11px/1 var(--font-mono);
+  letter-spacing: .08em;
+  text-transform: uppercase;
+  color: var(--fg-dim);
+}
+.danger-lead {
+  margin: 0;
+  color: var(--fg);
+  line-height: 1.6;
+  max-width: 72ch;
+}
+.danger-lead strong { color: var(--error); }
+.danger-nota {
+  margin: 0;
+  color: var(--fg-muted);
+  font-size: var(--t-body-sm);
+  line-height: 1.6;
+  max-width: 72ch;
+}
+.danger-nota a { color: var(--fg); text-decoration: underline; text-underline-offset: 3px; }
+
+/* Dos columnas cuando caben y una cuando no, sin media query: el umbral lo pone el
+   contenido (`minmax(min(...))`), no un breakpoint que haya que recordar. */
+.danger-listas {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(min(260px, 100%), 1fr));
+  gap: 20px 28px;
+}
+.danger-listas ul {
+  margin: 0;
+  padding-left: 20px;
+  display: grid;
+  gap: 7px;
+  color: var(--fg-muted);
+  font-size: var(--t-body-sm);
+  line-height: 1.55;
+}
+.danger-listas > div { min-width: 0; display: grid; gap: 10px; align-content: start; }
+
+/* --- El formulario de confirmación --- */
+.danger-form {
+  display: grid;
+  gap: 12px;
+  justify-items: start;
+  padding-top: 6px;
+  border-top: 1px solid var(--line);
+}
+.danger-form label {
+  display: grid;
+  gap: 6px;
+  width: min(360px, 100%);
+  font-size: var(--t-body-sm);
+  color: var(--fg-muted);
+}
+.danger-form input {
+  width: 100%;
+  padding: 10px 12px;
+  border-radius: var(--r-md);
+  border: 1px solid var(--line-strong);
+  background: var(--bg-elev);
+  color: var(--fg);
+  font: inherit;
+}
+.danger-form input:focus { outline: 2px solid var(--error); outline-offset: 1px; }
+.danger-form .auth-error { margin: 0; max-width: 72ch; }
+
+.btn.danger {
+  border-color: var(--error);
+  color: var(--error);
+  background: transparent;
+}
+.btn.danger:hover:not(:disabled) {
+  background: var(--error);
+  color: var(--bg);
+  border-color: var(--error);
+}
+.btn.danger:disabled { opacity: .55; cursor: default; }
+
+/* Lo que ve un `admin` en lugar del formulario (CA-11). */
+.danger-bloqueado {
+  margin: 0;
+  padding: 12px 16px;
+  border-left: 2px solid var(--amber);
+  background: var(--bg-elev);
+  border-radius: 0 var(--r-md) var(--r-md) 0;
+  color: var(--fg-muted);
+  line-height: 1.6;
+  max-width: 72ch;
+}
+
+@media (max-width: 720px) {
+  .app-nav-user { gap: 14px; }
+  .danger-zone { padding: 18px 16px; }
+}

@@ -83,3 +83,14 @@ SPEC aprobada; las decisiones técnicas se registran como ADR inmutables; la
 evidencia de verificación vive en el ledger de cada spec. Roles: /sdd-orquestador
 (entrada), /sdd-producto, /sdd-arquitecto, /sdd-implementador, /sdd-verificador,
 /sdd-documentalista, /sdd-como-vamos.
+
+Dos convenciones que ya costaron ruido y quedan fijadas en **ADR-025**:
+
+- **Los términos de `docs/fundacion/dominio.md` los escribe sdd-arquitecto, en el gate en
+  que se aprueba la spec que los pide** — nunca la implementación, y nunca al cerrar. La
+  implementación **copia** de ahí el rótulo; si el término falta, levanta el residual y no
+  escribe en el documento de verdad.
+- **Una spec en `hecho` no se reabre y el gate `require-spec` no se rodea.** Un retoque
+  trivial de `src/` descubierto después (rótulo, texto, typo) **cuelga de una spec viva que
+  ya toque esa superficie**, o espera en **EPIC-FIX** a un lote de rótulos. Lo decide el
+  arquitecto al triar el residual y se escribe en él.

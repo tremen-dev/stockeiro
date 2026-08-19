@@ -37,7 +37,7 @@ Actualizado: 2026-08-19
 |---|---|---|
 | SPEC-034 — rol-por-usuario-y-visibilidad-de-seccion | hecho | 2026-08-19 (sdd-verificador) |
 | SPEC-035 — paginas-legales-titular-y-descargo-de-no-asesoramiento | hecho | 2026-08-19 (sdd-verificador) |
-| SPEC-036 — borrar-mi-cuenta | aprobada | 2026-08-19 (humano (Alberto Fojo)) |
+| SPEC-036 — borrar-mi-cuenta | hecho | 2026-08-19 (sdd-verificador) |
 | SPEC-037 — el-grifo-del-registro-y-la-pantalla-de-operacion | aprobada | 2026-08-19 (humano (Alberto Fojo)) |
 | SPEC-038 — la-version-visible-dentro-de-la-app | aprobada | 2026-08-19 (humano (Alberto Fojo)) |
 | SPEC-039 — ayuda-de-vigiladas-estados-vacios-que-guian-y-canal-de-feedback | aprobada | 2026-08-19 (humano (Alberto Fojo)) |
@@ -95,9 +95,10 @@ Actualizado: 2026-08-19
 | ADR-022 | aprobada | borrado-de-cuenta-cae-todo-lo-propio-se-conserva-lo-compartido-y-no-se-anonimiza-nada | 2026-08-19 (humano (Alberto Fojo)) |
 | ADR-023 | aprobada | el-grifo-del-registro-es-estado-de-aplicacion-y-el-ciclo-diario-deja-constancia-de-cada-ejecucion | 2026-08-19 (humano (Alberto Fojo)) |
 | ADR-024 | aprobada | la-version-de-producto-es-semver-en-package-json-y-viaja-en-el-contrato-de-api-version-enmienda-d-6-de-adr-018 | 2026-08-19 (humano (Alberto Fojo)) |
+| ADR-025 | aprobada | los-terminos-del-dominio-los-escribe-el-arquitecto-en-el-gate-y-un-retoque-descubierto-tras-el-cierre-no-reabre-la-spec | 2026-08-19 (humano (Alberto Fojo)) |
 
 ## Resumen
 
-- hecho: 29
-- aprobada: 4
+- hecho: 30
+- aprobada: 3
 - en-revision: 2

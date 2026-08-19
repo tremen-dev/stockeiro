@@ -26,6 +26,12 @@ export const LOGIN_PATH = '/login';
  * datos **antes** de teclear su email. Se declaran aquí y no en el `matcher` de
  * `src/proxy.ts`, que no cambia: sacarlas del matcher las sacaría del middleware
  * entero, que es otra cosa y peor.
+ *
+ * `/cuenta-borrada` (SPEC-036 CA-10) es la más forzosa de todas: quien acaba de
+ * borrar su cuenta **ya no tiene usuario**, así que una página autenticada no podría
+ * enseñarle la confirmación de que se ha ido — le daría un rebote a `/login`. Ojo con
+ * la pareja: `/cuenta`, que SÍ es de datos, no entra aquí y no la abre este prefijo,
+ * porque el emparejamiento es por segmento completo.
  */
 export const PUBLIC_PREFIXES = [
   '/login',
@@ -33,6 +39,7 @@ export const PUBLIC_PREFIXES = [
   '/forgot-password',
   '/reset-password',
   '/legal',
+  '/cuenta-borrada',
 ];
 
 export function isPublicPath(pathname: string): boolean {

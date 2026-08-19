@@ -114,6 +114,40 @@ consume exactamente una vez** y **de dónde sale la URL del enlace**.
    query —las dos filtran igual—, se evita **no enviando la cabecera**. La página de reset
    no carga recursos de terceros, así que la política no cuesta nada.
 
+   > **Corrección de la última frase de este punto (2026-08-19, hallazgo F-SPEC-035-8).**
+   > Donde el pto. 9 afirma *«La página de reset no carga recursos de terceros»*, **la
+   > afirmación era falsa el día que se escribió** (2026-08-12) y siguió siéndolo hasta
+   > **SPEC-035** (2026-08-19). El sistema de diseño cargaba la familia Geist con un
+   > `@import url(https://fonts.googleapis.com/css2?family=Geist…)` en
+   > `design/tremen-ds/colors_and_type.css`, y la cadena `layout.tsx → globals.css →
+   > components/index.css → colors_and_type.css` es **incondicional**: alcanzaba a
+   > `/reset-password` exactamente igual que a todas las demás páginas de la app.
+   >
+   > **Quién lo destapó y cómo.** El **verificador de SPEC-035**, y no leyendo el CSS:
+   > extrajo ese fichero de `origin/main`, lo sirvió y lo cargó en un navegador, y observó
+   > las peticiones salientes a `https://fonts.googleapis.com/css2?family=Geist…` y a
+   > `https://fonts.gstatic.com/s/geist/…`. Nadie lo había comprobado antes porque el punto
+   > 9 sonaba a premisa obvia, que es como sobreviven las premisas falsas.
+   >
+   > **Qué lo arregló y desde cuándo es cierto.** **SPEC-035**: las familias las resuelve
+   > `next/font` en tiempo de build y se sirven **autoalojadas** desde `/_next/static`, sin
+   > dependencias nuevas. El mismo verificador cargó después un `/reset-password/<token>`
+   > real interceptando la red y contó **cero peticiones externas**. Desde el 2026-08-19 el
+   > punto 9 se lee ya como se escribió.
+   >
+   > **La decisión no cambia y no se reescribe.** El token sigue viajando en el path y la
+   > ruta sigue declarando `Referrer-Policy: no-referrer`; eso era correcto entonces y lo
+   > sigue siendo ahora — la fuga se evita **no enviando la cabecera**, y esa parte del
+   > razonamiento nunca dependió de la premisa falsa. Lo que falló fue el *«no cuesta
+   > nada»*: durante esa semana la política no era gratis por ausencia de terceros, sino
+   > **a pesar** de que había terceros en juego. Es la clase de premisa que un día justifica
+   > **quitar** la cabecera («total, si no hay nada de fuera»), y por eso la corrección
+   > importa aunque el resultado no cambiara.
+   >
+   > **Queda pendiente**: la misma frase se repite, palabra por palabra, en el comentario de
+   > `next.config.mjs` que declara esta cabecera. Ahí **sigue sin corregir**: es ruta
+   > vigilada y su enmienda entra por una spec viva, no por este ADR (**ADR-025** pto. 3).
+
 10. **El enlace de recuperación NO se registra en la bandeja in-app (`notifications`).**
     Esa tabla es el registro de avisos de zona y el fallback de RN-15. Escribir aquí el
     enlace lo haría legible desde cualquier sesión ya abierta — es decir, **desde la sesión
