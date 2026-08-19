@@ -1,5 +1,5 @@
-import { inArray } from 'drizzle-orm';
-import type { PgDatabase } from 'drizzle-orm/pg-core';
+import { count, inArray } from 'drizzle-orm';
+import { union, type PgDatabase } from 'drizzle-orm/pg-core';
 import { symbols, transactions, watchedSymbols } from '@/db/schema';
 import { quoteKey, type MarketDataProvider, type QuoteFailureReason, type QuotesResult } from './provider';
 import { clearDiagnostic, upsertDiagnostic, upsertQuote } from './quotes';
@@ -32,6 +32,30 @@ export async function symbolUniverse(db: Db): Promise<UniverseSymbol[]> {
 
   const rows = await db.select().from(symbols).where(inArray(symbols.id, [...ids]));
   return rows.map((s) => ({ symbolId: s.id, ticker: s.ticker, micCode: s.micCode, currency: s.currency }));
+}
+
+/**
+ * CUÁNTOS símbolos tiene ese universo, sin traérselos (SPEC-037 CA-13/CA-23).
+ *
+ * Vive AQUÍ, pegada a `symbolUniverse`, y no en la pantalla de operación, porque el
+ * proyecto no puede tener dos definiciones de «universo del ciclo»: la de lo que se
+ * cotiza y la de lo que se cuenta. Si mañana el universo deja de ser
+ * `watched_symbols ∪ transactions`, las dos funciones se cambian a la vez y el mismo
+ * test las compara — `tests/ops-snapshot.test.ts` exige que este número sea siempre
+ * `(await symbolUniverse(db)).length`.
+ *
+ * Es una AGREGACIÓN y no un `length` de la otra: la pantalla de operación tiene que
+ * responder deprisa porque pregunta poco (CE-7), y traerse cinco mil filas para
+ * contarlas es justo lo contrario. El `UNION` (no `UNION ALL`) hace el dedupe en la
+ * base, igual que el `Set` de arriba lo hace en memoria.
+ */
+export async function countUniverseSymbols(db: Db): Promise<number> {
+  const universo = union(
+    db.selectDistinct({ symbolId: watchedSymbols.symbolId }).from(watchedSymbols),
+    db.selectDistinct({ symbolId: transactions.symbolId }).from(transactions),
+  ).as('universo');
+  const [fila] = await db.select({ n: count() }).from(universo);
+  return Number(fila?.n ?? 0);
 }
 
 /** Un símbolo que no se pudo cotizar, con su motivo clasificado (SPEC-016). */

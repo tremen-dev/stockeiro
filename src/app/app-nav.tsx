@@ -13,7 +13,7 @@ import { logoutAction } from './(auth)/actions';
  * `SECTIONS` la habría metido en la tabla de visibilidad de ADR-021 pto. 5 — que es
  * justo lo que la spec dice que no es.
  */
-type Activa = Extract<Section, 'panel' | 'cartera' | 'vigiladas' | 'avisos'> | 'cuenta';
+type Activa = Extract<Section, 'panel' | 'cartera' | 'vigiladas' | 'avisos' | 'operacion'> | 'cuenta';
 
 /**
  * Navegación compartida de la app (SPEC-007) — la primera del proyecto. Aloja el
@@ -27,9 +27,11 @@ type Activa = Extract<Section, 'panel' | 'cartera' | 'vigiladas' | 'avisos'> | '
  * revalidar contra la base, así que un cambio de rol se ve en este mismo render
  * (ADR-021 pto. 4).
  *
- * Lo que esta spec NO pinta es el enlace a la pantalla de operación: esa ruta
- * todavía no existe (es SPEC-037) y un enlace roto es peor que ninguno. La sección
- * ya está en el catálogo; el enlace lo entrega su spec leyendo el mismo sitio.
+ * SPEC-037 CA-24: el acceso a la pantalla de operación se pinta AQUÍ y con la misma
+ * llamada a `canSee`, no con una condición aparte. SPEC-034 dejó la sección en el
+ * catálogo y el enlace fuera porque su ruta todavía no existía; ahora existe, y el
+ * menú la ofrece exactamente a quien la ruta deja entrar. El resto de la navegación
+ * no cambia para nadie.
  */
 export async function AppNav({ active }: { active?: Activa }) {
   const session = await auth();
@@ -63,6 +65,15 @@ export async function AppNav({ active }: { active?: Activa }) {
             </span>
           )}
         </Link>
+        {/*
+          SPEC-037 CA-24 — la pantalla de operación. Misma función de catálogo que
+          Cartera: es imposible que el menú la ofrezca a quien la ruta le niega.
+        */}
+        {canSee(role, 'operacion') && (
+          <Link href="/admin" className={cls('operacion')}>
+            Operación
+          </Link>
+        )}
       </div>
       {/*
         SPEC-036 CA-1 — el camino visible hasta `/cuenta`, sin teclear la URL. Va

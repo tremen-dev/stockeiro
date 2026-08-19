@@ -95,8 +95,25 @@ test('SPEC-034 CA-5/CA-9: un completo y un admin ven las cuatro secciones y las 
     await expect(page.locator('.cards .card'), rol).toHaveCount(3);
     await expect(page.locator('main'), rol).toContainText('Cartera y P/L');
 
-    // Esta spec NO pinta enlace a la pantalla de operación: su ruta es SPEC-037.
-    await expect(nav(page).locator('a[href="/admin"]'), rol).toHaveCount(0);
+    /*
+      RE-ENCUADRE DE SPEC-037 (documentado también en su ledger).
+
+      Lo que esta guardia vigilaba ANTES: que la navegación tuviera **0** enlaces a
+      `/admin` para todos los roles, `admin` incluido — porque la ruta todavía no
+      existía y un enlace roto es peor que ninguno. Era "que nadie lo adelante aquí".
+
+      Lo que vigila AHORA: la MISMA propiedad por el lado que corresponde desde que
+      la ruta existe — que el enlace lo decida el catálogo de CA-4 y no una condición
+      aparte, es decir, que un `completo` **siga sin verlo** y un `admin` sí. La
+      propiedad de SPEC-034 que importaba (el menú no ofrece lo que la ruta niega) no
+      se afloja: se comprueba en los dos sentidos en vez de en uno.
+
+      Que `/admin` responda de verdad, y que quien no es admin no la alcance aunque
+      teclee la URL, es de SPEC-037 y vive en `tests/e2e/admin-grifo.spec.ts` (CA-10/CA-24).
+      Es el mismo movimiento que se hizo con el enlace a `/cuenta` entre SPEC-035 y
+      SPEC-036.
+    */
+    await expect(nav(page).locator('a[href="/admin"]'), rol).toHaveCount(rol === 'admin' ? 1 : 0);
 
     await page.screenshot({ path: `${SHOTS}/ca5-ca9-panel-de-${rol}.png`, fullPage: true });
     await page.click('button:has-text("Cerrar sesión")');
