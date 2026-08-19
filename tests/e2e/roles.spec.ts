@@ -109,7 +109,7 @@ test('SPEC-034 CA-5/CA-9: un completo y un admin ven las cuatro secciones y las 
       se afloja: se comprueba en los dos sentidos en vez de en uno.
 
       Que `/admin` responda de verdad, y que quien no es admin no la alcance aunque
-      teclee la URL, es de SPEC-037 y vive en `tests/e2e/admin.spec.ts` (CA-10/CA-24).
+      teclee la URL, es de SPEC-037 y vive en `tests/e2e/admin-grifo.spec.ts` (CA-10/CA-24).
       Es el mismo movimiento que se hizo con el enlace a `/cuenta` entre SPEC-035 y
       SPEC-036.
     */

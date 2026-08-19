@@ -17,7 +17,7 @@ import { readOperationSnapshot } from '@/lib/ops/snapshot';
 /**
  * SPEC-037 CA-13 / CA-18 / CA-22 / CA-23 — lo que la pantalla de operación SABE.
  *
- * La pantalla se prueba en el navegador (`tests/e2e/admin.spec.ts`); aquí se prueba
+ * La pantalla se prueba en el navegador (`tests/e2e/admin-grifo.spec.ts`); aquí se prueba
  * lo que le da de comer, que es donde puede mentir sin que se note: cuatro números
  * que tienen que coincidir EXACTAMENTE con la base, el último ciclo tal y como es, y
  * la forma de las consultas que garantiza los cinco segundos de CE-7.
@@ -121,8 +121,22 @@ describe('SPEC-037 CA-13: los cuatro contadores dicen la verdad', () => {
   it('el contador del universo y `symbolUniverse` no pueden divergir', async () => {
     // UNA sola definición de «universo del ciclo» (spec §Entidades). Este test es lo
     // que la sostiene: si alguien cambia una de las dos funciones, se pone rojo.
+
+    // El universo VACÍO va primero, y no es un caso de adorno: es el ÚNICO en el que las
+    // dos funciones recorren caminos distintos —`symbolUniverse` corta con un `return []`
+    // temprano y nunca llega a `symbols`, mientras `countUniverseSymbols` sí ejecuta su
+    // `UNION` agregado—. Si divergen alguna vez, divergen aquí (F-SPEC-037-14).
+    expect(await countUniverseSymbols(db)).toBe(0);
+    expect(await countUniverseSymbols(db)).toBe((await symbolUniverse(db)).length);
+
     const [u] = await sembrarCuentas(1);
     const simbolos = await sembrarSimbolos(6);
+
+    // Y con símbolos en el registro pero NADIE vigilando ni operando: el universo sigue
+    // vacío aunque `symbols` tenga seis filas, que es donde el corte temprano podría
+    // esconder un recuento distinto de cero.
+    expect(await countUniverseSymbols(db)).toBe(0);
+    expect(await countUniverseSymbols(db)).toBe((await symbolUniverse(db)).length);
 
     for (const escenario of [
       () => db.insert(watchedSymbols).values({ userId: u, symbolId: simbolos[0] }),
@@ -278,13 +292,29 @@ describe('SPEC-037 CA-23: responde deprisa porque pregunta poco', () => {
     // Base con volumen: 500 cuentas y 5.000 vigiladas, como pide el CA.
     const muchos = await sembrarCuentas(500, 'vol');
     const simbolos = await sembrarSimbolos(500, 'V');
+    // 500 cuentas × 10 símbolos cada una = 5.000 pares DISTINTOS. El índice del símbolo
+    // NO puede salir del mismo divisor que el del usuario (ni de un divisor suyo: `i % 10`
+    // tampoco vale, porque 10 divide a 500): la pareja se repetiría y el único
+    // `watched_user_symbol` colapsaría las 5.000 filas a 500 sin que nadie se enterase
+    // —que es justo lo que pasaba (F-SPEC-037-12)—. El desplazamiento `k + j` reparte
+    // además las vigiladas sobre los 500 símbolos, que es la otra mitad del CA.
     const vigiladas: { userId: string; symbolId: string }[] = [];
-    for (let i = 0; i < 5000; i++) {
-      vigiladas.push({ userId: muchos[i % 500], symbolId: simbolos[i % 500] });
+    for (let k = 0; k < muchos.length; k++) {
+      for (let j = 0; j < 10; j++) {
+        vigiladas.push({ userId: muchos[k], symbolId: simbolos[(k + j) % simbolos.length] });
+      }
     }
-    // (userId, symbolId) es único: se siembran 500×10 pares distintos.
-    const unicos = new Map(vigiladas.map((v) => [`${v.userId}|${v.symbolId}`, v]));
-    await db.insert(watchedSymbols).values([...unicos.values()]).onConflictDoNothing();
+    // La cuenta va AQUÍ y no en un comentario: lo que se afirma es lo que la base
+    // guardó, no lo que el bucle creía generar.
+    const sembradas = await db
+      .insert(watchedSymbols)
+      .values(vigiladas)
+      .onConflictDoNothing()
+      .returning({ id: watchedSymbols.id });
+    expect(
+      sembradas.length,
+      `pares generados=${vigiladas.length} filas sembradas=${sembradas.length}`,
+    ).toBe(5000);
     const conMuchos = await consultasDe(() => readOperationSnapshot(db));
 
     expect(conMuchos, `pocos=${conPocos} muchos=${conMuchos}`).toBe(conPocos);
