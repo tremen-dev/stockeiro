@@ -235,15 +235,137 @@ build de `origin/main` + SPEC-039; el «después», el build de esta rama.
   build anterior**. La CI sí construye antes del job de e2e (`.github/workflows/ci.yml`,
   step «Build»), así que es sólo un pie del que hay que acordarse en local.
 
+### Cierre de los dos puntos ciegos y del intermitente (sdd-implementador, 2026-08-20)
+
+**Ronda posterior al GREEN, y no es una ronda RED**: ningún CA falló. El verificador,
+atacando CA-7 —buscando lo contrario de lo que se le pedía— dejó escritos dos huecos de la
+guardia y un intermitente ajeno. Se cierran **antes de la PR** porque la guardia **es la
+razón de ser de esta spec**: dejarla con huecos conocidos es exactamente lo que SPEC-040
+vino a evitar.
+
+**Todo el trabajo vive en `tests/`, que no es ruta vigilada (`.sdd.json` vigila `src/` y
+`app/`). Ni una línea de `src/` ni de `design/`**: `git diff 2d5ce97..HEAD --stat` toca
+cuatro ficheros y los cuatro son de test. La spec **sigue en `hecho`** y su matriz de CA
+**no se ha tocado**: es el retrato del gate que se pasó. (Consecuencia visible y
+deliberada: la fila de CA-6 sigue diciendo «7 casos» de `tests/geometria-guardias.test.ts`,
+que es lo que había al verificar; hoy son **9**, los dos nuevos descritos aquí abajo.)
+
+- **`V-SPEC-040-2` — cerrado.** La exención de M1 miraba el **`overflow-x` computado**, y
+  en CSS no existe el par visible/no-visible: si `overflow-y` es `auto|scroll` y
+  `overflow-x` es `visible`, el navegador **computa `overflow-x` a `auto`**. Ahora la
+  exención exige **las dos cosas**: `overflow-x` computado `auto|scroll` **y** que el
+  contenedor esté desplazado de verdad a lo ancho (**`scrollWidth > clientWidth`**).
+  - **Reproducido y medido** (`tests/e2e/geometria-puntos-ciegos.spec.ts`, «con el defecto
+    (a) puesto, M1 lo sigue viendo…»), a 360 px en `/vigiladas`: con el defecto (a)
+    reinyectado, M1 informa **13 violaciones sobre 52 elementos**; añadiendo
+    `main.page { overflow-y: auto }` informa **13 sobre 52** — antes bajaba a **0**. El
+    test afirma además que el escenario sigue reproduciendo la causa: que `main.page`
+    computa `overflow-x: auto` sin haberlo declarado, y que **no** es desplazable a lo
+    ancho (contenido 328 = visible 328). Si algún día el motor dejara de computar así, el
+    test lo dice en vez de aprobar callado.
+  - **La exención legítima sigue viva**, y con la prueba de que *hace* algo: segundo test
+    del mismo bloque, `/vigiladas` con fila a 360 px. `.table-scroll` es `overflow-x: auto`
+    con **contenido 771 sobre 328 visibles**, y la celda más a la derecha llega a
+    **right=786** en una ventana de **360** — o sea, hay desborde real que la exención está
+    absorbiendo— y aun así **M1 = 0 violaciones**. Es la segunda salida legítima de
+    **ADR-026 §4** funcionando, no un defecto tapado.
+  - **Comprobación binaria añadida** a `tests/geometria-guardias.test.ts`: la exención de
+    M1 tiene que nombrar `scrollWidth > …clientWidth`. De paso se arregló un test que
+    **habría dejado de mirar en silencio**: el de «`hidden` no cuenta» casaba la condición
+    con `/if \(ox === …\) return true;/` literal y devolvía `''` —aprobando— en cuanto la
+    condición creciera. Ahora, si no encuentra la función, **falla**.
+
+- **`V-SPEC-040-3` — cerrado.** Las raíces de M1 pasan de `nav, main, footer` a
+  **`body > *`**. `body` y `html` se quedan fuera a propósito: su caja es el lienzo, y el
+  desborde del documento ya lo mide M2.
+  - **Reproducido**: un `<div>` de **900 px** colgado de `.frame` a 360 px. **Antes**: M1
+    **0** violaciones y documento **360/360** — las dos medidas ciegas a la vez. **Ahora**:
+    M1 **1** violación sobre **53** elementos, `peor=div.bloque-ancho-reinyectado
+    right=916`. El test afirma también que **M2 sigue sin verlo** (documento 360/360):
+    es `V-SPEC-039-6` otra vez, en otra zona de la página, y por eso el hueco era grave.
+  - **Coste medido**, no razonado, en las **diez superficies** del conjunto a los **ocho**
+    anchos (los ficheros de `_qa/SPEC-040/medidas-*.txt` de dos ejecuciones, antes y
+    después):
+
+    | Medida | Antes | Después |
+    |---|---|---|
+    | elementos medidos por ejecución | **3400** (80 medidas) | **3509** (80 medidas), **+3,2 %** |
+    | de los +109: `.frame` | — | **+79**, uno por superficie y ancho |
+    | de los +109: celdas de la tabla a 1280 px | — | **+30** (`/vigiladas` con filas: 45 → 75) |
+    | `geometria-rutas.spec.ts` (8 tests) | **35,7 s** | **33,4 s** |
+    | exclusiones nuevas | — | **ninguna** |
+    | violaciones nuevas | — | **ninguna** |
+
+    Los **+30** no son coste: son **cobertura ganada** por la otra mitad del arreglo. A
+    1280 px la tabla **cabe** dentro de `.table-scroll`, así que su contenedor ya no está
+    desplazado y sus celdas **entran en la medida** por primera vez. El tiempo no se mueve
+    (la diferencia está dentro del ruido de dos ejecuciones): ensanchar la raíz **no cuesta
+    tiempo medible**, porque `.frame` ya contenía `nav`/`main`/`footer` y lo que se añade
+    es lo poco que colgaba del chrome. **Ninguna exclusión nueva hizo falta**: `.frame` es
+    `max-width: 1440px; margin: 0 auto`, así que su caja es la de la ventana. La lista de
+    `EXCLUSIONES_M1` **sigue teniendo una sola entrada** (`.symbol-results`), que es lo que
+    vigila `F-ADR-026-2`.
+  - Y queda un test que **paga el coste en voz alta** («el chrome del layout entra en la
+    cuenta de elementos medidos…»), para que el día que alguien proponga estrechar la raíz
+    «porque la suite tarda» tenga el número delante.
+
+- **`V-SPEC-040-1` — cerrado, y es de SPEC-037, no de esta spec.**
+  `tests/e2e/admin-grifo.spec.ts` CA-21. **Qué vigilaba antes**: que al vaciar el campo de
+  cupo la base guarde `null` —«sin tope», no cero— y que la pantalla lo diga. **Qué vigila
+  ahora**: exactamente lo mismo, en el orden que lo hace comprobable — **primero la señal
+  de UI que corresponde al dato, después la lectura de la base**. No perdió ni una
+  afirmación: las tres siguen ahí (`capacity: null` en la base, «sin cupo» en pantalla, y
+  el cupo 120 previo).
+
+  | Paso de CA-21 | Antes | Ahora |
+  |---|---|---|
+  | fijar cupo **120** | esperaba `data-abierto=si` —que habla del **interruptor**, no del cupo— y leía la base | espera además **«de 120 plazas»** en `grifo-aforo`, que sí habla del dato que se comprueba |
+  | **retirar** el cupo | leía la base **sin ninguna espera**, y luego miraba la pantalla | mira la pantalla (**«sin cupo»**) y **después** lee la base |
+  | cupo inválido `-3` | esperaba `grifo-error` visible | igual (ya estaba bien) |
+
+  Ni `skip` ni timeout más largo: las dos cosas esconderían el problema. **Ni una línea de
+  `src/`** — el defecto era del test, no del grifo. **Dos pasadas completas del e2e en
+  verde**, 195/195 las dos (ver los gates abajo).
+
+- **Los cuatro residuales que NO se cierran aquí siguen abiertos, con su destino intacto**:
+  `V-SPEC-040-4` (evidencia rancia en `_qa/SPEC-036/`, para sdd-documentalista),
+  `F-SPEC-040-1` (`/cartera` fuera del conjunto), `F-SPEC-040-2` (el gate `require-spec`
+  sólo admite el prefijo `ft/`) y `F-SPEC-040-3` (páginas legales de segundo nivel y flujos
+  de contraseña sin medir).
+
+- **`_qa/` se restauró antes de cada commit** (`git checkout -- _qa/`): la suite regenera
+  las capturas y las medidas de **todas** las specs, y las de `_qa/SPEC-036/` son
+  precisamente `V-SPEC-040-4`, que no me toca cerrar. La evidencia commiteada sigue siendo
+  la que dejó el verificador; las cifras nuevas de esta ronda viven **aquí** y en el jsdoc
+  de `RAICES`.
+
+#### Los cinco gates de esta ronda (sdd-implementador, 2026-08-20)
+
+| Gate | Resultado |
+|---|---|
+| `npm run typecheck` | ✅ exit 0 (`tsc --noEmit`, sin salida) |
+| `npm run lint` | ✅ exit 0 (`eslint . --max-warnings=0`, sin salida) |
+| `npm test` | ✅ **82 ficheros, 1118/1118** en 152,11 s (1116 + los 2 casos nuevos de `geometria-guardias`) |
+| `npm run build` | ✅ exit 0 |
+| `npm run test:e2e` | ✅ **195 passed (3,2 m)** y ✅ **195 passed (3,1 m)** — **dos** pasadas completas, las dos en verde (191 + los 4 tests nuevos) |
+
 ## Cómo retomar (handoff)
 
-**Estado: implementación completa, los once CA con su test, los cinco gates en verde.**
-Spec en `en-revision`. Falta el paso del verificador.
+**Estado: verificada GREEN 11/11, spec en `hecho`, y los dos puntos ciegos que el
+verificador levantó (`V-SPEC-040-2` y `V-SPEC-040-3`) más el intermitente ajeno
+(`V-SPEC-040-1`) ya cerrados encima, sólo en `tests/`.** Lo que queda es la PR.
 
 - **Rama**: `ft/SPEC-040-movil-completa-el-alta-y-guardia-que-lo-ve` (renombrada, ver
   `F-SPEC-040-2`), sobre `origin/main` con SPEC-039 dentro. Sin push, sin PR.
-- **Gates**: `typecheck` ✅ · `lint` ✅ (`--max-warnings=0`) · `test` ✅ **1116/1116** ·
-  `build` ✅ · `test:e2e` ✅ **191/191**.
+- **Gates** (última ronda): `typecheck` ✅ · `lint` ✅ (`--max-warnings=0`) · `test` ✅
+  **1118/1118** · `build` ✅ · `test:e2e` ✅ **195/195**, **dos veces**. (En la ronda de
+  implementación fueron 1116 y 191: la diferencia son los 2 casos unitarios y los 4 tests
+  e2e que cierran los puntos ciegos.)
+- **Dónde están los puntos ciegos cerrados**: `tests/e2e/geometria-puntos-ciegos.spec.ts`
+  (4 tests, reinyectan el escenario como manda ADR-026 §7). El arreglo de `V-SPEC-040-2`
+  es la exención de M1 en `tests/e2e/geometria.ts` (`dentroDeContenedorDesplazable`, ahora
+  exige `scrollWidth > clientWidth`); el de `V-SPEC-040-3`, la constante `RAICES` del mismo
+  fichero (`nav, main, footer` → `body > *`), con el coste medido escrito en su jsdoc.
 - **⚠️ Para reproducir el e2e**: `npm run build` **antes** de `npm run test:e2e`, o se
   medirá el build anterior y saldrán rojos justo los CA de esta spec.
 - **Dónde está lo importante**: el módulo compartido es `tests/e2e/geometria.ts`; su
