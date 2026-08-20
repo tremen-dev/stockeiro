@@ -246,9 +246,39 @@ casilla marcada, no una garantía.
      no hay superficie donde el secreto pueda acabar en un log ni donde `github.head_ref`
      —dato controlado por quien abre la PR— llegue a una shell;
   4. ni el id del proyecto ni la clave aparecen **en claro**: solo por `vars.` y `secrets.`.
+
+  > ⚠️ **Corrección del 2026-08-20 sobre CA-4.3 — lo que exige no cambia; lo que se creyó que
+  > compraba, sí.**
+  >
+  > - **Qué sigue exigiendo CA-4.3, intacto**: **cero `run:`** en nuestro fichero. El requisito
+  >   no se toca y se sigue verificando igual.
+  > - **Qué compra de verdad**: que no exista una shell **nuestra** donde el secreto pueda
+  >   acabar impreso en un log. Eso sigue siendo cierto y sigue valiendo.
+  > - **Qué NO compra, y se creyó que sí hasta hoy**: que `github.head_ref` no llegue a un
+  >   intérprete de comandos. La frase de arriba —*"ni donde `github.head_ref` … llegue a una
+  >   shell"*— es **falsa**. `neondatabase/delete-branch-action` es una ***composite action***
+  >   y su paso final es un `shell: bash` que interpola el nombre de rama **textualmente, dos
+  >   veces, con la clave en el `env` de ese mismo paso**. Verificado **en producción**, en el
+  >   log de la ejecución `32371568962` — no deducido del README.
+  > - **Quién impide la inyección**: el **filtro de tres caracteres** (`$`, backtick y comilla
+  >   doble) que el `if` del job aplica a `github.head_ref` **antes** de dárselo a la acción.
+  >   No la ausencia de `run:`. Sin ese filtro, el peor caso alcanzable no era *"borré una
+  >   preview que no tocaba"* sino **ejecución de comandos con la única clave con permiso de
+  >   borrado del proyecto**.
+  >
+  > *Dónde vive hoy ese filtro, dicho con precisión*: en el workflow, y congelado por los
+  > cuatro casos que `tests/neon-preview-cleanup-workflow.test.ts` rotula **`CA-4.5`**. Esta
+  > spec **nunca llegó a declarar un CA-4.5**: el filtro nació del finding **F-1** del
+  > verificador, después de aprobarse CA-4. La corrección de arriba **no lo declara** —eso
+  > cambiaría lo que CA-4 exige y no es de esta ronda—; lo deja **anotado**, que es lo que
+  > faltaba para que la spec no contradiga a sus propios tests.
+
   *Por qué esto es un CA y no una nota*: `main` **es la cartera real del usuario**. Un action
-  mal apuntado no da un rojo, da una pérdida de datos. El prefijo literal es lo que hace que el
-  peor caso alcanzable por este fichero sea *"borré una preview que no tocaba"*.
+  mal apuntado no da un rojo, da una pérdida de datos. ~~El prefijo literal es lo que hace que
+  el peor caso alcanzable por este fichero sea *"borré una preview que no tocaba"*.~~
+  **Corregido el 2026-08-20**: el prefijo literal, **él solo, no lo hacía**. Lo que deja el peor
+  caso en *"borré una preview que no tocaba"* son **las dos cosas juntas** — el prefijo literal
+  **y** el filtro de caracteres.
 
 - **CA-5 (Higiene del workflow: fork, permisos, plazo, concurrencia, y sin red de seguridad
   que tape el fallo).**
@@ -487,10 +517,13 @@ Lo que hay que decidir, no lo que hay que leer.
 
 - **R-1 — Un action mal apuntado borra una rama que no toca, y `main` es la cartera real del
   usuario.** Es el riesgo grave y el único con consecuencia irreversible.
-  *Mitigación en la spec*: el prefijo literal `preview/` (CA-4.1), la prohibición de nombrar
-  `main` (CA-4.2), la ausencia total de `run:` (CA-4.3), y la comparación antes/después del
-  panel la primera vez (CA-10).
-  *Residual, dicho claro*: las tres primeras acotan **lo que este fichero pide**; no acotan
+  *Mitigación en la spec* — **corregida el 2026-08-20** (ver la nota de CA-4.3): el prefijo
+  literal `preview/` (CA-4.1), la prohibición de nombrar `main` (CA-4.2), **el filtro de tres
+  caracteres sobre `github.head_ref`** —que es **quien de verdad impide la inyección**, y no la
+  ausencia de `run:` de CA-4.3, que garantizaba menos de lo que esta spec le atribuyó—, la
+  propia ausencia de `run:` (CA-4.3) por lo que sí compra —ninguna shell **nuestra** donde el
+  secreto pueda imprimirse—, y la comparación antes/después del panel la primera vez (CA-10).
+  *Residual, dicho claro*: las primeras acotan **lo que este fichero pide**; no acotan
   **lo que la clave puede hacer**. Eso se acota al crearla (punto 2 del gate) o no se acota. Y
   el fichero es editable: quien pueda mergear una PR puede cambiar ese valor — con la
   diferencia de que ahora habría que hacerlo **por escrito, en una PR, contra un test que lo
@@ -505,9 +538,15 @@ Lo que hay que decidir, no lo que hay que leer.
   mismo, y el segundo en llegar se encontraría la rama ya borrada — que es **R-3** otra vez.
   Ese día este fichero se retira; queda escrito aquí para que se recuerde.
 - **R-5 — Un secreto en un repositorio público.** Mitigado por CA-2 (nada de
-  `pull_request_target`), CA-5.1 (nada de forks), CA-5.2 (sin permisos de escritura) y CA-4.3
-  (sin `run:` donde pueda imprimirse). Residual: sigue siendo un secreto en un repo público, y
-  la propiedad *"este repo no tiene secretos"* muere aquí.
+  `pull_request_target`), CA-5.1 (nada de forks), CA-5.2 (sin permisos de escritura), CA-4.3
+  (sin `run:` **nuestro** donde pueda imprimirse) y **el filtro de tres caracteres del `if` del
+  job**.
+  **Corrección del 2026-08-20** (ver la nota de CA-4.3): CA-4.3 figuraba aquí como si impidiera
+  que el nombre de rama llegara a una shell, y **no lo impide** — la shell de la composite
+  action existe y **recibe la clave en su `env`**. El mérito de esa mitigación es del **filtro**;
+  a CA-4.3 le queda la mitad que sí es cierta.
+  Residual: sigue siendo un secreto en un repo público, y la propiedad *"este repo no tiene
+  secretos"* muere aquí.
 - **R-6 — El techo sigue siendo 10.** Esta spec quita la **acumulación**, no el **techo**. Con
   varias PRs abiertas a la vez —que es lo que ya pasa en este proyecto: hay varios worktrees
   vivos— diez sigue sin ser mucho. La mitad 1 de F-SPEC-028-2 queda abierta a propósito.
