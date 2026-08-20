@@ -71,7 +71,18 @@ export default async function CuentaPage() {
             <dd>{perfil.email}</dd>
           </div>
           <div>
-            <dt>Tipo de cuenta</dt>
+            {/*
+              SPEC-040 CA-9 (cierra F-SPEC-036-9 por la vía (b) de ADR-025 pto. 3).
+              Decía «Tipo de cuenta» y el glosario dice «Rol de cuenta» (fila que entró
+              con SPEC-034 desde ADR-021). Un rótulo que contradice al glosario en la
+              pantalla que va a ver un tester externo no espera compañía.
+
+              `data-termino` no es decoración: nombra DE QUÉ fila del glosario sale este
+              rótulo, y es lo que permite a `tests/e2e/rotulo-glosario.spec.ts` comparar
+              lo que pinta la app con `docs/fundacion/dominio.md`. Así salta tanto si el
+              rótulo se desvía como si el término se renombra ahí.
+            */}
+            <dt data-termino="rol-de-cuenta">Rol de cuenta</dt>
             <dd>{perfil.role}</dd>
           </div>
           <div>

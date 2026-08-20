@@ -79,6 +79,49 @@
   outline: 2px solid var(--ember);
   outline-offset: 1px;
 }
+
+/* --- SPEC-040 CA-1 — el formulario de alta CABE en un teléfono ---------------
+
+   El defecto, medido: a 360 px el bloque del buscador, el campo de búsqueda y el botón
+   «Vigilar» medían **444 px** en una ventana de 360, y `html, body { overflow-x: hidden }`
+   del sistema de diseño los recortaba **en silencio** — sin barra de desplazamiento que
+   avisara. El botón que cierra CE-1 estaba fuera de la pantalla y la suite en verde.
+
+   Y la causa no era el buscador, aunque lo pareciera: eran los CAMPOS DE ZONA. Cada
+   `<input>` sin `size` mide **218 px** de mínimo intrínseco con la tipografía de la app
+   (no los 170–180 que suponía la hipótesis de la spec), y la fila `min` / `max` son dos
+   de ellos con 8 px de hueco: 218 + 8 + 218 = **444**. Un ítem de rejilla o de flex no
+   encoge por debajo de su `min-content` mientras conserve `min-width: auto`, así que ese
+   444 se propagaba a la columna entera y con ella al buscador, al `<strong>` y al botón.
+
+   El arreglo es declarar lo que ADR-026 §5 exige a todo componente de `src/app/`: su
+   capacidad de encoger. No hay recortes, ni `overflow: hidden`, ni `!important`. */
+.auth-form > *,
+.auth-form label > *,
+.symbol-picker,
+.symbol-search,
+.symbol-search-input,
+.symbol-chip,
+.symbol-chip-main {
+  min-width: 0;
+}
+
+/* La fila `min` / `max` de una zona. Era un `style` en línea dentro de `WatchForm`, que
+   es exactamente el sitio donde no se puede declarar un `min-width` para los hijos.
+   Ahora es una clase de la app con su eje, su reparto y su capacidad de encoger dichos
+   —las tres cosas de ADR-026 §5— y los dos campos se reparten el ancho a partes iguales
+   en vez de imponer cada uno su mínimo intrínseco. */
+.zona-campos {
+  display: flex;
+  gap: 8px;
+  min-width: 0;
+}
+.zona-campos > input {
+  flex: 1 1 0;
+  min-width: 0;
+  width: 100%;
+}
+
 .auth-error {
   color: var(--error);
   font-size: var(--t-body-sm);
@@ -141,6 +184,37 @@
   border: 1px solid var(--ink-line);
   border-left: 3px solid var(--accent);
   background: var(--ink-soft);
+}
+
+/* ============================================================
+   SPEC-040 CA-4 — el panel reparte columnas según lo que CABE
+   ============================================================
+
+   `.cards` (`design/tremen-ds/components/cards.css`) es `repeat(3, 1fr)` **sin ninguna
+   variante responsive**: a 390 px las tarjetas del panel caían en columnas de ~99 px y
+   los títulos se rompían DENTRO de la palabra —«Ac / cio / ne / s»—. Es la segunda
+   pantalla que ve un tester recién registrado.
+
+   Ese modo de fallo **no desborda nada**: el texto se reparte dentro de su caja, así que
+   ni la medida de documento ni la medida por elemento lo ven. Lo caza M3, la integridad
+   de palabra (ADR-026 §1).
+
+   **Y el arreglo vive aquí, en `src/app/`, no en el sistema de diseño.** `tremen-ds` lo
+   comparte el sitio de tremen.dev: añadirle allí esta variante cambiaría esa web
+   (ADR-026 §5, «la app no muta el sistema»). `globals.css` importa el sistema en su
+   primera línea, así que a igual especificidad gana la app por orden de fuente — sin
+   `!important` y sin escalar la especificidad a martillazos (R-4 de SPEC-040).
+
+   A 1280 px no se declara nada: el escritorio se queda EXACTAMENTE como estaba, con las
+   tres pistas del sistema. */
+
+/* Un teléfono: una tarjeta por fila. */
+@media (max-width: 599px) {
+  .cards { grid-template-columns: 1fr; }
+}
+/* Tablet y ventana estrecha de escritorio: dos. */
+@media (min-width: 600px) and (max-width: 1023px) {
+  .cards { grid-template-columns: repeat(2, 1fr); }
 }
 
 /* ============================================================
@@ -207,6 +281,13 @@
   padding: 8px 0 48px;
   align-content: start;
 }
+/* SPEC-040 / ADR-026 §5 — `.page` es una rejilla, y un ítem de rejilla que no declara su
+   `min-width` conserva `auto`: no encoge por debajo de su contenido y estira la columna
+   —y con ella a TODOS sus hermanos—. Así es como el formulario de alta de 444 px se
+   llevaba por delante la cabecera de `/vigiladas`. Lo que no cabe se resuelve por una de
+   las dos salidas de ADR-026 §4 (que quepa, o su propio contenedor de desplazamiento),
+   no dejando que empuje la página. */
+.page > * { min-width: 0; }
 .page-head { display: grid; gap: 6px; }
 .page-head .eyebrow { color: var(--fg-dim); }
 .page .sub { color: var(--fg-muted); margin: 0; font-size: var(--t-body-sm); }
@@ -324,10 +405,28 @@
 }
 .btn-sm:hover { border-color: var(--fg); }
 
+/* --- SPEC-040 CA-5 — la tabla se desplaza dentro de SU caja, nunca la página ---
+
+   `overflow-x: auto` vivía dentro de `@media (max-width: 720px)`, así que por encima de
+   720 px no había contenedor que absorbiera la tabla y la absorbía el documento: a
+   760 px, `scrollWidth` 819 sobre `clientWidth` 760. El defecto vivía **entre** dos
+   anchos medidos (700 y 760) y por eso ninguna guardia lo veía; de ahí que ADR-026 §3
+   añada 730 y 800 a los anchos del proyecto.
+
+   ADR-026 §4: ante un desborde hay exactamente dos salidas legítimas —que quepa, o que
+   el desplazamiento viva en un contenedor propio **declarado a todos los anchos**—. Esta
+   es la segunda, y por eso sale del `@media`. El `min-width: 0` se dice aunque
+   `overflow-x: auto` ya lleve el mínimo automático a cero: `.page` es una rejilla y un
+   ítem que no declara su capacidad de encoger la hereda (ADR-026 §5). */
+.table-scroll {
+  overflow-x: auto;
+  min-width: 0;
+  max-width: 100%;
+}
+
 @media (max-width: 720px) {
   .app-nav { gap: 12px; }
   .app-nav-links { gap: 16px; }
-  .table-scroll { overflow-x: auto; }
   .notif-item { grid-template-columns: auto 1fr; }
   .notif-actions { grid-column: 2; justify-self: start; }
 }
