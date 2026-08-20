@@ -99,11 +99,16 @@ vez de dejarlo en su fichero.
 
 ### 3. Los **anchos de referencia** son del proyecto, no de cada spec
 
-**390, 640, 700, 730, 760, 800 y 1280 px.** Los cinco primeros que fijó SPEC-035 (390, 640,
-700, 760, 1280) más **730 y 800**, que SPEC-040 añade porque `V-SPEC-039-3` vive exactamente
-en el hueco que dejaban 700 y 760 — un defecto que sólo existe entre dos anchos medidos es un
-defecto que nadie mide. El suelo declarado es **390 px**; bajarlo es una decisión de producto
-con coste de rediseño, no un parámetro que se cambie en un test.
+**360, 390, 640, 700, 730, 760, 800 y 1280 px.** Los cinco que fijó SPEC-035 (390, 640, 700,
+760, 1280), más **730 y 800** —que SPEC-040 añade porque `V-SPEC-039-3` vive exactamente en el
+hueco que dejaban 700 y 760: un defecto que sólo existe entre dos anchos medidos es un defecto
+que nadie mide—, más **360**, el suelo que fijó el humano en el gate del 2026-08-20 (Android
+pequeño e iPhone SE).
+
+**El suelo declarado es 360 px**, y bajarlo más **no es un parámetro de test**: a 320 px la
+tabla de datos y el formulario de alta no se ajustan, se rediseñan, y eso es una decisión de
+producto con su épica. Subir el suelo tampoco es libre: cada ancho que se retira es una franja
+en la que nadie vuelve a mirar.
 
 ### 4. `overflow: hidden` **no es una respuesta a un desborde**
 
@@ -165,7 +170,7 @@ SPEC-035 y es la única forma barata de distinguir «el test está verde» de «
 ### Negativas / follow-ups
 
 - **Coste por spec.** Toda pantalla nueva añade sus rutas al conjunto y paga sus medidas: la
-  e2e crece. Siete anchos × diez rutas ya son setenta medidas por ejecución. Si el tiempo se
+  e2e crece. Ocho anchos × diez rutas ya son ochenta medidas por ejecución. Si el tiempo se
   vuelve un problema, la salida es **reducir anchos por ruta** (móvil siempre; el resto según
   lo que la pantalla arriesgue), no volver a la medida ciega.
 - **F-ADR-026-1 (follow-up).** El módulo compartido crea un **punto único de fallo con

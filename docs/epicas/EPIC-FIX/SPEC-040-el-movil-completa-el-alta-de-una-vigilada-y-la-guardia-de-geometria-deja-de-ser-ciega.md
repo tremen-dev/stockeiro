@@ -113,30 +113,54 @@ maquetación al *«sin cotización»* mudo — esconde el problema en vez de ens
 ## Criterios de aceptación
 
 Todas las medidas se toman **en el navegador, con la app corriendo** (Playwright), a los
-**siete anchos de referencia**: **390, 640, 700, 730, 760, 800 y 1280 px**. Son los cinco
-que usa toda la épica (390, 640, 700, 760, 1280) **más 730 y 800**, que son los bordes de la
-ventana en que vive el defecto 3 y que ninguna guardia miraba. Alto de ventana: 844 px en
-móvil (390) y 900 en el resto. Tolerancia de redondeo del motor: **1 px**.
+**ocho anchos de referencia**: **360, 390, 640, 700, 730, 760, 800 y 1280 px**. Son los cinco
+que usa toda la épica (390, 640, 700, 760, 1280) **más 730 y 800** —los bordes de la ventana
+en que vive el defecto 3, que ninguna guardia miraba— **más 360**, el suelo que fijó el
+humano en el gate del 2026-08-20. Alto de ventana: **800 px a 360**, **844 a 390** y 900 en
+el resto. Tolerancia de redondeo del motor: **1 px**.
+
+### El suelo baja a 360 px, y eso endurece dos CA — dilo antes de teclear
+
+Los defectos se midieron a **390 px**, donde la columna del formulario es de **350**
+(`.auth-wrap` es `width: min(420px, 100%)` y `.frame` se lleva 20 px a cada lado). **A 360 px
+esa columna es de 320**, así que el objetivo de CA-1 no es el mismo número:
+
+- `.symbol-picker` tiene que bajar de **444 a ≤ 320**, no a ≤ 350: son **124 px**, no 94.
+- Y aparece un caso que la medida de 390 px **no obligaba a resolver**: la fila `min` / `max`
+  de cada zona son **dos `input` con 8 px de hueco**, así que a 360 px cada campo dispone de
+  **~156 px**. El ancho intrínseco por defecto de un `<input>` ronda los **170–180 px** en los
+  motores habituales, y un ítem de rejilla no encoge por debajo de su `min-content` mientras
+  conserve `min-width: auto`. **Hipótesis declarada, no medida**: es muy probable que haya que
+  darles `min-width: 0` (o equivalente) **también a los campos de zona**, y no sólo al
+  buscador. Si al implementarlo resulta que ya cabían, mejor; lo que no debe pasar es
+  descubrirlo en rojo creyendo que era un CA de una línea.
+
+Nadie ha medido todavía a 360 px: los números de 444 / 350 / 819 son de 390 y 760. Si al
+bajar el suelo aparece algún desborde nuevo en una pantalla ya entregada, **es un hallazgo,
+no una regresión** (mismo trato que R-2).
 
 - **CA-1 (el formulario de alta cabe entero).** Dado un usuario con sesión y la lista de
-  vigiladas **vacía**, cuando abre `/vigiladas` a **390 × 844**, entonces **ningún** elemento
-  visible dentro de `form.auth-form` tiene `getBoundingClientRect().right > innerWidth + 1`
-  ni `left < -1`. En particular `.symbol-picker`, `.symbol-search-input`, los cuatro campos
-  `min`/`max` de las dos zonas y el botón **Vigilar** caben dentro de la columna de **350
-  px** (hoy miden 444). Además el propio formulario no genera desplazamiento interno:
-  `form.auth-form.scrollWidth <= clientWidth + 1`. El test escribe la anchura medida de cada
-  elemento en el mensaje de fallo.
+  vigiladas **vacía**, cuando abre `/vigiladas` a **360 × 800** y a **390 × 844**, entonces
+  **ningún** elemento visible dentro de `form.auth-form` tiene
+  `getBoundingClientRect().right > innerWidth + 1` ni `left < -1`. En particular
+  `.symbol-picker`, `.symbol-search-input`, los cuatro campos `min`/`max` de las dos zonas y
+  el botón **Vigilar** caben dentro de la columna, que es de **320 px a 360** y de **350 px a
+  390** (hoy miden 444 en las dos). Además el propio formulario no genera desplazamiento
+  interno: `form.auth-form.scrollWidth <= clientWidth + 1`. El test escribe la anchura medida
+  de cada elemento en el mensaje de fallo.
 
-- **CA-2 (y sirve para lo que existe: CE-1 en un teléfono).** Dado un visitante anónimo a
-  **390 × 844**, cuando se registra y en `/vigiladas` teclea en el buscador, **elige un
+- **CA-2 (y sirve para lo que existe: CE-1 en un teléfono).** Dado un visitante anónimo en
+  el **suelo declarado, 360 × 800** —si el recorrido se completa en el ancho más estrecho, se
+  completa en los demás—, cuando se registra y en `/vigiladas` teclea en el buscador, **elige un
   candidato de la lista**, rellena la zona de compra (min y max) y pulsa **Vigilar**,
   entonces la acción aparece en la tabla — y **todo el recorrido ocurre sin desplazamiento
   horizontal de la página**: antes de cada interacción el test comprueba que el control está
   dentro de la ventana (`right <= innerWidth + 1`) y el clic se hace sin forzar
-  `scrollIntoView` horizontal. Es CE-1 de EPIC-004, medido en el ancho en el que hoy falla.
+  `scrollIntoView` horizontal. Es CE-1 de EPIC-004, medido en el ancho más estrecho que el
+  proyecto soporta — y hoy falla ya a 390.
 
 - **CA-3 (el desborde no se puede enmascarar: se mide elemento a elemento).** Dados los
-  siete anchos y las rutas que alcanza un **tester** —`/`, `/ayuda`, `/legal`, `/login`,
+  ocho anchos y las rutas que alcanza un **tester** —`/`, `/ayuda`, `/legal`, `/login`,
   `/register`, `/dashboard`, `/vigiladas` **vacía** y **con al menos una fila**, `/avisos` y
   `/cuenta`—, cuando se recorre cada elemento visible de `nav`, `main` y `footer`, entonces
   ninguno tiene `right > innerWidth + 1`. Las **únicas** exclusiones admitidas son elementos
@@ -147,17 +171,17 @@ móvil (390) y 900 en el resto. Tolerancia de redondeo del motor: **1 px**.
 
 - **CA-4 (ninguna palabra se parte, y el panel reparte columnas según lo que cabe).** Dado
   `/dashboard` con rol **`tester`** (dos tarjetas) y con rol **`completo`** (tres), entonces:
-  (a) a **390 px** el contenedor de tarjetas resuelve a **una sola columna**
+  (a) a **360 y 390 px** el contenedor de tarjetas resuelve a **una sola columna**
   (`getComputedStyle(...).gridTemplateColumns` con **1** pista) y a **640/700 px** a **dos
   como mucho**; (b) a **1280 px** sigue habiendo **tres** pistas — el escritorio no cambia; y
-  (c) a los siete anchos, para cada `.card h3` y cada `.card .num`, el número de cajas de
+  (c) a los ocho anchos, para cada `.card h3` y cada `.card .num`, el número de cajas de
   línea que devuelve `Range.getClientRects()` sobre su texto es **≤ su número de palabras**
   —es decir, ninguna palabra se rompe— y ninguna caja de línea excede el ancho de contenido
   de su tarjeta. Traducción del defecto: «Acciones vigiladas» ocupa como mucho **2** líneas,
   no ocho.
 
 - **CA-5 (la tabla se desplaza dentro de su caja, nunca la página).** Dado `/vigiladas` con
-  **al menos una fila**, a los siete anchos, entonces
+  **al menos una fila**, a los ocho anchos, entonces
   `document.documentElement.scrollWidth <= clientWidth + 1`; `.table-scroll` tiene
   `overflow-x: auto` **computado a todos los anchos** (no sólo por debajo de 720); y la tabla
   **sigue siendo legible**: desplazando `.table-scroll` hasta su extremo derecho se alcanza
@@ -208,10 +232,11 @@ móvil (390) y 900 en el resto. Tolerancia de redondeo del motor: **1 px**.
   aspecto.
 
 - **CA-11 (evidencia medida, no razonada).** Dado el cierre de la spec, entonces quedan en
-  `_qa/SPEC-040/` las **capturas y las medidas** de los siete anchos para `/vigiladas`
+  `_qa/SPEC-040/` las **capturas y las medidas** de los ocho anchos para `/vigiladas`
   (vacía y con filas) y `/dashboard`, con las tres cifras de antes y después:
-  `.symbol-picker` **444 → ≤ 350** a 390 px; documento **819/760 → ≤ 760** a 760 px; pistas
-  de `.cards` **3 → 1** a 390 px y **3** a 1280 px.
+  `.symbol-picker` **444 → ≤ 320** a 360 px y **444 → ≤ 350** a 390 px; documento
+  **819/760 → ≤ 760** a 760 px; pistas de `.cards` **3 → 1** a 360 y 390 px, y **3** a
+  1280 px.
 
 ## Entidades y reglas afectadas
 
@@ -256,8 +281,10 @@ un rótulo, y el término que ese rótulo necesita **ya existe**. Nada que escri
    la rechazaron SPEC-035, SPEC-036 y SPEC-037: una prueba de captura se rompe al cambiar una
    fuente o un color, que no es lo que hay que proteger. Se miden **cajas**, no píxeles de
    color.
-4. **Anchos fuera de [390, 1280]**, orientación apaisada y zoom del navegador. 390 px es el
-   suelo declarado; 320 px no se soporta en esta spec.
+4. **Anchos fuera de [360, 1280]**, orientación apaisada y zoom del navegador. El suelo
+   declarado es **360 px** (veredicto del humano, gate 2026-08-20). **320 px queda fuera** con
+   su motivo: a ese ancho no se trata de **ajustar** la tabla y el formulario sino de
+   **repensarlos**, y eso es producto, no un defecto de maquetación.
 5. **Rediseñar la tabla de vigiladas en móvil** —columnas colapsables, tarjetas en vez de
    tabla, columna de ticker fija—. Basta con que el desplazamiento viva en su contenedor
    (CA-5). Si el humano quiere una tabla pensada para móvil, es producto y va a su épica.
@@ -265,13 +292,25 @@ un rótulo, y el término que ese rótulo necesita **ya existe**. Nada que escri
    (no la ve un tester y ya tiene guardia propia, que sí migra a la medida buena por CA-6).
    Entran al conjunto de rutas cuando su spec lo pida — que es justo lo que **ADR-026** obliga
    a hacer.
+
+   **`F-SPEC-040-1` (residual declarado en el gate del 2026-08-20, con nombre y no por
+   omisión).** `/cartera` monta su tabla en **el mismo `.table-scroll`** que causa el defecto
+   3 (`src/app/cartera/page.tsx:63`), y su tabla es **más ancha** que la de vigiladas. Por
+   tanto **es probable que sufra el mismo desborde entre 721 y 800 px**, y **esta spec no lo
+   va a ver**: la ruta queda fuera del conjunto por decisión explícita del humano, porque hoy
+   sólo la usa el titular. El arreglo de CA-5 —sacar `.table-scroll` del `@media`— la
+   beneficiará **de rebote**, pero **nadie lo habrá medido**. **Destino**: el día que Cartera
+   se abra a alguien que no sea el titular, su ruta entra al conjunto de rutas de la guardia
+   antes de enseñarla. Queda escrito para que ese día sea un paso previsto y no un
+   descubrimiento.
 7. **Un barrido general de rótulos contra el glosario.** Sólo entra `F-SPEC-036-9`. Y
    **`F-ADR-025-1`** —el test que ate **todos** los términos del dominio a los textos de la
    UI— **sigue abierto**: CA-9 deja el patrón escrito para un término, no la disciplina
    entera.
-8. **Los demás residuales de SPEC-039**: `V-SPEC-039-4` y `-5` (documentales, ver §Notas),
-   `-7` (coste de consulta en `/dashboard`, EPIC-MEJORA) y `-8` (ya asignado en
-   `F-SPEC-038-7`).
+8. **Los demás residuales de SPEC-039**: `V-SPEC-039-4` (documental — **destino escrito**: el
+   cierre de SPEC-038, anotado en la §Salvedades de su ledger), `-5` (documental, de
+   sdd-documentalista), `-7` (coste de consulta en `/dashboard`, EPIC-MEJORA) y `-8` (ya
+   asignado en `F-SPEC-038-7`).
 9. **Accesibilidad más allá de la caja**: tamaño mínimo de área táctil, contraste, orden de
    foco y lectores de pantalla. Merecen su propia spec y su propia guardia; mezclarlos aquí
    difuminaría la única pregunta que esta spec responde, que es si el contenido **cabe**.
@@ -283,8 +322,9 @@ un rótulo, y el término que ese rótulo necesita **ya existe**. Nada que escri
   candidatos**, donde conviven nombre largo, ticker y mercado. Si se resuelve con un recorte
   duro, el usuario deja de poder distinguir dos mercados del mismo ticker, que es
   precisamente lo que entregó SPEC-029. **Mitigación**: CA-2 exige **elegir un candidato de
-  la lista** a 390 px, así que un desplegable ilegible se nota en el recorrido y no sólo en
-  la medida.
+  la lista** a 360 px, así que un desplegable ilegible se nota en el recorrido y no sólo en
+  la medida. El riesgo **crece** con el suelo en 360: hay 30 px menos de columna para el
+  mismo nombre.
 - **R-2 (el refactor de la guardia puede poner roja la suite por motivos ajenos).** CA-6 toca
   tres ficheros de test que hoy están en verde. **Mitigación**: se unifica **la medida**, no
   las afirmaciones; cada guardia conserva sus umbrales y sus invariantes (`HOLGURA_PX`
@@ -309,6 +349,12 @@ un rótulo, y el término que ese rótulo necesita **ya existe**. Nada que escri
   de la caja. Si la implementación se limita a las dos medidas de desborde, CA-4 no queda
   cubierto aunque la pantalla parezca arreglada. Está escrito como **tercera medida** a
   propósito.
+- **R-7 (el suelo de 360 px puede pedir más de lo que dice la medida de 390).** Los números
+  del §Problema son de 390 px; a 360 la columna del formulario es de 320 y los campos de zona
+  se quedan en ~156 px cada uno, por debajo del ancho intrínseco por defecto de un `<input>`.
+  Detallado arriba, en «El suelo baja a 360 px». **Mitigación**: está declarado **antes** de
+  implementar, y CA-1 mide los dos anchos con su columna respectiva, así que si la hipótesis
+  se cumple el implementador lo sabe desde el primer test rojo y no lo lee como sorpresa.
 
 ## Notas para el gate humano
 
@@ -326,8 +372,11 @@ Lo que conviene mirar con lupa, en orden:
    trabajo futuro** —toda pantalla nueva se añade al conjunto de rutas de la guardia— y por
    eso va como ADR y no como una frase dentro de esta spec. Apruébalo junto con la spec, o
    dime que lo dejemos en convención sin ADR.
-3. **Añado dos anchos a los cinco de la épica: 730 y 800.** El defecto 3 vive **entre** 721 y
-   800, justo en el hueco que dejaban 700 y 760. Cuesta dos medidas más por pantalla.
+3. **Ocho anchos, no cinco: entran 730, 800 y 360.** El defecto 3 vive **entre** 721 y 800,
+   justo en el hueco que dejaban 700 y 760; y el suelo baja a **360** por veredicto tuyo. Lee
+   el bloque «El suelo baja a 360 px» antes de firmar: **cambia el objetivo numérico de CA-1**
+   (la columna pasa de 350 a 320) y añade una hipótesis que nadie ha medido todavía (los
+   campos `min`/`max` casi seguro necesitan encoger también).
 4. **`design/tremen-ds` no se toca.** Es una decisión, no un olvido: el sistema lo comparte el
    sitio de tremen.dev y una variante responsive de `.cards` allí cambiaría esa web. El coste
    es que la app acumula overrides; el beneficio, que este arreglo no puede romper nada fuera
@@ -337,23 +386,30 @@ Lo que conviene mirar con lupa, en orden:
    algo se sale, el test lo dice aunque la pantalla lo disimule.
 6. **No hay término de dominio que aprobar** con esta spec (ADR-025 pto. 1): el rótulo de CA-9
    sale de una fila que ya existe.
+7. **Prioridad registrada antes de implementar (suscrita por el humano, 2026-08-20):** si algo
+   hay que recortar, **no son CA-6 ni CA-7**. Los tres arreglos de CSS son unas líneas; lo que
+   evita que la familia vuelva es la guardia compartida y su prueba de eficacia. Queda escrito
+   aquí para que conste que se dijo **antes** de teclear, y no como excusa después.
 
-### Preguntas abiertas
+### Veredictos del gate humano (Alberto Fojo, 2026-08-20)
 
-- **¿320 px?** He puesto el suelo en **390** (iPhone 12/13/14, y el ancho con el que se
-  midieron los defectos). Un Android pequeño o un iPhone SE están en **360**, y con la barra
-  lateral de algún navegador se baja de ahí. Añadir 360 al conjunto es gratis; **320** ya
-  obligaría a repensar la tabla y probablemente el formulario. ¿Bajo el suelo a 360?
-- **`V-SPEC-039-4`: una frase del glosario que describe un futuro.** La fila «Canal de
-  feedback» de `docs/fundacion/dominio.md` dice que la identidad del despliegue es *«la misma
-  fuente que … enseña el pie»*, y el pie **todavía no la enseña** — eso llega con SPEC-038.
-  **No lo he tocado**: es documento de verdad y su momento natural es el cierre de SPEC-038,
-  no un arreglo de maquetación. Si prefieres que lo corrija ya, dilo y lo llevo en este mismo
-  gate.
-- **¿`/legal` y `/register` dentro del conjunto de rutas de la guardia?** Las he metido porque
-  son públicas y las ve un desconocido que llega del foro. Suman ~14 medidas más por
-  ejecución. Si el tiempo de e2e importa, se pueden dejar sólo en los tres anchos de móvil.
-- **`/cartera` e `/importar` quedan fuera.** Un `tester` no las ve (CE-2), pero **tú sí**, y
-  `/cartera` tiene una tabla ancha con el mismo `.table-scroll` del defecto 3. Si quieres que
-  el arreglo de CA-5 se **verifique** también allí, dilo y añado la ruta: es una línea en la
-  lista, no un CA nuevo.
+Las cuatro preguntas que dejé abiertas al escribir el borrador ya tienen respuesta, y están
+aplicadas al texto de arriba. Quedan escritas porque la decisión importa tanto como el
+resultado:
+
+- **Suelo a 360 px: SÍ.** El conjunto queda en **360, 390, 640, 700, 730, 760, 800 y 1280**.
+  **320 queda fuera** con el motivo escrito en §Fuera de alcance pto. 4. La consecuencia —que
+  360 endurece CA-1 respecto de la medida de 390— **no se esconde**: tiene bloque propio al
+  principio de los CA y riesgo propio (**R-7**).
+- **`/legal` y `/register`: DENTRO** del conjunto de rutas. Son lo primero que ve alguien que
+  llega del foro y las ~14 medidas extra por ejecución se aceptan.
+- **`/cartera` e `/importar`: FUERA**, también de CA-5, **con su riesgo declarado y con
+  nombre**: `F-SPEC-040-1` en §Fuera de alcance pto. 6. `/cartera` usa el mismo
+  `.table-scroll` que causa el defecto 3, así que **puede tener el mismo problema y esta spec
+  no lo va a ver**.
+- **`V-SPEC-039-4` (la fila «Canal de feedback» del glosario que describe un futuro): NO se
+  toca aquí.** Se corrige al cerrar **SPEC-038**, que es cuando la frase pasa a ser cierta
+  sola. Comprobado que **no estaba anotado** en ningún sitio donde el cierre de SPEC-038 lo
+  fuera a encontrar; queda escrito en la §Salvedades del **ledger de SPEC-038**
+  (`docs/epicas/EPIC-004-.../SPEC-038-la-version-visible-dentro-de-la-app.ledger.md`), que es
+  donde trabaja quien la cierre.
