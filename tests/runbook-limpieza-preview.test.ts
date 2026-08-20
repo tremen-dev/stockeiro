@@ -280,3 +280,81 @@ describe('SPEC-042 — el runbook no se contradice a sí mismo', () => {
     expect(ci()).toMatch(/no lleva ni un secreto/i);
   });
 });
+
+/**
+ * O-2 del verificador (ronda 2) — el hueco nuevo tampoco se queda sin red.
+ *
+ * Todo lo que pide CA-7 lo congelan los bloques de arriba. Lo que la ronda 2
+ * añadió **por encima** de CA-7 —el filtro de caracteres, lo que cuesta
+ * (`F-SPEC-042-7`) y cómo se diagnostica su silencio— era prosa que se podía
+ * borrar sin que nada se pusiera rojo. Y ya se ha reescrito dos veces: primero
+ * porque afirmaba que no había shell, después porque afirmaba que un job saltado
+ * no aparece en Actions. Un párrafo que ha sido falso dos veces es exactamente el
+ * que hay que congelar.
+ *
+ * Lo que NO se congela aquí, y el motivo: el comando de CA-9 y sus dos ramas
+ * («si sale verde» / «si sale rojo»). Ese texto está escrito para ser
+ * **sustituido** por el veredicto antes de mezclar; un test sobre él tendría que
+ * editarse en el mismo commit que lo responde, que es un test que pide permiso en
+ * vez de proteger algo. Lo que sí sobrevive al veredicto —que §13.3 declare el
+ * hueco de CA-9— ya lo congela el caso 7.4 de arriba.
+ */
+describe('SPEC-042 O-2: el hueco del filtro (F-SPEC-042-7) también queda congelado', () => {
+  it('§13.3 nombra los tres caracteres filtrados y por qué llegan a una shell', () => {
+    const cuerpo = preview();
+    expect(cuerpo, 'Sin los tres caracteres, la viñeta no dice qué se filtra').toMatch(
+      /composite action/i,
+    );
+    expect(cuerpo).toMatch(/backtick/i);
+    expect(cuerpo).toMatch(/comilla doble/i);
+    expect(
+      cuerpo,
+      'El punto entero es que `github.head_ref` SÍ llega a un intérprete de comandos.',
+    ).toMatch(/int[ée]rprete de comandos|shell/i);
+  });
+
+  it('§13.3 dice lo que el filtro cuesta, con su identificador', () => {
+    const cuerpo = preview();
+    expect(cuerpo).toContain('F-SPEC-042-7');
+    expect(
+      cuerpo,
+      'Cerrar un agujero abrió un hueco: la rama que no se barre queda huérfana.',
+    ).toMatch(/hu[ée]rfana/i);
+  });
+
+  it('§13.3 NO vuelve a decir que un job saltado no aparece en Actions', () => {
+    // Era falso, y del modo que más estorba: es la línea de diagnóstico. El
+    // disparador `pull_request: [closed]` no filtra por rama ni por ruta, así que
+    // el evento crea la ejecución y el `if` se evalúa después, a nivel de job.
+    // Comprobado contra la API de GitHub el 2026-08-20: `?status=skipped` es un
+    // filtro válido de `/actions/runs` y devuelve ejecuciones reales.
+    expect(
+      source(),
+      'Quien siga esa frase verá una ejecución en Actions, concluirá que el limpiador ' +
+        'corrió y nunca mirará el nombre de la rama — lo contrario de lo que pretende.',
+    ).not.toMatch(/no aparece en Actions|no dej[óo] rastro/i);
+  });
+
+  it('§13.3 dice lo que de verdad se ve: la ejecución aparece, con el job saltado', () => {
+    const cuerpo = citado(preview());
+    expect(cuerpo).toMatch(/aparece\*{0,2}\s+una\s+ejecuci[óo]n|\*{0,2}aparece\*{0,2}\s+en Actions/i);
+    expect(cuerpo, 'La conclusión que se ve es `skipped`, no una ausencia').toMatch(/skipped/);
+    expect(
+      cuerpo,
+      'Y la señal de diagnóstico es la ejecución sin trabajo hecho, no la ejecución que falta.',
+    ).toMatch(/sin trabajo hecho/i);
+    expect(cuerpo, 'Y remata donde hay que mirar: el nombre de la rama').toMatch(
+      /nombre de su rama/i,
+    );
+  });
+
+  it('los dos *fail-closed* de §13.3 se distinguen: uno avisa y el otro no', () => {
+    const cuerpo = citado(preview());
+    expect(
+      cuerpo,
+      'El hueco del filtro falla EN SILENCIO; las variables de ops que faltan fallan EN ' +
+        'ROJO. Bajo la misma etiqueta y sin distinguir, la etiqueta engaña.',
+    ).toMatch(/fail-closed\*{0,2}\s+\*{0,2}y en\s+silencio/i);
+    expect(cuerpo).toMatch(/fail-closed\*{0,2}\s+\*{0,2}y en\s+rojo/i);
+  });
+});
