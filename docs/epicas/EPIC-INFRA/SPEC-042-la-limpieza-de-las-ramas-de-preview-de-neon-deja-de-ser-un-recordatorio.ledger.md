@@ -899,7 +899,7 @@ el orden de las dos vías de medición (`gh run rerun` antes que `neonctl branch
 alineación CA-4.3/CA-4.5. El caso 7.4 que congelaba el **hueco** se reescribió: ahora congela el
 **sitio**, no la ignorancia. **52/52 verdes.**
 
-- `<pendiente de commit>` — §13.3 responde CA-9 y el test lo congela.
+- `aa9f530` — §13.3 responde CA-9, la regla de lectura queda escrita y el test lo congela.
 
 **Los cinco gates**: `typecheck` **verde**, `lint` **verde**, `build` **verde**, `test:e2e`
 **214/214 verde**, y `npm test` **1231/1232 con un solo rojo, que NO es de esta ronda**: es el caso
