@@ -2,7 +2,7 @@
 id: SPEC-042
 tipo: spec
 epica: EPIC-INFRA
-estado: en-revision
+estado: hecho
 aprobada-por: humano (Alberto Fojo)
 historial:
   - {estado: borrador, fecha: 2026-08-20, por: sdd-arquitecto}
@@ -11,6 +11,7 @@ historial:
   - {estado: en-revision, fecha: 2026-08-20, por: sdd-implementador}
   - {estado: en-progreso, fecha: 2026-08-20, por: sdd-orquestador}
   - {estado: en-revision, fecha: 2026-08-20, por: sdd-implementador}
+  - {estado: hecho, fecha: 2026-08-20, por: sdd-verificador}
 ---
 # SPEC-042 — La limpieza de las ramas de preview de Neon deja de ser un recordatorio
 
@@ -246,9 +247,102 @@ casilla marcada, no una garantía.
      no hay superficie donde el secreto pueda acabar en un log ni donde `github.head_ref`
      —dato controlado por quien abre la PR— llegue a una shell;
   4. ni el id del proyecto ni la clave aparecen **en claro**: solo por `vars.` y `secrets.`.
+
+  > ⚠️ **Corrección del 2026-08-20 sobre CA-4.3 — lo que exige no cambia; lo que se creyó que
+  > compraba, sí.**
+  >
+  > - **Qué sigue exigiendo CA-4.3, intacto**: **cero `run:`** en nuestro fichero. El requisito
+  >   no se toca y se sigue verificando igual.
+  > - **Qué compra de verdad**: que no exista una shell **nuestra** donde el secreto pueda
+  >   acabar impreso en un log. Eso sigue siendo cierto y sigue valiendo.
+  > - **Qué NO compra, y se creyó que sí hasta hoy**: que `github.head_ref` no llegue a un
+  >   intérprete de comandos. La frase de arriba —*"ni donde `github.head_ref` … llegue a una
+  >   shell"*— es **falsa**. `neondatabase/delete-branch-action` es una ***composite action***
+  >   y su paso final es un `shell: bash` que interpola el nombre de rama **textualmente, dos
+  >   veces, con la clave en el `env` de ese mismo paso**. Verificado **en producción**, en el
+  >   log de la ejecución `32371568962` — no deducido del README.
+  > - **Quién impide la inyección**: el **filtro de tres caracteres** (`$`, backtick y comilla
+  >   doble) que el `if` del job aplica a `github.head_ref` **antes** de dárselo a la acción.
+  >   No la ausencia de `run:`. Sin ese filtro, el peor caso alcanzable no era *"borré una
+  >   preview que no tocaba"* sino **ejecución de comandos con la única clave con permiso de
+  >   borrado del proyecto**.
+  >
+  > *Dónde vive ese filtro*: en el `if` del job, congelado por los cuatro casos que
+  > `tests/neon-preview-cleanup-workflow.test.ts` rotula **`CA-4.5`** — y, **desde la enmienda
+  > del 2026-08-20, exigido por el CA-4.5 que hay justo debajo**. Hasta ese día el filtro no
+  > tenía CA propio: nació del finding **F-1**, después de aprobarse CA-4, y durante unas horas
+  > los tests afirmaron un criterio que su spec no definía. Esa asimetría está cerrada.
+
   *Por qué esto es un CA y no una nota*: `main` **es la cartera real del usuario**. Un action
-  mal apuntado no da un rojo, da una pérdida de datos. El prefijo literal es lo que hace que el
-  peor caso alcanzable por este fichero sea *"borré una preview que no tocaba"*.
+  mal apuntado no da un rojo, da una pérdida de datos. ~~El prefijo literal es lo que hace que
+  el peor caso alcanzable por este fichero sea *"borré una preview que no tocaba"*.~~
+  **Corregido el 2026-08-20**: el prefijo literal, **él solo, no lo hacía**. Lo que deja el peor
+  caso en *"borré una preview que no tocaba"* son **las dos cosas juntas** — el prefijo literal
+  **y** el filtro de caracteres.
+
+- **CA-4.5 (Lo que se le pasa a la shell ajena va saneado).** ⚠️ *el otro CA de seguridad*
+  **Declarado por enmienda el 2026-08-20**, firmada en el gate por el humano. No es alcance
+  nuevo: describe lo que el workflow **ya hace** y lo que `tests/neon-preview-cleanup-workflow.test.ts`
+  **ya congela** en cuatro casos bajo este mismo rótulo. Lo que se corrige es una asimetría —
+  los tests afirmaban un criterio que su spec no definía, y la spec exigía *cero `run:`* sin
+  exigir lo único que de verdad impide la inyección.
+  Dado el workflow,
+  cuando llega el nombre de rama de una PR,
+  entonces **no se le entrega a la acción si contiene un carácter que la shell de la acción
+  interpretaría**.
+
+  *El criterio es la derivación, no la lista* — y esto es lo que hay que leer si algo cambia.
+  El conjunto a excluir **no se fija a mano**: es el resultado de cruzar dos hechos
+  comprobables, cada uno con su fuente:
+  1. **qué caracteres interpreta la shell de la acción** en el contexto exacto en que recibe el
+     nombre — hoy, dentro de unas comillas dobles de bash, y ahí solo reaccionan cuatro: `$`,
+     la backtick, la barra invertida y la propia comilla;
+  2. **cuáles de ésos pueden llegar de verdad** en un `github.head_ref`, es decir, cuáles
+     **acepta `git check-ref-format`** en un nombre de rama.
+  La intersección de hoy son **tres** —`$`, backtick y comilla doble; la barra invertida cae
+  porque git la rechaza—, y esa cifra es **el resultado de hoy, no el criterio**. El test
+  **vuelve a derivarla en cada ejecución** preguntándole a git, en vez de creérsela: si git
+  aflojara mañana, la lista se quedaría corta **con un rojo** y no en silencio.
+  **Y si cambiara el otro lado** —que la acción altere su entrecomillado, mueva el dato a un
+  `env:`, o deje de usar shell— el conjunto correcto sería **otro**, y podría ser vacío. Este
+  CA seguiría cumpliéndose con esa otra lista: **lo que se exige es la propiedad, y la lista es
+  su consecuencia.** Quien toque esto sin rehacer la derivación estará copiando un resultado
+  caduco.
+
+  *Dónde se aplica, y por qué ahí y no en otro sitio*: en el **`if` del job**, sobre la
+  **misma expresión** que alimenta la entrada `branch` de CA-3 — filtrar una expresión y pasarle
+  otra sería teatro—. Y **antes** de que el dato entre en la acción, porque cuando llega al step
+  ya es tarde: la shell que lo interpreta es la suya, no la nuestra.
+
+  *Se suma a la condición de fork de CA-5.1; no la sustituye.* Responden a preguntas distintas
+  —**quién** puede disparar esto, y **qué** se le puede pasar— y cambiar una por la otra sería
+  un aflojamiento disfrazado de limpieza. La condición del job es esa suma **y nada más**: sin
+  cláusulas de adorno que nadie pueda auditar. Y **ningún step lleva su propio `if`**, que
+  podría saltarse el del job.
+
+  *De dónde sale, porque no nació con la spec*: del finding **F-1** del verificador, **después**
+  de aprobarse CA-4. No es una precaución teórica: la shell ajena está **verificada en
+  producción**, en el log de la ejecución `32371568962`. Sin este filtro, el peor caso alcanzable
+  no era *"borré una preview que no tocaba"* sino **ejecución de comandos con la única clave con
+  permiso de borrado del proyecto**, dos veces y con la credencial en el `env` de ese paso.
+
+  *La división de trabajo con CA-4.3, que hablan de lo mismo desde lados opuestos y conviene no
+  confundir*:
+
+  | | Qué exige | Qué protege |
+  |---|---|---|
+  | **CA-4.3** | que **no haya shell nuestra** (cero `run:` en el fichero) | que el secreto no acabe impreso en un log **nuestro** |
+  | **CA-4.5** | que **lo que le damos a la shell ajena esté saneado** | que un nombre de rama no se ejecute como comando **dentro de la acción** |
+
+  Ninguno cubre al otro. CA-4.3 no puede impedir la inyección —la shell que importa no es
+  suya—, y CA-4.5 no elimina la necesidad de CA-4.3 —añadir un `run:` propio reabriría una
+  superficie que hoy no existe—. Por eso el arreglo bueno de `F-SPEC-042-8`, que sí exige un
+  `run:`, **enmienda CA-4.3** y tiene que rehacer a mano lo que hoy sale gratis.
+
+  *Qué cuesta, y no se esconde*: una rama que contenga uno de esos caracteres **no se limpia**,
+  y el job se salta **en silencio**. Es `F-SPEC-042-7`, y es *fail-closed* a sabiendas: no
+  barrer una rama cuesta uno de los diez huecos del techo; ejecutar código con esa clave cuesta
+  el proyecto.
 
 - **CA-5 (Higiene del workflow: fork, permisos, plazo, concurrencia, y sin red de seguridad
   que tape el fallo).**
@@ -487,10 +581,13 @@ Lo que hay que decidir, no lo que hay que leer.
 
 - **R-1 — Un action mal apuntado borra una rama que no toca, y `main` es la cartera real del
   usuario.** Es el riesgo grave y el único con consecuencia irreversible.
-  *Mitigación en la spec*: el prefijo literal `preview/` (CA-4.1), la prohibición de nombrar
-  `main` (CA-4.2), la ausencia total de `run:` (CA-4.3), y la comparación antes/después del
-  panel la primera vez (CA-10).
-  *Residual, dicho claro*: las tres primeras acotan **lo que este fichero pide**; no acotan
+  *Mitigación en la spec* — **corregida el 2026-08-20** (ver la nota de CA-4.3): el prefijo
+  literal `preview/` (CA-4.1), la prohibición de nombrar `main` (CA-4.2), **el filtro de tres
+  caracteres sobre `github.head_ref`** —que es **quien de verdad impide la inyección**, y no la
+  ausencia de `run:` de CA-4.3, que garantizaba menos de lo que esta spec le atribuyó—, la
+  propia ausencia de `run:` (CA-4.3) por lo que sí compra —ninguna shell **nuestra** donde el
+  secreto pueda imprimirse—, y la comparación antes/después del panel la primera vez (CA-10).
+  *Residual, dicho claro*: las primeras acotan **lo que este fichero pide**; no acotan
   **lo que la clave puede hacer**. Eso se acota al crearla (punto 2 del gate) o no se acota. Y
   el fichero es editable: quien pueda mergear una PR puede cambiar ese valor — con la
   diferencia de que ahora habría que hacerlo **por escrito, en una PR, contra un test que lo
@@ -505,9 +602,15 @@ Lo que hay que decidir, no lo que hay que leer.
   mismo, y el segundo en llegar se encontraría la rama ya borrada — que es **R-3** otra vez.
   Ese día este fichero se retira; queda escrito aquí para que se recuerde.
 - **R-5 — Un secreto en un repositorio público.** Mitigado por CA-2 (nada de
-  `pull_request_target`), CA-5.1 (nada de forks), CA-5.2 (sin permisos de escritura) y CA-4.3
-  (sin `run:` donde pueda imprimirse). Residual: sigue siendo un secreto en un repo público, y
-  la propiedad *"este repo no tiene secretos"* muere aquí.
+  `pull_request_target`), CA-5.1 (nada de forks), CA-5.2 (sin permisos de escritura), CA-4.3
+  (sin `run:` **nuestro** donde pueda imprimirse) y **el filtro de tres caracteres del `if` del
+  job**.
+  **Corrección del 2026-08-20** (ver la nota de CA-4.3): CA-4.3 figuraba aquí como si impidiera
+  que el nombre de rama llegara a una shell, y **no lo impide** — la shell de la composite
+  action existe y **recibe la clave en su `env`**. El mérito de esa mitigación es del **filtro**;
+  a CA-4.3 le queda la mitad que sí es cierta.
+  Residual: sigue siendo un secreto en un repo público, y la propiedad *"este repo no tiene
+  secretos"* muere aquí.
 - **R-6 — El techo sigue siendo 10.** Esta spec quita la **acumulación**, no el **techo**. Con
   varias PRs abiertas a la vez —que es lo que ya pasa en este proyecto: hay varios worktrees
   vivos— diez sigue sin ser mucho. La mitad 1 de F-SPEC-028-2 queda abierta a propósito.
@@ -538,5 +641,76 @@ repositorio. El patrón es el de `F-SPEC-032-2` — el **acto** es ops, el **efe
   habrá que decidir entonces. → EPIC-INFRA.
 - **F-SPEC-042-6 — La rama `preview` suelta del panel, creada a mano.** Ni la creó Vercel ni
   la borra este workflow. Ocupa techo. Decidir si sobra es ops. → ops.
-- **Hereda de SPEC-028: F-SPEC-028-2, mitad 1 — el techo de 10 ramas del plan Free.** No se
-  cierra aquí (R-6). La mitad 2 sí la cierra esta spec.
+Añadidos el 2026-08-20:
+
+- **F-SPEC-042-7 — Una rama cuyo nombre lleve `$`, backtick o comilla doble no se limpia, y el
+  job se salta en silencio.** Lo declaró el implementador en el ledger, y allí vive su detalle.
+  Se lista aquí porque **desde la enmienda del 2026-08-20 ya no es el residuo de un arreglo
+  huérfano: es el coste declarado de `CA-4.5`**, que es quien exige el filtro. Eso cambia cómo
+  hay que tratarlo — no es una rareza que alguien pueda "limpiar" quitando el filtro, porque
+  quitarlo rompe un CA.
+  *Y no es tan improbable como suena*: en este repositorio los nombres de rama los generan
+  **agentes** a partir de títulos de spec, así que un `$` puede llegar ahí **sin ninguna
+  malicia**. El síntoma es el del CA-4.5: una ejecución **completada, en gris, `skipped`, con
+  el job sin un solo paso** — no un rojo. Se cierra el día que el arreglo de `F-SPEC-042-8`
+  saque el nombre de rama de cualquier shell (vía `env:`), porque entonces el filtro deja de
+  hacer falta y con él desaparece su coste. → EPIC-INFRA.
+- **F-SPEC-042-8 — El limpiador da rojo en toda PR que se cierre sin una rama de preview que
+  borrar.**
+  *Qué es, medido y no supuesto*: el 2026-08-20 se re-ejecutó `32371568962` sobre la rama ya
+  borrada. Salida **1**, con los pasos de instalación en verde y el de borrado en rojo — es la
+  acción respondiendo, no un fallo de entorno:
+  ```
+  ERROR: Branch preview/ft/SPEC-042-limpieza-automatica-de-ramas-de-preview-en-neon not found.
+  Available branches: preview, main, preview/ft/SPEC-039-…, preview/ft/SPEC-040-…, preview/ft/SPEC-041-…
+  ```
+  Responde CA-9: la incógnita que el README dejaba abierta era **rojo**.
+  *Cuándo pasa de verdad, con el dato delante — y no es rutina*: tres disparadores, todos
+  manuales o excepcionales. **(1)** un *re-run* a mano; **(2)** reabrir una PR y volver a
+  cerrarla; **(3)** una PR cuya preview se borró a mano para desbloquear el techo. En el flujo
+  normal **siempre hay algo que borrar**: **0 de 43** PRs de este repositorio se han cerrado sin
+  mergear, y `vercel.json` no lleva `ignoreCommand` ni `ignoredBuildStep`, así que **toda rama
+  con PR recibe preview** y con ella su rama de Neon. El único rojo observado hasta hoy lo
+  provocó el propio *re-run* con el que se respondió CA-9.
+  *La regla de lectura, que es lo que este follow-up aporta de verdad*: un rojo de este workflow
+  puede ser **benigno** (`Branch <nombre> not found.`) o **grave** —clave caducada o revocada,
+  `project_id` equivocado, Neon caído, borrado fallido con la rama todavía viva— y **en Actions
+  se ven idénticos**: mismo check rojo, mismo step. Así que la regla es, literal:
+  > **Abre el log antes de encogerte de hombros.** La primera línea del error distingue los dos
+  > casos. Si dice `not found`, es benigno y se cierra ahí. Si dice **cualquier otra cosa**, las
+  > ramas se están acumulando otra vez —y eso es el incidente del 2026-08-19/20 volviendo a
+  > empezar, con el techo llenándose en silencio.
+
+  *Por qué NO se pone `continue-on-error`, con fecha, para que nadie lo reabra creyendo que
+  nadie lo pensó*: **se propuso el 2026-08-20 y se aprobó en el gate —y la decisión se revocó
+  el mismo día**, al llegar los dos datos de arriba. **CA-5.5 sigue vigente sin un cambio.** El
+  argumento que la revocó **no es la frecuencia, es la ambigüedad**: `continue-on-error` no
+  taparía solo el rojo benigno, taparía **los dos**, porque son indistinguibles desde fuera. Y
+  el que importa es el grave, precisamente porque su síntoma —ramas acumulándose— **no vuelve a
+  aparecer hasta que un despliegue de producción falla con `Branch limit reached`**, que es el
+  fallo que fundó esta spec. Cambiar un rojo raro y legible por un verde que miente es un mal
+  negocio a cualquier frecuencia. Quien vuelva aquí porque *"molesta"*: el rojo molesta tres
+  veces al año y el silencio cuesta un despliegue de producción.
+
+  *Las dos salidas limpias, ambas **fuera** de esta spec*:
+  1. **Abrir un issue en `neondatabase/delete-branch-action`** pidiendo idempotencia — una
+     entrada tipo `if-exists`, o salir **0** ante *not found*. **Cuesta cero, no toca ningún
+     CA y no necesita spec**: es el **sitio correcto del arreglo**, porque el defecto es de la
+     acción y no de nuestro workflow. Lento y fuera de nuestro control. **Es la que yo haría
+     primero.** *Qué la dispara*: nada — se puede abrir hoy. Si el *upstream* la acepta, esto
+     se reduce a subir de versión y el follow-up se cierra solo.
+  2. **Llamar a la API de Neon directamente** (`DELETE /projects/{id}/branches/{id}`) y tratar
+     el **404 como éxito**, distinguiéndolo del 401/403/5xx, que seguirían en rojo. Es el
+     arreglo de verdad —quita el ruido **sin** perder la señal, que es justo lo que
+     `continue-on-error` no sabe hacer— y el más caro: exige un `run:` propio, luego **enmienda
+     CA-4.3**, y **rehace a mano la superficie de shell que la ronda 2 cerró** (el nombre de
+     rama tendría que viajar por `env:` y no interpolado). **Spec nueva en EPIC-INFRA.**
+     *Qué la dispara*: que la vía 1 se estanque o la rechacen **y** el ruido deje de ser
+     excepcional — es decir, que alguno de los tres disparadores se vuelva rutina, o que el
+     recuento de PRs cerradas sin mergear deje de ser 0 de 43.
+  → EPIC-INFRA.
+
+Heredados:
+
+- **F-SPEC-028-2, mitad 1 — el techo de 10 ramas del plan Free.** No se cierra aquí (R-6). La
+  mitad 2 sí la cierra esta spec.

@@ -185,15 +185,15 @@ describe.skipIf(!hayBase())(
       expect(readFileSync(puertaPath, 'utf8')).toBe(enBase('.github/workflows/deploy-gate.yml'));
     });
 
-    it('1.4 — y el limpiador es un fichero NUEVO, no una copia de otro', () => {
-      let existiaAntes = true;
-      try {
-        enBase(LIMPIADOR_EN_GIT);
-      } catch {
-        existiaAntes = false;
-      }
-      expect(existiaAntes).toBe(false);
-    });
+    // Aquí vivía un tercer caso, `1.4 — y el limpiador es un fichero NUEVO, no una copia
+    // de otro`: leía el blob del limpiador en `origin/main` y exigía que la lectura
+    // fallara. **Borrado el 2026-08-20, en el gate humano** (`F-SPEC-042-9`). Lo que
+    // comprobaba —«este fichero no existía antes de esta entrega»— es una propiedad **del
+    // momento de la entrega**, no del sistema, y caducó al mergear la PR #45: desde
+    // entonces el blob está en `origin/main` y el caso no podía volver a pasar nunca. Lo
+    // durable de CA-1 lo cubren los dos casos de arriba, que siguen comparando byte a byte.
+    // Es el caso de libro de la convención de FOUNDATION.md § *Cómo se trabaja aquí*:
+    // se borra, no se afloja, y se dice por qué.
   },
 );
 

@@ -94,3 +94,27 @@ Dos convenciones que ya costaron ruido y quedan fijadas en **ADR-025**:
   trivial de `src/` descubierto después (rótulo, texto, typo) **cuelga de una spec viva que
   ya toque esa superficie**, o espera en **EPIC-FIX** a un lote de rótulos. Lo decide el
   arquitecto al triar el residual y se escribe en él.
+
+Y una tercera, que ya ha costado **cuatro** veces y se fija el **2026-08-20** (cierra
+`F-SPEC-034-6`):
+
+- **Un test de frontera fija una propiedad, no un estado del árbol.** El patrón que
+  caduca es congelar cómo estaba el repositorio el día de la entrega: un recuento de
+  ficheros, un `HEAD` móvil, un *"esto todavía no existe"*. Caduca al mergear —no cuando
+  algo se rompe— y entonces pinta rojo sin defecto detrás, que es la peor clase de rojo.
+  Los tres encuadres buenos que este proyecto ya tiene, y que sirven de molde:
+  `tests/deploy-gate-workflow.test.ts` acota su ventana de diff a **su propia entrega**
+  (`de3a6ee...0d389c8`) y no a `HEAD`; `tests/spec-032-frontera.test.ts` pasó de *"drizzle/
+  tiene nueve `.sql`"* a *"estas nueve siguen ahí, con su nombre y en su orden"*; y el
+  caso 4.5 de `tests/neon-preview-cleanup-workflow.test.ts` **vuelve a derivar** su lista
+  de caracteres preguntándole a `git check-ref-format` en cada ejecución, en vez de
+  escribirla.
+- **Cuando caduca igualmente —y pasará—, hay dos salidas legítimas y una que no lo es.**
+  **Re-encuadrar**, si la propiedad sigue viva y solo estaba mal expresada; o **borrar**,
+  si lo que vigilaba era del momento de la entrega y ya no puede volver a ser cierto.
+  **Aflojar la comprobación hasta que pase no es ninguna de las dos**: deja el fichero en
+  verde y el gate sin nada dentro. Con dos condiciones, en cualquiera de los dos casos:
+  **queda escrito en el ledger qué vigilaba antes y qué vigila ahora**, y **quien lo toca
+  no es quien se beneficia** — un implementador no ablanda en silencio la guardia que le
+  está fallando; la declara y la lleva al gate. Precedentes: `F-SPEC-034-6` (tres guardias
+  re-encuadradas) y `F-SPEC-042-9` (un caso borrado, con su motivo escrito en el sitio).

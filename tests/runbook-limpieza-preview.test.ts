@@ -225,10 +225,12 @@ describe('SPEC-042 CA-7.4: §13.3 reescrita — el techo 2 tiene dueño automát
     ).not.toMatch(/mientras\s+\*{0,2}SPEC-042\*{0,2}\s+no est[ée]/i);
   });
 
-  it('7.4 — deja hueco escrito para lo que aún no se ha medido (CA-9)', () => {
-    // Qué hace la acción ante una rama que ya no existe NO está documentado en su
-    // README. Se mide en el primer cierre real; hasta entonces el runbook dice que
-    // no se sabe, en vez de inventarlo.
+  it('7.4 — habla del caso de la rama que ya no existe (CA-9), que es donde vive el veredicto', () => {
+    // Antes este caso congelaba el **hueco**: qué hacía la acción ante una rama que
+    // ya no existe no estaba documentado en su README y el runbook decía que no se
+    // sabía. Desde el 2026-08-20 se sabe, y lo que se congela es el sitio: §13.3
+    // sigue siendo donde ese caso se cuenta. El veredicto en sí lo congela el
+    // bloque CA-9 de más abajo.
     expect(preview()).toMatch(/rama que (ya )?no existe|rama inexistente/i);
   });
 });
@@ -356,5 +358,234 @@ describe('SPEC-042 O-2: el hueco del filtro (F-SPEC-042-7) también queda congel
         'ROJO. Bajo la misma etiqueta y sin distinguir, la etiqueta engaña.',
     ).toMatch(/fail-closed\*{0,2}\s+\*{0,2}y en\s+silencio/i);
     expect(cuerpo).toMatch(/fail-closed\*{0,2}\s+\*{0,2}y en\s+rojo/i);
+  });
+});
+
+/**
+ * SPEC-042 CA-9 — el veredicto vive en §13.3, no en el ledger a solas.
+ *
+ * CA-9 no pide medir: pide que quede escrito **en el ledger y en §13.3** si sale
+ * verde o rojo y con qué mensaje. La medición se hizo el 2026-08-20 re-ejecutando
+ * `32371568962` sobre la rama ya borrada: **rojo**, salida 1.
+ *
+ * Por qué esto se congela y el resto de §13.3 no bastaba: el párrafo que ocupaba
+ * este sitio ha sido **falso dos veces**. Primero afirmó que el workflow no metía
+ * el nombre de rama en ninguna shell; después siguió afirmando —en presente— que
+ * la respuesta de CA-9 «aún no se sabe», cuando ya se sabía. Es el párrafo que
+ * alguien abrirá justo cuando vea el primer rojo, así que se le pone red: que no
+ * vuelva a decir que no se sabe, y que la regla de lectura que separa el rojo
+ * benigno del grave siga ahí.
+ */
+describe('SPEC-042 CA-9: §13.3 escribe el veredicto medido, y no vuelve a decir que se ignora', () => {
+  it('CA-9 — §13.3 ya NO deja la pregunta abierta ni la manda al futuro', () => {
+    const cuerpo = citado(preview());
+    expect(
+      cuerpo,
+      'El párrafo «Lo que aún no se sabe» afirmaba en presente algo que dejó de ser ' +
+        'cierto el 2026-08-20 a las 13:11. Enterrar una afirmación falsa en el ' +
+        'documento que se abre ante el primer rojo es exactamente lo que este test ' +
+        'existe para impedir.',
+    ).not.toMatch(/Lo que a[úu]n no se sabe/i);
+    expect(cuerpo, 'El veredicto ya no «se escribe aquí»: ya está escrito').not.toMatch(
+      /el veredicto[^.]{0,60}se escribe \*{0,2}aqu[íi]/i,
+    );
+    expect(
+      cuerpo,
+      'Las dos ramas especulativas («si sale verde» / «si sale rojo») sobran cuando ' +
+        'hay un resultado medido.',
+    ).not.toMatch(/Si sale verde/i);
+  });
+
+  it('CA-9 — dice el veredicto: ROJO, salida 1, con fecha y con el run id', () => {
+    const cuerpo = citado(preview());
+    expect(cuerpo, 'Sin la palabra, el lector tiene que deducir el veredicto').toMatch(
+      /\brojo\b/i,
+    );
+    expect(cuerpo, 'La salida es 1, y eso es lo que hace que el check se vea rojo').toMatch(
+      /salida \*{0,2}1\*{0,2}|exit code 1/i,
+    );
+    expect(cuerpo, 'Sin fecha, nadie sabe si el dato sigue vigente').toContain('2026-08-20');
+    expect(
+      cuerpo,
+      'El run id es lo que convierte esto en un hecho comprobable en vez de un recuerdo.',
+    ).toContain('32371568962');
+  });
+
+  it('CA-9 — con el mensaje LITERAL de la acción, que es lo que se reconocerá', () => {
+    const cuerpo = citado(preview());
+    expect(cuerpo).toMatch(
+      /ERROR: Branch preview\/ft\/SPEC-042-limpieza-automatica-de-ramas-de-preview-en-neon not found\./,
+    );
+    expect(cuerpo, 'Y la lista de ramas disponibles, que es lo que delata el resto').toMatch(
+      /Available branches:/,
+    );
+  });
+
+  it('CA-9 — y deja claro que falló la acción, no el entorno', () => {
+    const cuerpo = citado(preview());
+    expect(
+      cuerpo,
+      'El paso de instalación fue verde: si no se dice, el primer lector culpará al runner.',
+    ).toMatch(/instalaci[óo]n[^.]{0,80}verde|verde[^.]{0,80}instalaci[óo]n/i);
+  });
+});
+
+describe('SPEC-042 CA-9: la regla de lectura separa el rojo benigno del grave', () => {
+  it('la regla está escrita como regla, con su imperativo', () => {
+    expect(
+      citado(preview()),
+      'Es lo único que separa «no había rama» de «las ramas se están acumulando otra ' +
+        'vez». Sin ella, el primer rojo se descarta de un vistazo y el segundo también.',
+    ).toMatch(/abre el log antes de encogerte de hombros/i);
+  });
+
+  it('los dos casos se declaran indistinguibles en Actions', () => {
+    const cuerpo = citado(preview());
+    expect(cuerpo).toMatch(/benigno/i);
+    expect(cuerpo).toMatch(/grave/i);
+    expect(
+      cuerpo,
+      'Si no se dice que se ven igual, la regla parece burocracia en vez de necesidad.',
+    ).toMatch(/se ven \*{0,2}id[ée]nticos/i);
+  });
+
+  it('`not found` es el benigno, y cualquier otra cosa es el incidente volviendo', () => {
+    const cuerpo = citado(preview());
+    // El `.` final es parte del mensaje de la acción (`… not found.`), así que el
+    // salto entre los dos términos no puede excluir puntos.
+    expect(cuerpo).toMatch(/not found.{0,40}benigno|benigno.{0,40}not found/i);
+    expect(cuerpo, 'Cualquier otro mensaje es el grave, sin matices').toMatch(
+      /cualquier otra cosa/i,
+    );
+    expect(
+      cuerpo,
+      'Y el grave tiene nombre: es el incidente del 2026-08-19/20 empezando otra vez, ' +
+        'con el techo llenándose en silencio.',
+    ).toMatch(/volviendo a empezar/i);
+  });
+});
+
+describe('SPEC-042 CA-9: F-SPEC-042-8 queda declarado en el runbook, con su frecuencia real', () => {
+  it('el follow-up se nombra por su identificador', () => {
+    expect(preview()).toContain('F-SPEC-042-8');
+  });
+
+  it('dice qué es: rojo en toda PR que se cierre sin rama de preview que borrar', () => {
+    const cuerpo = citado(preview());
+    expect(cuerpo).toMatch(/no es idempotente/i);
+    expect(cuerpo).toMatch(/sin[^.]{0,60}que borrar/i);
+  });
+
+  it('dice cuándo pasa de verdad: re-run, doble cierre, preview borrada a mano', () => {
+    const cuerpo = citado(preview());
+    expect(cuerpo, 'Disparador 1: el re-run manual').toMatch(/re-?run/i);
+    expect(cuerpo, 'Disparador 2: reabrir y volver a cerrarla').toMatch(
+      /reabrir[^.]{0,80}cerrarla/i,
+    );
+    expect(cuerpo, 'Disparador 3: la preview borrada a mano para desbloquear el techo').toMatch(
+      /borr[óo] \*{0,2}a mano/i,
+    );
+  });
+
+  it('y con qué frecuencia, con el dato y no con un adjetivo', () => {
+    const cuerpo = citado(preview());
+    expect(cuerpo, 'La frecuencia medida: 0 de 43 PRs cerradas sin mergear').toMatch(
+      /0 de 43/,
+    );
+    expect(
+      cuerpo,
+      '`vercel.json` sin ignoreCommand ni ignoredBuildStep es lo que sostiene que toda ' +
+        'rama con PR reciba preview — y con ella su rama de Neon.',
+    ).toMatch(/ignoreCommand/);
+    expect(cuerpo).toMatch(/ignoredBuildStep/);
+  });
+
+  it('y que el único rojo observado lo provocó el propio re-run', () => {
+    expect(
+      citado(preview()),
+      'Sin esta línea, el lector cuenta un rojo real donde solo hubo un experimento.',
+    ).toMatch(/[úu]nico rojo observado[^.]{0,100}re-?run/i);
+  });
+});
+
+describe('SPEC-042 CA-5.5 en el runbook: `continue-on-error` sigue prohibido, con fecha', () => {
+  it('§13.3 dice que NO se pone, y lo ata a CA-5.5', () => {
+    const cuerpo = citado(preview());
+    expect(cuerpo).toMatch(/continue-on-error/);
+    expect(cuerpo, 'El criterio que lo prohíbe tiene nombre y hay que citarlo').toMatch(
+      /CA-5\.5/,
+    );
+  });
+
+  it('con la historia fechada: propuesto, aprobado y revocado el mismo día', () => {
+    const cuerpo = citado(preview());
+    expect(
+      cuerpo,
+      'Se escribe con fecha para que nadie lo reabra creyendo que nadie lo pensó.',
+    ).toMatch(/se propuso el 2026-08-20/i);
+    expect(cuerpo).toMatch(/revoc[óo]/i);
+  });
+
+  it('y con el argumento correcto: la ambigüedad, no la frecuencia', () => {
+    const cuerpo = citado(preview());
+    expect(
+      cuerpo,
+      'Si el argumento fuera la frecuencia, cualquiera lo reabriría el día que los ' +
+        'rojos aumenten. El argumento es que taparía los dos rojos, y el grave no ' +
+        'vuelve a dar señal hasta que un despliegue de producción falle.',
+    ).toMatch(/no es la frecuencia, es la ambig[üu]edad/i);
+    expect(cuerpo).toMatch(/Branch limit reached/);
+  });
+
+  it('§13.3 no lo propone en ningún sitio como salida', () => {
+    expect(
+      citado(preview()),
+      'Proponerlo aquí contradiría CA-5.5, que está congelado en el test del workflow.',
+    ).not.toMatch(/(poner|a[ñn]adir|usar)[^.]{0,40}continue-on-error/i);
+  });
+});
+
+describe('SPEC-042 CA-9: la vía de medición barata va primero', () => {
+  it('el *Re-run* en Actions se ofrece con su comando y su ejemplo real', () => {
+    const cuerpo = preview();
+    expect(cuerpo, 'El botón tiene equivalente en CLI, y se cita el run real').toContain(
+      'gh run rerun 32371568962',
+    );
+    expect(citado(cuerpo)).toMatch(/Re-?run\*{0,2} en Actions/i);
+  });
+
+  it('y `neonctl` queda detrás, marcado como vía de reserva', () => {
+    const cuerpo = citado(preview());
+    const rerun = cuerpo.indexOf('gh run rerun');
+    const neonctl = cuerpo.indexOf('neonctl branches delete');
+    expect(rerun, 'No aparece el re-run').toBeGreaterThan(-1);
+    expect(
+      neonctl === -1 || rerun < neonctl,
+      'Ofrecer primero instalar `neonctl` es donde el humano se quedó bloqueado: el ' +
+        'Re-run no exige instalar nada y responde lo mismo.',
+    ).toBe(true);
+    if (neonctl !== -1) {
+      expect(cuerpo).toMatch(/v[íi]a de reserva|no la primera/i);
+    }
+  });
+});
+
+describe('SPEC-042: §13.3 sigue alineada con el reparto CA-4.3 / CA-4.5', () => {
+  it('el filtro se presenta como exigido por CA-4.5, no como un arreglo huérfano', () => {
+    expect(
+      citado(preview()),
+      'Desde la enmienda del 2026-08-20 el filtro tiene CA propio. Presentarlo como un ' +
+        'apaño suelto invita a «limpiarlo», y quitarlo rompe un criterio de aceptación.',
+    ).toMatch(/CA-4\.5/);
+  });
+
+  it('y CA-4.3 sigue siendo lo que es: cero `run:`, ninguna shell nuestra', () => {
+    const cuerpo = citado(preview());
+    expect(cuerpo).toMatch(/CA-4\.3/);
+    expect(
+      cuerpo,
+      'CA-4.3 protege contra que el secreto acabe en un log nuestro; no impide la ' +
+        'inyección, porque la shell que importa no es nuestra.',
+    ).toMatch(/shell \*{0,2}nuestra/i);
   });
 });
