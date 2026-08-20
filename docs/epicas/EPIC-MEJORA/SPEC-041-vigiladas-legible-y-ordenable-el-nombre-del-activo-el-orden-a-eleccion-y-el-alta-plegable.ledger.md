@@ -106,6 +106,19 @@ epica: EPIC-MEJORA
 
 **Estado: implementación completa, los 22 CA con test. Falta la verificación.**
 
+**Los cuatro gates, medidos el 2026-08-20 sobre `8ae040b` (la implementación completa):**
+
+| Gate | Comando | Resultado |
+|---|---|---|
+| typecheck | `npm run typecheck` | 0 errores |
+| lint | `npm run lint` (`--max-warnings=0`) | 0 avisos |
+| unit | `npm test` | **84 ficheros / 1141 casos, todos verdes** (164 s) |
+| e2e | `npx playwright test` | **214 casos, todos verdes** (3,9 min), 19 de ellos de SPEC-041 |
+
+Cero regresiones: **ninguna aserción de otra spec se tocó** y **ningún selector ajeno necesitó
+ajuste** — todos los e2e que usan el formulario de alta de `/vigiladas` arrancan con una cuenta
+recién registrada, o sea con la lista **vacía**, y ahí el formulario sigue desplegado (CA-12).
+
 Tres commits sobre `ft/SPEC-041-vigiladas-legible-y-ordenable` (sin push, sin PR):
 
 1. `feat(SPEC-041): el nombre del activo llega a la vista, y el orden ya sabe ordenar`

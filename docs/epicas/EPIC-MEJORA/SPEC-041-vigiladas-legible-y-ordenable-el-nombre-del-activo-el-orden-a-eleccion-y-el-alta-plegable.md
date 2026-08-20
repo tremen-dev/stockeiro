@@ -2,12 +2,13 @@
 id: SPEC-041
 tipo: spec
 epica: EPIC-MEJORA
-estado: en-progreso
+estado: en-revision
 aprobada-por: humano (Alberto Fojo)
 historial:
   - {estado: borrador, fecha: 2026-08-20, por: sdd-arquitecto}
   - {estado: aprobada, fecha: 2026-08-20, por: humano (Alberto Fojo)}
   - {estado: en-progreso, fecha: 2026-08-20, por: sdd-implementador}
+  - {estado: en-revision, fecha: 2026-08-20, por: sdd-implementador}
 ---
 # SPEC-041 — Vigiladas legible y ordenable: el nombre del activo, el orden a elección y el alta plegable
 
