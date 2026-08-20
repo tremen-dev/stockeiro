@@ -328,6 +328,19 @@ tras mergear es el **check de la puerta**, y el pipeline entero está documentad
      D-2), que vive en el repositorio y **no depende de ese ajuste del panel**: si alguien apaga
      el branching, la guardia sigue ahí. Un Preview sin `ALLOW_MIGRATE=1` **no migra: falla en
      rojo**, que es el comportamiento correcto. Ver **§11**.
+- 🚨 **Borrar la rama de git NO borra la rama de Neon.** Es la trampa que tumbó un despliegue de
+  producción el **2026-08-19/20**, y no es una suposición: con la **integración gestionada por
+  Vercel** —la que este proyecto tiene— la rama de preview de Neon **no cuelga de la PR sino del
+  despliegue de Vercel**, y la **retención de despliegues de Vercel** es de **6 meses por
+  defecto**. En palabras de Neon: *"Preview branches are automatically deleted when their
+  corresponding Vercel deployments are removed. The timing of this cleanup depends on Vercel's
+  deployment retention policy, which **retains preview deployments for 6 months by default**"*, y
+  por eso *"preview branches can persist long after a PR is closed"*
+  (<https://neon.com/docs/guides/vercel-managed-integration>).
+  Traducido a este proyecto: **una spec por PR** y un techo de **10 ramas** en el plan Free hacen
+  que el sistema reviente **cada ~8 merges**, indefinidamente — y revienta **después** del merge,
+  cuando ya se está desplegando. Desde **SPEC-042** hay un mecanismo que lo barre al cerrar la PR
+  en vez de un recordatorio: **§13.3**.
 - **Dependencia del build con el CDN de SheetJS** (F-SPEC-011-1): `xlsx` es dependencia de
   producción instalada desde `https://cdn.sheetjs.com/...` (el paquete de npm está congelado
   y con CVEs; SPEC-011). El build de Vercel debe poder alcanzar ese host: si no, `npm install`
@@ -499,7 +512,29 @@ los demás. Cuando el e2e falla, el job sube un artefacto (`playwright-report/`,
 > un check requerido**, porque corre en `push` a `main`, después del merge. Las piezas exactas,
 > cómo comprobarlas en un comando y qué hacer si alguien las cambia, en **§12.5**.
 
-Lo que este workflow **no** hace, y conviene no darlo por hecho:
+### Los **tres** workflows del repositorio, y qué pregunta responde cada uno
+
+Desde **SPEC-042** hay **tres** workflows en `.github/workflows/`, y no es acumulación: son tres
+preguntas distintas, en tres momentos distintos, y cada rojo pide una reacción distinta.
+
+| Fichero | Pregunta | Cuándo corre | ¿Frena el merge? |
+|---|---|---|---|
+| `ci.yml` | *¿se puede mezclar?* | en cada PR y en cada push a `main` — **antes** del merge | **Sí**: `Checks` y `E2E` son los checks requeridos (§12.5) |
+| `deploy-gate.yml` | *¿llegó?* | en cada push a `main` — **después** del merge | **No** |
+| `neon-preview-cleanup.yml` | *¿queda basura?* | **al cerrar la PR** | **No** |
+
+> ⚠️ **El tercero no es, y no debe ser, un check requerido** — exactamente por la misma razón que
+> `Alive` tampoco lo es (§12.5, punto 4): corre **al cerrar** la PR, o sea cuando el merge ya
+> ocurrió. En una PR abierta no llega a existir, así que exigirlo bloquearía **todas** las PR
+> esperando un check que nunca va a aparecer. Un check requerido que se ejecuta después del merge
+> es una contradicción.
+>
+> Y es el **único fichero del repositorio que lleva un secreto** (`NEON_API_KEY`). Vive aparte
+> justo por eso: que `ci.yml` y `deploy-gate.yml` no lleven ninguno está congelado en tests de
+> otras dos specs, y meterlo dentro habría obligado a editarlos. Qué borra, con qué límites y qué
+> cuesta: **§13.3**.
+
+Lo que la CI de las PR **no** hace, y conviene no darlo por hecho:
 
 - **No despliega nada** ni conecta el repo con Vercel: eso lo hace la integración Git y lo
   documenta **§12** (SPEC-028 / ADR-018 D-1). La puerta post-deploy vive en **otro** fichero,
@@ -908,6 +943,9 @@ un pipeline cuya mitad vive en un panel que nadie versiona es un pipeline que se
 | 4 | **Conectar el repositorio** | panel de Vercel → *Settings → Git* | Es ADR-018 D-1. A partir de aquí, mergear despliega |
 | 5 | **Ver qué se disparó al conectar** | `vercel ls --prod` justo después | Si la conexión lanza un despliegue por su cuenta, conviene verlo y no descubrirlo |
 | 6 | **Anotar el techo de ramas de Neon** | consola de Neon | Es el recurso que se agota primero (§13.3) |
+| 7 | **`NEON_PROJECT_ID` como *variable* del repositorio** (`F-SPEC-042-1`) | GitHub → *Settings → Secrets and variables → Actions → **Variables** → New repository variable*. El valor está en Neon, *Project settings* | **Variable y no secreto**: no es sensible, y verla en el log es lo que permite diagnosticar un rojo del limpiador. Si falta, `vars.NEON_PROJECT_ID` llega **vacía** y el workflow da rojo — *fail-closed*, igual que `ALLOW_MIGRATE` |
+| 8 | **`NEON_API_KEY` como *secreto* del repositorio** (`F-SPEC-042-2`) | La clave se crea en Neon → *Account Settings → API Keys*; se pega en GitHub → *Settings → Secrets and variables → Actions → **Secrets*** | Es el **único secreto del repositorio** y el repositorio es **público**. Al crearla, **comprobar si puede acotarse a este proyecto** y anotar en el ledger qué alcance tiene realmente: una clave de cuenta filtrada puede borrar ramas de cualquier proyecto |
+| 9 | **Casilla *Automatically delete head branches*** (`F-SPEC-042-3`) | GitHub → *Settings → General* | Va **después** y **separada** a propósito: **no toca Neon**. Borra ramas de git muertas —había **27** mergeadas vivas el 2026-08-19/20, podadas a mano— y nada más. Leerla como la solución del techo de ramas es volver a encontrárselo |
 
 ### 13.1 La conexión Git
 
@@ -939,24 +977,139 @@ Es el permiso explícito que la guardia `guard-migrate` exige a todo entorno que
 **F-SPEC-032-2**, y su efecto —que una Preview construya verde— es la única prueba imposible de
 falsear de que la variable existe.
 
-### 13.3 El *preview branching* de Neon, y sus dos techos
+### 13.3 El *preview branching* de Neon, sus dos techos y quién los barre
 
 La integración nativa de Neon tiene activado el ***preview branching*** (`Create Database Branch
 For Deployment` = **Preview sí, Production no**, prefijo de variables `DATABASE`): cada
 despliegue de Preview recibe la `DATABASE_URL` de **su propia rama copy-on-write**, no la de
 producción. Eso cerró F-SPEC-023-1 el 2026-08-18 (§8).
 
-Sus dos techos, que hasta SPEC-028 no importaban porque no había builds de Preview y ahora son
-lo primero que se agota — declarados como **F-SPEC-028-2**:
+Sus dos techos, declarados como **F-SPEC-028-2**:
 
 1. **10 ramas** en el plan **Free** de Neon. La número 11 no despliega:
-   `Require Active Resource Before Deploy`.
-2. Las ramas de preview **sobreviven al cierre de la PR** — la retención de Vercel es de **6
-   meses**. Es decir, se acumulan solas.
+   `Require Active Resource Before Deploy`. **Este techo sigue exactamente donde estaba**: nada
+   de lo de abajo lo sube, y no se compra plan.
+2. Las ramas de preview **sobreviven al cierre de la PR**, porque cuelgan de la **retención de
+   despliegues de Vercel** —6 meses por defecto— y no de la PR (§6). Es decir: se acumulan solas.
+   **Este techo ya tiene dueño, y no es una persona.**
 
-**Mantenimiento**: revisar la consola de Neon periódicamente y **borrar las ramas de preview
-viejas**, empezando por las de PRs ya cerradas. Con una PR a la vez no molesta; con diez
-acumuladas, bloquea las previews de todo el mundo. Es ops, y nadie avisa antes de que ocurra.
+#### El incidente del 2026-08-19/20, con su mensaje literal
+
+> 🚨 El techo 2 se cumplió **un día** después de que este runbook lo escribiera, y tumbó un
+> despliegue de **producción**. El mensaje, literal, para que sea reconocible si vuelve:
+>
+> ```
+> Branch limit reached. Upgrade your plan or delete unused branches.
+> ```
+>
+> El panel tenía las **10** ramas: `main`, una `preview` creada a mano y **ocho `preview/ft/*`
+> de specs ya mergeadas**. Hubo que borrar tres a mano para desbloquear el despliegue.
+>
+> **Por qué la defensa anterior no era una defensa**: era un párrafo pidiéndole a una persona que
+> revisara la consola periódicamente — la misma forma exacta del defecto que fundó ADR-018
+> (*"se olvidó 27 días"*) y SPEC-027 (*"la suite depende de que alguien se acuerde"*).
+> **Duró un día.**
+
+#### Qué lo barre ahora: `neon-preview-cleanup.yml` (SPEC-042)
+
+`.github/workflows/neon-preview-cleanup.yml` borra la rama de Neon **al cerrar la PR**, mergeada
+o no —una PR cerrada sin mezclar deja exactamente la misma rama huérfana, porque la creó el
+despliegue de Preview y no el merge—. Es la vía que recomienda Neon
+(<https://neon.com/docs/guides/vercel-branch-cleanup>), y consume
+`neondatabase/delete-branch-action@v3` con tres entradas.
+
+- **Qué borra, y solo eso**: `preview/${{ github.head_ref }}`. El prefijo `preview/` va
+  **literal** en el YAML, delante de la interpolación, y el fichero **no nombra ninguna rama
+  fija**. Eso acota **qué se pide borrar**; lo que **no** acota es el alcance de la credencial:
+  una clave de Neon, incluso acotada al proyecto, **puede borrar cualquier rama**.
+- **Cuidado con el argumento "no tiene ni un `run:`"**, que este runbook llegó a dar por bueno
+  el 2026-08-20 y **es falso a medias**. Es cierto que el workflow no ejecuta ni una línea de
+  shell **nuestra**, y eso quita un sitio donde el secreto pudiera acabar en un log. Pero
+  `neondatabase/delete-branch-action` es una ***composite action***: su paso final es un
+  `shell: bash` que interpola el nombre de rama **textualmente** —dos veces, y con la clave de
+  la API en el entorno de ese paso—, así que `github.head_ref` **sí llega a un intérprete de
+  comandos**. Dentro de comillas dobles bash expande `$(…)` y las backticks sin necesidad de
+  romper la comilla, y git **acepta** esos caracteres en un nombre de rama. Sin filtro, el peor
+  caso alcanzable no era *"borré una preview que no tocaba"* sino **ejecución de comandos con la
+  única clave con permiso de borrado del proyecto**.
+- **Lo que sí acota el peor caso**: el **filtro de caracteres** que el job aplica al nombre de
+  rama antes de dárselo a la acción. Son tres —`$`, la backtick y la comilla doble—, que son los
+  únicos a los que bash reacciona dentro de comillas dobles y que git deja pasar en una ref (la
+  barra invertida, el cuarto, git ya la rechaza). Con el filtro puesto, el peor caso vuelve a ser
+  *"borré una preview que no tocaba"*. La derivación no se cree: `tests/neon-preview-cleanup-workflow.test.ts`
+  4.5 se la vuelve a preguntar a git en cada ejecución de la suite.
+- **Y lo que el filtro cuesta**, porque es un hueco nuevo y no una victoria limpia: una PR cuya
+  rama contenga uno de esos tres caracteres **no se limpia**, y su rama de Neon **queda
+  huérfana** hasta que alguien la borre a mano (`F-SPEC-042-7`). Es *fail-closed* **y en
+  silencio** —de los dos *fail-closed* de este apartado es el que **no avisa**; el otro, dos
+  viñetas más abajo, pinta rojo—: no barrer una rama cuesta uno de los diez huecos del techo;
+  ejecutar código con esa clave cuesta el proyecto. En este repositorio los nombres de rama los
+  generan **agentes** a partir de títulos de spec, así que un `$` puede llegar ahí **sin ninguna
+  malicia**.
+- **Cómo se diagnostica ese silencio**, porque no es el silencio que uno se imagina: el
+  disparador `pull_request: [closed]` **no filtra por rama ni por ruta**, así que el evento **sí
+  crea la ejecución** —el `if` se evalúa después, **a nivel de job**—. En Actions **aparece** una
+  ejecución completada, en **gris**, con conclusión `skipped` y el job **sin un solo paso**. No
+  pinta rojo, no bloquea nada y de un vistazo se pasa por buena; `skipped` es un estado listable
+  de la API de ejecuciones de GitHub (`/actions/runs?status=skipped`), no una ausencia. Así que
+  **la señal no es que falte la ejecución, sino que la ejecución no hizo nada**: si una PR cerrada
+  dejó una ejecución sin trabajo hecho, el primer sitio donde mirar es el nombre de su rama.
+- **Qué necesita**: las acciones de ops **7** y **8** de la tabla de arriba. Si faltan, el
+  workflow da **rojo** en el primer cierre de PR: es *fail-closed* **y en rojo**, igual que
+  `ALLOW_MIGRATE`. Es el contrario del hueco del filtro: **este sí avisa**, aquel no.
+- **Qué no hace**: no corre para PRs de un **fork** (`F-SPEC-042-5`) —darles servicio exigiría el
+  disparador que entrega secretos a código de terceros, y este repositorio es público—, no vigila
+  cuántas ramas quedan, y no barre lo ya acumulado: actúa sobre PRs que se cierren **a partir de
+  ahora**.
+- **No es un check requerido, y no debe serlo** (§9): corre después del merge.
+
+#### Lo que esto cuesta, escrito y no enterrado
+
+**Las URLs de preview antiguas dejan de conectar.** Es la contrapartida que Neon declara y no hay
+forma de tener las dos cosas —o la rama vive y ocupa techo, o muere y su preview se rompe—:
+*"Deleting a Neon branch invalidates any Vercel preview deployments that depend on it. Those
+deployments will fail on database connections."* Con el flujo *mergear y seguir* de este proyecto
+no molesta; el día que se comparta una URL de preview con un tester, **sí molestará**, y el sitio
+de enterarse es este párrafo y no ese día.
+
+**Lo que aún no se sabe**, dicho en vez de inventado: el README de la acción **no documenta qué
+pasa ante una rama que ya no existe** —ni falla ni no-falla—. Hay PRs que se cierran sin haber
+tenido nunca preview, y hay cierres dobles. Es SPEC-042 CA-9, y el veredicto —verde o rojo, y con
+qué mensaje— se escribe **aquí**.
+
+**No hace falta esperar a cerrar una PR para saberlo.** La pregunta no necesita un cierre real:
+necesita la credencial, y la credencial ya existe (acciones de ops **7** y **8**). Un solo
+comando la responde, sin tocar nada, y conviene correrlo **antes** de mezclar:
+
+```bash
+neonctl branches delete preview/no-existe-jamas --project-id orange-lab-24079923
+```
+
+- **Si sale verde**: la acción se traga la rama inexistente, el limpiador no dará falsos rojos y
+  no hay nada que decidir. Se anota aquí y se cierra CA-9.
+- **Si sale rojo** —que es lo esperable, porque `neonctl` tiene que resolver el nombre a un id—:
+  este limpiador pintará **rojo en toda PR que se cierre sin haber tenido preview**. Hay que
+  saberlo **antes** de mezclar, no después del primer falso rojo, y se abre follow-up en el acto.
+  Lo que **no** se hace ni entonces ni ahora es taparlo preventivamente con una red de seguridad
+  (SPEC-042 CA-5.5): tapar un fallo que aún no se ha medido cambia un problema conocido por uno
+  invisible.
+
+#### Y lo que NO arregla, para que nadie lo confunda
+
+La casilla de GitHub *Automatically delete head branches* (acción de ops **9**) **no toca Neon**.
+Borra ramas de git muertas —había **27** mergeadas vivas el 2026-08-19/20, podadas a mano— y nada
+más. Quien crea que con esa casilla el problema del techo de Neon está resuelto, se lo volverá a
+encontrar.
+
+Y el **techo de 10 ramas** sigue siendo 10: SPEC-042 quita la **acumulación**, no el **techo**.
+Con varias PRs abiertas a la vez —que es lo que ya pasa en este proyecto— diez no es mucho. La
+**mitad 1** de `F-SPEC-028-2` **sigue abierta a propósito**; su mitad 2 la cierra SPEC-042. Si
+algún día el techo vuelve a agotarse con el limpiador vivo, la conversación es de plan, no de
+mantenimiento. Refuerzo opcional que **mitiga pero no resuelve** (asíncrono, y Vercel protege
+siempre los ~10 despliegues más recientes): bajar la *Deployment Retention Policy* de Vercel para
+*Pre-Production Deployments* → `F-SPEC-042-4`. Y la rama `preview` suelta del panel, creada a
+mano, ni la creó Vercel ni la borra este workflow: ocupa techo y decidir si sobra es ops →
+`F-SPEC-042-6`.
 
 ### 13.4 Por qué ese orden
 

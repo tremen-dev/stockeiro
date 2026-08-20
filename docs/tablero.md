@@ -68,6 +68,7 @@ Actualizado: 2026-08-20
 | SPEC-028 — despliegue-automatico-desde-main-conexion-git-puerta-post-deploy-y-runbook-reescrito | en-revision | 2026-08-18 (sdd-implementador) |
 | SPEC-031 — el-despliegue-dice-de-que-commit-viene-api-version-y-comprobacion-de-vida | hecho | 2026-08-18 (sdd-verificador) |
 | SPEC-032 — las-guardias-de-migracion-nada-migra-sin-permiso-y-ningun-drop-pasa-mudo | hecho | 2026-08-18 (sdd-verificador) |
+| SPEC-042 — la-limpieza-de-las-ramas-de-preview-de-neon-deja-de-ser-un-recordatorio | en-revision | 2026-08-20 (sdd-implementador) |
 
 ## EPIC-MEJORA (aprobada)
 
@@ -109,4 +110,4 @@ Actualizado: 2026-08-20
 
 - hecho: 34
 - aprobada: 1
-- en-revision: 2
+- en-revision: 3

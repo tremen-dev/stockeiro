@@ -1,0 +1,171 @@
+# SPEC-042 / F-SPEC-028-2 (mitad 2) — la limpieza de las ramas de preview de
+# Neon deja de ser un recordatorio.
+#
+# El 2026-08-19/20 un despliegue de producción murió con:
+#
+#     Branch limit reached. Upgrade your plan or delete unused branches.
+#
+# El panel de Neon tenía las diez ramas del plan Free y ocho eran `preview/ft/*`
+# de specs ya mezcladas. La causa está documentada por Neon, no supuesta: con la
+# integración gestionada por Vercel —la que este proyecto tiene— la rama de Neon
+# cuelga del DESPLIEGUE de Vercel y no de la PR, y la retención por defecto de
+# los despliegues de preview es de SEIS MESES. Es decir: borrar la rama de git
+# NO borra la rama de Neon. Con una spec por PR y diez de techo, revienta cada
+# ~8 merges, indefinidamente.
+#   <https://neon.com/docs/guides/vercel-managed-integration>
+#
+# Esto es la opción 3 de la guía de limpieza de Neon, que es la que Neon
+# recomienda para este caso: un action al cerrar la PR.
+#   <https://neon.com/docs/guides/vercel-branch-cleanup>
+#
+# Por qué un fichero aparte y no un job dentro de ci.yml, que es una decisión y
+# no una preferencia (SPEC-042 §Decisión de diseño):
+#   - Ciclo distinto. `ci.yml` responde "¿se puede mezclar?" ANTES; `deploy-gate.yml`
+#     responde "¿llegó?" DESPUÉS; este responde "¿queda basura?" al CERRAR.
+#   - Este workflow lleva un secreto y los otros dos no. Que no lleven ninguno
+#     está congelado en tests de otras dos specs (tests/spec-031-frontera.test.ts,
+#     tests/spec-032-frontera.test.ts): meterlo dentro obligaría a editarlos, que
+#     es el daño que F-SPEC-032-3 documentó y aquí es evitable por completo.
+#   - No es un check del merge, y no debe serlo: corre cuando el merge ya ocurrió.
+#     Un check requerido que se ejecuta después del merge es una contradicción
+#     (docs/despliegue.md §9 y §12.5).
+#
+# Y la contrapartida, que Neon declara y aquí se acepta a cambio de la limpieza:
+# al borrar la rama, las URLs de preview antiguas DEJAN DE CONECTAR — "those
+# deployments will fail on database connections". Con el flujo de este proyecto
+# —mezclar y seguir— no molesta; el día que se comparta una URL de preview con
+# un tester, sí.
+#
+# Lo que este workflow NO hace, dicho para que nadie lo espere:
+#   - No limpia las PRs que vienen de un fork (F-SPEC-042-5): darles servicio
+#     exigiría el disparador hermano, el que corre en el contexto del repositorio
+#     base y por eso SÍ entrega secretos a código de terceros. Este repositorio es
+#     público desde el 2026-08-19; eso no se paga por barrer una rama.
+#   - No vigila cuántas ramas quedan. Eso sería un monitor: otro ciclo, otra
+#     conversación. El techo de 10 sigue donde estaba (mitad 1 de F-SPEC-028-2).
+#   - No borra las ramas ya acumuladas: solo actúa sobre PRs que se cierren a
+#     partir de ahora. El barrido retroactivo fue a mano.
+name: Neon preview cleanup
+
+# UN SOLO disparador (CA-2), y sin filtrar por si la PR se mezcló o no: una PR
+# cerrada sin mezclar deja exactamente la misma rama huérfana en Neon, porque la
+# creó el despliegue de Preview y no el merge. Filtrar dejaría fuera justo el
+# caso en que más fácil es olvidarse.
+#
+# El disparador hermano —el que corre en el contexto del repositorio base— está
+# PROHIBIDO por CA-2.4, y su ausencia no es un olvido: es el único que entregaría
+# este secreto a una PR de un fork. El test lo busca también en los comentarios,
+# para que no vuelva por la vía de "opción a considerar".
+on:
+  pull_request:
+    types: [closed]
+
+# Sin un solo permiso (CA-5.2). No hay checkout, no se lee el árbol, no se
+# escribe nada: el token de Actions no tiene aquí ningún trabajo que hacer.
+permissions: {}
+
+# Grupo propio, distinto del de ci.yml y del de deploy-gate.yml (CA-5.4), y con
+# `cancel-in-progress: false` a propósito: cancelar un borrado a medias no ahorra
+# nada y deja la rama viva, que es justo el problema que esto viene a resolver.
+concurrency:
+  group: neon-preview-cleanup-${{ github.event.pull_request.number }}
+  cancel-in-progress: false
+
+jobs:
+  delete-preview-branch:
+    name: Delete Neon preview branch
+    runs-on: ubuntu-latest
+    # Dos defensas distintas en la misma condición, y ninguna sustituye a la otra:
+    # la primera dice QUIÉN puede disparar esto, las tres siguientes dicen QUÉ se
+    # le puede pasar.
+    #
+    # 1) Nada de forks (CA-5.1). En un repositorio público, una PR de un fork no
+    #    recibe secretos: sin esta condición cada cierre de PR externa pintaría un
+    #    rojo garantizado y sin significado, y una puerta que da falsos rojos
+    #    enseña a ignorarla.
+    #
+    # 2) El nombre de rama se filtra ANTES de dárselo a la acción, porque la
+    #    acción SÍ tiene una shell dentro (ver el comentario del step). Su paso
+    #    final interpola el nombre de rama textualmente en un script bash, dos
+    #    veces, con la credencial en el entorno:
+    #
+    #        if [ -z "<rama>" ]; then … else neonctl branches delete "<rama>" …; fi
+    #
+    #    Dentro de comillas dobles bash reacciona a cuatro caracteres y solo
+    #    cuatro: `$`, la backtick, la barra invertida y la propia comilla. `$(…)`
+    #    y las backticks se expanden ahí dentro SIN romper la comilla, así que
+    #    esto no exige un nombre de rama retorcido: exige uno con un `$`. De los
+    #    cuatro, el formato de refs de git ya rechaza la barra invertida, así que
+    #    el conjunto completo son estos tres. `;`, `&&`, `|`, `>`, `!`, `#` y la
+    #    comilla simple quedan literales dentro de las comillas y no hace falta
+    #    excluirlos: excluirlos de más solo dejaría más ramas sin barrer.
+    #    Todo esto está comprobado, no recordado: `tests/neon-preview-cleanup-workflow.test.ts`
+    #    4.5 vuelve a preguntarle a git cuáles pasan cada vez que corre la suite.
+    #
+    #    Es *fail-closed* con un precio, y el precio se paga a sabiendas: una PR
+    #    cuya rama lleve uno de estos tres caracteres NO se limpia y deja su rama
+    #    de Neon huérfana (`F-SPEC-042-7`). No limpiar una rama cuesta un hueco de
+    #    los diez del techo; ejecutar código con la única clave de borrado del
+    #    proyecto cuesta el proyecto.
+    #
+    #    Este fail-closed es de los que NO avisan, y su silencio no es el que uno
+    #    se imagina: `pull_request: [closed]` no filtra por rama ni por ruta, así
+    #    que el evento SÍ crea la ejecución y este `if` se evalúa después, a nivel
+    #    de job. En Actions aparece una ejecución completada, en gris, con
+    #    conclusión `skipped` y el job sin un solo paso. La señal no es que falte
+    #    la ejecución: es que la ejecución no hizo nada. Ver docs/despliegue.md
+    #    §13.3, donde está escrito para quien diagnostique.
+    if: >-
+      github.event.pull_request.head.repo.full_name == github.repository
+      && !contains(github.head_ref, '$')
+      && !contains(github.head_ref, '`')
+      && !contains(github.head_ref, '"')
+    # Una petición HTTP no puede quemar cuota colgada (CA-5.3).
+    timeout-minutes: 10
+    steps:
+      # El único step del fichero, y no ejecuta ni una línea de shell (CA-4.3).
+      # Eso compra menos de lo que se creyó al escribirlo, y conviene que quede
+      # dicho aquí para que nadie lo vuelva a "simplificar":
+      #
+      #   - Lo que SÍ compra: en este fichero no hay una shell nuestra donde el
+      #     secreto pueda acabar impreso en un log.
+      #   - Lo que NO compra: que el nombre de rama no llegue a un intérprete de
+      #     comandos. La acción de aquí abajo es una COMPOSITE ACTION, y su paso
+      #     final es un `shell: bash` que interpola el nombre de rama
+      #     TEXTUALMENTE, dos veces, con la clave de la API en el entorno de ese
+      #     mismo paso. Nuestro fichero no tiene shell; el suyo sí, y es el que
+      #     recibe el dato.
+      #
+      # Por eso el nombre de rama se filtra arriba, en la condición del job, y no
+      # aquí: cuando llega a este step ya es tarde. Lo que de verdad acota el peor
+      # caso alcanzable desde este fichero son las dos cosas juntas —el filtro de
+      # caracteres y el prefijo literal—, no la ausencia de `run:`.
+      #
+      # `preview/` va LITERAL delante de la interpolación (CA-4.1): acota QUÉ se
+      # pide borrar, y no el alcance de la credencial —una clave de Neon, incluso
+      # acotada al proyecto, puede borrar cualquier rama—. Con el filtro puesto,
+      # el peor caso que queda es "borré una preview que no tocaba".
+      # `preview/<rama-de-git>` es la convención de nombrado de la integración
+      # gestionada por Vercel, confirmada por la evidencia del panel
+      # (`preview/ft/SPEC-0NN-…`). Si Neon la cambiara, el rojo de aquí es el aviso.
+      #
+      # Las dos entradas de ops NO viven en el repositorio y son F-SPEC-042-1 y
+      # F-SPEC-042-2 (docs/despliegue.md §13). Si faltan, esto da rojo: es
+      # fail-closed Y EN ROJO, igual que `ALLOW_MIGRATE` (ADR-018 D-3) — el
+      # contrario del fail-closed del filtro de arriba, que es silencioso.
+      #
+      # Sin tolerancia al fallo, sin encadenados que se traguen el código de
+      # salida y sin condición de cortesía (CA-5.5): un fallo del borrado TIENE
+      # que pintar rojo. Un limpiador que falla en silencio devuelve el problema
+      # dentro de seis meses y con el panel lleno.
+      #
+      # Qué hace la acción ante una rama que ya no existe no está
+      # documentado en su README —leído entero el 2026-08-20—, así que CA-9 lo
+      # MIDE en el primer cierre real antes de decidir nada: taparlo ahora sería
+      # cambiar un problema conocido por uno invisible.
+      - name: Delete the Neon branch created for this pull request
+        uses: neondatabase/delete-branch-action@v3
+        with:
+          project_id: ${{ vars.NEON_PROJECT_ID }}
+          branch: preview/${{ github.head_ref }}
+          api_key: ${{ secrets.NEON_API_KEY }}
