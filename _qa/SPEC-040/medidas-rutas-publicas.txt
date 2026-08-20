@@ -1,0 +1,46 @@
+SPEC-040 CA-3 — M1 (desborde por elemento) + M2, rutas públicas
+── /
+ancho 360: documento=360/360 (desborde 0) · elementos medidos=23 violaciones=0
+ancho 390: documento=390/390 (desborde 0) · elementos medidos=23 violaciones=0
+ancho 640: documento=640/640 (desborde 0) · elementos medidos=23 violaciones=0
+ancho 700: documento=700/700 (desborde 0) · elementos medidos=23 violaciones=0
+ancho 730: documento=730/730 (desborde 0) · elementos medidos=23 violaciones=0
+ancho 760: documento=760/760 (desborde 0) · elementos medidos=23 violaciones=0
+ancho 800: documento=800/800 (desborde 0) · elementos medidos=23 violaciones=0
+ancho 1280: documento=1280/1280 (desborde 0) · elementos medidos=23 violaciones=0
+── /ayuda
+ancho 360: documento=360/360 (desborde 0) · elementos medidos=84 violaciones=0
+ancho 390: documento=390/390 (desborde 0) · elementos medidos=84 violaciones=0
+ancho 640: documento=640/640 (desborde 0) · elementos medidos=84 violaciones=0
+ancho 700: documento=700/700 (desborde 0) · elementos medidos=84 violaciones=0
+ancho 730: documento=730/730 (desborde 0) · elementos medidos=84 violaciones=0
+ancho 760: documento=760/760 (desborde 0) · elementos medidos=84 violaciones=0
+ancho 800: documento=800/800 (desborde 0) · elementos medidos=84 violaciones=0
+ancho 1280: documento=1280/1280 (desborde 0) · elementos medidos=84 violaciones=0
+── /legal
+ancho 360: documento=360/360 (desborde 0) · elementos medidos=27 violaciones=0
+ancho 390: documento=390/390 (desborde 0) · elementos medidos=27 violaciones=0
+ancho 640: documento=640/640 (desborde 0) · elementos medidos=27 violaciones=0
+ancho 700: documento=700/700 (desborde 0) · elementos medidos=27 violaciones=0
+ancho 730: documento=730/730 (desborde 0) · elementos medidos=27 violaciones=0
+ancho 760: documento=760/760 (desborde 0) · elementos medidos=27 violaciones=0
+ancho 800: documento=800/800 (desborde 0) · elementos medidos=27 violaciones=0
+ancho 1280: documento=1280/1280 (desborde 0) · elementos medidos=27 violaciones=0
+── /login
+ancho 360: documento=360/360 (desborde 0) · elementos medidos=23 violaciones=0
+ancho 390: documento=390/390 (desborde 0) · elementos medidos=23 violaciones=0
+ancho 640: documento=640/640 (desborde 0) · elementos medidos=23 violaciones=0
+ancho 700: documento=700/700 (desborde 0) · elementos medidos=23 violaciones=0
+ancho 730: documento=730/730 (desborde 0) · elementos medidos=23 violaciones=0
+ancho 760: documento=760/760 (desborde 0) · elementos medidos=23 violaciones=0
+ancho 800: documento=800/800 (desborde 0) · elementos medidos=23 violaciones=0
+ancho 1280: documento=1280/1280 (desborde 0) · elementos medidos=23 violaciones=0
+── /register
+ancho 360: documento=360/360 (desborde 0) · elementos medidos=21 violaciones=0
+ancho 390: documento=390/390 (desborde 0) · elementos medidos=21 violaciones=0
+ancho 640: documento=640/640 (desborde 0) · elementos medidos=21 violaciones=0
+ancho 700: documento=700/700 (desborde 0) · elementos medidos=21 violaciones=0
+ancho 730: documento=730/730 (desborde 0) · elementos medidos=21 violaciones=0
+ancho 760: documento=760/760 (desborde 0) · elementos medidos=21 violaciones=0
+ancho 800: documento=800/800 (desborde 0) · elementos medidos=21 violaciones=0
+ancho 1280: documento=1280/1280 (desborde 0) · elementos medidos=21 violaciones=0

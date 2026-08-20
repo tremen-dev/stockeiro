@@ -2,11 +2,13 @@
 id: SPEC-040
 tipo: spec
 epica: EPIC-FIX
-estado: aprobada
+estado: en-revision
 aprobada-por: humano (Alberto Fojo)
 historial:
   - {estado: borrador, fecha: 2026-08-20, por: sdd-arquitecto}
   - {estado: aprobada, fecha: 2026-08-20, por: humano (Alberto Fojo)}
+  - {estado: en-progreso, fecha: 2026-08-20, por: sdd-implementador}
+  - {estado: en-revision, fecha: 2026-08-20, por: sdd-implementador}
 ---
 # SPEC-040 — El móvil completa el alta de una vigilada, y la guardia de geometría deja de ser ciega
 
