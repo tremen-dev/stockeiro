@@ -1,0 +1,5 @@
+SPEC-041 CA-14 — /vigiladas con filas a 390 px
+  zona de alta plegada:    49 px de alto
+  zona de alta desplegada: 487 px de alto
+  M1: 0 violaciones sobre 35 elementos medidos
+  .table-scroll[overflow-x=auto contenido=933 visible=350]
