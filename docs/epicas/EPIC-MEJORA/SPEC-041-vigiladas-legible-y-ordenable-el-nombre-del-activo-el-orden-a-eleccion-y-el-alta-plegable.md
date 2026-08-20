@@ -1,5 +1,5 @@
 ---
-id: SPEC-040
+id: SPEC-041
 tipo: spec
 epica: EPIC-MEJORA
 estado: borrador
@@ -7,7 +7,7 @@ aprobada-por:
 historial:
   - {estado: borrador, fecha: 2026-08-20, por: sdd-arquitecto}
 ---
-# SPEC-040 — Vigiladas legible y ordenable: el nombre del activo, el orden a elección y el alta plegable
+# SPEC-041 — Vigiladas legible y ordenable: el nombre del activo, el orden a elección y el alta plegable
 
 ## Problema
 
@@ -46,6 +46,27 @@ estado `none` la misma celda mete además un párrafo entero: el motivo de SPEC-
 `overflow-x: auto`). Es decir: el sitio para el nombre y el sitio que suelta `Estado` son
 **el mismo reparto**, exactamente como anticipó la épica al pedir una sola spec y no tres.
 
+### Lo que ya no es un riesgo, y lo que pasó a serlo (actualizado 2026-08-20, tras el gate)
+
+**SPEC-039 se mergeó a `main` (PR #42) y está `hecho`.** El *«conflicto probable, quien llegue
+segundo rebasa»* que traía **R-M1** de la épica **ha dejado de existir**: esta rama está
+rebasada sobre `784c1ea` y **ya tiene** el estado vacío de SPEC-039 delante. Lo que era riesgo
+de coordinación es ahora una **restricción de no regresión**, y como tal se escribe: en
+`src/app/vigiladas/page.tsx` viven hoy el bloque `.empty` con `data-testid="vigiladas-vacio"`,
+los textos de `VACIO_VIGILADAS` (título, primer paso y ejemplo **con números**), la línea
+`CADENCIA_LINEA` y el enlace a `RUTA_AYUDA`, todos servidos desde `src/lib/help/content.ts`.
+Esta spec **no puede romper nada de eso** (CA-21) y **no lo reescribe**.
+
+Y hay un detalle literal que ata SPEC-039 con el punto 3 de esta spec, y conviene leerlo
+entero antes de discutir el plegado: `VACIO_VIGILADAS.primerPaso` dice **«Empieza aquí
+abajo…»**. Es una promesa de **posición**, no una invitación genérica: el formulario tiene que
+seguir estando **justo debajo** de ese bloque y desplegado (CA-12). Plegarlo también en el
+vacío no sería solo empeorar el onboarding: dejaría a la app **mintiendo por escrito**.
+
+En su lugar aparece un riesgo nuevo que no existía cuando se escribió el borrador: **SPEC-040
+(EPIC-FIX) arregla la geometría de este mismo formulario en móvil**, con **ADR-026** detrás, y
+está viva en paralelo. Se trata en §Riesgos (**R-2**, **R-3**).
+
 Esta spec cubre **CE-M4** y se somete a **CE-M1** (no cambia ni un dato, ni un cálculo, ni una
 regla) y a **CE-M3** (sin migración, sin proveedor nuevo y **sin ADR**).
 
@@ -70,7 +91,9 @@ exigiendo sesión) y **RI-01** (no hay migración que pueda incumplirla: **no ha
   hoy**, con su ticker y sin nombre inventado (CA-3).
 - **Usuario en móvil**: gana ancho en vez de perderlo — la tabla no suma columnas y `Estado`
   deja de estirarse (CA-4, CA-14).
-- **Quien implemente SPEC-039**: comparte fichero. Ver §Notas, pto. 8.
+- **Quien implemente SPEC-040 (EPIC-FIX, *el móvil completa el alta*)**: comparte componente.
+  Ella arregla **cómo mide** el formulario; esta decide **cuándo está a la vista**. Reparto de
+  territorio en §Riesgos **R-2** y en §Notas, pto. 8.
 
 ## Criterios de aceptación
 
@@ -185,12 +208,17 @@ la intención.
 
 ### El alta que solo aparece cuando se va a usar
 
-- **CA-12 (Con la lista vacía, el alta sigue a la vista — R-M3, SPEC-039 CA-9).**
+- **CA-12 (Con la lista vacía, el alta sigue a la vista, y justo donde SPEC-039 promete que
+  está — R-M3, SPEC-039 CA-9).**
   Dado un usuario **sin ninguna** acción vigilada,
   cuando abre `/vigiladas`,
-  entonces el formulario de alta está **desplegado y utilizable sin ningún clic previo**: el
-  buscador de símbolos y los campos de zona son visibles en el primer render. Esconder el
-  primer paso a quien aún no ha dado ninguno **incumple este CA**.
+  entonces el formulario de alta está **desplegado y utilizable sin ningún clic previo** —el
+  buscador de símbolos y los campos de zona son visibles en el primer render— **y aparece
+  inmediatamente después** del bloque `data-testid="vigiladas-vacio"`, sin ningún control
+  intermedio que haya que pulsar. Es una exigencia **literal**: `VACIO_VIGILADAS.primerPaso`
+  dice «**Empieza aquí abajo**…», así que un formulario plegado, o colocado por encima de ese
+  bloque, deja el texto mintiendo. Esconder el primer paso a quien aún no ha dado ninguno
+  **incumple este CA**.
 
 - **CA-13 (Con lista, el alta está plegada tras un control explícito).**
   Dado un usuario **con al menos una** acción vigilada,
@@ -205,9 +233,16 @@ la intención.
   Dado un usuario con lista y el alta plegada, en viewport de 390 × 844 px,
   cuando abre `/vigiladas`,
   entonces la altura ocupada por la zona de alta (control incluido) es **menor** que la del
-  formulario desplegado, y el **cuerpo de la página no tiene scroll horizontal**
-  (`document.body.scrollWidth <= window.innerWidth`): el desbordamiento horizontal, si lo hay,
-  sigue confinado a `.table-scroll` como hoy.
+  formulario desplegado, y **ningún elemento visible de la página se sale por el lado
+  derecho**: para cada elemento bajo `nav`, `main` y `footer`,
+  `getBoundingClientRect().right <= innerWidth + 1` (medida **M1** de **ADR-026**). El
+  desbordamiento horizontal de la tabla, si lo hay, sigue confinado a `.table-scroll`.
+  *Corrección respecto al borrador del 2026-08-20*: este CA decía
+  `document.body.scrollWidth <= window.innerWidth`, que es **exactamente la medida ciega** que
+  **ADR-026** pto. 1 declara mal escrita y que **SPEC-040** (EPIC-FIX) CA-8 demuestra incapaz
+  de ver un recorte bajo `html, body { overflow-x: hidden }` —puesto por el sistema de diseño
+  por debajo de 720 px, o sea justo aquí—. Con aquella redacción, este CA habría pasado en
+  verde con medio formulario fuera de la pantalla.
 
 - **CA-15 (Dar de alta varias seguidas sigue siendo un flujo, no un ritual).**
   Dado un usuario con lista que despliega el alta y **da de alta una acción con éxito**,
@@ -259,6 +294,31 @@ la intención.
   que llega al navegador: lo que se serializa es exactamente la salida de `zoneStatusForUser`
   para **ese** `userId`, sin campos nuevos más allá del nombre del activo.
 
+- **CA-21 (El estado vacío que dejó SPEC-039 sigue intacto — no regresión sobre `main`).**
+  Dado un usuario **sin ninguna** acción vigilada,
+  cuando abre `/vigiladas`,
+  entonces sigue viendo, con su marca y su texto **sin cambiar ni una palabra**: el bloque
+  `data-testid="vigiladas-vacio"` con el título de `VACIO_VIGILADAS`; el primer paso; el
+  **ejemplo con números** (`data-testid="vigiladas-vacio-ejemplo"`); la **línea de cadencia**
+  (`data-testid="vigiladas-vacio-cadencia"`, la misma frase literal `CADENCIA_LINEA` que la
+  primera pantalla y `/ayuda`, SPEC-039 CA-3); y el **enlace a `RUTA_AYUDA`**. Todos los textos
+  se siguen leyendo de `src/lib/help/content.ts`: esta spec **no los copia, no los mueve de
+  fichero y no los reescribe**. `tests/e2e/ayuda.spec.ts` sigue verde sin tocar sus
+  aserciones.
+
+- **CA-22 (Plegar el alta NO deja ciega a la guardia de geometría — ADR-026, frontera con
+  SPEC-040 de EPIC-FIX).**
+  Dado `/vigiladas` **con al menos una fila** y el alta **desplegada por el control** de
+  CA-13, a **360 × 800** y **390 × 844**,
+  entonces se aplica la medida **M1** de **ADR-026** —`right <= innerWidth + 1` y
+  `left >= -1`, elemento a elemento— sobre `form.auth-form` y todo su contenido, y **ninguno
+  la viola**. Dicho de otro modo: **el estado "lista con filas + alta desplegada" es un estado
+  medido**, no un hueco. Es el CA que existe **por** esta spec: hasta ella, el formulario
+  estaba siempre en el DOM y la barrida de la guardia lo alcanzaba en las dos rutas; a partir
+  de ella hay un estado del formulario que **solo existe tras un clic**, y una medida que no
+  dé ese clic dejaría de verlo. Crear un punto ciego nuevo en la guardia sería, precisamente,
+  el fallo silencioso que SPEC-040 viene a matar.
+
 ## Entidades y reglas afectadas
 
 **Reglas**: **RN-01** (aislamiento; CA-20), **RN-10** y **RN-11** (zonas y entrada en zona: **no
@@ -274,8 +334,14 @@ pto. 7).
 `(ticker, micCode)`: dos mercados del mismo ticker son dos filas, y CA-18 lo protege),
 **ADR-012** (el mercado sale del *operating MIC*), **ADR-020** (el tipo se muestra, no filtra),
 **ADR-021** (rol de cuenta: `/vigiladas` es sección de `tester` en adelante), **ADR-025** (el
-término del glosario lo escribe el arquitecto en el gate). **Esta spec no propone ningún ADR
+término del glosario lo escribe el arquitecto en el gate) y **ADR-026** (la geometría se mide
+elemento a elemento, en un módulo compartido, y `overflow: hidden` no es un arreglo) — esta
+spec lo **consume** en CA-14 y CA-22 y **no lo modifica**. **Esta spec no propone ningún ADR
 nuevo** (**CE-M3**).
+
+**Specs vecinas vivas al escribirla**: **SPEC-039** (EPIC-004, `hecho` y **en `main`**: su
+estado vacío es no regresión, CA-21) y **SPEC-040** (EPIC-FIX, `aprobada`, en otra rama: la
+geometría móvil de este mismo `WatchForm`, R-2/R-3).
 
 **Piezas que se extienden, no se duplican:**
 
@@ -315,11 +381,93 @@ nuevo** (**CE-M3**).
   cuando la lista está vacía (CA-12), que es la propiedad que SPEC-039 necesita que se cumpla.
 - **Cambiar las etiquetas del estado de zona** ni el color de fondo (SPEC-007): CA-5.
 - **Rediseño visual de la app** (tipografía, sistema de color): lo excluye la épica.
+- **La geometría del formulario de alta en móvil** —que `.symbol-picker` y los campos
+  `min`/`max` encojan para caber en una columna de 320/350 px, el módulo compartido de medida
+  de **ADR-026** y su prueba de eficacia—. Es **SPEC-040** (EPIC-FIX) entera. Esta spec **no
+  toca anchos ni `min-width` de `WatchForm`**: decide **cuándo se ve**, no **cuánto mide**.
+  CA-14 y CA-22 se limitan a **usar** la medida de ADR-026, no a escribirla.
+- **Sacar `.table-scroll` de su `@media`** (defecto 3 de SPEC-040, `V-SPEC-039-3`): también es
+  suyo, por su CA-5. Aquí solo se depende del resultado.
 - **Ordenar por precio, por `asOf` o por zona.** No están pedidos y cada uno abre su propia
   pregunta (¿cómo ordena un precio ausente? ¿y una zona sin definir?). Si se quisieran, el
   comparador de CA-9 es el sitio donde entrarían.
 
+## Riesgos
+
+- **R-1 (SPEC-039 ya no es un riesgo de coordinación, sino una restricción — cerrado).**
+  **R-M1** de la épica anticipaba conflicto de merge en `src/app/vigiladas/page.tsx` y la regla
+  *«quien llegue segundo rebasa»*. **Se resolvió solo**: SPEC-039 mergeó a `main` (PR #42) y
+  esta rama está rebasada encima (`784c1ea`). Lo que queda es **no romper lo que dejó**, y eso
+  ya no es un riesgo abierto sino un CA: **CA-21**. Se anota cerrado en vez de borrarlo, para
+  que quien lea la épica no busque un conflicto que no va a encontrar.
+
+- **R-2 (SPEC-040 de EPIC-FIX toca el MISMO componente, y este paralelo sí está vivo).**
+  `ft/SPEC-040-movil-completa-el-alta-y-guardia-que-lo-ve` está **aprobada** y arregla
+  `WatchForm` en móvil: a 390 px `.symbol-picker` y `.symbol-search-input` miden **444 px** en
+  una columna de **350** (y de **320** a 360 px), así que hoy se salen de la pantalla el campo
+  de búsqueda, los «max» de las dos zonas y **el botón Vigilar** — en silencio, porque
+  `design/tremen-ds/responsive.css` pone `html, body { overflow-x: hidden }` por debajo de
+  720 px. Trae además **ADR-026** y una guardia de geometría compartida.
+  **Ella arregla el formulario y esta spec lo pliega. Mismo componente, dos ramas vivas.**
+  **Reparto de territorio, escrito para no discutirlo en caliente:**
+  - **De SPEC-040**: la **caja** del formulario —anchos, `min-width`, cómo encogen el buscador y
+    los campos de zona—, la salida de `.table-scroll` de su `@media`, el módulo compartido de
+    medida (`tests/e2e/geometria.ts`), los ocho anchos de referencia y la prueba de eficacia.
+    **Esta spec no toca ni una de esas líneas.**
+  - **De SPEC-041**: **cuándo** el formulario está en el DOM y a la vista (CA-12/CA-13/CA-15),
+    la tabla, el orden y el reparto de ancho de la columna `Estado`.
+  - **Punto de contacto único**: el estado *«lista con filas + alta desplegada»*, que **no
+    existía** antes de esta spec. Lo cubre **CA-22**.
+  **Orden de merge**: indiferente para la corrección, pero **conviene que SPEC-040 vaya
+  primero** —es EPIC-FIX, bloquea publicar, y su módulo de medida es el que esta spec quiere
+  usar—. Quien llegue segundo rebasa; el conflicto esperable está acotado a
+  `src/app/vigiladas/page.tsx` y `src/app/globals.css`.
+
+- **R-3 (plegar el alta puede dejar ciega a la guardia de geometría — mitigado, no ignorado).**
+  Hoy `<WatchForm />` está **siempre** en el DOM, así que la barrida elemento a elemento de
+  SPEC-040 **CA-3** lo mide **en las dos rutas** que recorre (`/vigiladas` vacía **y** con
+  filas). Con el plegado, en la ruta *«con al menos una fila»* el formulario **deja de existir**
+  hasta que alguien pulse el control: esa segunda medición **desaparece sola, sin que ningún
+  test se ponga rojo**. Es exactamente la clase de punto ciego que **ADR-026** existe para
+  impedir, y sería una ironía crearlo nosotros.
+  **Por qué NO rompe SPEC-040**: su **CA-1** —el que mide el formulario— está escrito sobre la
+  **lista vacía**, y ahí esta spec lo mantiene desplegado (**CA-12**); y su **CA-2** recorre
+  CE-1 con un usuario **recién registrado**, o sea también con lista vacía. **Ninguno de los
+  dos se cae.**
+  **Lo que sí hay que hacer, y es barato**: (a) **CA-22** de esta spec añade el estado *«con
+  filas + desplegado»* al conjunto medido —un clic antes de medir—; y (b) si el test de
+  eficacia de SPEC-040 (**CA-7** caso (a), y **CA-8**) se ejecuta sobre `/vigiladas` **con
+  filas**, hay que dejarlo en la **lista vacía** o **desplegar el alta antes de inyectar**: si
+  no, la inyección no encontrará elementos que medir y el test se pondrá **rojo** —ruidoso, no
+  silencioso, pero rojo por un motivo falso—. Queda dicho **antes** de implementar ninguna de
+  las dos.
+
+- **R-4 (CA-14 dependía de una medida ciega — corregido en el texto).** El borrador del
+  2026-08-20 afirmaba el «sin scroll horizontal» con `document.body.scrollWidth`, que es
+  justamente la medida que **ADR-026** pto. 1 declara mal escrita y que **SPEC-040 CA-8**
+  demuestra incapaz de ver un recorte enmascarado por `overflow-x: hidden`. **CA-14 se ha
+  reescrito** para usar la medida por elemento (**M1**). Se deja anotado como riesgo cumplido:
+  la primera versión de esta spec habría certificado en verde una pantalla con el botón
+  «Vigilar» fuera de ella.
+
+- **R-5 (la tabla pasa a componente de cliente).** Ordenar exige JavaScript. No es regresión
+  —`WatchForm` y el buscador ya lo exigen— pero es una propiedad que se pierde de forma
+  explícita (§Notas pto. 2): sin JS la tabla se pinta en su orden por defecto y no se reordena.
+
+- **R-6 (el nombre puede faltar y la tabla parecer incompleta).** `symbols.name` es nullable y
+  **nadie lo va a rellenar** en esta spec (§Fuera de alcance). Mitigación: **CA-3** fija qué se
+  ve —solo el ticker, sin inventar— y **CA-7** garantiza que esas filas se ordenan por su
+  ticker en la misma secuencia, así que no forman un bloque mudo al final.
+
 ## Notas para el gate humano
+
+> **Estado tras el gate del 2026-08-20 (Alberto Fojo).** Dos veredictos ya están dados y
+> **aplicados tal cual**: el **nombre bajo el ticker, sin columna nueva** (pto. 5) y la
+> **prioridad `both → buy → sell → out → none`** (pto. 3). No se vuelven a abrir. Siguen
+> pendientes de tu palabra los ptos. 1 (plegado por defecto con lista) y 4 (control propio de
+> orden frente a cabeceras pinchables). El pto. 6 sale de esta spec por decisión del
+> orquestador. Lo que cambió del terreno —SPEC-039 ya en `main`, SPEC-040 de EPIC-FIX viva
+> sobre el mismo componente— está en §Riesgos y reescrito en el pto. 8.
 
 1. **Punto 3 de tu petición — lo he analizado y elijo el botón que despliega el formulario ahí
    mismo, con una excepción: la lista vacía.** El control («+ Vigilar una acción») está siempre
@@ -365,7 +513,9 @@ nuevo** (**CE-M3**).
    pantalla nunca funcionó sin JS— pero sí es una propiedad que perdemos de forma explícita: sin
    JS la tabla se pinta, en su orden por defecto, y no se reordena.
 
-3. **Prioridad al ordenar por estado: es una decisión de producto, no técnica, y es tuya.**
+3. **Prioridad al ordenar por estado — RATIFICADA EN EL GATE (2026-08-20), tal cual.** Queda
+   como estaba y no se reabre; el razonamiento se conserva por si algún día alguien pregunta
+   por qué.
    Propongo **`both` → `buy` → `sell` → `out` → `none`** (CA-8), leído como *«lo que reclama tu
    atención, primero»*: `both` es la señal más fuerte; luego lo accionable; `out` es «todo en
    orden»; `none` es «no puedo decirte nada».
@@ -389,8 +539,9 @@ nuevo** (**CE-M3**).
    para que el lector de pantalla lo cuente (CA-11).
    Si prefieres cabeceras pinchables, cambian CA-11 y CA-6; el resto sobrevive.
 
-5. **El nombre va bajo el ticker, en la misma columna, y esto es lo que más se aparta de tu
-   petición literal.** Pediste el nombre «en la tabla» y ofreciste el ancho de `Estado` como
+5. **El nombre bajo el ticker, sin columna nueva — RATIFICADO EN EL GATE (2026-08-20), tal
+   cual.** Queda como estaba y no se reabre. Era lo que más se apartaba de tu petición
+   literal, así que el razonamiento se conserva entero: Pediste el nombre «en la tabla» y ofreciste el ancho de `Estado` como
    moneda de cambio. Lo que hago es **no añadir columna**: la tabla ya tiene nueve y se desborda
    en móvil, y una décima empeoraría exactamente lo que venimos a mejorar. Ticker arriba, nombre
    debajo, es además el patrón de cualquier pantalla financiera y mantiene el ticker como ancla
@@ -401,15 +552,16 @@ nuevo** (**CE-M3**).
    la tabla, sin perder ni una palabra del motivo. Si querías literalmente una columna «Nombre»
    aparte, dilo en el gate: cambian CA-2 y CA-4 y el resto sobrevive.
 
-6. **Hallazgo colateral, y no lo arreglo aquí.** `getOrCreateSymbol`
+6. **Hallazgo colateral — FUERA de esta spec, y ya tiene dueño.** `getOrCreateSymbol`
    (`src/lib/portfolio/symbols.ts`) escribe `name` **solo al insertar**: si el símbolo ya
    existe, devuelve la fila tal cual y el nombre nulo **se queda nulo para siempre**, aunque
    otro usuario lo elija en el buscador con nombre incluido. Es el mismo hueco que
    **F-ADR-020-3** describe para `instrument_type`, y el comentario del esquema («se rellenan
-   solos cuando alguien vuelva a elegir ese valor») **no se cumple**. Lo dejo **fuera** porque es
+   solos cuando alguien vuelva a elegir ese valor») **no se cumple**. Queda **fuera** porque es
    escritura de datos, no presentación, y **CE-M1** dice que una mejora no cambia lo que la app
-   guarda. Queda anotado como residual para EPIC-FIX o para una spec propia: **decide tú si
-   quieres que lo levante**.
+   guarda. **Lo levanta el orquestador como residual hacia EPIC-FIX** (decisión del 2026-08-20);
+   esta spec solo lo deja escrito para que no se pierda, y **CA-3** dice qué se ve mientras
+   tanto.
 
 7. **Término nuevo para el glosario, que escribo en el gate y no antes (ADR-025).** Redacción
    propuesta para `docs/fundacion/dominio.md`:
@@ -421,26 +573,46 @@ nuevo** (**CE-M3**).
    > *Notas*: `symbols.name` es **nullable** y lo seguirá siendo: un símbolo sin nombre conocido
    > **no tiene nombre**, y la celda muestra solo su ticker —ni «—», ni «Sin nombre», ni un
    > nombre inventado—, la misma honestidad que ya aplican *Mercado* y *Tipo de instrumento*
-   > (SPEC-029; SPEC-040 CA-3). Se ve al elegir en el buscador (SPEC-008) y en la tabla de
-   > `/vigiladas` (SPEC-040).
+   > (SPEC-029; SPEC-041 CA-3). Se ve al elegir en el buscador (SPEC-008) y en la tabla de
+   > `/vigiladas` (SPEC-041).
 
    **Y la cabecera de la columna es «Activo», no «Nombre» ni «Valor»**: «Valor» en castellano
    financiero significa *security*, pero junto a una columna «Precio» se lee como *value*; y
    «Acción» sería mentira desde **ADR-020** (hay REIT, ADR y ETF). Si el término te suena mal, se
    cambia en el gate, que es exactamente para lo que existe ADR-025.
 
-8. **Convivencia con SPEC-039 (R-M1). Va a haber conflicto y conviene que lo sepas ahora.**
-   SPEC-039 está **aprobada y en vuelo** en `ft/SPEC-039-…`, toca `src/app/vigiladas/page.tsx` y
-   **no está en `main`**; esta spec parte de `main` y toca el **mismo fichero**. **Quien mergee
-   segundo rebasa y reconcilia**, y la reconciliación tiene una regla escrita para no discutirla
-   en caliente:
-   - **el estado vacío —su texto, su ejemplo de zona, su enlace a `/ayuda`— es de SPEC-039**;
-   - **la tabla, el orden y el plegado del alta son de SPEC-040**;
-   - **el punto de contacto es uno solo**: SPEC-039 CA-9 exige *«el formulario de alta accesible
-     sin buscarlo»* con la lista vacía, y **CA-12 de esta spec lo garantiza**. No hay
-     contradicción entre las dos: hay que juntarlas, no elegir.
-   Si mergea antes SPEC-039, quien implemente esta debe **releer** el estado vacío que haya
-   quedado y **no** reescribirlo.
+   **Confirmado el 2026-08-20**: `docs/fundacion/dominio.md` **no se toca en esta rama**. La fila
+   la escribe el orquestador al cerrar el gate, que es lo que **ADR-025** manda; aquí queda solo
+   la redacción propuesta.
+
+8. **El vecindario cambió mientras se escribía esto, y en las dos direcciones.**
+
+   **(a) SPEC-039 ya no es un riesgo: es una restricción.** Mergeó a `main` (PR #42) y está
+   `hecho`; esta rama está rebasada sobre `784c1ea` y **ya tiene su estado vacío delante**. El
+   *«quien llegue segundo rebasa»* de **R-M1** ha dejado de aplicar. Lo que queda es **no
+   romperlo**, y eso es **CA-21**: el bloque `vigiladas-vacio`, el ejemplo con números, la línea
+   de cadencia y el enlace a la ayuda siguen tal cual, leídos de `src/lib/help/content.ts`.
+   Detalle que conviene que veas porque **ata tu punto 3 con lo ya publicado**: el texto de
+   SPEC-039 dice literalmente *«Empieza aquí abajo…»*. Es una promesa de **posición**. Por eso
+   CA-12 no dice solo «desplegado», dice **desplegado y justo debajo de ese bloque**: si
+   plegásemos también en el vacío, la app quedaría **mintiendo por escrito**.
+
+   **(b) Y aparece un vecino nuevo, este sí vivo: SPEC-040 de EPIC-FIX.** Arregla el **mismo
+   componente** que esta spec pliega — a 390 px el buscador mide 444 px en una columna de 350 y
+   **el botón «Vigilar» está fuera de la pantalla**, sin que se note, porque el sistema de
+   diseño recorta con `overflow-x: hidden`. Trae **ADR-026**.
+   **Reparto de territorio** (el detalle está en §Riesgos **R-2**):
+   - **cuánto mide** el formulario y **cómo se mide** — anchos, `min-width`, módulo compartido
+     de geometría, ocho anchos de referencia, prueba de eficacia — es **de SPEC-040**;
+   - **cuándo está a la vista** — desplegado con lista vacía, plegado con lista, qué pasa tras
+     un alta con éxito o con error — es **de SPEC-041**;
+   - **el punto de contacto** es un estado que **no existía antes de esta spec**: *«lista con
+     filas + alta desplegada»*. Lo cubre **CA-22**, y existe precisamente para que plegar el
+     alta **no le abra un punto ciego** a la guardia que SPEC-040 viene a arreglar.
+   **Recomendación de secuencia**: que SPEC-040 vaya primero. Es EPIC-FIX, bloquea publicar, y
+   deja escrito el módulo de medida que CA-14 y CA-22 quieren usar. Si va primero esta, quien
+   implemente aquella tendrá que dar un clic más antes de medir — y está avisado por escrito en
+   **R-3**.
 
 9. **Lo que esta spec NO necesita, y quiero que conste porque es la mitad de su valor:** no
    necesita migración, ni columna nueva, ni proveedor, ni ADR, ni variable de entorno, ni
@@ -448,8 +620,15 @@ nuevo** (**CE-M3**).
    cualquiera de esas cosas, deja de ser una mejora y hay que replantear su encaje en esta épica
    —dilo y lo saco.
 
-10. **Aprobación**: la spec queda en **`borrador`** y **no la firmo yo**. Falta tu veredicto
-    sobre los puntos 1 (el plegado por defecto con lista), 3 (`buy` antes que `sell`), 4
-    (control propio vs. cabeceras pinchables), 5 (nombre bajo el ticker en vez de columna
-    aparte), 6 (si levanto el residual de `getOrCreateSymbol`) y 7 (el término y el rótulo
-    «Activo»).
+10. **Numeración**: esta spec nació como SPEC-040 y **se subió a SPEC-041** el 2026-08-20 por
+    orden tuya, al chocar con la **SPEC-040 de EPIC-FIX** (*el móvil completa el alta*), escrita
+    el mismo día en otra rama y con **ADR-026** detrás. A partir de ahí, **«SPEC-040» significa
+    aquella, no esta**. Nota de intendencia para quien venga después: el **directorio del
+    worktree se sigue llamando `spec-040`** porque Windows no dejó renombrarlo; la rama sí es
+    `ft/SPEC-041-vigiladas-legible-y-ordenable`. Está anotado también en el ledger.
+
+11. **Aprobación**: la spec queda en **`borrador`** y **no la firmo yo**. Del gate del
+    2026-08-20 ya vienen ratificados los ptos. **3** y **5**, y el pto. **6** sale de aquí.
+    Quedan pendientes de tu palabra los ptos. **1** (plegado por defecto cuando hay lista) y
+    **4** (control propio de orden frente a cabeceras pinchables), y el **7** (el término
+    «Nombre del activo» y el rótulo «Activo») en el momento de cerrar el gate.
