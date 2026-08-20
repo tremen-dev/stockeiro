@@ -958,6 +958,42 @@ lo primero que se agota — declarados como **F-SPEC-028-2**:
 viejas**, empezando por las de PRs ya cerradas. Con una PR a la vez no molesta; con diez
 acumuladas, bloquea las previews de todo el mundo. Es ops, y nadie avisa antes de que ocurra.
 
+> 🚨 **Ocurrió el 2026-08-19/20, un día después de escribir el párrafo de arriba, y tumbó un
+> despliegue de producción.** El mensaje literal, para que sea reconocible si vuelve:
+>
+> ```
+> Branch limit reached. Upgrade your plan or delete unused branches.
+> ```
+>
+> El panel tenía las **10** ramas: `main`, una `preview` creada a mano y **ocho `preview/ft/*`
+> de specs ya mergeadas**. Hubo que borrar tres a mano para desbloquear el despliegue.
+>
+> **Por qué se acumulan, verificado en la documentación de Neon y no supuesto**: con la
+> integración **gestionada por Vercel** —la que este proyecto tiene— la rama de Neon cuelga del
+> **despliegue de Vercel**, no de la PR, y *"Vercel's deployment retention policy […] retains
+> preview deployments for **6 months** by default"*; de ahí que *"preview branches can persist
+> long after a PR is closed"* (<https://neon.com/docs/guides/vercel-managed-integration>). Es
+> decir: **borrar la rama de git NO borra la rama de Neon.** Con una spec por PR y 10 de techo,
+> revienta cada ~8 merges.
+>
+> **Por qué el "mantenimiento" de arriba no era una defensa**: era un párrafo pidiéndole a una
+> persona que se acordara — la misma forma exacta del defecto que fundó ADR-018 (*"se olvidó 27
+> días"*) y SPEC-027 (*"la suite depende de que alguien se acuerde"*). **Duró un día.**
+>
+> **Qué lo sustituye**: **SPEC-042** (EPIC-INFRA) — un workflow que borra la rama de Neon al
+> **cerrar** la PR, que es la vía que recomienda Neon
+> (<https://neon.com/docs/guides/vercel-branch-cleanup>). Esa spec **reescribe esta sección**
+> (su CA-7.4) y añade la contrapartida que hay que aceptar a cambio: al borrar la rama, **las
+> URLs de preview antiguas dejan de conectar**. Mientras SPEC-042 no esté viva, el
+> mantenimiento a mano de arriba **sigue siendo lo único que hay**.
+>
+> Y lo que **no** lo arregla, dicho aquí para que nadie lo confunda: la casilla de GitHub
+> *Automatically delete head branches* **no toca Neon**. Borra ramas de git muertas —había
+> **27** mergeadas el mismo día, borradas a mano— y nada más.
+>
+> Cierra la **mitad 2** de `F-SPEC-028-2`. La **mitad 1** —el techo de 10 ramas del plan Free—
+> **sigue abierta**: SPEC-042 quita la acumulación, no el techo.
+
 ### 13.4 Por qué ese orden
 
 Dos razones distintas, cada una con su paso:
