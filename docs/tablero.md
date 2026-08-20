@@ -69,6 +69,12 @@ Actualizado: 2026-08-20
 | SPEC-031 — el-despliegue-dice-de-que-commit-viene-api-version-y-comprobacion-de-vida | hecho | 2026-08-18 (sdd-verificador) |
 | SPEC-032 — las-guardias-de-migracion-nada-migra-sin-permiso-y-ningun-drop-pasa-mudo | hecho | 2026-08-18 (sdd-verificador) |
 
+## EPIC-MEJORA (aprobada)
+
+| Spec | Estado | Último cambio |
+|---|---|---|
+| SPEC-041 — vigiladas-legible-y-ordenable-el-nombre-del-activo-el-orden-a-eleccion-y-el-alta-plegable | hecho | 2026-08-20 (sdd-verificador) |
+
 ## ADRs
 
 | ADR | Estado | Título | Último cambio |
@@ -101,6 +107,6 @@ Actualizado: 2026-08-20
 
 ## Resumen
 
-- hecho: 33
+- hecho: 34
 - aprobada: 1
 - en-revision: 2
