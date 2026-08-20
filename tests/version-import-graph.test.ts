@@ -16,6 +16,17 @@ import { fileURLToPath } from 'node:url';
  * regla dura ("`/api/version` no dice nada de ciclos, y el resumen de ciclo no
  * dice nada de versiones") y las dos cosas sirven al mismo rol, así que la
  * presión para fusionarlas llegará. Un test lo impide; un párrafo, no.
+ *
+ * SPEC-038 CA-7 / ADR-024 pto. 7 lo AMPLÍA, sin relajar nada de lo anterior. Esa
+ * spec añade una pieza que consume la identidad para pintarla —el módulo de
+ * presentación y el pie compartido— y con ella la tentación evidente: poner el
+ * formato "donde ya está el dato", dentro de `identity.ts`. Eso metería React y
+ * medio proyecto en el grafo de una ruta cuya razón de ser es responder cuando
+ * todo lo demás falla. Por eso la flecha va en UN SOLO SENTIDO —la presentación
+ * importa la identidad; la identidad no importa la presentación— y hay dos
+ * bloques nuevos abajo: uno mira el grafo de la ruta y el otro, el de
+ * `identity.ts`. La lista de prefijos prohibidos crece; ninguna de las
+ * comprobaciones de SPEC-031 se toca.
  */
 
 const rootDir = resolve(dirname(fileURLToPath(import.meta.url)), '..');
@@ -90,7 +101,25 @@ const FORBIDDEN_PREFIXES: Array<[string, string]> = [
   ['src/lib/triggers', 'CA-7: el ciclo de refresco (ADR-018 §Frontera)'],
   ['src/lib/notifications', 'CA-7: el ciclo de refresco (ADR-018 §Frontera)'],
   ['src/app/api/cron', 'CA-7: el ciclo de refresco (ADR-018 §Frontera)'],
+  // SPEC-038 CA-7: la presentación consume la identidad, nunca al revés. Un
+  // endpoint que arrastrara el pie arrastraría React, el sistema de diseño y todo
+  // lo que el pie importe, y dejaría de poder responder con la base caída.
+  ['src/app/app-footer', 'SPEC-038 CA-7: el endpoint no pinta nada (ADR-024 pto. 7)'],
+  ['src/lib/feedback', 'SPEC-038 CA-7: el endpoint no compone enlaces (ADR-024 pto. 7)'],
+  ['src/lib/legal', 'SPEC-038 CA-7: el endpoint no sirve textos legales'],
 ];
+
+/** Ficheros concretos —no prefijos— que el endpoint tampoco puede alcanzar. */
+const FORBIDDEN_FILES: Array<[string, string]> = [
+  [
+    'src/lib/version/presentation.ts',
+    'SPEC-038 CA-7: la flecha va en un solo sentido (ADR-024 pto. 7)',
+  ],
+  ['src/app/app-footer.tsx', 'SPEC-038 CA-7: el endpoint no pinta nada'],
+];
+
+/** Paquetes de interfaz: si el endpoint los alcanza, es que se ha cruzado la frontera. */
+const UI_PACKAGES = ['react', 'react-dom', 'next/link', 'next/font/google'];
 
 /** Paquetes que SON un cliente de base de datos: importarlos ya es tocar la BD. */
 const DB_PACKAGES = [
@@ -127,5 +156,59 @@ describe('SPEC-031 CA-5/CA-7: el grafo de imports de /api/version', () => {
       const root = pkg.startsWith('@') ? pkg.split('/').slice(0, 2).join('/') : pkg.split('/')[0];
       expect(DB_PACKAGES, `"${pkg}" es (o contiene) un cliente de BD`).not.toContain(root);
     }
+  });
+});
+
+describe('SPEC-038 CA-7: la presentación no puede colarse en /api/version', () => {
+  const alcanzados = () =>
+    walk(routeFile).files.map((f) => relative(rootDir, f).replace(/\\/g, '/'));
+
+  it('la pieza de presentación existe donde la spec dice que vive', () => {
+    // Sin esto, mover o renombrar el módulo dejaría el resto del bloque en verde
+    // sin haber mirado nada — el modo de fallo clásico de un test de frontera.
+    expect(existsSync(join(srcDir, 'lib', 'version', 'presentation.ts'))).toBe(true);
+  });
+
+  it('el endpoint NO alcanza el módulo de presentación ni el pie', () => {
+    const reached = alcanzados();
+    for (const [fichero, motivo] of FORBIDDEN_FILES) {
+      expect(reached, `${fichero} es inalcanzable desde /api/version — ${motivo}`).not.toContain(
+        fichero,
+      );
+    }
+  });
+
+  it('el endpoint no arrastra la interfaz: ni React, ni el enrutado, ni las fuentes', () => {
+    const { packages } = walk(routeFile);
+    for (const pkg of packages) {
+      expect(UI_PACKAGES, `"${pkg}" es interfaz, y el endpoint no pinta nada`).not.toContain(pkg);
+    }
+  });
+
+  it('la IDENTIDAD no importa a la presentación: la flecha va en un solo sentido', () => {
+    // Es la mitad que de verdad protege RI-02. Si `identity.ts` importara el
+    // formato —"total, si está al lado"—, el grafo de la ruta se lo tragaría
+    // entero por transitividad y el test de arriba seguiría pareciendo verde
+    // hasta que alguien metiera un import de React tres capas más abajo.
+    const identityFile = join(srcDir, 'lib', 'version', 'identity.ts');
+    const reached = walk(identityFile)
+      .files.map((f) => relative(rootDir, f).replace(/\\/g, '/'))
+      .filter((f) => f !== 'src/lib/version/identity.ts');
+
+    expect(
+      reached,
+      'src/lib/version/identity.ts no puede importar NADA del proyecto: es la hoja ' +
+        'del grafo, y lo que la haga crecer crece también el grafo de /api/version.',
+    ).toEqual([]);
+  });
+
+  it('el módulo de presentación SÍ importa la identidad, que es el sentido bueno', () => {
+    // La otra mitad de "una sola fuente de verdad" (CA-5): si el formato dejara de
+    // leer de `identity.ts`, es que se ha inventado un segundo sitio de donde
+    // sacar el número, y el pie y el endpoint podrían decir cosas distintas.
+    const presentacion = join(srcDir, 'lib', 'version', 'presentation.ts');
+    const reached = walk(presentacion).files.map((f) => relative(rootDir, f).replace(/\\/g, '/'));
+
+    expect(reached).toContain('src/lib/version/identity.ts');
   });
 });

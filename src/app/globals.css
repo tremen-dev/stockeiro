@@ -1287,6 +1287,34 @@ td.num .quote-fail { text-align: right; }
 }
 .app-footer-feedback a:hover { color: var(--accent); }
 
+/* --- La versión del despliegue en el pie (SPEC-038 CA-1, CA-2) ---
+   Fila propia de ancho completo, como el feedback y la marca: así el pie crece un
+   renglón por igual a todos los anchos y la proporción que mide
+   `tests/e2e/pie-responsive.spec.ts` no se mueve, en vez de competir por el sitio
+   con el descargo justo en las pantallas donde ya va justo.
+
+   `user-select: text` explícito y nada de `::before` con el contenido: CA-2 pide
+   que el texto sea SELECCIONABLE Y COPIABLE, y un valor metido por `content:` no
+   se copia. `tabular-nums` para que el número no baile al cambiar de versión.
+
+   A 360 px el renglón puede envolver, y debe: `overflow-wrap: anywhere` mantiene
+   la envoltura dentro de la caja en vez de empujar el ancho del documento — la
+   salida que ADR-026 §4 admite (que quepa), no un recorte que la esconda. */
+.app-footer-version {
+  margin: 0;
+  flex-basis: 100%;
+  color: var(--fg-dim);
+  font-variant-numeric: tabular-nums;
+  overflow-wrap: anywhere;
+  user-select: text;
+}
+/* El entorno solo aparece cuando NO es producción (CA-10), y cuando aparece tiene
+   que verse: es el aviso de «esto no es la app real». */
+.app-footer-version-entorno {
+  color: var(--fg);
+  font-weight: 600;
+}
+
 /* --- Estados vacíos que guían (CA-9, CA-10, CA-11) --- */
 .empty-guia {
   display: grid;
