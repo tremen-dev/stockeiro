@@ -789,8 +789,8 @@ primeros son **acciones de ops del humano**, no CA: el **acto** es ops, el **efe
 
 Añadido el 2026-08-20 (ronda 4), por sdd-implementador:
 
-- **F-SPEC-042-9 — El caso 1.4 *«el limpiador es un fichero NUEVO»* quedó permanentemente rojo al
-  mergear esta spec, y yo no lo he tocado.** *(No es un fallo de esta ronda: es el único rojo de
+- **F-SPEC-042-9 — El caso 1.4 *«el limpiador es un fichero NUEVO»* caducó al mergear esta spec.
+  CERRADO el 2026-08-20 en el gate humano: borrado, con su motivo escrito en el sitio.** *(No es un fallo de esta ronda: es el único rojo de
   `npm test` y es **anterior** a ella.)*
   *Qué pasa*: `tests/neon-preview-cleanup-workflow.test.ts` · CA-1 1.4 tiene tres casos. Dos
   comparan `ci.yml` y `deploy-gate.yml` **byte a byte** contra `origin/main` y siguen **verdes**.
@@ -798,21 +798,25 @@ Añadido el 2026-08-20 (ronda 4), por sdd-implementador:
   `origin/main` — lee el blob y espera que la lectura falle. Era cierto mientras la spec estaba
   sin mezclar; dejó de serlo con la PR#45. Hoy `git ls-tree origin/main -- .github/workflows/`
   devuelve el blob `c59a4b87…`, así que el caso **no puede volver a pasar nunca**.
-  *Por qué no lo arreglo yo*: mi encargo de esta ronda era §13.3, y ese caso es de **CA-1**, un CA
-  ya verificado. Cambiar el test de un CA ajeno para apagar un rojo es exactamente el movimiento
-  que tiene que pasar por el gate y no por el implementador. Lo dejo rojo, visible y explicado.
-  *Prueba de que es previo a esta ronda*: los tres únicos ficheros que toqué son
-  `docs/despliegue.md`, este ledger y `tests/runbook-limpieza-preview.test.ts`. Ni
-  `.github/workflows/` ni `tests/neon-preview-cleanup-workflow.test.ts` aparecen en el `git
-  status`.
-  *Las dos salidas, para quien decida*: **(a)** borrar ese tercer caso —la propiedad que afirmaba
-  («esta entrega añade el fichero») era **de la entrega**, no del sistema, y caducó al mezclar;
-  los dos casos byte a byte, que son los que de verdad sostienen CA-1, se quedan—; o **(b)**
-  reescribirlo como la propiedad **durable** que su título promete, que el limpiador no sea una
-  copia de ninguno de los otros dos workflows. La (a) es la honesta: un caso que no puede volver a
-  pasar no protege nada y enseña a ignorar `npm test` — que es, literalmente, el defecto que
-  SPEC-028 nombró como *«una puerta que da falsos rojos enseña a ignorarla»*.
-  → EPIC-INFRA.
+  *Por qué no lo arreglé de entrada*: ese caso es de **CA-1**, un CA ya verificado, y cambiar el
+  test de un CA ajeno para apagar un rojo es el movimiento que tiene que pasar por el gate y no
+  por el implementador. Se dejó rojo, visible y explicado — y el gate lo resolvió el mismo día.
+  *Prueba de que el rojo era previo a esta ronda*: el commit que lo declara (`aa9f530`) toca solo
+  `docs/despliegue.md`, este ledger y `tests/runbook-limpieza-preview.test.ts`.
+  *Qué decidió el gate (2026-08-20, Alberto Fojo)*: la salida **(a)**, borrar. La propiedad que
+  afirmaba —«esta entrega añade el fichero»— era **de la entrega**, no del sistema; los dos casos
+  byte a byte, que son los que de verdad sostienen CA-1, se quedan intactos. **Y no en silencio**:
+  en su sitio queda un comentario de ocho líneas que dice qué comprobaba, por qué caducó y qué lo
+  cubre ahora, para que nadie lo eche de menos ni lo reintroduzca. **El CA-1 de la spec no se
+  tocó**: el criterio no cambia, esto era su guardia y no su requisito.
+  *Lo que este caso desatascó, y vale más que él*: era la **cuarta** vez que un test de frontera
+  caducaba al mergear —las tres anteriores están en `F-SPEC-034-6`— y cada una costaba una
+  decisión del humano. El gate encargó de una vez la convención que faltaba, y está escrita en
+  **`FOUNDATION.md` § *Cómo se trabaja aquí*, tercera viñeta**: un test de frontera fija la
+  **propiedad**, no un estado del árbol; cuando caduca se **re-encuadra** o se **borra**, nunca se
+  afloja; y en los dos casos se declara en el ledger y **quien lo toca no es quien se beneficia**.
+  Con eso queda **cerrado `F-SPEC-034-6`**, en el ledger de SPEC-034.
+  → **CERRADO.**
 
 Heredados:
 
@@ -900,13 +904,18 @@ alineación CA-4.3/CA-4.5. El caso 7.4 que congelaba el **hueco** se reescribió
 **sitio**, no la ignorancia. **52/52 verdes.**
 
 - `aa9f530` — §13.3 responde CA-9, la regla de lectura queda escrita y el test lo congela.
+- `358091e` — el ledger cita el sha de la ronda 4.
+- `<pendiente>` — el gate humano del 2026-08-20: se borra el caso 1.4 caducado (`F-SPEC-042-9`)
+  dejando su epitafio en el fichero, y se escribe en `FOUNDATION.md` la convención sobre cómo
+  caducan los tests de frontera, que cierra `F-SPEC-034-6`. **Fuera de los CA de esta spec a
+  propósito y por encargo explícito**: ni el CA-1 ni ningún otro criterio cambia.
 
-**Los cinco gates**: `typecheck` **verde**, `lint` **verde**, `build` **verde**, `test:e2e`
-**214/214 verde**, y `npm test` **1231/1232 con un solo rojo, que NO es de esta ronda**: es el caso
-1.4 *«el limpiador es un fichero NUEVO»* de `tests/neon-preview-cleanup-workflow.test.ts`, que
-caducó al mergear la PR#45 y que **no he tocado a propósito** — está declarado como
-**`F-SPEC-042-9`** arriba, con la prueba de que es previo y las dos salidas posibles. Los 52 casos
-de `tests/runbook-limpieza-preview.test.ts` están **verdes**.
+**Los cinco gates, todos en verde tras el gate humano**: `typecheck`, `lint`, `build`,
+`npm test` **1231/1231** y `npm run test:e2e` **214/214**. En la primera pasada `npm test` dio
+**1231/1232**: el único rojo era el caso 1.4 *«el limpiador es un fichero NUEVO»*, caducado al
+mergear la PR#45 y **ajeno a esta ronda**. Se declaró como `F-SPEC-042-9` sin tocarlo, el humano
+concedió el gate el mismo día y se **borró** con su motivo escrito en el sitio. Los 52 casos de
+`tests/runbook-limpieza-preview.test.ts` están verdes.
 
 **Lo que NO se tocó, a propósito**: la spec y su `estado` (sigue en `en-revision`; moverla es del
 verificador), `.github/workflows/` entero —`neon-preview-cleanup.yml` incluido: el workflow está
@@ -920,9 +929,10 @@ e2e. No hay push, PR ni merge.
 **Qué queda para `hecho`**: por CA-9, nada. Pedía que el veredicto quedara escrito *«en el ledger
 **y** en §13.3»*; la mitad del ledger la escribió el verificador en la ronda 3 y la de §13.3 está
 entregada aquí. Con CA-1…CA-8 y CA-10 ya cerrados, lo que falta es que el verificador mire esta
-edición y mueva la spec. **Con una decisión pendiente que no es mía**: el caso 1.4 de CA-1
-(`F-SPEC-042-9`) quedó rojo al mergear la spec y lo he dejado rojo. Si se prefiere que `npm test`
-vuelva a verde antes de cerrar, esa edición es de un CA ya verificado y necesita quien la firme.
+edición y mueva la spec. **La decisión que estaba pendiente ya está tomada**: el caso 1.4 de CA-1
+(`F-SPEC-042-9`) se borró en el gate del 2026-08-20, `npm test` vuelve a verde, y de paso quedó
+escrita en `FOUNDATION.md` la convención sobre tests de frontera que faltaba desde SPEC-034
+(`F-SPEC-034-6`, **cerrado**).
 
 ---
 **Ronda 3 (2026-08-20), tras el GREEN 7/7.** No es una ronda de RED: se cierra **N-1** —una frase

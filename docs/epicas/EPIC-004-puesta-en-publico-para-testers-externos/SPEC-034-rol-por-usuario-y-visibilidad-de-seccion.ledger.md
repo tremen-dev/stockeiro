@@ -177,6 +177,21 @@ Nuevas, abiertas por esta implementación:
   **Nada de esto relaja un gate**; si el humano prefiere otro encuadre, es un cambio local a
   esos tres ficheros. Destino: EPIC-INFRA si se quiere una convención escrita sobre cómo
   caducan los "tests de frontera" de una spec.
+
+  > ✅ **CERRADA el 2026-08-20, en el gate humano, por SPEC-042.** La convención está escrita:
+  > **`FOUNDATION.md` § *Cómo se trabaja aquí*, la tercera viñeta**. Responde las dos preguntas
+  > que este follow-up dejó abiertas —cómo se escribe un test de frontera para que no caduque
+  > (fijar la **propiedad**, no un estado del árbol) y qué se hace cuando caduca igualmente
+  > (**re-encuadrar** o **borrar**; aflojar la comprobación **no** es una salida), con las dos
+  > condiciones de siempre: declararlo en el ledger y que quien lo toca no sea quien se
+  > beneficia—. Cita como molde los tres encuadres buenos, dos de los cuales salieron
+  > precisamente de aquí: la ventana `de3a6ee...0d389c8` de `deploy-gate-workflow.test.ts` y el
+  > *"las nueve siguen ahí, en su orden"* de `spec-032-frontera.test.ts`.
+  >
+  > **Lo disparó la cuarta reincidencia**: `tests/neon-preview-cleanup-workflow.test.ts` · CA-1
+  > 1.4 afirmaba que el limpiador *"no existía en `origin/main`"* y caducó al mergear la PR #45
+  > de SPEC-042. Ese caso se **borró** —no se aflojó— con su motivo escrito en el sitio, y queda
+  > como `F-SPEC-042-9`. Escribir la convención costó cuatro veces; aplicarla, una línea.
 - **F-SPEC-034-7 (higiene local, no afecta a CI).** `npm run lint` fallaba en cualquier
   máquina con worktrees de sesiones paralelas: `eslint .` analizaba
   `.claude/worktrees/**/.next/**` (miles de ficheros de build ajenos, **ignorados por git**) y
@@ -207,8 +222,9 @@ Nuevas, abiertas por esta implementación:
   actual.
 - **F-SPEC-034-5 sigue ABIERTA y es del humano**: confirmar el censo de `users` en Neon
   **antes de abrir la PR** (el backfill deja `admin` a toda cuenta preexistente).
-- **F-SPEC-034-6 sigue ABIERTA y es del humano**: el re-encuadre de las cuatro guardias
-  ajenas, con mi juicio arriba.
+- ~~**F-SPEC-034-6 sigue ABIERTA y es del humano**~~ — **CERRADA el 2026-08-20**: el humano
+  aprobó el re-encuadre de las cuatro guardias **y** encargó la convención que faltaba, que ya
+  está en `FOUNDATION.md` § *Cómo se trabaja aquí*. Ver la nota en la declaración de arriba.
 - **F-SPEC-034-1/2/3 y F-SPEC-034-9** se quedan como estan: son de la spec o del arbol, no
   defectos. Confirmo lo de **F-SPEC-034-9**: el `.gitignore` llego modificado al arbol antes
   de esta spec y entro en el commit `8fbf71a`; su contenido (`.claude/settings.local.json` y
