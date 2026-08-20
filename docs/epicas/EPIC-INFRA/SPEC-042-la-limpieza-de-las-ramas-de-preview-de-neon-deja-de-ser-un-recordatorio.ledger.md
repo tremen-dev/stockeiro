@@ -905,7 +905,7 @@ alineación CA-4.3/CA-4.5. El caso 7.4 que congelaba el **hueco** se reescribió
 
 - `aa9f530` — §13.3 responde CA-9, la regla de lectura queda escrita y el test lo congela.
 - `358091e` — el ledger cita el sha de la ronda 4.
-- `<pendiente>` — el gate humano del 2026-08-20: se borra el caso 1.4 caducado (`F-SPEC-042-9`)
+- `50deb55` — el gate humano del 2026-08-20: se borra el caso 1.4 caducado (`F-SPEC-042-9`)
   dejando su epitafio en el fichero, y se escribe en `FOUNDATION.md` la convención sobre cómo
   caducan los tests de frontera, que cierra `F-SPEC-034-6`. **Fuera de los CA de esta spec a
   propósito y por encargo explícito**: ni el CA-1 ni ningún otro criterio cambia.
