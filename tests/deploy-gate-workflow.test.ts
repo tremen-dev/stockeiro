@@ -300,6 +300,14 @@ describe('SPEC-028 CA-9: nada más queda cableado', () => {
       'Lint',
       'Unit tests',
       'Migration scan',
+      // SPEC-038 CA-13 / ADR-024 pto. 9. Esta lista congelaba «SPEC-028 no le
+      // añade un step a ci.yml», y esa propiedad SIGUE siendo la que se protege:
+      // lo que caduca al mergear no es la afirmación sino su forma —una foto del
+      // árbol—. Se amplía con la entrada que un CA pide, y con esa sola; la lista
+      // queda igual de cerrada que estaba y la siguiente vuelve a ponerla roja.
+      // El gate hermano de esta misma entrada vive en
+      // `tests/spec-031-frontera.test.ts` CA-13.1, ampliado igual y por lo mismo.
+      'Version bump',
       'Checkout',
       'Set up Node',
       'Install dependencies',
@@ -319,7 +327,12 @@ describe('SPEC-028 CA-9: nada más queda cableado', () => {
     });
   });
 
-  it('9.3 — package.json no gana ningún script', () => {
+  it('9.3 — package.json no gana ningún script sin un CA que lo pida', () => {
+    // Igual que 9.1: lo que esta lista afirma es que SPEC-028 no añadió scripts, y
+    // eso sigue siendo cierto. `version:check` lo trae SPEC-038 CA-13 —el gate de
+    // ADR-024 pto. 9— y entra por la puerta de delante, declarado en su spec y
+    // discutido en su gate. La lista sigue cerrada: el siguiente que aparezca sin
+    // CA detrás vuelve a poner esto en rojo.
     const { scripts } = JSON.parse(readFileSync(join(rootDir, 'package.json'), 'utf8')) as {
       scripts: Record<string, string>;
     };
@@ -336,6 +349,7 @@ describe('SPEC-028 CA-9: nada más queda cableado', () => {
         'test:e2e',
         'test:watch',
         'typecheck',
+        'version:check',
       ].sort(),
     );
   });

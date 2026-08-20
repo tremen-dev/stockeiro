@@ -57,6 +57,13 @@ jobs:
     steps:
       - name: Checkout
         uses: actions/checkout@v4
+        with:
+          # SPEC-038 CA-13 / ADR-024 pto. 9. El gate `Version bump` compara la
+          # version de esta rama con la de `origin/main`, y con el clonado
+          # superficial por defecto esa referencia no existe en el runner: el
+          # script no podria comparar y saldria con 2. Solo lo necesita este job;
+          # el de E2E se queda con su checkout barato.
+          fetch-depth: 0
 
       - name: Set up Node
         uses: actions/setup-node@v4
@@ -108,6 +115,21 @@ jobs:
       - name: Migration scan
         if: ${{ !cancelled() }}
         run: npm run db:scan
+
+      # SPEC-038 CA-12/CA-13 / ADR-024 ptos. 9 y 10 — si tocas codigo, el numero
+      # sube. Step propio por el mismo motivo que `Migration scan`: el nombre del
+      # check rojo tiene que decir que se rompio, y "Unit tests" no dice "alguien
+      # toco codigo sin subir la version".
+      #
+      # No sale a la red ni habla con ningun host: compara dos `package.json` con
+      # `git show` y cruza el diff con las rutas que `.sdd.json` ya declara
+      # vigiladas. Lo automatico es la EXIGENCIA, no el acto: este step no escribe
+      # en la rama, solo dice que no y como arreglarlo.
+      #
+      # Necesita el historico del checkout de arriba (`fetch-depth: 0`).
+      - name: Version bump
+        if: ${{ !cancelled() }}
+        run: npm run version:check
 
   e2e:
     name: E2E

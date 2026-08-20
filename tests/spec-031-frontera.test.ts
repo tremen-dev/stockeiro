@@ -32,11 +32,24 @@ const workflow = () => parse(readFileSync(workflowPath, 'utf8')) as Workflow;
 const steps = () => Object.values(workflow().jobs ?? {}).flatMap((job) => job.steps ?? []);
 
 describe('SPEC-031 CA-13.1: el workflow de CI no gana ni un step por la puerta de atrás', () => {
-  it('los steps con `run` son los de SPEC-027 más el gate de SPEC-032', () => {
+  it('los steps con `run` son los de SPEC-027 más los gates de SPEC-032 y SPEC-038', () => {
     // Lista cerrada a propósito: cada entrada nueva tiene que venir con un CA que
     // la pida. `Migration scan` la pide SPEC-032 CA-11 —lee ficheros del repo, no
     // habla con nada—, y las tres aserciones de abajo (no toca check-alive, no
     // sale a ningún host) siguen siendo lo que este bloque defiende de verdad.
+    //
+    // `Version bump` la pide SPEC-038 CA-13, que existe precisamente porque este
+    // comentario lo exige: ADR-024 pto. 9 añade un gate que compara la versión de
+    // la rama con la de `origin/main`, y la spec lo trajo al gate humano en vez de
+    // colarlo. Lee dos `package.json` con `git show` y cruza el diff con las rutas
+    // que `.sdd.json` declara vigiladas: no invoca `check-alive`, no habla con
+    // ningún host y no toca `vercel.json` — las tres propiedades que este bloque
+    // defiende de verdad siguen intactas y se comprueban abajo, sobre la lista
+    // ampliada.
+    //
+    // Qué vigilaba antes y qué vigila ahora: exactamente lo mismo —que ningún step
+    // entre sin un CA que lo pida—, sobre una lista de diez entradas en vez de
+    // nueve. La lista sigue CERRADA: la número once vuelve a poner esto en rojo.
     const conRun = steps().filter((s) => typeof s.run === 'string');
     const nombres = conRun.map((s) => s.name ?? '(sin nombre)').sort();
     expect(nombres).toEqual(
@@ -50,6 +63,7 @@ describe('SPEC-031 CA-13.1: el workflow de CI no gana ni un step por la puerta d
         'Migration scan',
         'Typecheck',
         'Unit tests',
+        'Version bump',
       ].sort(),
     );
   });
@@ -135,8 +149,18 @@ describe('SPEC-031 CA-13.3: ninguna variable de entorno nueva', () => {
     expect(declaradas()).toHaveLength(11);
   });
 
-  it('las tres del canal de build NO se configuran en ninguna parte: se calculan', () => {
-    for (const clave of ['STOCKEIRO_COMMIT', 'STOCKEIRO_ENVIRONMENT', 'STOCKEIRO_BUILT_AT']) {
+  it('las CUATRO del canal de build NO se configuran en ninguna parte: se calculan', () => {
+    // De tres a cuatro por SPEC-038 CA-14 / ADR-024 pto. 4: `STOCKEIRO_VERSION`
+    // sale de `package.json` en tiempo de build, igual que sus tres hermanas salen
+    // de git y del reloj. La propiedad que vigila esta lista no cambia —una
+    // variable del canal no se configura, se calcula—; lo que cambia es que ahora
+    // son cuatro las que tienen que cumplirla.
+    for (const clave of [
+      'STOCKEIRO_COMMIT',
+      'STOCKEIRO_ENVIRONMENT',
+      'STOCKEIRO_BUILT_AT',
+      'STOCKEIRO_VERSION',
+    ]) {
       expect(envExample()).not.toContain(clave);
       expect(readFileSync(workflowPath, 'utf8')).not.toContain(clave);
     }
