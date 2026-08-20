@@ -16,20 +16,79 @@ epica: EPIC-FIX
 <!-- Un CA está ✅ solo cuando Implementado + Test + Verif. aplicables están en verde. Una salvedad se marca ⚠️, nunca ✅. -->
 | CA | Implementado (fichero) | Test (fichero/caso) | Verif. | Estado |
 |---|---|---|---|---|
-| CA-1 el formulario de alta cabe entero | `src/app/globals.css` (bloque «SPEC-040 CA-1», `.zona-campos` y `min-width: 0` en los ítems de `.auth-form`, `.symbol-*` y `.page > *`) · `src/app/vigiladas/watch-form.tsx` (`.zona-campos` sustituye al `style` en línea) | `tests/e2e/movil-alta.spec.ts` → «ningún control del alta se sale de la columna a 360 ni a 390 px» | | ❌ |
-| CA-2 CE-1 entero en un teléfono | mismo arreglo que CA-1 | `tests/e2e/movil-alta.spec.ts` → «CE-1 entero en un teléfono de 360 px, sin desplazar la página» (registro → buscador → elegir candidato → zona → Vigilar) | | ❌ |
-| CA-3 desborde medido elemento a elemento | los tres arreglos de `src/app/globals.css` | `tests/e2e/geometria-rutas.spec.ts` → «las cinco rutas públicas…», «las cuatro rutas con sesión…», «/vigiladas CON AL MENOS UNA FILA…» (M1 de `tests/e2e/geometria.ts`) | | ❌ |
-| CA-4 el panel no parte palabras y reparte por ancho | `src/app/globals.css` (bloque «SPEC-040 CA-4»: `.cards` a 1 pista < 600 px y 2 pistas 600–1023) | `tests/e2e/geometria-rutas.spec.ts` → «con rol tester (dos tarjetas)…» y «con rol completo (tres tarjetas)…» (M3) | | ❌ |
-| CA-5 la tabla se desplaza en su caja | `src/app/globals.css` (`.table-scroll` fuera del `@media`, con `min-width: 0` y `max-width: 100%`) | `tests/e2e/geometria-rutas.spec.ts` → «el documento no se va en horizontal…» y «la tabla sigue siendo legible: … el control de Quitar» | | ❌ |
-| CA-6 un solo módulo de medida, consumido por las guardias | `tests/e2e/geometria.ts` (M1/M2/M3 + hueco muerto + eje + `ANCHOS` + `EXCLUSIONES_M1`) · migración de `pie-`, `cuenta-`, `admin-` y `ayuda-responsive.spec.ts` | `tests/geometria-guardias.test.ts` (7 casos, unitario: ninguna guardia lee `scrollWidth` por su cuenta, todas importan el módulo, los ocho anchos, exclusiones con motivo, `hidden` no es contenedor desplazable) | | ❌ |
-| CA-7 prueba de eficacia: la guardia caza los tres defectos | `tests/e2e/geometria.ts` → `DEFECTOS` + `inyectarDefecto` | `tests/e2e/geometria-eficacia.spec.ts` → «(a) el formulario de alta que no puede encoger», «(b) el panel de tres columnas a 390 px», «(c) la tabla sin contenedor propio a 760 px» | | ❌ |
-| CA-8 la lección de `V-SPEC-039-6`, escrita | `tests/e2e/geometria.ts` (M1 y M2 conviven; M2 nunca va sola) | `tests/e2e/geometria-eficacia.spec.ts` → «con el defecto (a) puesto, la medida de documento NO lo ve y la de elemento SÍ» | | ❌ |
-| CA-9 el rótulo sale del glosario | `src/app/cuenta/page.tsx` (`<dt data-termino="rol-de-cuenta">Rol de cuenta</dt>`) | `tests/e2e/rotulo-glosario.spec.ts` → «/cuenta rotula el rol con el término del glosario, no con uno propio» (lee la fila de `docs/fundacion/dominio.md`) | | ❌ |
-| CA-10 no degradar lo entregado | — (no toca comportamiento) | suite completa: `npm run test` 1116/1116 · `npm run test:e2e` 191/191, con `pie-`, `cuenta-`, `admin-`, `ayuda-responsive`, `ayuda`, `vigiladas`, `roles` y `cuenta` dentro | | ❌ |
-| CA-11 evidencia medida | — | `_qa/SPEC-040/` (36 capturas + 6 ficheros de medidas), escritas por `tests/e2e/geometria-rutas.spec.ts` y `tests/e2e/movil-alta.spec.ts` | | ❌ |
+| CA-1 el formulario de alta cabe entero | `src/app/globals.css` (bloque «SPEC-040 CA-1», `.zona-campos` y `min-width: 0` en los ítems de `.auth-form`, `.symbol-*` y `.page > *`) · `src/app/vigiladas/watch-form.tsx` (`.zona-campos` sustituye al `style` en línea) | `tests/e2e/movil-alta.spec.ts` → «ningún control del alta se sale de la columna a 360 ni a 390 px» | Yo, a 360 y 390 px contra la app corriendo: `.symbol-picker` **278** px (right=319) a 360 y **300** (right=345) a 390; los cuatro campos de zona **135** / **146**; botón Vigilar **278** / **300**. Ningún control se sale (`right<=ventana+1`, `left>=-1`). Reproducido con mi propia función, no con la del módulo. | ✅ |
+| CA-2 CE-1 entero en un teléfono | mismo arreglo que CA-1 | `tests/e2e/movil-alta.spec.ts` → «CE-1 entero en un teléfono de 360 px, sin desplazar la página» (registro → buscador → elegir candidato → zona → Vigilar) | **Recorrido hecho por mí** a 360×800 con cuenta nueva: portada -> «Crear cuenta» (right=153) -> registro (botón right=319) -> nav «Vigiladas» (right=286) -> buscar «Inditex» -> **elegir el candidato ITX** (right=314, legible: `ITX | Industria de Diseño Textil SA (Inditex) | BME · ACCIÓN · EUR`) -> zona 20/25 -> **Vigilar** (right=319) -> **fila creada** (`ITX … 20 – 25 … Quitar`). `window.scrollX = 0` en todo el recorrido. | ✅ |
+| CA-3 desborde medido elemento a elemento | los tres arreglos de `src/app/globals.css` | `tests/e2e/geometria-rutas.spec.ts` → «las cinco rutas públicas…», «las cuatro rutas con sesión…», «/vigiladas CON AL MENOS UNA FILA…» (M1 de `tests/e2e/geometria.ts`) | Medí yo los **ocho anchos** en las **diez** superficies con mi propia función: 0 violaciones en todas. Mi barrido es más amplio que M1 (recorre `body *` y no exime a los descendientes de un contenedor desplazable) y sólo difiere en `/vigiladas` con filas: la tabla dentro de `.table-scroll` (ver §Veredicto). Exclusiones: **una** (`.symbol-results`), con motivo escrito. | ✅ |
+| CA-4 el panel no parte palabras y reparte por ancho | `src/app/globals.css` (bloque «SPEC-040 CA-4»: `.cards` a 1 pista < 600 px y 2 pistas 600–1023) | `tests/e2e/geometria-rutas.spec.ts` → «con rol tester (dos tarjetas)…» y «con rol completo (tres tarjetas)…» (M3) | Medido por mí a los ocho anchos: pistas **1** a 360/390, **2** a 640/700/730/760/800, **3** a 1280 (`384px 384px 384px`). Integridad de palabra: ninguna caja de línea supera el número de palabras en ningún ancho (peor caso «Acciones vigiladas» 2 líneas / 2 palabras a 640-730). El reparto de **tres** tarjetas (rol `completo`) queda medido en `_qa/SPEC-040/medidas-panel-3-tarjetas.txt`: 1 pista a 360/390, 3 a 1280. | ✅ |
+| CA-5 la tabla se desplaza en su caja | `src/app/globals.css` (`.table-scroll` fuera del `@media`, con `min-width: 0` y `max-width: 100%`) | `tests/e2e/geometria-rutas.spec.ts` → «el documento no se va en horizontal…» y «la tabla sigue siendo legible: … el control de Quitar» | Medido por mí con una fila real: documento **N/N** exacto a los ocho anchos (el 819/760 ha desaparecido). `.table-scroll` computa `overflow-x: auto` a **los ocho** anchos, también a 1280. Tabla legible: desplazada a tope, «Quitar» queda dentro (360: right=327/360 · 760: right=695/760 · 1280: right=1199/1280). | ✅ |
+| CA-6 un solo módulo de medida, consumido por las guardias | `tests/e2e/geometria.ts` (M1/M2/M3 + hueco muerto + eje + `ANCHOS` + `EXCLUSIONES_M1`) · migración de `pie-`, `cuenta-`, `admin-` y `ayuda-responsive.spec.ts` | `tests/geometria-guardias.test.ts` (7 casos, unitario: ninguna guardia lee `scrollWidth` por su cuenta, todas importan el módulo, los ocho anchos, exclusiones con motivo, `hidden` no es contenedor desplazable) | Verificado leyendo y con `grep`: `tests/e2e/geometria.ts` es el único sitio del árbol que lee `document.scrollWidth` con fines de desborde. **Las cuatro** guardias importan del módulo (`pie-` los anchos; `cuenta-`, `admin-` y `ayuda-` además M1/M2 y `medirBloques`) y ninguna conserva copia. Cada una mantiene sus umbrales (`FACTOR_MAXIMO` 2.2, `HOLGURA_PX` 60, holgura 12). `tests/geometria-guardias.test.ts` no es vacío: 7 casos que verifican exportaciones, los ocho anchos, exclusiones con motivo y que `hidden` **no** cuente como contenedor desplazable. | ✅ |
+| CA-7 prueba de eficacia: la guardia caza los tres defectos | `tests/e2e/geometria.ts` → `DEFECTOS` + `inyectarDefecto` | `tests/e2e/geometria-eficacia.spec.ts` → «(a) el formulario de alta que no puede encoger», «(b) el panel de tres columnas a 390 px», «(c) la tabla sin contenedor propio a 760 px» | **Reinyecté yo los tres defectos** contra la app corriendo. (a) a 360 y 390: sano 0 violaciones -> con defecto **13** (M1) y **35** (mi barrido), peor `strong` ancho=444 right=485/489. (b) a 390: sano 0 rotos -> con defecto **2** («Acciones vigiladas» 8 líneas/2 palabras, «Avisos» 3/1). (c) a 760: sano doc 760/760 y M1=0 -> con defecto doc **819/760** y M1 **28**. Los tres casos de control valen. | ✅ |
+| CA-8 la lección de `V-SPEC-039-6`, escrita | `tests/e2e/geometria.ts` (M1 y M2 conviven; M2 nunca va sola) | `tests/e2e/geometria-eficacia.spec.ts` → «con el defecto (a) puesto, la medida de documento NO lo ve y la de elemento SÍ» | Reproducido por mí a 390 px con el defecto (a) puesto: la medida de **documento** informa `390/390`, desborde **0** —no ve nada—; la medida **por elemento** informa **13** violaciones, peor ancho=444 right=489. `V-SPEC-039-6` reproducido y cazado. | ✅ |
+| CA-9 el rótulo sale del glosario | `src/app/cuenta/page.tsx` (`<dt data-termino="rol-de-cuenta">Rol de cuenta</dt>`) | `tests/e2e/rotulo-glosario.spec.ts` → «/cuenta rotula el rol con el término del glosario, no con uno propio» (lee la fila de `docs/fundacion/dominio.md`) | `/cuenta` rotula «**Rol de cuenta**» y «Tipo de cuenta» no aparece en la pantalla. El test lee la fila del término en `docs/fundacion/dominio.md` (línea 52) y la compara con lo que pinta el DOM vía `data-termino`; salta en los dos sentidos. Verde en mi ejecución. | ✅ |
+| CA-10 no degradar lo entregado | — (no toca comportamiento) | suite completa: `npm run test` 1116/1116 · `npm run test:e2e` 191/191, con `pie-`, `cuenta-`, `admin-`, `ayuda-responsive`, `ayuda`, `vigiladas`, `roles` y `cuenta` dentro | `typecheck` ✅ · `lint` ✅ · `test` **1116/1116** ✅ · `build` ✅ · `db:scan` ✅ · `test:e2e` **191/191** ✅ (2.ª ejecución; ver `V-SPEC-040-1`). A 1280 px comprobado por mí: **3** pistas en `.cards` y `.table-scroll` con contenido 1184 = visible 1184, sin barra. Descartado por medida que las reglas de SPEC-040 alteren `/cuenta` en escritorio. | ✅ |
+| CA-11 evidencia medida | — | `_qa/SPEC-040/` (36 capturas + 6 ficheros de medidas), escritas por `tests/e2e/geometria-rutas.spec.ts` y `tests/e2e/movil-alta.spec.ts` | `_qa/SPEC-040/`: **35** capturas (8 anchos × 4 escenarios + 2 del formulario + 1 de CE-1) y **7** ficheros de medidas. Contrasté las cifras del «después» con mis propias medidas y coinciden. Salvedad de sitio, no de fondo: las cifras del «antes» viven en la tabla de este ledger y en el registro de la ejecución (`[SPEC-040 CA-7a/b/c]`), no en `_qa/`; las reproduje yo reinyectando (444 / 819-760 / 8 líneas). | ✅ |
 
 ## Veredicto del verificador
 <!-- GREEN/RED + fecha + resumen. Lo escribe SOLO sdd-verificador. -->
+
+**GREEN — 11/11 CA cerrados. sdd-verificador, 2026-08-20.**
+
+Verificado sobre `ft/SPEC-040-movil-completa-el-alta-y-guardia-que-lo-ve`, HEAD `91c1720`,
+con `npm run build` previo y la app corriendo. **No he editado ni una línea de código,
+CSS, test ni spec**: sólo esta mitad del ledger y el frontmatter de la spec.
+
+### Lo que hice yo, no lo que me contaron
+
+1. **Completé el alta en un teléfono de 360 px, de principio a fin.** Cuenta nueva desde la
+   portada, registro, buscador, **elección de candidato**, zona 20/25 y **Vigilar**; la fila
+   aparece con su zona. Antes de cada clic medí la caja del control: los once quedaron
+   dentro de la ventana, y `window.scrollX` fue **0** durante todo el recorrido. Es CE-1 de
+   EPIC-004 funcionando en el ancho más estrecho que el proyecto soporta.
+2. **Medí los ocho anchos con mi propia función**, escrita aparte y deliberadamente **más
+   amplia** que M1: recorre `body *` y **no** exime a los descendientes de un contenedor
+   desplazable. Coincide con M1 elemento a elemento en las nueve rutas; la única divergencia
+   es la tabla dentro de `.table-scroll`, que es la segunda salida legítima de ADR-026 §4 y
+   que comprobé aparte (con la tabla desplazada a tope, la última columna cae dentro de la
+   ventana a los ocho anchos).
+3. **Ataqué CA-7 reinyectando yo los tres defectos**, y los tres se cazan con las cifras
+   correctas. También busqué lo contrario —un defecto que la guardia **no** vea— y encontré
+   **dos**, anotados abajo como `V-SPEC-040-2` y `V-SPEC-040-3`. Ninguno se materializa hoy
+   en la app: son deuda de la guardia, no de la pantalla, y **no bloquean publicar**.
+
+### La letra pequeña, comprobada
+
+- **`design/tremen-ds/` no se ha tocado**: `git diff origin/main...HEAD -- design/` vacío.
+- **`overflow: hidden` no se ha usado como arreglo** en ninguno de los tres defectos. Las
+  soluciones son `min-width: 0` (que quepa) y sacar `.table-scroll` del `@media` (su propio
+  contenedor declarado, a todos los anchos). Ni un `!important` en el CSS entregado.
+- **`document.scrollWidth` con fines de desborde aparece sólo en el módulo.** Las otras dos
+  lecturas del árbol son de un **elemento**, no del documento, y cada una la exige su CA:
+  `.table-scroll` (informe de CA-5) y `form.auth-form` (CA-1 (c), literal).
+- **`hidden` no cuenta como contenedor desplazable en M1**, ni en el código ni en el
+  comportamiento: con el `overflow-x: hidden` del sistema puesto, M1 sigue viendo el defecto
+  (a). Eso es CA-8 y lo reproduje con las dos cifras.
+- **`/cartera` e `/importar` quedan fuera por decisión del gate (`F-SPEC-040-1`)** y no lo
+  cuento como incumplimiento; tampoco los medí (con rol `tester` la ruta rebota al panel).
+
+### Guardia por guardia: qué medía antes y qué mide ahora
+
+| Guardia | Antes | Ahora | ¿Perdió poder? |
+|---|---|---|---|
+| `pie-responsive` (SPEC-035) | 5 anchos propios; altos del pie, hueco muerto y eje | 8 anchos del módulo; mismas afirmaciones y mismo `FACTOR_MAXIMO` 2.2 | **No.** Gana 360, 730 y 800 |
+| `cuenta-responsive` (SPEC-036) | M2 + recorrido de `main *` quedándose con **el peor** | M2 + M1 sobre `nav, main, footer`, con **todas** las violaciones y su detalle | **No.** Gana `nav`/`footer` y 3 anchos; sólo deja de mirar dentro de contenedores desplazables (en `/cuenta` no hay ninguno) |
+| `admin-responsive` (SPEC-037) | **Sólo** M2 (`scrollWidth − clientWidth`) | M2 **+ M1**; hueco muerto ahora descuenta el `padding` propio | **No: gana.** Estrena la medida por elemento y una medida de hueco más estricta, con el mismo umbral 60 |
+| `ayuda-responsive` (SPEC-039) | **Sólo** M2 | M2 **+ M1** en `/`, `/ayuda` y el vacío de `/vigiladas` | **No: gana.** Estrena la medida por elemento |
+
+### Los seis gates, ejecutados por mí
+
+| Gate | Resultado |
+|---|---|
+| `npm run typecheck` | ✅ exit 0 (`tsc --noEmit`, sin salida) |
+| `npm run lint` | ✅ exit 0 (`eslint . --max-warnings=0`, sin salida) |
+| `npm test` | ✅ **82 ficheros, 1116/1116** en 138.64 s |
+| `npm run build` | ✅ exit 0, 22 rutas |
+| `npm run test:e2e` | ✅ **191 passed (3.6 m)** en la 2.ª ejecución. La 1.ª dio **190 passed / 1 failed** por un intermitente ajeno a esta spec (`V-SPEC-040-1`) |
+| `npm run db:scan` | ✅ 11 migraciones, 2 con SQL destructivo y desbloqueo escrito |
 
 ## Evidencia visual
 
@@ -68,6 +127,61 @@ build de `origin/main` + SPEC-039; el «después», el build de esta rama.
 | M1 en `/vigiladas` con filas a 360 px | **35** violaciones | **0** |
 
 ## Salvedades / follow-ups
+
+### Residuales que levanta el verificador (2026-08-20)
+
+- **`V-SPEC-040-1` — `admin-grifo.spec.ts` CA-21 es intermitente, y no es de esta spec.**
+  En mi **primera** ejecución completa del e2e falló: tras `fill('[data-testid="cupo"]', '')`
+  y el clic en guardar, `leerGrifo()` devolvió `{ openManually: true, capacity: 120 }` en vez
+  de `capacity: null`. En la **segunda** pasó, y con el fichero aislado pasa 10/10. La causa
+  está a la vista: ese paso es el **único** del bloque que lee la base **sin una espera de UI
+  entre medias** —los pasos vecinos hacen `await expect(getByTestId(...))` antes de leer—, así
+  que compite con la revalidación del server action. El fichero **no lo toca esta rama** y
+  SPEC-040 no cambia el grifo. **Impacto**: «toda la suite en verde» (CA-10) no es determinista
+  hoy en CI. **Destino**: EPIC-FIX; añadir la espera que falta en
+  `tests/e2e/admin-grifo.spec.ts:422`. **No bloquea publicar.**
+
+- **`V-SPEC-040-2` — un `overflow-y: auto` deja ciega a M1 en todo su subárbol.**
+  Encontrado atacando CA-7. En CSS, si `overflow-y` es `auto|scroll` y `overflow-x` es
+  `visible`, **`overflow-x` computa a `auto`**. M1 exime a los descendientes de cualquier
+  elemento con `overflow-x` computado `auto|scroll`, así que basta con que un componente
+  declare un área de desplazamiento **vertical** para que su subárbol entero deje de medirse.
+  Medido por mí en `/vigiladas` a 360 px: con el defecto (a) puesto, M1 informa **13**
+  violaciones; añadiendo `main.page { overflow-y: auto }`, informa **0** y baja de 44 a **23**
+  elementos medidos, mientras mi barrido sin exención sigue viendo **35**. Hoy **no se
+  materializa**: comprobé a 360/760/1280 en las diez rutas que el único elemento con
+  `overflow-x` computado `auto|scroll` es `.table-scroll`, y `.symbol-results` (que es
+  `overflow-y: auto`) ya está excluido con motivo. **Destino**: que la exención de M1 exija
+  además que el elemento sea de verdad desplazable en horizontal
+  (`scrollWidth > clientWidth`), o un `overflow-x` declarado explícitamente. Es la ampliación
+  natural de `F-ADR-026-2`. **No bloquea publicar.**
+
+- **`V-SPEC-040-3` — lo que vive fuera de `nav`, `main` y `footer` no lo mide nadie.**
+  M1 recorre esas tres raíces, que es literalmente lo que pide CA-3; pero el layout raíz monta
+  `<div class="frame">` alrededor de todo, y ni él ni un hipotético hermano de `main` entran en
+  la medida. Comprobado: inserté un `<div>` de **900 px** como hijo directo de `.frame` a
+  360 px → M1 **0** violaciones, mi barrido **23**, y `document.scrollWidth` **360** (lo tapa
+  el `overflow-x: hidden` del sistema). Es decir: **por debajo de 720 px un desborde del chrome
+  del layout es invisible a las dos medidas a la vez**. Hoy `.frame` sólo contiene
+  `nav`/`main`/`footer` y `next-route-announcer`, así que no hay superficie afectada.
+  **Destino**: añadir `.frame` (o `body > *`) a las raíces de M1. **No bloquea publicar.**
+
+- **`V-SPEC-040-4` — evidencia de otras specs, regenerada a medias.** La rama commitea
+  capturas nuevas en `_qa/SPEC-037/` y `_qa/SPEC-039/` (los anchos 360, 730 y 800 que estrenan
+  sus guardias migradas), pero **no** los `_qa/SPEC-036/medidas-*.txt`, que la migración también
+  reescribe: pasan de cinco a ocho anchos y estrenan la columna `violaciones`. Comprobé que la
+  diferencia de altura de `/cuenta` entre el fichero commiteado y la ejecución de hoy (zona
+  665 → 621 a 1280 px) **no la causa SPEC-040**: neutralizando sus reglas de `min-width` el
+  número no se mueve. Es evidencia rancia desde SPEC-036, no una regresión.
+  **Destino**: sdd-documentalista. **No bloquea publicar.**
+
+- **Nota sobre el cupo del registro (precisión, no defecto).** `movil-alta.spec.ts` CA-2
+  registra **una cuenta nueva por ejecución** (`spec040-movil-<timestamp>@example.com`), como
+  debe: el recorrido que mide es el de un desconocido que llega del foro. La cabecera de
+  `tests/e2e/spec040.ts` dice «tres cuentas y sólo tres» y el handoff dice «el cupo del registro
+  no se toca»; con precisión son **dos fijas más una por ejecución**. Es inofensivo —la base del
+  e2e es efímera y se recrea en cada arranque de `tests/e2e/server.mjs`—, pero conviene dejarlo
+  escrito para que nadie cuente mal el margen contra el cupo de 50.
 
 - **`F-SPEC-040-1` (ya declarado en la spec, §Fuera de alcance pto. 6).** `/cartera` monta
   su tabla en el mismo `.table-scroll` y su tabla es **más ancha** que la de vigiladas.
