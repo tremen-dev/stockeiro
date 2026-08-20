@@ -159,11 +159,28 @@ describe('SPEC-028 CA-5: consume scripts/check-alive.mjs tal cual', () => {
     expect(run).not.toContain('/api/version');
   });
 
-  it('5.5 — scripts/ sigue teniendo exactamente tres habitantes', () => {
-    expect(
-      readdirSync(join(rootDir, 'scripts')).sort(),
-      'Esta spec cablea lo que SPEC-031 y SPEC-032 entregaron; no añade scripts.',
-    ).toEqual(['check-alive.mjs', 'guard-migrate.mjs', 'scan-destructive-sql.mjs']);
+  it('5.5 — los tres scripts que esta spec cablea siguen ahí, y ella no añadió ninguno', () => {
+    // Re-encuadrado por SPEC-038 (FOUNDATION §Cómo se trabaja aquí, 2026-08-20).
+    //
+    // Qué vigilaba antes: que `scripts/` tuviera EXACTAMENTE tres habitantes.
+    // Qué vigila ahora: que los tres que esta spec cablea sigan estando. La
+    // afirmación de CA-5.5 —"esta spec cablea lo que SPEC-031 y SPEC-032
+    // entregaron; no añade scripts"— es un hecho sobre SU entrega y sigue siendo
+    // cierta; lo que caducaba era su FORMA, una foto del árbol que se pone roja
+    // la primera vez que otra spec añade un script legítimo. Es el mismo
+    // re-encuadre que ya se le hizo a `LAS_NUEVE` migraciones en
+    // `tests/spec-032-frontera.test.ts`, y por el mismo motivo.
+    //
+    // Quien lo dispara: SPEC-038 CA-12 trae `check-version-bump.mjs`, declarado
+    // en su spec y aprobado en su gate.
+    const habitantes = readdirSync(join(rootDir, 'scripts')).sort();
+    for (const script of ['check-alive.mjs', 'guard-migrate.mjs', 'scan-destructive-sql.mjs']) {
+      expect(
+        habitantes,
+        `Falta ${script}: esta spec lo cablea y no puede desaparecer sin que la puerta ` +
+          'post-despliegue deje de tener qué ejecutar.',
+      ).toContain(script);
+    }
   });
 });
 

@@ -104,13 +104,22 @@ describe('SPEC-032 CA-14.2: ni puerta post-deploy, ni /api/version, ni check-ali
     }
   });
 
-  it('scripts/ tiene exactamente los tres habitantes esperados', () => {
-    // `check-alive.mjs` sigue ahí y sin tocar; los dos nuevos son de esta spec.
-    expect(readdirSync(scriptsDir).sort()).toEqual([
-      'check-alive.mjs',
-      'guard-migrate.mjs',
-      'scan-destructive-sql.mjs',
-    ]);
+  it('los dos scripts de esta spec están, y `check-alive.mjs` sigue ahí', () => {
+    // Re-encuadrado por SPEC-038 (FOUNDATION §Cómo se trabaja aquí, 2026-08-20).
+    //
+    // Qué vigilaba antes: que `scripts/` tuviera EXACTAMENTE estos tres ficheros.
+    // Qué vigila ahora: que los dos que entrega esta spec sigan ahí y que
+    // `check-alive.mjs` —que esta spec no tocó— tampoco haya desaparecido. La
+    // propiedad de CA-14.2 no cambia; lo que caducaba era congelar el listado del
+    // directorio, que es exactamente el patrón que `LAS_NUEVE` de más abajo ya
+    // había dejado de usar para las migraciones, y por el mismo motivo.
+    //
+    // Quien lo dispara: SPEC-038 CA-12 añade `check-version-bump.mjs`, declarado
+    // en su spec y aprobado en su gate.
+    const habitantes = readdirSync(scriptsDir).sort();
+    for (const script of ['check-alive.mjs', 'guard-migrate.mjs', 'scan-destructive-sql.mjs']) {
+      expect(habitantes).toContain(script);
+    }
   });
 });
 
