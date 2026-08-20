@@ -24,12 +24,291 @@ epica: EPIC-INFRA
 | 🔒 CA-5 higiene: sin forks, sin permisos de escritura, con plazo y concurrencia, sin `continue-on-error` | `.github/workflows/neon-preview-cleanup.yml`: `if` de fork, `permissions: {}`, `timeout-minutes: 10`, grupo propio con `cancel-in-progress: false` | `tests/neon-preview-cleanup-workflow.test.ts` · CA-5 5.1–5.5 | **Ronda 2.** `permissions: {}`, `timeout-minutes: 10`, grupo `neon-preview-cleanup-…` distinto de los otros dos, `cancel-in-progress: false`. **La condicion de fork sigue dentro del `if`**: el filtro se **suma**, no la sustituye (verificado sobre el YAML parseado). Sin `continue-on-error`, sin encadenado que se trague el codigo de salida, sin `always()`. | ✅ |
 | 🔒 CA-6 frontera: `ci.yml` y `deploy-gate.yml` siguen sin secretos; este no gobierna el merge | ningún cambio en `ci.yml` ni `deploy-gate.yml`; punto 3 escrito en `docs/despliegue.md` §9 | `tests/neon-preview-cleanup-workflow.test.ts` · CA-6 6.1–6.2 + `tests/spec-031-frontera.test.ts` y `tests/spec-032-frontera.test.ts` verdes **sin editarlos**; el punto 3 lo congela `tests/runbook-limpieza-preview.test.ts` · CA-7.2 | **Ronda 2.** `git grep -l 'secrets\.'` fuera de `docs/` y `tests/` → **solo** el limpiador. `tests/spec-031-frontera.test.ts` (11) y `tests/spec-032-frontera.test.ts` (19) verdes **sin una linea editada** (`git diff` contra `origin/main` sobre esos ficheros: vacio). Ruleset `Protected main` comprobado vivo: contextos `E2E` y `Checks`, bypass vacio. **La lectura de CA-6.2 no se ha tocado**: sigue siendo la que juzgue legitima en la ronda 1. | ✅ |
 | 🔒 CA-7 el runbook cuenta la trampa, la solución y su contrapartida (§6, §9, §13, §13.3) | `docs/despliegue.md`: §6 (gotcha nuevo), §9 (tabla de los tres workflows), §13 (filas de ops 7, 8 y 9), §13.3 **reescrita**. Ronda 2 (F-2): §13.3 ya **no** dice *"con tres entradas y ni una línea de shell"* ni *"eso es lo que acota el peor caso"*. Dice que la acción es composite y **sí** ejecuta bash por dentro, que sin filtro el peor caso era ejecución de comandos con la clave, que lo que acota el peor caso es el **filtro de caracteres** más el prefijo literal, y **qué cuesta el filtro** (`F-SPEC-042-7`). **Ronda 3 (N-1)**: la línea de diagnóstico decía que un job saltado *«no aparece en Actions»* — es **falso**, y comprobado contra la API de GitHub, no discutido: el evento crea la ejecución y el `if` se evalúa después, a nivel de job. §13.3 dice ahora lo que de verdad se ve (ejecución **completada, en gris, `skipped`, el job sin un solo paso**) y **distingue los dos *fail-closed*** del apartado: el del filtro *y en silencio*, el de las variables de ops *y en rojo* | `tests/runbook-limpieza-preview.test.ts` · CA-7.1–7.6, troceando el documento por secciones, **más el bloque O-2 (5 casos)** que congela el filtro, su coste, la frase de diagnóstico correcta y la distinción de los dos *fail-closed* | **F-2 CERRADO en los tres artefactos, y sin borrar la explicacion** — que era lo que importaba para que nadie lo reintroduzca «simplificando». §13.3 perdio *«ni una linea de shell»* y gano una viñeta que dice que **este runbook lo dio por bueno** y por que es falso a medias. Los seis subpuntos de CA-7 siguen ahi y siguen siendo ciertos (citas de Neon literales, aritmetica, §9 afirmando la ausencia de secretos **solo** de la CI de las PR). **N-1**, no bloqueante: una frase añadida por encima de CA-7 —*«no aparece en Actions»*— es falsa; ver el veredicto. | ✅ |
-| 🚀 CA-8 al cerrar la PR, la rama desaparece de Neon y el recuento baja en una | `.github/workflows/neon-preview-cleanup.yml` | **no testeable desde el repo** — evidencia abajo. Bloqueado por F-SPEC-042-1 y F-SPEC-042-2 | **No cerrado, y es lo unico que impide `hecho`.** Sin cambios respecto a la ronda 1: los dos valores de ops existen (`gh variable list` / `gh secret list`), el disparador `pull_request` usa el workflow **de la rama de la PR**, y la rama de esta PR no lleva ninguno de los tres caracteres de `F-SPEC-042-7`, asi que el job **se ejecutara** al cerrar. Falta el cierre real y su evidencia. | 🚧 |
-| 🚀 CA-9 comportamiento ante una rama inexistente, medido y escrito | hueco escrito en `docs/despliegue.md` §13.3 (*"lo que aún no se sabe"*), a la espera del dato, **más el comando que lo responde y qué hacer con cada resultado** (ronda 2, F-3) | **no testeable desde el repo, pero YA NO DEPENDE DE CA-8.** No necesita una PR cerrada ni un *Re-run*: necesita la credencial, que existe desde el 2026-08-20. Lo responde, sin tocar nada, `neonctl branches delete preview/no-existe-jamas --project-id orange-lab-24079923` — **corrible antes de mezclar**. Verde ⇒ la acción se traga la rama inexistente, no habrá falsos rojos, CA-9 cerrado. Rojo (lo esperable: `neonctl` resuelve el nombre a un id) ⇒ este limpiador dará rojo en **toda PR cerrada sin preview**, hay que saberlo **antes** del merge y se abre follow-up en el acto. En ninguno de los dos casos se pone `continue-on-error` (CA-5.5, congelado en `tests/neon-preview-cleanup-workflow.test.ts` · 5.5). El implementador **no puede ejecutarlo**: la clave no está en el entorno local y no se pide | **F-3 CERRADO en el planteamiento; el dato sigue sin tomarse.** CA-9 ya **no depende de CA-8**: la fila y §13.3 traen el comando exacto, que significa cada resultado y que hacer con el, y el handoff lo pone como **paso 1, antes del merge**. Verifique que **no** se ha puesto `continue-on-error` , ni encadenado que se trague el codigo de salida, ni `always()`. Queda ejecutarlo: es del humano, la clave no esta en el entorno local. | 🚧 |
-| 🚀 CA-10 nada que no fuera una preview se tocó (`main` sigue ahí) | prefijo `preview/` literal en `.github/workflows/neon-preview-cleanup.yml` | **no testeable desde el repo** — comparación de las dos listas del panel de Neon | **No cerrado.** Depende de CA-8. La evidencia prevista (dos listas de **nombres**, antes y despues) sigue siendo la correcta. | 🚧 |
+| 🚀 CA-8 al cerrar la PR, la rama desaparece de Neon y el recuento baja en una | `.github/workflows/neon-preview-cleanup.yml` | **no testeable desde el repo** — evidencia abajo. Bloqueado por F-SPEC-042-1 y F-SPEC-042-2 | **CERRADO ✅ — verificado por mi, y no por la transcripcion de una captura.** `gh run list --workflow=neon-preview-cleanup.yml` devuelve **una sola** ejecucion en toda la historia del repositorio: `32371568962`, evento `pull_request`, rama `ft/SPEC-042-limpieza-automatica-de-ramas-de-preview-en-neon`, `conclusion=success`, 12:57:28Z → 12:57:44Z (**16 s**), disparada 2 s despues del merge de la PR#45 (`ad7ad3b`, 12:57:26Z). **Y el job CORRIO, no se salto** —que es la comprobacion que importa aqui, porque un job saltado tambien pinta verde (`F-SPEC-042-7`)—: la API de jobs da `conclusion=success` con el paso *Delete the Neon branch…* en `success`, 12:57:32Z → 12:57:43Z. En el log, la salida de `neonctl` es una tabla con **exactamente una fila**: `preview/ft/SPEC-042-limpieza-automatica-de-ramas-de-preview-en-neon` · `br-muddy-pond-asffs4lv` · `ready` · creada 12:45:27Z. Creada al desplegar la preview, borrada 12 min despues al cerrar la PR. | ✅ |
+| 🚀 CA-9 comportamiento ante una rama inexistente, medido y escrito | hueco escrito en `docs/despliegue.md` §13.3 (*"lo que aún no se sabe"*), a la espera del dato, **más el comando que lo responde y qué hacer con cada resultado** (ronda 2, F-3) | **no testeable desde el repo, pero YA NO DEPENDE DE CA-8.** No necesita una PR cerrada ni un *Re-run*: necesita la credencial, que existe desde el 2026-08-20. Lo responde, sin tocar nada, `neonctl branches delete preview/no-existe-jamas --project-id orange-lab-24079923` — **corrible antes de mezclar**. Verde ⇒ la acción se traga la rama inexistente, no habrá falsos rojos, CA-9 cerrado. Rojo (lo esperable: `neonctl` resuelve el nombre a un id) ⇒ este limpiador dará rojo en **toda PR cerrada sin preview**, hay que saberlo **antes** del merge y se abre follow-up en el acto. En ninguno de los dos casos se pone `continue-on-error` (CA-5.5, congelado en `tests/neon-preview-cleanup-workflow.test.ts` · 5.5). El implementador **no puede ejecutarlo**: la clave no está en el entorno local y no se pide | **MEDIDO — la respuesta es ROJO. Verificado por mi con `gh`, no transcrito.** Re-ejecutada `32371568962` (attempt 2, 2026-08-20T13:11Z) sobre la rama **ya borrada**: `conclusion=failure`, paso de borrado en `failure` y los de instalacion en `success` — no es fallo de entorno, es la accion respondiendo. Salida literal: `ERROR: Branch preview/ft/SPEC-042-… not found.` + `Available branches: preview, main, preview/ft/SPEC-039-…, SPEC-040-…, SPEC-041-…`, `exit code 1`. **Salvedad, y por eso ⚠️ y no ✅**: CA-9 pide que quede escrito *«en el ledger **y en §13.3**»*. La mitad del ledger esta hecha; la de §13.3 no la puedo escribir yo (no edito el runbook), y hoy §13.3 sigue diciendo en presente que *«no se sabe»* — que ya es **falso**. Consecuencia declarada como **F-SPEC-042-8**. Ver el veredicto: edicion exacta listada. | ⚠️ |
+| 🚀 CA-10 nada que no fuera una preview se tocó (`main` sigue ahí) | prefijo `preview/` literal en `.github/workflows/neon-preview-cleanup.yml` | **no testeable desde el repo** — comparación de las dos listas del panel de Neon | **CERRADO ✅ — y ahora con confirmacion del propio proveedor, no solo mia.** (a) En el borrado real, `neonctl` imprimio **una sola fila**: se toco una rama y solo una. (b) **El mensaje de error del re-run de CA-9 enumera lo que queda**: `preview, main, preview/ft/SPEC-039-…, SPEC-040-…, SPEC-041-…` — es **Neon** diciendo que `main` sigue ahi y que la unica que desaparecio es la de SPEC-042. Mejor evidencia que la captura del panel y que mi sonda indirecta. (c) Ademas, y por si hiciera falta: `GET https://stockeiro.tremen.dev/register` → **200** con 12 782 bytes despues del borrado, y esa ruta hace `await resolveRegistrationState(db)` en cada render. (d) Las tres previews de arrastre no son un fallo: ver la nota de Evidencia visual. | ✅ |
 
 ## Veredicto del verificador
 <!-- GREEN/RED + fecha + resumen. Lo escribe SOLO sdd-verificador. -->
+
+### 🔴 CA-9 medido — la acción da ROJO ante una rama que no existe (2026-08-20)
+
+**Lo verifiqué yo, no me fié de la transcripción.** `gh run list` sobre el limpiador da hoy
+`id=32371568962 attempt=2 status=completed concl=failure`. La API de jobs: `Delete Neon preview
+branch` → `failure`, con el paso *Delete the Neon branch…* en `failure` y los de instalación en
+`success` — o sea, **no es un fallo de entorno: es la acción respondiendo**. Y el log, literal:
+
+```
+ERROR: Branch preview/ft/SPEC-042-limpieza-automatica-de-ramas-de-preview-en-neon not found.
+Available branches: preview, main, preview/ft/SPEC-039-ayuda-estados-vacios-y-feedback,
+preview/ft/SPEC-040-movil-completa-el-alta-y-guardia-que-lo-ve,
+preview/ft/SPEC-041-vigiladas-legible-y-ordenable
+##[error]Process completed with exit code 1.
+```
+
+**Respuesta a CA-9, que era la pregunta abierta desde que nació la spec: ROJO, salida 1,
+`ERROR: Branch <nombre> not found.`** El README de la acción no lo documentaba; ahora está medido
+y no supuesto.
+
+**Regalo colateral: CA-10 gana confirmación del propio proveedor.** El mensaje de error enumera
+las ramas que quedan — `preview`, **`main`**, y las tres previews de arrastre. Ya no depende de
+una captura del panel ni de mi sonda indirecta contra producción: es **Neon** quien dice que
+`main` sigue ahí y que solo desapareció la de SPEC-042. Cinco ramas de diez.
+
+#### La consecuencia, con nombre propio: `F-SPEC-042-8`
+
+**El limpiador pintará rojo en toda PR que se cierre sin una rama de preview que borrar.** No lo
+suavizo, pero sí lo acoto, porque «siempre» y «casi nunca» piden reacciones distintas.
+
+**Cuándo pasa de verdad, en este repositorio:**
+
+| Caso | ¿Frecuente aquí? |
+|---|---|
+| **Re-run manual** de una ejecución ya hecha | Es lo que acaba de pasar. Deliberado, y quien lo lanza sabe por qué |
+| **Reabrir y volver a cerrar** una PR | Posible. La rama ya se borró en el primer cierre → el segundo cierre da rojo |
+| **PR cuya preview se borró a mano** (resaca de un techo lleno) | **El caso que más importa.** El 2026-08-19/20 se borraron tres a mano para desbloquear un despliegue. Cualquier PR así, al cerrarse después, da rojo |
+| **PR cerrada sin mergear** que nunca tuvo preview | **0 de 43** PRs cerradas en este repo se cerraron sin mergear. Hoy, hipotético |
+| **PR sin despliegue de preview** | `vercel.json` **no** trae `ignoreCommand` ni `ignoredBuildStep`: toda rama con PR recibe preview y, con ella, su rama de Neon. Solo quedaría la carrera de cerrar la PR antes de que el despliegue exista |
+| PR de un **fork**, o rama con `$`/backtick/`"` | **No dan rojo**: el job se salta (`F-SPEC-042-7`). Silencio, no ruido — el problema contrario |
+
+**Frecuencia hoy: baja.** El flujo normal de este proyecto —abrir, CI, mergear, cerrar— **siempre**
+tiene rama que borrar, y los 43 cierres lo confirman.
+
+**Y aun así el coste no es la frecuencia, es la ambigüedad — que es peor.** Un rojo de este
+workflow puede significar dos cosas opuestas y **se ven exactamente igual desde la lista de
+Actions**:
+
+- *«la rama ya no estaba»* — benigno, no hay nada que hacer;
+- *«la clave caducó / el `project_id` es otro / Neon está caído / la rama existe y el borrado
+  falló»* — **grave**, y significa que las ramas han vuelto a acumularse en silencio, que es
+  literalmente el incidente que fundó esta spec.
+
+Nadie distingue una de otra sin abrir el log. Un rojo que casi siempre es benigno y que nadie
+puede clasificar de un vistazo es la receta exacta de *«una puerta que da falsos rojos enseña a
+ignorarla»* (SPEC-028), y el día que sea del segundo tipo llegará con el panel lleno. **Esto es lo
+que hay que vigilar, no el recuento de rojos.**
+
+**Mitigación disponible hoy, sin tocar nada**: el propio mensaje distingue los dos casos —
+`Branch <nombre> not found.` es el benigno—. Mientras `F-SPEC-042-8` siga abierto, la regla es
+**abrir el log antes de encogerse de hombros**.
+
+#### Salidas limpias — todas follow-up, **ninguna en esta spec**
+
+Y **ninguna es `continue-on-error`**: CA-5.5 lo prohíbe con razón, porque taparía también el rojo
+del segundo tipo, que es el único que importa.
+
+| Vía | Qué costaría | Juicio |
+|---|---|---|
+| **Abrir issue en `neondatabase/delete-branch-action`** pidiendo idempotencia (una entrada tipo `if-exists`, o salir 0 ante *not found*) | Cero para este repo. No toca ningún CA | **La que yo haría primero.** Es el sitio correcto del arreglo: el problema es de la acción, no del workflow. Lento y fuera de nuestro control |
+| **Llamar a la API de Neon directamente** (`DELETE /projects/{id}/branches/{id}`) y tratar el 404 como éxito | Exige un `run:` propio → **enmienda CA-4.3**, y reabre a mano la superficie de shell que la ronda 2 cerró (habría que pasar el nombre por `env:` y no interpolarlo) | Es el arreglo de verdad, y el más caro. Solo si el ruido molesta |
+| **Comprobar antes de borrar** (listar y borrar solo si está) | También exige `run:` → **enmienda CA-4.3**. Además introduce una carrera entre listar y borrar | No compensa frente a la anterior |
+| **Clavar la acción a su SHA** (`4468d825…`) | **Enmienda CA-3.1** | No arregla esto —arregla **O-1**—, pero si se abre CA-3 por lo otro, va en el mismo viaje |
+
+Recomendación: **abrir el issue upstream y esperar**. `F-SPEC-042-8` queda declarado y vigilado;
+si el ruido se vuelve rutina, entonces sí toca enmendar CA-3/CA-4 en una spec nueva.
+
+#### Por qué la spec sigue en `en-revision` — y a qué distancia está de `hecho`
+
+**A una edición del runbook. Literalmente una.**
+
+CA-9 no pide medir: pide que **«queda escrito en el ledger *y* en §13.3 si sale verde o rojo y con
+qué mensaje»**. La mitad del ledger la acabo de escribir. La de §13.3 **no puedo escribirla yo**
+—no edito el runbook— y hasta que esté, la mitad operativa del CA no se ha entregado.
+
+Y no es ceremonia: **hoy §13.3 dice algo que ya es falso.** Sigue afirmando, en presente, *«Lo que
+aún no se sabe … el README de la acción no documenta qué pasa ante una rama que ya no existe»*.
+**Sí se sabe, desde las 13:11 de hoy.** Cerrar la spec como `hecho` dejando esa frase enterraría
+una afirmación falsa dentro de una spec cerrada, en el documento que alguien leerá justo cuando
+vea el primer rojo. Con `protegeVerdad` activo, eso no se firma.
+
+Marco CA-9 **⚠️**, no ❌ ni ✅: lo difícil está hecho y es irreversible —hay run id, salida literal
+y fecha—; lo que falta es transcribirlo a su sitio.
+
+**Qué hay que cambiar en `docs/despliegue.md` §13.3** (para quien lo encargue; lo reporto y no lo
+toco):
+
+1. **Sustituir el párrafo «Lo que aún no se sabe»** —el que empieza *«el README de la acción no
+   documenta qué pasa ante una rama que ya no existe»* y termina ofreciendo el comando de
+   `neonctl`— por **la respuesta**: medido el 2026-08-20 re-ejecutando la ejecución `32371568962`
+   sobre la rama ya borrada, **da ROJO**, salida 1, con el mensaje literal
+   `ERROR: Branch <nombre> not found.` y la lista de ramas disponibles.
+2. **Añadir la consecuencia como `F-SPEC-042-8`**: el limpiador da rojo en toda PR que se cierre
+   sin rama que borrar; cuándo pasa (re-run, doble cierre, preview borrada a mano) y que hoy es
+   raro (0 de 43 cierres sin merge); y **la regla de lectura**: un rojo puede ser benigno
+   (`not found`) o grave (clave, `project_id`, Neon caído, borrado fallido) y **se ven igual**, así
+   que **hay que abrir el log antes de descartarlo**.
+3. **Decir que NO se pone `continue-on-error`** y por qué: taparía el rojo grave, que es el único
+   que importa (CA-5.5).
+4. **Corregir la vía de medición** que dejó bloqueado al humano: donde ofrece instalar `neonctl`,
+   poner primero el ***Re-run* en Actions** —que no exige instalar nada— citando la ejecución
+   `32371568962` como el ejemplo real.
+5. Opcional, una línea: el mensaje de error de la acción **enumera los nombres de todas las ramas
+   del proyecto**, y los logs de este repositorio son **públicos**. Aquí no importa —los nombres de
+   rama son nombres de spec, ya públicos en `docs/`— pero conviene saberlo antes de que un nombre
+   de rama diga algo que no deba.
+
+Hecho eso, **CA-9 pasa a ✅ y la spec a `hecho` sin más gestiones**: CA-1…CA-8 y CA-10 ya están
+cerrados con evidencia aquí arriba.
+
+---
+
+### 🟡 Cierre operativo — ronda 3, 2026-08-20, sdd-verificador
+
+**9 de 10 CA cerrados. CA-8 y CA-10 quedan ✅ con evidencia de primera mano; CA-9 sigue ❌ y por
+eso la spec NO pasa a `hecho`.** Está a un clic de 16 segundos, y abajo está el clic exacto.
+
+No di por buena ninguna transcripción de capturas: lo de abajo sale de `gh`, de los logs de la
+ejecución y de una petición a producción hecha **después** del borrado.
+
+#### Lo que verifiqué por mi cuenta
+
+| Qué | Cómo | Resultado |
+|---|---|---|
+| La ejecución existe y es la primera | `gh run list --workflow=neon-preview-cleanup.yml` | **una sola** en toda la historia del repositorio: `32371568962`, evento `pull_request`, rama `ft/SPEC-042-limpieza-…`, `conclusion=success`, 12:57:28Z → 12:57:44Z (**16 s**) |
+| Se disparó al cerrar la PR#45 | `gh pr view 45` | merge `ad7ad3be1151466aa074f718485ec010061bb354` a las **12:57:26Z**; la ejecución arranca **2 s después** |
+| **El job corrió — no se saltó** | API de jobs del run | `Delete Neon preview branch` → `conclusion=success`, 12:57:32Z → 12:57:43Z, con el paso *Delete the Neon branch…* en `success`. **Esta es la comprobación que importa**: un job saltado por el filtro también pinta verde (`F-SPEC-042-7`), así que «check verde» por sí solo no probaba nada |
+| Qué comando corrió, literal | log del run | `neonctl branches delete "preview/ft/SPEC-042-limpieza-automatica-de-ramas-de-preview-en-neon" --project-id orange-lab-24079923`, con `NEON_API_KEY: ***` (enmascarada por GitHub) y `NEON_API_HOST: https://console.neon.tech/api/v2` (el valor por defecto, que CA-3.4 decidió no pasar) |
+| Qué borró, exactamente | salida de `neonctl` en el log | una tabla con **una sola fila**: `preview/ft/SPEC-042-…` · `br-muddy-pond-asffs4lv` · `ready` · creada **12:45:27Z**. Nacida al desplegar la preview, muerta 12 minutos después al cerrar la PR |
+| El `main` de Neon sigue vivo | `GET https://stockeiro.tremen.dev/register`, **después** del borrado | **200**, 12 782 bytes de página real. Esa ruta es dinámica y hace `await resolveRegistrationState(db)` en cada render: si el `main` de Neon hubiera caído, ahí no habría página. Además `/api/version` sirve `ad7ad3b` y la puerta post-deploy de ese sha quedó verde |
+
+#### Por qué las otras tres previews siguen en el panel — y **no** es un fallo del limpiador
+
+Que quede escrito, porque dentro de un mes esto se lee como una fuga.
+
+`preview/ft/SPEC-039-…`, `preview/ft/SPEC-040-…` y `preview/ft/SPEC-041-…` siguen ahí porque **sus
+PRs se cerraron antes de que este workflow existiera**, y no existía *para ellas* en el sentido que
+importa: en un evento `pull_request`, GitHub ejecuta el workflow **de la rama de la PR**, y ninguna
+de esas tres ramas lo contenía. La prueba no es un razonamiento, es un recuento: el limpiador tiene
+**exactamente una** ejecución en toda la historia del repositorio, la de la PR#45. Para las otras
+tres no hubo nada que ejecutar.
+
+| PR | rama | mergeada | ¿llevaba el limpiador? |
+|---|---|---|---|
+| #42 | `ft/SPEC-039-ayuda-estados-vacios-y-feedback` | 08:32:36Z | no |
+| #43 | `ft/SPEC-040-movil-completa-el-alta-y-guardia-que-lo-ve` | 10:37:53Z | no |
+| #44 | `ft/SPEC-041-vigiladas-legible-y-ordenable` | 11:45:19Z | no |
+| **#45** | `ft/SPEC-042-limpieza-automatica-…` | **12:57:26Z** | **sí → única ejecución, y borró su rama** |
+
+Es exactamente lo que el runbook ya anunciaba: *«no barre lo ya acumulado: actúa sobre PRs que se
+cierren a partir de ahora»*. El panel queda en **5 de 10**: `main`, la `preview` suelta creada a
+mano (`F-SPEC-042-6`) y esas tres de arrastre. A partir de aquí ninguna nueva se acumula.
+
+#### CA-9: por qué NO lo doy por bueno como residual
+
+El criterio que se me propuso —*«se responderá solo en la primera PR que se cierre sin preview, y
+el peor caso es un falso rojo, no un daño»*— es **correcto en los hechos y equivocado en la
+postura**, y lo segundo es lo que decide.
+
+Correcto: no hay riesgo de datos, y no puede frenar un merge (el ruleset `Protected main` exige
+solo `Checks` y `E2E`, comprobado vivo). Y sin embargo:
+
+1. **CA-9 es un CA, no una salvedad.** El arquitecto lo hizo CA a propósito y escribió por qué:
+   *«decide si este workflow es fiable o ruidoso»*. Su condición de aceptación es *«queda escrito
+   en el ledger y en §13.3 si sale verde o rojo y con qué mensaje»*. Hoy no hay nada escrito.
+   9 de 10 no es 10 de 10.
+2. **«Se responderá solo» es la forma exacta del defecto que funda esta spec.** SPEC-042 nace de
+   que la limpieza era *«un párrafo pidiéndole a una persona que se acordara»*, y de que eso
+   *«duró un día»*. Cerrarla confiando en que alguien note el resultado durante un merge futuro es
+   firmar el mismo cheque, en el documento que existe para no volver a firmarlo.
+3. **Si sale rojo, el peor momento para enterarse es ese merge futuro.** Palabras de la propia
+   spec: *«una puerta que da falsos rojos enseña a ignorarla»*. La reacción correcta a un rojo es
+   abrir follow-up en el acto, no descubrirlo mientras se está desplegando otra cosa.
+4. **Y sobre todo: ya no cuesta nada.** El argumento para posponerlo era que el humano no tiene
+   `neonctl`. **Ese argumento ha caducado**, porque el método que la spec prescribe nunca fue el
+   comando local, sino el *Re-run*: *«se re-ejecuta el workflow de CA-8 sobre la rama ya borrada
+   (botón Re-run en Actions, o reabrir y volver a cerrar la PR)»*. Y ahora se dan las dos
+   condiciones a la vez: la rama **ya no existe**, y la ejecución que la borró **está ahí**.
+
+**El clic exacto:**
+
+```
+gh run rerun 32371568962      # o el botón "Re-run all jobs" en esa ejecución
+```
+
+16 segundos. Sin instalar nada. Sin riesgo: el comando pide borrar `preview/ft/SPEC-042-…`, que ya
+no está; el nombre va fijo en el YAML y no puede alcanzar otra rama; y un borrado de algo que no
+existe no destruye nada. Devuelve justo el dato que falta.
+
+**Intenté ejecutarlo yo y no pude**: mi entorno denegó la acción de escritura sobre Actions. No lo
+forcé.
+
+**Qué hacer con el resultado**, ya decidido para que nadie improvise:
+
+- **Verde** → la acción se traga la rama inexistente y no habrá falsos rojos. Se anota el mensaje
+  en la fila de CA-9 y en §13.3, y **CA-9 queda ✅**.
+- **Rojo** → el limpiador dará rojo en toda PR que se cierre sin haber tenido preview. Se anota el
+  mensaje literal, se abre follow-up en el acto y **entonces** se decide qué hacer. En ninguno de
+  los dos casos se pone `continue-on-error` (CA-5.5).
+
+Con ese dato escrito, la spec pasa a `hecho` **sin más gestiones**: CA-8 y CA-10 ya están cerrados
+aquí arriba con evidencia.
+
+#### El alcance de la `NEON_API_KEY`: **project-scoped** — cerrado el punto 2 del gate y R-1
+
+Llevaba tres rondas pedido y ya tiene respuesta: la clave es **project-scoped**, el alcance más
+pequeño que Neon ofrece. Lo que eso compra y lo que **no**, sin inflarlo en ninguna dirección:
+
+- **Lo que acota**: el radio de una filtración queda en **este** proyecto. Los demás proyectos de
+  Neon del titular quedan fuera. Es la diferencia entre un incidente y un incidente con alcance de
+  cuenta, y en un repositorio **público** eso no es un detalle.
+- **Lo que NO acota**: una clave *project-scoped* tiene acceso **Editor** sobre el proyecto, así
+  que **seguiría pudiendo borrar `main`** — la rama de la que vive la cartera real del usuario.
+  Reducir el alcance **no** reduce el peor caso dentro del proyecto.
+
+Por eso la conclusión de las rondas anteriores se sostiene tal cual, y ahora con el dato que le
+faltaba: **lo que impide que este workflow toque `main` no es el alcance de la credencial, es la
+forma del fichero** — el prefijo `preview/` literal delante de la interpolación (CA-4.1), la
+ausencia total de `run:` propio (CA-4.3) y el filtro de `$`, backtick y `"` (F-1, ronda 2). La
+credencial siempre pudo borrarlo todo; lo que no puede es *pedirlo* desde aquí.
+
+Consecuencia práctica para **R-1**: **residual cerrado**. Y una nota para quien rote la clave algún
+día: hay que volver a crearla *project-scoped*, porque una de cuenta pasaría este mismo workflow sin
+que nada se pusiera rojo — el alcance no se comprueba desde el repositorio.
+
+#### El runbook queda desactualizado en un punto (no lo toqué)
+
+`docs/despliegue.md` §13.3 sigue diciendo, en presente, *«Lo que aún no se sabe … el README de la
+acción no documenta qué pasa ante una rama que ya no existe»*, y ofrece el comando de `neonctl`
+como vía para averiguarlo. Dos cosas para quien lo edite:
+
+1. El hueco **sigue vacío y sigue siendo correcto**: no hay dato todavía, así que la frase no es
+   falsa. Cuando llegue el resultado va **ahí**, y es lo que CA-9 exige.
+2. La vía que ofrece —instalar `neonctl` y correr el comando— **ya no es la más barata**, y es
+   justo donde el humano se quedó bloqueado. Conviene añadir el *Re-run* de la ejecución que borró
+   la rama, con su id, como camino preferente. Es una mejora de exactitud, no un fallo.
+
+Lo reporto y no lo edito, como se me pidió.
+
+#### Nota: la ronda 1 quedó confirmada en producción
+
+El log de esta ejecución imprime el script que de verdad corrió **dentro** de la acción:
+
+```
+if [ -z "preview/ft/SPEC-042-limpieza-automatica-de-ramas-de-preview-en-neon" ]; then
+  neonctl branches delete  --project-id orange-lab-24079923
+else
+  neonctl branches delete "preview/ft/SPEC-042-limpieza-automatica-de-ramas-de-preview-en-neon" --project-id orange-lab-24079923
+fi
+```
+
+Es, literalmente, la interpolación textual del nombre de rama dentro de un `shell: bash` con la
+clave en el entorno — el defecto **F-1**, confirmado en producción y no ya en una simulación. Se ve
+también el doble espacio de `delete  --project-id`: es `branch_id` vacío, la rama muerta del `if`,
+tal y como se analizó. El filtro dejó pasar esta rama porque no lleva `$`, backtick ni `"`. Que
+quede aquí: es la prueba de que el arreglo de la ronda 2 protegía algo real.
+
+#### Lo que sigue abierto
+
+- **CA-9** — el único CA sin cerrar. Un `Re-run` de `32371568962`.
+- ~~**El alcance real de la `NEON_API_KEY`**~~ — **CERRADO hoy**: es *project-scoped*. Ver el
+  apartado de arriba. Con él se cierra el punto 2 del gate humano y el residual **R-1**.
+- **`F-SPEC-042-7`** (las ramas con `$`, backtick o `"` no se limpian, y en silencio) y **O-1**
+  (`@v3` es un tag móvil, hoy `4468d825…`) — declarados, sin cambios.
+- **`F-SPEC-028-2` mitad 1** — el techo de 10 sigue siendo 10; el panel está en 5. Su **mitad 2**
+  se puede dar por cerrada: es justo lo que CA-8 acaba de demostrar.
+- **`F-SPEC-042-3/4/6`** — ops, sin cambios.
+
+---
 
 ### 🟢 GREEN del bloque 🔒 — ronda 2, 2026-08-20, sdd-verificador
 
@@ -423,14 +702,19 @@ pasaría a `en-progreso`).
 ## Evidencia visual
 <!-- Tabla CA → captura en _qa/SPEC-042/. Informe HTML opcional: _qa/SPEC-042/informe.html -->
 
-Lo que hace falta pegar aquí para los tres CA 🚀, nombrado por el arquitecto para que nadie
-improvise la evidencia:
+**Recogida el 2026-08-20 tras el cierre de la PR#45.** El arquitecto nombro de antemano que hacia
+falta; esto es lo que hay, con su procedencia, y quien lo comprobo.
 
-| CA | Evidencia |
-|---|---|
-| CA-8 | Enlace a la ejecución verde del workflow en Actions + lista de ramas de Neon **antes** y **después** del cierre (nombres, no solo el recuento) |
-| CA-9 | Enlace a la re-ejecución sobre la rama ya borrada + el mensaje literal de la acción, y el veredicto: ¿verde o rojo? |
-| CA-10 | Las dos listas de CA-8 comparadas: la única diferencia es `preview/ft/SPEC-042-…`; `main` y la rama `preview` suelta siguen ahí |
+| CA | Evidencia | Estado |
+|---|---|---|
+| CA-8 | Ejecucion **`32371568962`** — `Neon preview cleanup`, evento `pull_request`, rama `ft/SPEC-042-limpieza-…`, `conclusion=success`, 12:57:28Z → 12:57:44Z (16 s), 2 s despues del merge `ad7ad3b`. **Job `Delete Neon preview branch` = `success`, NO `skipped`** (API de jobs). Log: `neonctl` imprime **una fila** — `preview/ft/SPEC-042-limpieza-automatica-de-ramas-de-preview-en-neon` · `br-muddy-pond-asffs4lv` · `ready` · creada 12:45:27Z. *Verificado por sdd-verificador con `gh`, no transcrito de una captura* | ✅ |
+| CA-9 | **Recogida.** Re-run de `32371568962` (attempt 2, 2026-08-20T13:11Z) sobre la rama ya borrada: `conclusion=failure`, salida 1, `ERROR: Branch preview/ft/SPEC-042-… not found.` + `Available branches: preview, main, preview/ft/SPEC-039-…, SPEC-040-…, SPEC-041-…`. *Verificado con `gh` por sdd-verificador.* Falta transcribirlo a `docs/despliegue.md` §13.3, que es la otra mitad que el CA pide | ⚠️ |
+| CA-10 | (a) La salida de `neonctl` de CA-8 tiene **una sola fila**: no se toco una segunda rama. (b) **`main` sigue vivo, probado desde fuera y despues del borrado**: `GET https://stockeiro.tremen.dev/register` → **200**, 12 782 bytes; esa ruta es dinamica y hace `await resolveRegistrationState(db)` en cada render. `/api/version` sirve `ad7ad3b`. (c) Panel del humano: quedan `main`, `preview` (a mano) y las tres previews de SPEC-039/040/041, que son **arrastre anterior al workflow** — el limpiador tiene **una unica** ejecucion en toda la historia del repo | ✅ |
+
+**Nota de lectura para dentro de seis meses**: las tres `preview/ft/SPEC-039|040|041` del panel
+**no** son un fallo. Sus PRs (#42, #43, #44) se cerraron a las 08:32, 10:37 y 11:45 — antes de que
+la PR#45 llevara el workflow — y en un evento `pull_request` GitHub ejecuta el workflow **de la
+rama de la PR**. Para ellas nunca hubo nada que ejecutar.
 
 ## Salvedades / follow-ups
 <!-- IDs F-SPEC-042-1, F-SPEC-042-2… con destino (spec futura o EPIC-MEJORA). -->
@@ -481,6 +765,27 @@ primeros son **acciones de ops del humano**, no CA: el **acto** es ops, el **efe
      (llamar a la API de Neon directamente, o clavar la acción a un SHA auditado — ver O-1 del
      verificador). Las dos vías exigen enmendar CA-3 y/o CA-4, así que no se hacen aquí.
   → EPIC-INFRA.
+
+- **F-SPEC-042-8 — El limpiador da ROJO cuando no hay rama que borrar.** *(Nuevo, abierto por
+  sdd-verificador al cerrar CA-9 el 2026-08-20.)* Medido, no supuesto: re-run de la ejecución
+  `32371568962` sobre la rama ya borrada → `conclusion=failure`, salida 1,
+  `ERROR: Branch <nombre> not found.` La acción **no es idempotente**.
+  - **Cuándo pasa**: re-run manual; reabrir y volver a cerrar una PR; y —el caso que importa— una
+    PR cuya preview se borró **a mano** para desbloquear un techo lleno (pasó el 2026-08-19/20 con
+    tres ramas). **No** pasa en el flujo normal: 0 de 43 PRs cerradas en este repo se cerraron sin
+    mergear, y `vercel.json` no salta builds, así que toda rama con PR recibe preview. Las PRs de
+    fork y las ramas con `$`/backtick/`"` **no** dan rojo: se saltan (`F-SPEC-042-7`).
+  - **Por qué importa aunque sea raro**: un rojo benigno (`not found`) y uno grave (clave caducada,
+    `project_id` equivocado, Neon caído, borrado fallido con la rama viva) **se ven idénticos** en
+    la lista de Actions. El grave significa que las ramas han vuelto a acumularse en silencio — el
+    incidente que fundó esta spec. Mientras esto siga abierto, **la regla es abrir el log antes de
+    encogerse de hombros**.
+  - **Lo que NO se hace**: `continue-on-error` (CA-5.5). Taparía también el rojo grave.
+  - **Salida recomendada**: abrir issue en `neondatabase/delete-branch-action` pidiendo
+    idempotencia (`if-exists`, o salir 0 ante *not found*). Cuesta cero y no toca ningún CA; es el
+    sitio correcto del arreglo. Si el ruido se vuelve rutina, la alternativa real es llamar a la
+    API de Neon y tratar el 404 como éxito — exige **enmendar CA-4.3** (necesita un `run:` propio)
+    y rehacer con cuidado la superficie de shell que la ronda 2 cerró. → EPIC-INFRA, spec nueva.
 
 Heredados:
 

@@ -298,6 +298,65 @@ Ninguno bloquea publicar. Los cuatro son para el arquitecto o para EPIC-MEJORA.
   caso mas. Lo que **seguira** siendo residual despues de eso es solo el `COMMIT`/`ROLLBACK`
   del servidor de Neon, que es contrato del proveedor. Se mantiene la recomendacion del
   implementador de borrar una cuenta de prueba en el primer despliegue.
+
+  ---
+
+  **Actualizacion 2026-08-20 — sdd-verificador (evidencia operativa, sin reabrir la spec).**
+  SPEC-036 sigue en `hecho` y nada de arriba cambia: esto solo cierra **la mitad de R-1 que
+  quedaba pendiente de medir en produccion**. La recomendacion decia *"borrar una cuenta de
+  prueba en el primer despliegue y contar"*, y **se ha hecho hoy, contra produccion**.
+
+  **Qué se hizo**: se registro una cuenta desechable, se le anadio una accion vigilada, se
+  borro desde `/cuenta`, y se consulto la base despues.
+
+  **Resultado, literal**:
+
+  ```
+  #    usuario    vigiladas
+  1    0          0
+  ```
+
+  **Veredicto: residual PARCIALMENTE cerrado.** Prefiero decirlo asi que redondearlo, porque
+  lo medido y lo no medido no son lo mismo.
+
+  **Lo que esto SI cierra, y no es poco.** Es la primera evidencia de que el camino
+  `batch()` de `neon-http` **confirma de verdad contra el servidor de Neon**: las seis
+  sentencias viajaron en una peticion y el `COMMIT` del servidor las aplico. Eso es
+  exactamente lo que ningun test podia dar —el `COMMIT` es contrato del proveedor, no
+  codigo nuestro— y por eso estaba escrito como residual operativo. La cuenta desaparecio
+  (`usuario 0`) y su vigilada tambien (`vigiladas 0`), asi que el borrado no fue un no-op:
+  habia una fila que perder en cada uno de esos dos sitios y se perdieron las dos.
+
+  **Lo que NO cierra, con nombres:**
+
+  1. **El `ROLLBACK`, que es la mitad que de verdad preocupaba.** R-1 habla de
+     `COMMIT`/`ROLLBACK`. Lo observado es un borrado que **fue bien**: prueba el `COMMIT`,
+     no el `ROLLBACK`. La pregunta de fondo —*si una de las seis sentencias falla a mitad,
+     ¿se deshacen las otras cinco o queda la persona sin cuenta y con datos?*— sigue sin
+     medirse, y **no deberia medirse en produccion**: exige provocar un fallo a mitad de
+     transaccion contra la base real. Es un residual que probablemente no se cierra
+     observando, sino por el contrato del proveedor mas la sonda del punto 3.
+  2. **La consulta cubrio 2 de las 6 tablas propias.** El borrado son seis sentencias:
+     `notifications`, `watched_symbols`, `transactions`, `symbol_aliases`,
+     `password_reset_tokens` y `users` (mas `zone_triggers`, que cae por
+     `on delete cascade` desde `watched_symbols`, ADR-017). Se contaron `users` y
+     `watched_symbols`. Quedan **cuatro** sin comprobar. Matiz honesto en las dos
+     direcciones: la cuenta de prueba **solo tenia** una vigilada, asi que contar las otras
+     cuatro habria dado cero **tuvieran o no** un borrado correcto — no habria probado gran
+     cosa. Para que la comprobacion cubra las seis hace falta una cuenta con **datos en
+     cada una** antes de borrarla.
+  3. **No se comprobo que lo compartido siguiera intacto.** Que las operaciones y avisos de
+     **otros** usuarios no se toquen esta cubierto por la suite, pero no por esta medicion.
+  4. **Sigue en pie el punto 1 de R-1**, que es independiente de todo esto: la sonda del
+     `fetchFunction` que fija *"una sola peticion, seis sentencias, en orden, filtradas por
+     el usuario"* **sigue sin estar en `tests/`**. Es lo unico de R-1 que se puede cerrar
+     sin depender del proveedor, y hasta que este en la suite un refactor puede romperlo en
+     silencio. **Es la accion recomendada.**
+
+  **Cómo quedaria cerrado del todo**: llevar la sonda del punto 1 a `tests/` (cubre forma,
+  orden y filtrado sin Neon), y —si alguna vez se quiere la comprobacion operativa
+  completa— repetir el borrado con una cuenta que tenga fila en las seis tablas y contar las
+  seis. El `ROLLBACK` se queda como contrato de Neon, declarado y no medido.
 - **R-2 (ventana TOCTOU del rol; milisegundos, no explotable hoy).** `deleteMyAccount` lee
   el rol, **luego** verifica la contrasena con bcrypt (~100-300 ms) y **despues** borra. Si
   alguien promoviera la cuenta a `admin` en esa ventana, el borrado seguiria adelante. No es
