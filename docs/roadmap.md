@@ -41,6 +41,15 @@ tipo: roadmap
   con su commit de GREEN) pero su frontmatter sigue diciendo `en-revision`. El estado no se
   cerró al mergear. No se toca desde aquí —`hecho` lo firma el verificador que juzgó, no
   otro— así que hay que cerrarlo en su propia línea de trabajo.
+  ⚠️ **Residual levantado el 2026-08-20 desde EPIC-MEJORA — `F-SPEC-041-1`**: los metadatos
+  del símbolo (`name`, `instrument_type`) se escriben **solo al insertar**. `getOrCreateSymbol`
+  (`src/lib/portfolio/symbols.ts`) devuelve la fila tal cual si el símbolo ya existe, así que
+  un `name` nulo **se queda nulo para siempre** aunque después otro usuario elija ese valor en
+  el buscador y el proveedor sí traiga el nombre. El comentario del esquema —*"se rellenan
+  solos cuando alguien vuelva a elegir ese valor"*— **no se cumple**; es el mismo hueco que
+  `F-ADR-020-3` ya anotó para el tipo, ahora con consecuencia visible: SPEC-041 saca el nombre
+  del activo a la tabla de Vigiladas, y esas filas se quedarán sin él. Es **escritura de
+  datos**, no presentación, así que CE-M1 lo expulsa de EPIC-MEJORA. Sin spec asignada todavía.
 
 - **EPIC-003 — Recuperación y cambio de contraseña** (estado: borrador).
   **Por qué está aquí y no en "Después", pese al criterio de corte.** El criterio dice
