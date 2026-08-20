@@ -50,6 +50,30 @@ const ACCION = 'neondatabase/delete-branch-action@v3';
 /** CA-4.1: el prefijo va literal en el YAML. No interpolado, no construido. */
 const PREFIJO = 'preview/';
 
+/**
+ * CA-4.3 — los cuatro caracteres a los que bash reacciona **dentro de unas
+ * comillas dobles**, y no hay un quinto: `$`, la backtick, la barra invertida y
+ * la propia comilla. (`;`, `&&`, `|`, `!`, `>`, `{}`, `#` y la comilla simple
+ * quedan literales ahí dentro; comprobado el 2026-08-20 ejecutando el cuerpo
+ * literal del `run:` de la acción con cada uno de ellos.)
+ *
+ * Hace falta saberlo porque `neondatabase/delete-branch-action@v3` es una
+ * **composite action**: su `action.yaml` interpola el nombre de rama
+ * TEXTUALMENTE dentro de un script bash —`shell: bash`, con la clave de la API
+ * en el `env` de ese mismo paso—, dos veces. Nuestro fichero no tiene shell; el
+ * suyo sí, y es el que recibe el dato.
+ */
+const ESPECIALES_EN_COMILLAS = ['$', '`', '\\', '"'] as const;
+
+/**
+ * De esos cuatro, los que el formato de refs de git **deja pasar** y por tanto
+ * pueden llegar de verdad en un `github.head_ref`. La barra invertida no está
+ * porque git la rechaza — y el caso 4.5 de abajo lo comprueba en vez de creerlo,
+ * para que el día que git afloje esta lista se quede corta con un rojo y no en
+ * silencio.
+ */
+const FILTRADOS = ['$', '`', '"'] as const;
+
 type Step = {
   name?: string;
   uses?: string;
@@ -280,9 +304,13 @@ describe('SPEC-042 CA-4: nada se borra fuera de `preview/`, y la rama de la que 
   });
 
   it('4.3 — no hay ni un `run:` en todo el fichero', () => {
-    // Sin shell no hay sitio donde el secreto acabe en un log, ni donde
-    // `github.head_ref` —dato que controla quien abre la PR— llegue a un intérprete
-    // de comandos.
+    // Lo que esto compra, dicho sin exagerarlo: en ESTE fichero no hay una shell
+    // nuestra donde el secreto pueda acabar en un log. Lo que NO compra —y se
+    // creyó que sí hasta el 2026-08-20— es que `github.head_ref` no llegue a un
+    // intérprete de comandos: la acción de CA-3 es una **composite action** y su
+    // último paso es un `shell: bash` que interpola el nombre de rama
+    // textualmente. Quien impide la inyección es el filtro de 4.5, no la
+    // ausencia de shell aquí.
     for (const step of steps()) expect(step.run).toBeUndefined();
     expect(limpiador().source).not.toMatch(/^\s*run:/m);
   });
@@ -297,6 +325,71 @@ describe('SPEC-042 CA-4: nada se borra fuera de `preview/`, y la rama de la que 
     // Un id de proyecto de Neon tiene la forma `adjetivo-sustantivo-12345678`, y
     // una clave de API es una ristra hexadecimal larga. Ni una cosa ni la otra.
     expect(source).not.toMatch(/[0-9a-f]{32,}/i);
+  });
+});
+
+describe('SPEC-042 CA-4.5: el nombre de rama se filtra ANTES de llegarle a la shell de la acción', () => {
+  // Por qué existe este bloque: CA-4.3 afirmaba que sin `run:` en nuestro fichero
+  // `github.head_ref` no llegaba a ninguna shell. Era falso. La acción de CA-3 es
+  // una composite action cuyo último paso hace, con `shell: bash` y la clave de la
+  // API en el `env`:
+  //
+  //     if [ -z "<rama>" ]; then … else neonctl branches delete "<rama>" …; fi
+  //
+  // `<rama>` es una sustitución TEXTUAL, y dentro de comillas dobles bash expande
+  // `$(…)` y las backticks sin necesidad de romper la comilla: el comando
+  // inyectado se ejecutaría DOS veces y vería la credencial. El peor caso no era
+  // "borré una preview que no tocaba", era ejecución de comandos con la única
+  // clave con permiso de borrado del proyecto.
+  //
+  // El arreglo cabe entero dentro de los CA vigentes: no añade `run:`, ni
+  // disparador, ni clave a `with`, ni nombra ninguna rama fija, y la condición de
+  // fork de CA-5.1 sigue donde estaba.
+
+  it('4.5 — de los cuatro especiales de bash, git solo deja pasar tres (y esta es la prueba)', () => {
+    // Esta es la derivación del conjunto, ejecutada y no recordada. Si algún día
+    // git dejara pasar la barra invertida, este caso se pone rojo y avisa de que
+    // `FILTRADOS` se ha quedado corto.
+    for (const c of ESPECIALES_EN_COMILLAS) {
+      let aceptado: boolean;
+      try {
+        git('check-ref-format', `refs/heads/ft/x${c}y`);
+        aceptado = true;
+      } catch {
+        aceptado = false;
+      }
+      expect(
+        aceptado,
+        `git ${aceptado ? 'ACEPTA' : 'rechaza'} ${JSON.stringify(c)} en un nombre de rama`,
+      ).toBe((FILTRADOS as readonly string[]).includes(c));
+    }
+  });
+
+  it('4.5 — el job excluye los tres caracteres, sobre la MISMA expresión que alimenta `branch`', () => {
+    const rama = String(steps()[0].with!.branch);
+    const interpolada = rama.slice(rama.indexOf('${{') + 3, rama.indexOf('}}')).trim();
+    expect(interpolada, 'CA-3.3 fija de dónde sale el nombre de la rama').toBe('github.head_ref');
+
+    const condicion = (jobs()[0].if ?? '').replace(/\s+/g, ' ');
+    for (const c of FILTRADOS) {
+      expect(
+        condicion,
+        `Sin excluir ${JSON.stringify(c)}, ese carácter llega al bash de la composite action`,
+      ).toContain(`!contains(${interpolada}, '${c}')`);
+    }
+  });
+
+  it('4.5 — y el filtro se SUMA a la condición de fork de CA-5.1, no la sustituye', () => {
+    // Las dos defensas responden a cosas distintas —quién dispara y qué se le
+    // pasa— y cambiar una por la otra sería un aflojamiento disfrazado de limpieza.
+    const condicion = (jobs()[0].if ?? '').replace(/\s+/g, ' ');
+    expect(condicion).toContain('github.event.pull_request.head.repo.full_name');
+    expect(condicion).toContain('github.repository');
+    expect(condicion.match(/&&/g) ?? []).toHaveLength(FILTRADOS.length);
+  });
+
+  it('4.5 — no hay una segunda condición en el step que pueda saltarse la del job', () => {
+    for (const step of steps()) expect(step.if).toBeUndefined();
   });
 });
 

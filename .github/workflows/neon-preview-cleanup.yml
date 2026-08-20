@@ -75,24 +75,68 @@ jobs:
   delete-preview-branch:
     name: Delete Neon preview branch
     runs-on: ubuntu-latest
-    # Nada de forks (CA-5.1). En un repositorio público, una PR de un fork no
-    # recibe secretos: sin esta condición cada cierre de PR externa pintaría un
-    # rojo garantizado y sin significado, y una puerta que da falsos rojos enseña
-    # a ignorarla.
-    if: github.event.pull_request.head.repo.full_name == github.repository
+    # Dos defensas distintas en la misma condición, y ninguna sustituye a la otra:
+    # la primera dice QUIÉN puede disparar esto, las tres siguientes dicen QUÉ se
+    # le puede pasar.
+    #
+    # 1) Nada de forks (CA-5.1). En un repositorio público, una PR de un fork no
+    #    recibe secretos: sin esta condición cada cierre de PR externa pintaría un
+    #    rojo garantizado y sin significado, y una puerta que da falsos rojos
+    #    enseña a ignorarla.
+    #
+    # 2) El nombre de rama se filtra ANTES de dárselo a la acción, porque la
+    #    acción SÍ tiene una shell dentro (ver el comentario del step). Su paso
+    #    final interpola el nombre de rama textualmente en un script bash, dos
+    #    veces, con la credencial en el entorno:
+    #
+    #        if [ -z "<rama>" ]; then … else neonctl branches delete "<rama>" …; fi
+    #
+    #    Dentro de comillas dobles bash reacciona a cuatro caracteres y solo
+    #    cuatro: `$`, la backtick, la barra invertida y la propia comilla. `$(…)`
+    #    y las backticks se expanden ahí dentro SIN romper la comilla, así que
+    #    esto no exige un nombre de rama retorcido: exige uno con un `$`. De los
+    #    cuatro, el formato de refs de git ya rechaza la barra invertida, así que
+    #    el conjunto completo son estos tres. `;`, `&&`, `|`, `>`, `!`, `#` y la
+    #    comilla simple quedan literales dentro de las comillas y no hace falta
+    #    excluirlos: excluirlos de más solo dejaría más ramas sin barrer.
+    #    Todo esto está comprobado, no recordado: `tests/neon-preview-cleanup-workflow.test.ts`
+    #    4.5 vuelve a preguntarle a git cuáles pasan cada vez que corre la suite.
+    #
+    #    Es *fail-closed* con un precio, y el precio se paga a sabiendas: una PR
+    #    cuya rama lleve uno de estos tres caracteres NO se limpia y deja su rama
+    #    de Neon huérfana (`F-SPEC-042-7`). No limpiar una rama cuesta un hueco de
+    #    los diez del techo; ejecutar código con la única clave de borrado del
+    #    proyecto cuesta el proyecto.
+    if: >-
+      github.event.pull_request.head.repo.full_name == github.repository
+      && !contains(github.head_ref, '$')
+      && !contains(github.head_ref, '`')
+      && !contains(github.head_ref, '"')
     # Una petición HTTP no puede quemar cuota colgada (CA-5.3).
     timeout-minutes: 10
     steps:
-      # El único step del fichero, y no ejecuta ni una línea de shell (CA-4.3):
-      # sin intérprete de comandos no hay sitio donde el secreto acabe en un log,
-      # ni donde `github.head_ref` —dato que controla quien abre la PR— llegue a
-      # una shell.
+      # El único step del fichero, y no ejecuta ni una línea de shell (CA-4.3).
+      # Eso compra menos de lo que se creyó al escribirlo, y conviene que quede
+      # dicho aquí para que nadie lo vuelva a "simplificar":
       #
-      # `preview/` va LITERAL delante de la interpolación (CA-4.1), y ese prefijo
-      # es la protección de verdad: una clave de Neon, incluso acotada al
-      # proyecto, puede borrar cualquier rama — así que lo que acota el peor caso
-      # alcanzable desde aquí es la forma de este fichero, no el alcance de la
-      # credencial. El peor caso posible es "borré una preview que no tocaba".
+      #   - Lo que SÍ compra: en este fichero no hay una shell nuestra donde el
+      #     secreto pueda acabar impreso en un log.
+      #   - Lo que NO compra: que el nombre de rama no llegue a un intérprete de
+      #     comandos. La acción de aquí abajo es una COMPOSITE ACTION, y su paso
+      #     final es un `shell: bash` que interpola el nombre de rama
+      #     TEXTUALMENTE, dos veces, con la clave de la API en el entorno de ese
+      #     mismo paso. Nuestro fichero no tiene shell; el suyo sí, y es el que
+      #     recibe el dato.
+      #
+      # Por eso el nombre de rama se filtra arriba, en la condición del job, y no
+      # aquí: cuando llega a este step ya es tarde. Lo que de verdad acota el peor
+      # caso alcanzable desde este fichero son las dos cosas juntas —el filtro de
+      # caracteres y el prefijo literal—, no la ausencia de `run:`.
+      #
+      # `preview/` va LITERAL delante de la interpolación (CA-4.1): acota QUÉ se
+      # pide borrar, y no el alcance de la credencial —una clave de Neon, incluso
+      # acotada al proyecto, puede borrar cualquier rama—. Con el filtro puesto,
+      # el peor caso que queda es "borré una preview que no tocaba".
       # `preview/<rama-de-git>` es la convención de nombrado de la integración
       # gestionada por Vercel, confirmada por la evidencia del panel
       # (`preview/ft/SPEC-0NN-…`). Si Neon la cambiara, el rojo de aquí es el aviso.
