@@ -1,36 +1,25 @@
 import Link from 'next/link';
 import { requireUser } from '@/lib/auth/session';
 import { db } from '@/db/client';
-import { zoneStatusForUser, type ZoneState } from '@/lib/watchlist/zone-status';
-import { failReasonText } from '@/lib/market/fail-reason-text';
-import { instrumentTypeText } from '@/lib/market/instrument-type-text';
-import { marketName } from '@/lib/market/market-name';
+import { zoneStatusForUser } from '@/lib/watchlist/zone-status';
 import { CADENCIA_LINEA, RUTA_AYUDA, VACIO_VIGILADAS } from '@/lib/help/content';
 import { AppNav } from '../app-nav';
-import { WatchForm } from './watch-form';
-import { removeAction } from './actions';
+import { AltaVigilada } from './alta-vigilada';
+import { WatchedTable } from './watched-table';
 
 // Acciones vigiladas con ESTADO DE ZONA (SPEC-007): el color de fondo de cada fila
 // indica si su última cotización está en zona (compra/venta) o fuera; la etiqueta de
 // texto lo acompaña para accesibilidad. El estado se computa con `entraEnZona` (RN-11).
-const LABEL: Record<ZoneState, string> = {
-  buy: 'En zona de compra',
-  sell: 'En zona de venta',
-  both: 'En compra y venta',
-  out: 'Fuera de zona',
-  none: 'Sin cotización',
-};
-
-// SPEC-016 (CE-F2): "sin cotización" ya no es mudo. Si el símbolo NO se puede cotizar, se
-// dice y se explica por qué; si simplemente no ha corrido el ciclo, se dice eso otro. Antes
-// ambos casos se veían igual — por eso el defecto de cobertura pasó semanas sin detectarse.
-const SIN_DATO_AUN = 'Aún sin datos: se ingiere en el próximo ciclo diario';
-
+//
+// SPEC-041: la página SIGUE SIENDO Server Component y sigue haciendo lo mismo —consulta,
+// aislamiento por usuario y cálculo del estado—; entrega las filas ya resueltas. Lo que
+// se ha movido al cliente es sólo la PRESENTACIÓN de la tabla, para poder reordenarla
+// sin ir al servidor (CA-10), y el momento en que aparece el formulario de alta
+// (CA-12/CA-13). Ni un dato, ni un cálculo, ni una regla cambian de sitio (CE-M1).
 export default async function VigiladasPage() {
   const user = await requireUser(); // SPEC-023 CA-13: sesión revocada -> login
   const rows = await zoneStatusForUser(db, user.id);
-  const zona = (min: string | null, max: string | null) =>
-    min !== null && max !== null ? `${min} – ${max}` : '—';
+  const listaVacia = rows.length === 0;
 
   return (
     <>
@@ -45,7 +34,7 @@ export default async function VigiladasPage() {
           </p>
         </div>
 
-        {rows.length === 0 ? (
+        {listaVacia ? (
           /*
             SPEC-039 CA-9 — el estado vacío GUÍA en vez de constatar. Antes decía
             «añade un ticker con su zona de compra y/o venta» y ya: correcto, y
@@ -60,6 +49,11 @@ export default async function VigiladasPage() {
             La cadencia va aquí y no solo en la ayuda a propósito (R-4): esta es la
             pantalla donde alguien se queda mirando un precio que no cambia, y nadie
             lee la ayuda antes de quejarse.
+
+            SPEC-041 CA-21: este bloque NO se toca. Ni sus textos, que se siguen leyendo
+            de `src/lib/help/content.ts`, ni su sitio. Y CA-12 protege lo que el texto
+            promete: «Empieza aquí abajo…» apunta al formulario, que va INMEDIATAMENTE
+            después y desplegado, sin ningún control intermedio que pulsar.
           */
           <div className="empty" data-testid="vigiladas-vacio">
             <span className="empty-title">{VACIO_VIGILADAS.titulo}</span>
@@ -76,74 +70,10 @@ export default async function VigiladasPage() {
             </div>
           </div>
         ) : (
-          <div className="table-scroll">
-            <table className="data-table">
-              <thead>
-                <tr>
-                  <th>Ticker</th>
-                  {/* SPEC-029: tipo (CA-13) y mercado (CA-14). El mercado sale de
-                      `micCode` —la mitad de la identidad, ADR-012— y no de `exchange`,
-                      que es texto libre del proveedor: con el mismo ticker en dos
-                      mercados, esta celda es lo unico que distingue las dos filas
-                      (cierra F-SPEC-024-1). Celda VACIA cuando no se sabe: ni «—» ni
-                      un mercado inventado. */}
-                  <th>Tipo</th>
-                  <th>Mercado</th>
-                  <th>Estado</th>
-                  <th>Precio</th>
-                  <th>A fecha</th>
-                  <th>Zona compra</th>
-                  <th>Zona venta</th>
-                  <th aria-label="acciones"></th>
-                </tr>
-              </thead>
-              <tbody>
-                {rows.map((r) => (
-                  <tr key={r.id} className={`zone-${r.state}`}>
-                    <td className="ticker">{r.ticker}</td>
-                    <td className="muted" data-testid="row-type">{instrumentTypeText(r.instrumentType)}</td>
-                    <td className="muted" data-testid="row-market">{marketName(r.micCode)}</td>
-                    <td>
-                      <span
-                        className={`zone-label is-${r.state}`}
-                        data-state={r.state}
-                      >
-                        <span className="dot" aria-hidden="true" />
-                        {LABEL[r.state]}
-                      </span>
-                      {r.state === 'none' && (
-                        <p
-                          className={r.failReason ? 'quote-fail' : 'quote-pending'}
-                          data-testid={r.failReason ? 'fail-reason' : 'sin-datos-aun'}
-                          data-reason={r.failReason ?? undefined}
-                        >
-                          {r.failReason ? `⚠ No se vigila: ${failReasonText(r.failReason)}` : SIN_DATO_AUN}
-                        </p>
-                      )}
-                    </td>
-                    <td className="num">{r.price ?? <span className="muted">—</span>}</td>
-                    <td className="num muted">{r.asOf ? r.asOf.toISOString().slice(0, 10) : '—'}</td>
-                    <td className="num">{zona(r.buyMin, r.buyMax)}</td>
-                    <td className="num">{zona(r.sellMin, r.sellMax)}</td>
-                    <td>
-                      <form action={removeAction}>
-                        {/* SPEC-024: viaja el id de la ACCIÓN VIGILADA (el mismo que la
-                            fila usa como key), no el ticker: dos mercados del mismo ticker
-                            son dos vigiladas distintas (ADR-007). */}
-                        <input type="hidden" name="watchedId" value={r.id} />
-                        <button className="btn-sm" type="submit">
-                          Quitar
-                        </button>
-                      </form>
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
+          <WatchedTable filas={rows} />
         )}
 
-        <WatchForm />
+        <AltaVigilada listaVacia={listaVacia} />
       </main>
     </>
   );

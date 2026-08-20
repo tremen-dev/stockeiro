@@ -1309,3 +1309,94 @@ td.num .quote-fail { text-align: right; }
   .landing-acciones { grid-auto-flow: row; grid-auto-columns: auto; justify-items: start; }
   .ayuda { padding: 36px 0 20px; }
 }
+
+/* ============================================================
+   SPEC-041 — Vigiladas legible y ordenable: el nombre del activo,
+   el orden a elección y el alta plegable
+   ============================================================ */
+
+/* --- CA-2 / CA-3: el nombre del activo, bajo el ticker y en LA MISMA celda ---
+
+   Sin columna nueva: la tabla ya tiene nueve y se desborda en móvil, así que una décima
+   empeoraría justo lo que esta spec viene a mejorar. Ticker arriba (sigue siendo el
+   ancla visual, con su `.ticker` de siempre) y nombre debajo en tono secundario.
+
+   El `min-width` de la caja es la otra mitad del trato de CA-4: la columna «Activo» se
+   queda con el ancho que suelta «Estado», y por construcción —no por casualidad de los
+   datos— es al menos tan ancha como ella. El `max-width` evita el extremo contrario, que
+   un nombre largo del proveedor («Industria de Diseño Textil SA (Inditex)») se lleve en
+   una sola línea el ancho que acabamos de recuperar. */
+.data-table .activo-caja {
+  display: grid;
+  gap: 2px;
+  min-width: 170px;
+  max-width: 240px;
+}
+.data-table .activo-nombre {
+  font-size: 12px;
+  line-height: 1.3;
+  color: var(--fg-dim);
+}
+
+/* --- CA-4: `Estado` deja de estirar la tabla, y el motivo sigue entero ---
+
+   El culpable del ancho nunca fue la etiqueta —«En compra y venta», la más larga, cabe
+   en una línea y sigue en `nowrap`— sino el párrafo del motivo de SPEC-016, que se
+   extendía en vez de envolverse y arrastraba con él a toda la tabla.
+
+   Se acota la CAJA, no el texto: sin `text-overflow`, sin «…», sin `title`, sin
+   `max-height`. El motivo ocupa dos o tres líneas y no se pierde ni una palabra (CA-4b),
+   que es la diferencia entre estrechar una columna y esconder información. */
+.data-table .estado-caja {
+  display: grid;
+  gap: 4px;
+  max-width: 170px;
+}
+.data-table .estado-caja .quote-fail,
+.data-table .estado-caja .quote-pending {
+  max-width: 100%;
+  margin: 0;
+}
+
+/* --- CA-11: el control de orden vive FUERA de `.table-scroll` ---
+
+   Dentro sería inalcanzable donde más falta hace: en móvil la tabla desborda su caja, y
+   la cabecera `Estado` está fuera de la pantalla hasta que la arrastras. Un control
+   encima de la tabla se ve siempre y no exige un gesto para encontrar el gesto. */
+.orden-control {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex-wrap: wrap;
+  min-width: 0;
+}
+.orden-control label {
+  font-size: var(--t-body-sm);
+  color: var(--fg-dim);
+}
+.orden-control select {
+  padding: 7px 30px 7px 10px;
+  font: 500 13px/1.2 var(--font-sans);
+  border: 1px solid var(--line-strong);
+  border-radius: var(--radius);
+  background: var(--bg-step);
+  color: var(--fg);
+  max-width: 100%;
+  min-width: 0;
+  cursor: pointer;
+}
+
+/* --- CA-13 / CA-14: el alta plegable ---
+
+   Rejilla y nada más. El formulario conserva EXACTAMENTE la columna que tenía —la de
+   `.page`— porque el panel se estira como se estiraba él: esta spec decide cuándo está a
+   la vista, no cuánto mide (territorio de SPEC-040 / ADR-026). Sólo el botón se ciñe a
+   su contenido, y por eso lleva `justify-self` en vez de un `justify-items` que también
+   encogería el formulario. */
+.alta-vigilada {
+  display: grid;
+  gap: 14px;
+  min-width: 0;
+}
+.alta-vigilada > * { min-width: 0; }
+.alta-toggle { justify-self: start; max-width: 100%; }
