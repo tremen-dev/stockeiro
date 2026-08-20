@@ -39,7 +39,7 @@ Actualizado: 2026-08-20
 | SPEC-035 — paginas-legales-titular-y-descargo-de-no-asesoramiento | hecho | 2026-08-19 (sdd-verificador) |
 | SPEC-036 — borrar-mi-cuenta | hecho | 2026-08-19 (sdd-verificador) |
 | SPEC-037 — el-grifo-del-registro-y-la-pantalla-de-operacion | hecho | 2026-08-19 (sdd-verificador) |
-| SPEC-038 — la-version-visible-dentro-de-la-app | aprobada | 2026-08-19 (humano (Alberto Fojo)) |
+| SPEC-038 — la-version-visible-dentro-de-la-app | hecho | 2026-08-20 (sdd-verificador) |
 | SPEC-039 — ayuda-de-vigiladas-estados-vacios-que-guian-y-canal-de-feedback | hecho | 2026-08-19 (sdd-verificador) |
 
 ## EPIC-FIX (aprobada)
@@ -108,6 +108,5 @@ Actualizado: 2026-08-20
 
 ## Resumen
 
-- hecho: 35
-- aprobada: 1
+- hecho: 36
 - en-revision: 2
