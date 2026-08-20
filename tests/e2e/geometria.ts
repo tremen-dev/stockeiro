@@ -78,8 +78,41 @@ export const altoPara = (ancho: number): number => ALTOS[ancho] ?? ALTO_POR_DEFE
  */
 export const TOLERANCIA_PX = 1;
 
-/** Las raíces que M1 recorre: la app entera visible, sin el `<html>`/`<body>`. */
-export const RAICES = 'nav, main, footer';
+/**
+ * Las raíces que M1 recorre: **la app entera visible**, sin el `<html>`/`<body>`.
+ *
+ * ## Por qué `body > *` y no `nav, main, footer` (V-SPEC-040-3)
+ *
+ * CA-3 de SPEC-040 pedía literalmente `nav`, `main` y `footer`, y eso dejaba fuera el
+ * **chrome del layout**: el layout raíz monta `<div class="frame">` alrededor de todo
+ * (`src/app/layout.tsx`), así que ni él ni un hermano de `main` entraban en la medida.
+ * Medido por el verificador: un `<div>` de **900 px** colgado de `.frame` a 360 px daba
+ * **0** violaciones en M1 y `document.scrollWidth` **360** —lo tapa el
+ * `overflow-x: hidden` del sistema de diseño—. Es decir, **por debajo de 720 px un
+ * desborde del chrome era invisible para las dos medidas a la vez**, que es exactamente
+ * la situación que `V-SPEC-039-6` dejó como lección.
+ *
+ * `body > *` cierra el hueco entero —cubre `.frame`, cualquier hermano suyo y cualquier
+ * capa montada al nivel de `body`, que es donde React monta los portales— y su coste es
+ * **el mínimo posible**: `.frame` ya contiene `nav`/`main`/`footer`, así que lo único que
+ * se añade es lo que colgaba del chrome y nadie recorría.
+ *
+ * **Coste medido**, en las diez superficies del conjunto a los ocho anchos:
+ *
+ *  - **3400 → 3509 elementos** por ejecución (**+3,2 %**). De los +109, **+79 son
+ *    `.frame`** —un elemento por superficie y ancho— y **+30** son las celdas de la
+ *    tabla de `/vigiladas` a 1280 px, que ahora se miden porque a ese ancho la tabla cabe
+ *    y su contenedor ya no está desplazado (la otra mitad de `V-SPEC-040-2`). Eso es
+ *    cobertura ganada, no ruido.
+ *  - `geometria-rutas.spec.ts`: **35,7 s → 33,4 s** (8 tests). La diferencia está dentro
+ *    del ruido de dos ejecuciones; ensanchar la raíz **no** cuesta tiempo medible.
+ *  - **Cero falsos positivos y cero exclusiones nuevas**: `.frame` es
+ *    `max-width: 1440px; margin: 0 auto`, así que su caja es la de la ventana.
+ *
+ * `body` y `html` se quedan fuera a propósito: su caja es el lienzo, no maquetación, y
+ * el desborde del documento ya lo mide M2.
+ */
+export const RAICES = 'body > *';
 
 /* ────────────────────────────────────────────────────────────────────────────
    Exclusiones de M1 — lista escrita, corta y comentada (CA-3, F-ADR-026-2)
@@ -148,9 +181,9 @@ export interface MedidaM1 {
 }
 
 /**
- * **M1 — la medida principal.** Recorre cada elemento visible bajo `nav`, `main` y
- * `footer` (las raíces incluidas) y comprueba que su caja cabe en la ventana:
- * `right <= innerWidth + 1` y `left >= -1`.
+ * **M1 — la medida principal.** Recorre cada elemento visible bajo `body > *` —es decir,
+ * el chrome del layout y todo lo que cuelga de él, raíces incluidas— y comprueba que su
+ * caja cabe en la ventana: `right <= innerWidth + 1` y `left >= -1`.
  *
  * Es la única de las tres que `overflow: hidden` no puede enmascarar: el recorte
  * cambia lo que se PINTA, no la caja que el elemento ocupa.
@@ -164,10 +197,17 @@ export interface MedidaM1 {
  * contenedor**, y eso M1 sí lo mide.
  *
  * Por eso M1 no mide los descendientes de un contenedor con `overflow-x` **`auto` o
- * `scroll`**. Y **`hidden` NO está en esa lista**, a propósito: recortar es justo lo
- * que hace `html, body { overflow-x: hidden }` del sistema de diseño y justo lo que
- * dejó a la suite en verde con el botón «Vigilar» fuera de la pantalla. Meter `hidden`
- * aquí sería reintroducir la ceguera que este módulo existe para acabar.
+ * `scroll`** **que además esté desplazado de verdad a lo ancho**
+ * (`scrollWidth > clientWidth`). Y **`hidden` NO está en esa lista**, a propósito:
+ * recortar es justo lo que hace `html, body { overflow-x: hidden }` del sistema de
+ * diseño y justo lo que dejó a la suite en verde con el botón «Vigilar» fuera de la
+ * pantalla. Meter `hidden` aquí sería reintroducir la ceguera que este módulo existe
+ * para acabar.
+ *
+ * La condición de que esté **desplazado de verdad** tampoco es cosmética: sin ella
+ * bastaba un `overflow-y: auto` en cualquier ancestro para apagar la medida en todo su
+ * subárbol, porque el navegador computa `overflow-x` a `auto` cuando el otro eje deja de
+ * ser `visible` (`V-SPEC-040-2`; el detalle, en el cuerpo de la función).
  */
 export async function medirDesbordePorElemento(
   page: Page,
@@ -199,12 +239,27 @@ export async function medirDesbordePorElemento(
 
       /**
        * ¿Su desborde lo absorbe un contenedor de desplazamiento DECLARADO por encima?
-       * `auto` y `scroll` sí; `hidden` NO (ADR-026 §4 y el comentario del jsdoc).
+       *
+       * Hacen falta LAS DOS condiciones, y la segunda no es un refinamiento (V-SPEC-040-2):
+       *
+       *  1. `overflow-x` computado `auto` o `scroll`. `hidden` NO (ADR-026 §4 y el
+       *     comentario del jsdoc de M1).
+       *  2. Que el contenedor sea desplazable **de verdad** a lo ancho:
+       *     `scrollWidth > clientWidth`.
+       *
+       * Sin la (2), la exención se dispara sola. En CSS no existe el par
+       * visible/no-visible: si `overflow-y` es `auto|scroll` y `overflow-x` es `visible`,
+       * el navegador **computa `overflow-x` a `auto`**. Así que cualquier componente que
+       * declarase un área de desplazamiento VERTICAL apagaba la medida en todo su
+       * subárbol. Medido a 360 px con el defecto (a) puesto: M1 pasaba de 13 violaciones
+       * a 0 —y de 44 a 23 elementos medidos— sólo con añadir
+       * `main.page { overflow-y: auto }`.
        */
       const dentroDeContenedorDesplazable = (el: Element, tope: Element) => {
         for (let p = el.parentElement; p && p !== tope.parentElement; p = p.parentElement) {
           const ox = getComputedStyle(p).overflowX;
-          if (ox === 'auto' || ox === 'scroll') return true;
+          const declarado = ox === 'auto' || ox === 'scroll';
+          if (declarado && p.scrollWidth > p.clientWidth) return true;
         }
         return false;
       };
@@ -533,3 +588,74 @@ export const DEFECTOS = {
     }
   `,
 } as const;
+
+/* ────────────────────────────────────────────────────────────────────────────
+   Los dos puntos ciegos de M1, escritos como escenario reinyectable
+   (V-SPEC-040-2 y V-SPEC-040-3)
+   ──────────────────────────────────────────────────────────────────────────── */
+
+/**
+ * Escenarios que **dejaban ciega a M1** sin romper nada visible, encontrados por el
+ * verificador de SPEC-040 atacando CA-7 (es decir, buscando lo contrario de lo que se le
+ * pedía). No son defectos de una pantalla: son defectos de **la medida**, y por eso se
+ * reinyectan igual que los otros — una ceguera cerrada sin test se reabre en el primer
+ * refactor, y se reabre en silencio.
+ *
+ * Los consume `tests/e2e/geometria-puntos-ciegos.spec.ts`.
+ */
+export const CEGUERAS = {
+  /**
+   * `V-SPEC-040-2` — un área de desplazamiento **vertical** en un ancestro.
+   *
+   * En CSS, si `overflow-y` es `auto|scroll` y `overflow-x` es `visible`, el navegador
+   * **computa `overflow-x` a `auto`** (no existe el par visible/no-visible). M1 eximía a
+   * los descendientes de cualquier elemento con `overflow-x` computado `auto|scroll`, así
+   * que **bastaba que un componente declarase desplazamiento vertical** —algo tan común
+   * como una lista con altura máxima— para que su subárbol entero dejara de medirse, sin
+   * ser desplazable a lo ancho.
+   *
+   * Medido a 360 px en `/vigiladas` con el defecto (a) puesto: M1 pasaba de **13**
+   * violaciones a **0**, y de 44 a **23** elementos medidos.
+   *
+   * No cambia ni un píxel del reparto horizontal: ese es exactamente el punto.
+   */
+  areaDeDesplazamientoVertical: `
+    main.page { overflow-y: auto !important; }
+  `,
+} as const;
+
+/**
+ * `V-SPEC-040-3` — cuelga un bloque más ancho que la ventana del ancestro que se le
+ * diga, para comprobar que la medida **lo ve**.
+ *
+ * Existe para el chrome del layout: el layout raíz monta `<div class="frame">` alrededor
+ * de todo, y un hermano de `main` no lo veía M1 (recorría sólo `nav`, `main` y `footer`)
+ * **ni** lo veía M2 (por debajo de 720 px el `overflow-x: hidden` del sistema lo recorta
+ * sin mover `scrollWidth`). Dos medidas ciegas a la vez.
+ *
+ * Se marca con una clase reconocible para que el test pueda exigir que la violación que
+ * se reporta sea **ésta** y no otra cualquiera.
+ *
+ * Devuelve una función que lo quita.
+ */
+export async function inyectarBloqueAncho(
+  page: Page,
+  opciones: { padre: string; ancho: number },
+): Promise<() => Promise<void>> {
+  const marca = `bloque-ancho-reinyectado-${Math.random().toString(36).slice(2)}`;
+  await page.evaluate(
+    ({ padre, ancho, marca }) => {
+      const destino = document.querySelector(padre);
+      if (!destino) throw new Error(`no existe el ancestro "${padre}" donde colgar el bloque`);
+      const bloque = document.createElement('div');
+      bloque.className = `bloque-ancho-reinyectado ${marca}`;
+      bloque.style.width = `${ancho}px`;
+      bloque.style.height = '20px';
+      destino.append(bloque);
+    },
+    { ...opciones, marca },
+  );
+  return async () => {
+    await page.evaluate((marca) => document.querySelector(`.${marca}`)?.remove(), marca);
+  };
+}

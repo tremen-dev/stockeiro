@@ -44,6 +44,27 @@ const guardias = () =>
     .filter((n) => n.endsWith('-responsive.spec.ts'))
     .map((n) => `${DIR}/${n}`);
 
+/**
+ * El cuerpo de la exención de M1: qué contenedores hacen que sus descendientes dejen de
+ * medirse. Es la línea con más poder del módulo —apaga la medida en un subárbol entero—
+ * y por eso se audita entera, no con un `match` de una sola forma sintáctica: la versión
+ * anterior de este test buscaba `if (ox === …) return true;` literal y habría dejado de
+ * mirar en silencio en cuanto la condición creciera. Ahora, si no encuentra la función,
+ * falla en vez de aprobar.
+ */
+function exencionDeM1(): string {
+  const fuente = readFileSync(MODULO, 'utf8');
+  const desde = fuente.indexOf('const dentroDeContenedorDesplazable');
+  expect(
+    desde,
+    'no se encontró la exención de contenedor desplazable en M1: o cambió de nombre, o ' +
+      'desapareció. Este test no puede auditar lo que no encuentra',
+  ).toBeGreaterThan(-1);
+  const hasta = fuente.indexOf('return false;', desde);
+  expect(hasta, 'la exención de M1 no tiene la forma esperada').toBeGreaterThan(desde);
+  return fuente.slice(desde, hasta);
+}
+
 describe('SPEC-040 CA-6: la medida de geometría tiene un solo domicilio', () => {
   it('el módulo compartido existe y expone las tres medidas más los anchos', () => {
     const fuente = readFileSync(MODULO, 'utf8');
@@ -126,15 +147,49 @@ describe('SPEC-040 CA-6: la medida de geometría tiene un solo domicilio', () =>
     // en un contenedor DECLARADO (`auto`/`scroll`). Si `hidden` entrara en esa lista,
     // M1 volvería a ser ciega a lo que `html, body { overflow-x: hidden }` recorta —
     // que es exactamente el defecto que originó esta spec.
-    const fuente = readFileSync(MODULO, 'utf8');
-    const condicion = fuente.match(/if \(ox === [^\n]*\) return true;/)?.[0] ?? '';
-    expect(condicion, 'no se encontró la condición de contenedor desplazable en M1').not.toBe('');
-    expect(condicion).toContain("'auto'");
-    expect(condicion).toContain("'scroll'");
+    const cuerpo = exencionDeM1();
+    expect(cuerpo).toContain("'auto'");
+    expect(cuerpo).toContain("'scroll'");
     expect(
-      condicion,
+      cuerpo,
       'M1 estaría tratando `overflow: hidden` como un contenedor de desplazamiento ' +
         'legítimo: es justo la ceguera que ADR-026 existe para acabar',
     ).not.toContain("'hidden'");
+  });
+
+  it('la exención de M1 exige que el contenedor sea desplazable DE VERDAD (V-SPEC-040-2)', () => {
+    // El `overflow-x` computado no basta: en CSS, si `overflow-y` es `auto|scroll` y
+    // `overflow-x` es `visible`, el navegador computa `overflow-x` a `auto`. Fiarse de
+    // él dejaba a M1 ciega en todo el subárbol de CUALQUIER área de desplazamiento
+    // vertical, sin que nada se desplazara a lo ancho. Medido a 360 px con el defecto
+    // (a) puesto: 13 violaciones → 0, y 44 → 23 elementos medidos.
+    //
+    // La comprobación se hace aquí, en lo unitario, porque es binaria y cabe en una
+    // revisión. Que la ceguera se acabó DE VERDAD lo demuestra reinyectando el
+    // escenario `tests/e2e/geometria-puntos-ciegos.spec.ts`; los dos hacen falta.
+    expect(
+      exencionDeM1(),
+      'la exención de contenedor desplazable de M1 no comprueba `scrollWidth > ' +
+        'clientWidth`: le basta con el `overflow-x` computado, y eso es V-SPEC-040-2 ' +
+        'reabierto — un `overflow-y: auto` en un ancestro apaga la medida en todo su ' +
+        'subárbol sin ser desplazable a lo ancho',
+    ).toMatch(/scrollWidth\s*>\s*\w+\.clientWidth/);
+  });
+
+  it('las raíces de M1 cubren el chrome del layout, no sólo `nav`/`main`/`footer` (V-SPEC-040-3)', () => {
+    // El layout raíz monta `<div class="frame">` alrededor de todo, así que un hermano
+    // de `main` que se saliera no lo veía M1 —recorría tres raíces— NI lo veía M2, que
+    // por debajo de 720 px la enmascara el `overflow-x: hidden` del sistema de diseño.
+    // Dos medidas ciegas a la vez sobre el mismo desborde.
+    const fuente = readFileSync(MODULO, 'utf8');
+    const raices = fuente.match(/export const RAICES = '([^']+)'/)?.[1] ?? '';
+    expect(raices, 'no se encontró la declaración de RAICES en el módulo').not.toBe('');
+    expect(
+      raices,
+      `las raíces de M1 son "${raices}": vuelven a dejar fuera el chrome del layout. Un ` +
+        `desborde colgado de \`.frame\` es invisible para M1 y para M2 a la vez ` +
+        `(V-SPEC-040-3)`,
+    ).not.toBe('nav, main, footer');
+    expect(raices, `las raíces de M1 tienen que partir de \`body\``).toMatch(/^body\b/);
   });
 });
