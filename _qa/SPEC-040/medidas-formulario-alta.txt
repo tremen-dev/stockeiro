@@ -1,0 +1,17 @@
+SPEC-040 CA-1 — el formulario de alta de /vigiladas, medido en el navegador
+a 360 px (columna esperada 320 px, ventana 360):
+    el bloque del buscador (.symbol-picker): ancho=278 right=319 left=41
+    el campo de búsqueda (.symbol-search-input): ancho=278 right=319 left=41
+    zona de compra (min) (input[name="buyMin"]): ancho=135 right=176 left=41
+    zona de compra (max) (input[name="buyMax"]): ancho=135 right=319 left=184
+    zona de venta (min) (input[name="sellMin"]): ancho=135 right=176 left=41
+    zona de venta (max) (input[name="sellMax"]): ancho=135 right=319 left=184
+    el botón Vigilar (button[type="submit"]): ancho=278 right=319 left=41
+a 390 px (columna esperada 350 px, ventana 390):
+    el bloque del buscador (.symbol-picker): ancho=300 right=345 left=45
+    el campo de búsqueda (.symbol-search-input): ancho=300 right=345 left=45
+    zona de compra (min) (input[name="buyMin"]): ancho=146 right=191 left=45
+    zona de compra (max) (input[name="buyMax"]): ancho=146 right=345 left=199
+    zona de venta (min) (input[name="sellMin"]): ancho=146 right=191 left=45
+    zona de venta (max) (input[name="sellMax"]): ancho=146 right=345 left=199
+    el botón Vigilar (button[type="submit"]): ancho=300 right=345 left=45

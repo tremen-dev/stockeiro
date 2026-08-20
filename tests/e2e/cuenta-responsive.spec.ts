@@ -1,5 +1,15 @@
 import { mkdirSync, writeFileSync } from 'node:fs';
 import { test, expect, type Page } from '@playwright/test';
+import {
+  ANCHOS,
+  TOLERANCIA_PX,
+  describirViolaciones,
+  medirBloques,
+  medirDesbordeDeDocumento,
+  medirDesbordePorElemento,
+  ponerVentana,
+  type MedidaM1,
+} from './geometria';
 
 /**
  * SPEC-036 CA-15 (no degradar lo entregado) — la GEOMETRÍA de `/cuenta`, medida en
@@ -33,13 +43,22 @@ import { test, expect, type Page } from '@playwright/test';
  *   4. **La navegación no se dispara al estrechar la ventana.** Esta spec le añade un
  *      enlace; si eso rompiera el reparto, lo rompería en TODAS las páginas de dentro.
  *
- * Los anchos son los mismos que usa `pie-responsive.spec.ts`: 390 (móvil), 640 y 700
- * (por debajo del breakpoint de 720 del sistema de diseño), 760 (justo por encima) y
- * 1280 (escritorio, la referencia).
+ * ## Dónde vive ahora la medida (SPEC-040 / ADR-026)
+ *
+ * El invariante (2) de este fichero —recorrer los elementos y comprobar
+ * `rect.right > ventana + 1`— era **la única medida buena del proyecto**, y las dos
+ * guardias que se copiaron de aquí (SPEC-037 y SPEC-039) la perdieron por el camino: se
+ * quedaron sólo con `document.scrollWidth`, que `overflow-x: hidden` enmascara. Costó un
+ * botón «Vigilar» fuera de la pantalla con la suite entera en verde.
+ *
+ * Así que la medida se mudó a `tests/e2e/geometria.ts` (M1), de donde ahora la importan
+ * las cuatro guardias. Este fichero conserva **sus** invariantes y **sus** umbrales —el
+ * factor de la navegación, la holgura de la zona de borrado—: lo que se unifica es cómo
+ * se mide, no qué se afirma. Y los anchos pasan a ser los ocho del proyecto (ADR-026 §3),
+ * con 360 y el tramo 730–800 incluidos.
  */
 
 const SHOTS = '_qa/SPEC-036';
-const ANCHOS = [390, 640, 700, 760, 1280] as const;
 const PWD = 'clave-secreta-123';
 
 /** Alto máximo de la barra de navegación en móvil respecto al de escritorio. */
@@ -60,70 +79,50 @@ type Medida = {
   ancho: number;
   anchoDocumento: number;
   anchoVentana: number;
-  /** El elemento de `main` que más se sale por la derecha, y cuánto. */
-  desbordado: { selector: string; derecha: number } | null;
+  /** M1, del módulo compartido: todo lo que se sale, con el peor delante. */
+  desborde: MedidaM1;
   altoNav: number;
   altoZona: number;
   altoContenidoZona: number;
 };
 
 async function medir(page: Page, ancho: number): Promise<Medida> {
-  await page.setViewportSize({ width: ancho, height: 900 });
+  await ponerVentana(page, ancho);
   await page.locator('main').waitFor({ state: 'visible' });
+
+  // (1) y (2): las dos medidas de desborde, del módulo compartido. La de documento
+  // NUNCA va sola (ADR-026 §1); la de elemento es la que `overflow: hidden` no puede
+  // enmascarar, y es la que este fichero le enseñó al proyecto.
+  const doc = await medirDesbordeDeDocumento(page);
+  const desborde = await medirDesbordePorElemento(page);
+
+  // (3): el hueco muerto de la zona de borrado. La medida también es compartida ahora,
+  // pero el UMBRAL sigue siendo de esta guardia (F-ADR-026-1: las holguras no se
+  // centralizan, o una sola línea aflojaría todas las guardias a la vez).
+  const [zona] = await medirBloques(page, '[data-testid="zona-de-borrado"]');
+  // Se pregunta al DOM, no a un locator: `/cuenta-borrada` es pública y NO lleva la
+  // navegación, y un `locator('nav.app-nav').evaluate()` ahí se queda esperando a que
+  // aparezca hasta agotar el test. Aquí «no hay barra» es un 0, no una espera.
+  const altoNav = await page.evaluate(() => {
+    const nav = document.querySelector('nav.app-nav');
+    return nav ? nav.getBoundingClientRect().height : 0;
+  });
 
   return {
     ancho,
-    ...(await page.evaluate(() => {
-      const ventana = document.documentElement.clientWidth;
-
-      // (2) El elemento de `main` que más se sale por la derecha.
-      let peor: { selector: string; derecha: number } | null = null;
-      for (const el of document.querySelectorAll('main *')) {
-        const r = el.getBoundingClientRect();
-        if (r.width === 0 && r.height === 0) continue;
-        if (r.right > ventana + 1 && (!peor || r.right > peor.derecha)) {
-          peor = {
-            selector: `${el.tagName.toLowerCase()}${el.className ? `.${String(el.className).split(' ')[0]}` : ''}`,
-            derecha: r.right,
-          };
-        }
-      }
-
-      const nav = document.querySelector('nav.app-nav');
-      const zona = document.querySelector('[data-testid="zona-de-borrado"]');
-
-      // (3) Lo que de verdad ocupa el contenido de la zona: de lo más alto de sus
-      // hijos a lo más bajo. Es la medida que delata una caja con hueco muerto.
-      let altoContenidoZona = 0;
-      if (zona) {
-        const hijos = [...zona.children]
-          .map((c) => c.getBoundingClientRect())
-          .filter((r) => r.width > 0 || r.height > 0);
-        if (hijos.length > 0) {
-          altoContenidoZona =
-            Math.max(...hijos.map((r) => r.bottom)) - Math.min(...hijos.map((r) => r.top));
-        }
-        const estilo = getComputedStyle(zona);
-        altoContenidoZona +=
-          parseFloat(estilo.paddingTop || '0') + parseFloat(estilo.paddingBottom || '0');
-      }
-
-      return {
-        anchoDocumento: document.documentElement.scrollWidth,
-        anchoVentana: ventana,
-        desbordado: peor,
-        altoNav: nav ? nav.getBoundingClientRect().height : 0,
-        altoZona: zona ? zona.getBoundingClientRect().height : 0,
-        altoContenidoZona,
-      };
-    })),
+    anchoDocumento: doc.documento,
+    anchoVentana: doc.ventana,
+    desborde,
+    altoNav,
+    altoZona: zona?.alto ?? 0,
+    altoContenidoZona: zona?.altoContenido ?? 0,
   };
 }
 
 const describir = (m: Medida) =>
   `ancho ${m.ancho}: documento=${Math.round(m.anchoDocumento)} ventana=${m.anchoVentana} ` +
-  `nav=${Math.round(m.altoNav)} zona=${Math.round(m.altoZona)} ` +
-  `contenidoZona=${Math.round(m.altoContenidoZona)}`;
+  `violaciones=${m.desborde.violaciones.length} nav=${Math.round(m.altoNav)} ` +
+  `zona=${Math.round(m.altoZona)} contenidoZona=${Math.round(m.altoContenidoZona)}`;
 
 /**
  * Las medidas se dejan escritas en `_qa/SPEC-036/`, junto a las capturas.
@@ -157,14 +156,16 @@ test.describe('CA-15: /cuenta se maqueta bien en todos los anchos', () => {
       expect(
         m.anchoDocumento,
         `la página se desborda a lo ancho a ${m.ancho} px\n${informe}`,
-      ).toBeLessThanOrEqual(m.anchoVentana + 1);
+      ).toBeLessThanOrEqual(m.anchoVentana + TOLERANCIA_PX);
 
-      // (2) Y ningún elemento se sale, aunque algo lo recorte.
+      // (2) Y ningún elemento se sale, aunque algo lo recorte. Es LA medida: la que
+      //     `overflow-x: hidden` no puede enmascarar, y la que este fichero le enseñó
+      //     al proyecto antes de que dos copias la perdieran (ADR-026 §1).
       expect(
-        m.desbordado,
-        `a ${m.ancho} px un elemento de main se sale del viewport: ` +
-          `${m.desbordado?.selector} llega a ${Math.round(m.desbordado?.derecha ?? 0)} px\n${informe}`,
-      ).toBeNull();
+        m.desborde.violaciones.length,
+        `a ${m.ancho} px se salen ${m.desborde.violaciones.length} elementos del viewport:\n` +
+          `${describirViolaciones(m.desborde)}\n${informe}`,
+      ).toBe(0);
 
       // (3) La zona de borrado mide lo que ocupa su contenido, ni un dedo más.
       expect(m.altoContenidoZona, 'no se midió el contenido de la zona').toBeGreaterThan(0);
@@ -212,8 +213,12 @@ test.describe('CA-15: /cuenta se maqueta bien en todos los anchos', () => {
       expect(
         m.anchoDocumento,
         `/cuenta-borrada se desborda a lo ancho a ${ancho} px (${describir(m)})`,
-      ).toBeLessThanOrEqual(m.anchoVentana + 1);
-      expect(m.desbordado, `${describir(m)}`).toBeNull();
+      ).toBeLessThanOrEqual(m.anchoVentana + TOLERANCIA_PX);
+      expect(
+        m.desborde.violaciones.length,
+        `${describir(m)}
+${describirViolaciones(m.desborde)}`,
+      ).toBe(0);
     }
     guardarMedidas('medidas-cuenta-borrada.txt', medidas);
   });

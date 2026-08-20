@@ -1,0 +1,37 @@
+SPEC-040 CA-3 — M1 (desborde por elemento) + M2, rutas con sesión, lista vacía
+── /dashboard (cuenta sin vigiladas)
+ancho 360: documento=360/360 (desborde 0) · elementos medidos=48 violaciones=0
+ancho 390: documento=390/390 (desborde 0) · elementos medidos=48 violaciones=0
+ancho 640: documento=640/640 (desborde 0) · elementos medidos=48 violaciones=0
+ancho 700: documento=700/700 (desborde 0) · elementos medidos=48 violaciones=0
+ancho 730: documento=730/730 (desborde 0) · elementos medidos=48 violaciones=0
+ancho 760: documento=760/760 (desborde 0) · elementos medidos=48 violaciones=0
+ancho 800: documento=800/800 (desborde 0) · elementos medidos=48 violaciones=0
+ancho 1280: documento=1280/1280 (desborde 0) · elementos medidos=48 violaciones=0
+── /vigiladas (cuenta sin vigiladas)
+ancho 360: documento=360/360 (desborde 0) · elementos medidos=51 violaciones=0
+ancho 390: documento=390/390 (desborde 0) · elementos medidos=51 violaciones=0
+ancho 640: documento=640/640 (desborde 0) · elementos medidos=51 violaciones=0
+ancho 700: documento=700/700 (desborde 0) · elementos medidos=51 violaciones=0
+ancho 730: documento=730/730 (desborde 0) · elementos medidos=51 violaciones=0
+ancho 760: documento=760/760 (desborde 0) · elementos medidos=51 violaciones=0
+ancho 800: documento=800/800 (desborde 0) · elementos medidos=51 violaciones=0
+ancho 1280: documento=1280/1280 (desborde 0) · elementos medidos=51 violaciones=0
+── /avisos (cuenta sin vigiladas)
+ancho 360: documento=360/360 (desborde 0) · elementos medidos=37 violaciones=0
+ancho 390: documento=390/390 (desborde 0) · elementos medidos=37 violaciones=0
+ancho 640: documento=640/640 (desborde 0) · elementos medidos=37 violaciones=0
+ancho 700: documento=700/700 (desborde 0) · elementos medidos=37 violaciones=0
+ancho 730: documento=730/730 (desborde 0) · elementos medidos=37 violaciones=0
+ancho 760: documento=760/760 (desborde 0) · elementos medidos=37 violaciones=0
+ancho 800: documento=800/800 (desborde 0) · elementos medidos=37 violaciones=0
+ancho 1280: documento=1280/1280 (desborde 0) · elementos medidos=37 violaciones=0
+── /cuenta (cuenta sin vigiladas)
+ancho 360: documento=360/360 (desborde 0) · elementos medidos=66 violaciones=0
+ancho 390: documento=390/390 (desborde 0) · elementos medidos=66 violaciones=0
+ancho 640: documento=640/640 (desborde 0) · elementos medidos=66 violaciones=0
+ancho 700: documento=700/700 (desborde 0) · elementos medidos=66 violaciones=0
+ancho 730: documento=730/730 (desborde 0) · elementos medidos=66 violaciones=0
+ancho 760: documento=760/760 (desborde 0) · elementos medidos=66 violaciones=0
+ancho 800: documento=800/800 (desborde 0) · elementos medidos=66 violaciones=0
+ancho 1280: documento=1280/1280 (desborde 0) · elementos medidos=66 violaciones=0

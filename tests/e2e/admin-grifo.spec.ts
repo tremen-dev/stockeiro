@@ -410,18 +410,28 @@ test('SPEC-037 CA-21: el operador cierra el grifo en dos clics, y la pantalla lo
   await expect(page.getByTestId('registro-cerrado')).toBeVisible();
 
   // Se reabre y se fija un cupo nuevo.
+  //
+  // ⚠️ V-SPEC-040-1 — el orden de estas dos líneas NO es cosmético. `leerGrifo()` va a
+  // la BASE directamente, y la base la escribe el server action en OTRO proceso: leerla
+  // justo después del clic es competir con la revalidación. Este test fue intermitente
+  // por eso (el verificador de SPEC-040 lo cazó devolviendo `capacity: 120` donde
+  // esperaba `null`, y sólo en una de dos ejecuciones completas). La regla, que es la
+  // que siguen los pasos vecinos: **primero la señal de UI que corresponde al cambio,
+  // después la lectura de la base**. La señal tiene que hablar del dato que se va a
+  // comprobar —aquí el CUPO, no el interruptor—, o se estaría esperando a otra cosa.
   await page.goto('/admin');
   await page.check('[data-testid="interruptor"]');
   await page.fill('[data-testid="cupo"]', '120');
   await page.click('[data-testid="guardar-grifo"]');
   await expect(page.getByTestId('grifo-estado')).toHaveAttribute('data-abierto', 'si');
+  await expect(page.getByTestId('grifo-aforo')).toContainText('de 120 plazas');
   expect(await leerGrifo()).toEqual({ openManually: true, capacity: 120 });
 
   // Se RETIRA el cupo: vacío es «sin tope», no cero.
   await page.fill('[data-testid="cupo"]', '');
   await page.click('[data-testid="guardar-grifo"]');
-  expect(await leerGrifo()).toEqual({ openManually: true, capacity: null });
   await expect(page.getByTestId('grifo-aforo')).toContainText('sin cupo');
+  expect(await leerGrifo()).toEqual({ openManually: true, capacity: null });
 
   // Un cupo inválido se rechaza SIN cambiar nada.
   await page.fill('[data-testid="cupo"]', '-3');

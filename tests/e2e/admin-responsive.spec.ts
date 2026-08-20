@@ -1,6 +1,16 @@
 import { test, expect, type Page } from '@playwright/test';
 import { ponerRol, rolDe } from './roles';
 import { abrirDeParEnPar } from './grifo';
+import {
+  ANCHOS,
+  TOLERANCIA_PX,
+  describirViolaciones,
+  medirBloques,
+  medirDesbordeDeDocumento,
+  medirDesbordePorElemento,
+  ponerVentana,
+  type MedidaM1,
+} from './geometria';
 
 /**
  * SPEC-037 CA-25 (no degradar lo entregado) — la GEOMETRÍA de `/admin` y de la
@@ -25,8 +35,8 @@ import { abrirDeParEnPar } from './grifo';
  * Nada de comparar capturas: una prueba de imagen se rompe cuando cambia una fuente y
  * eso no es lo que hay que proteger. Lo que se protege son tres invariantes de caja:
  *
- *   1. **La página no desborda a lo ancho.** `scrollWidth` no puede superar el ancho
- *      de la ventana: una pantalla de operación que hay que arrastrar en horizontal
+ *   1. **La página no desborda a lo ancho.** Ni el documento (M2) ni **ningún
+ *      elemento** (M1): una pantalla de operación que hay que arrastrar en horizontal
  *      en el móvil no sirve para lo que existe — mirarla deprisa a las 23:00.
  *   2. **Ningún bloque reserva alto que su contenido no ocupe.** Es la traducción
  *      literal del defecto de SPEC-035: la caja mide mucho más que su texto.
@@ -34,11 +44,30 @@ import { abrirDeParEnPar } from './grifo';
  *      `flex-direction` heredado, el mensaje de fallo apunta al sitio en vez de dejar
  *      a quien lo lea buscando.
  *
- * Los anchos son los del finding de SPEC-035: 390 (móvil), 640 y 700 (por debajo del
- * breakpoint de 720), 760 (justo por encima) y 1280 (escritorio).
+ * ## Lo que SPEC-040 arregló aquí, y por qué importa
+ *
+ * Este fichero se escribió copiando `cuenta-responsive.spec.ts`... y **perdió por el
+ * camino su mejor medida**: aquélla recorría los elementos comprobando
+ * `rect.right > ventana + 1`, y esta copia se quedó sólo con
+ * `document.scrollWidth - document.clientWidth`. Con `overflow-x: hidden` puesto por el
+ * sistema de diseño por debajo de 720 px, esa resta **no se mueve aunque un hijo se
+ * salga**: es lo que dejó a la suite en verde con el botón «Vigilar» de `/vigiladas`
+ * fuera de la pantalla (`V-SPEC-039-6`).
+ *
+ * Ahora las medidas vienen de `tests/e2e/geometria.ts` (ADR-026 §2) y son **las dos**.
+ * Lo que este fichero afirma no ha cambiado —sus bloques, su holgura, su eje—: lo que
+ * cambia es que ya no puede volver a quedarse ciego por una copia.
+ *
+ * **Aviso sobre la holgura** (SPEC-040, R-2): la medida de hueco muerto es ahora la del
+ * módulo, que descuenta el `padding` propio del bloque antes de comparar —SPEC-039 la
+ * había afinado así y esa mejora vivía sólo en su fichero—. Es **más estricta** que la
+ * de aquí, que comparaba el alto CON padding contra 60 px de holgura. El umbral sigue
+ * siendo de esta guardia y sigue siendo 60.
+ *
+ * Los anchos son los del proyecto (ADR-026 §3): 360, 390, 640, 700, 730, 760, 800 y
+ * 1280.
  */
 
-const ANCHOS = [390, 640, 700, 760, 1280] as const;
 const PWD = 'clave-secreta-123';
 const SHOTS = '_qa/SPEC-037';
 
@@ -48,40 +77,30 @@ const HOLGURA_PX = 60;
 type Medida = {
   ancho: number;
   desbordeH: number;
+  desborde: MedidaM1;
   bloques: { testid: string; alto: number; altoContenido: number; display: string }[];
 };
 
 async function medir(page: Page, ancho: number): Promise<Medida> {
-  await page.setViewportSize({ width: ancho, height: 900 });
+  await ponerVentana(page, ancho);
   await page.locator('main.page').waitFor({ state: 'visible' });
 
-  return {
-    ancho,
-    ...(await page.evaluate(() => {
-      const doc = document.documentElement;
-      const bloques = [...document.querySelectorAll('[data-testid]')]
-        .filter((el) => el.classList.contains('ops-bloque'))
-        .map((el) => {
-          const caja = el.getBoundingClientRect();
-          // Lo que de verdad ocupa el contenido: del borde superior del primer hijo
-          // al inferior del último. Si la caja mide mucho más, hay hueco muerto.
-          const hijos = [...el.children].map((h) => h.getBoundingClientRect());
-          const arriba = Math.min(...hijos.map((r) => r.top));
-          const abajo = Math.max(...hijos.map((r) => r.bottom));
-          return {
-            testid: el.getAttribute('data-testid')!,
-            alto: caja.height,
-            altoContenido: hijos.length === 0 ? caja.height : abajo - arriba,
-            display: getComputedStyle(el).display,
-          };
-        });
-      return { desbordeH: doc.scrollWidth - doc.clientWidth, bloques };
-    })),
-  };
+  // Las tres medidas salen del módulo compartido (ADR-026 §2). Lo que sigue siendo de
+  // esta guardia es QUÉ bloques mira y con qué holgura los juzga.
+  const doc = await medirDesbordeDeDocumento(page);
+  const desborde = await medirDesbordePorElemento(page);
+  const bloques = (await medirBloques(page, '.ops-bloque[data-testid]')).map((b) => ({
+    testid: b.selector,
+    alto: b.alto,
+    altoContenido: b.altoContenido,
+    display: b.display,
+  }));
+
+  return { ancho, desbordeH: doc.desborde, desborde, bloques };
 }
 
 const describir = (m: Medida) =>
-  `ancho ${m.ancho}: desbordeH=${m.desbordeH} ` +
+  `ancho ${m.ancho}: desbordeH=${m.desbordeH} violaciones=${m.desborde.violaciones.length} ` +
   m.bloques
     .map(
       (b) =>
@@ -114,16 +133,24 @@ test.describe('SPEC-037 CA-25: /admin no rompe la maquetación a ningún ancho',
     await abrirDeParEnPar();
   });
 
-  test('la página no desborda a lo ancho en ninguno de los cinco anchos', async ({ page }) => {
+  test('la página no desborda a lo ancho en ninguno de los ocho anchos', async ({ page }) => {
     const medidas: Medida[] = [];
     for (const ancho of ANCHOS) medidas.push(await medir(page, ancho));
 
     const informe = medidas.map(describir).join('\n');
     for (const m of medidas) {
+      // M2 - el documento.
       expect(
         m.desbordeH,
         `a ${m.ancho} px la pantalla se sale por la derecha\n${informe}`,
-      ).toBeLessThanOrEqual(1);
+      ).toBeLessThanOrEqual(TOLERANCIA_PX);
+      // M1 - y ningún ELEMENTO, aunque algo lo recorte. Es la que esta guardia perdió
+      // al copiarse de `cuenta-responsive.spec.ts`, y la que la dejaba ciega en móvil.
+      expect(
+        m.desborde.violaciones.length,
+        `a ${m.ancho} px se salen ${m.desborde.violaciones.length} elementos de /admin:\n` +
+          `${describirViolaciones(m.desborde)}\n${informe}`,
+      ).toBe(0);
     }
   });
 
@@ -156,7 +183,7 @@ test.describe('SPEC-037 CA-25: /admin no rompe la maquetación a ningún ancho',
     }
   });
 
-  test('capturas y medidas de los cinco anchos', async ({ page }) => {
+  test('capturas y medidas de los ocho anchos', async ({ page }) => {
     for (const ancho of ANCHOS) {
       const m = await medir(page, ancho);
       // Las medidas se IMPRIMEN, no solo se comprueban: así el número queda en el
@@ -177,25 +204,20 @@ test('SPEC-037 CA-25: la pantalla de registro cerrado tampoco desborda', async (
   await ponerGrifo({ openManually: false, capacity: null });
   try {
     for (const ancho of ANCHOS) {
-      await page.setViewportSize({ width: ancho, height: 900 });
+      await ponerVentana(page, ancho);
       await page.goto('/register');
       await page.getByTestId('registro-cerrado').waitFor({ state: 'visible' });
 
-      const medida = await page.evaluate(() => {
-        const doc = document.documentElement;
-        const caja = document.querySelector('[data-testid="registro-cerrado"]')!;
-        const hijos = [...caja.children].map((h) => h.getBoundingClientRect());
-        const rect = caja.getBoundingClientRect();
-        return {
-          desbordeH: doc.scrollWidth - doc.clientWidth,
-          display: getComputedStyle(caja).display,
-          alto: rect.height,
-          altoContenido:
-            Math.max(...hijos.map((r) => r.bottom)) - Math.min(...hijos.map((r) => r.top)),
-        };
-      });
+      const doc = await medirDesbordeDeDocumento(page);
+      const desborde = await medirDesbordePorElemento(page);
+      const [medida] = await medirBloques(page, '[data-testid="registro-cerrado"]');
 
-      expect(medida.desbordeH, `desborda a ${ancho} px`).toBeLessThanOrEqual(1);
+      expect(doc.desborde, `desborda a ${ancho} px`).toBeLessThanOrEqual(TOLERANCIA_PX);
+      expect(
+        desborde.violaciones.length,
+        `a ${ancho} px se salen elementos de la pantalla de registro cerrado:\n` +
+          `${describirViolaciones(desborde)}`,
+      ).toBe(0);
       expect(medida.display, `no es grid a ${ancho} px`).toBe('grid');
       expect(
         medida.alto,

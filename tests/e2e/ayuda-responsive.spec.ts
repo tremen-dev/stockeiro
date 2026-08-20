@@ -1,5 +1,15 @@
 import { test, expect, type Page } from '@playwright/test';
 import { rolDe } from './roles';
+import {
+  ANCHOS,
+  TOLERANCIA_PX,
+  describirViolaciones,
+  medirBloques,
+  medirDesbordeDeDocumento,
+  medirDesbordePorElemento,
+  ponerVentana,
+  type MedidaM1,
+} from './geometria';
 
 /**
  * SPEC-039 CA-17 (no degradar lo entregado) — la GEOMETRÍA de las dos pantallas
@@ -29,15 +39,33 @@ import { rolDe } from './roles';
  * eso no es lo que hay que proteger. Se protegen tres invariantes de caja, los mismos
  * que fijó SPEC-037:
  *
- *   1. **La página no desborda a lo ancho.** `scrollWidth` no puede superar el ancho
- *      de la ventana.
+ *   1. **La página no desborda a lo ancho.** Ni el documento (M2) ni **ningún
+ *      elemento** (M1). Las dos, y no una: ver más abajo.
  *   2. **Ningún bloque reserva alto que su contenido no ocupe.** Es la traducción
  *      literal del defecto de SPEC-035.
  *   3. **Los contenedores declaran su eje.** Si alguno apareciera con un
  *      `flex-direction` heredado, el mensaje de fallo apunta al sitio.
  *
- * Los anchos son los del finding de SPEC-035: 390 (móvil), 640 y 700 (por debajo del
- * breakpoint de 720), 760 (justo por encima) y 1280 (escritorio).
+ * ## Lo que SPEC-040 arregló aquí, y por qué importa
+ *
+ * El invariante (1) de este fichero medía el desborde como
+ * `document.scrollWidth - document.clientWidth`, copiado de SPEC-037, que a su vez lo
+ * había copiado —degradándolo— de SPEC-036. Y esa resta **es ciega**: el sistema de
+ * diseño declara `html, body { overflow-x: hidden }` por debajo de 720 px, así que un
+ * hijo que se sale **se recorta sin mover ese número**.
+ *
+ * No es teoría. Con esta guardia en verde, el verificador de esta misma spec encontró a
+ * mano que a 390 px el botón «Vigilar» de `/vigiladas` estaba fuera de la pantalla:
+ * `.symbol-picker` medía 444 px en una columna de 350. Es `V-SPEC-039-6`, y es el origen
+ * de ADR-026 y de SPEC-040.
+ *
+ * Ahora las medidas vienen de `tests/e2e/geometria.ts` y son **las dos**: la de documento
+ * sigue estando —caza el tramo 721-800, donde no hay `hidden` que disimule— pero ya
+ * nunca va sola. Lo que este fichero afirma no cambia: sus bloques, su holgura de 12 px,
+ * su eje declarado.
+ *
+ * Los anchos son los del proyecto (ADR-026 §3): 360, 390, 640, 700, 730, 760, 800 y
+ * 1280.
  *
  * Las dos pantallas nuevas son públicas y no necesitan cuenta. El estado vacío de
  * `/vigiladas` sí —y es la tercera superficie nueva de esta spec, `.empty-guia`—, así
@@ -46,7 +74,6 @@ import { rolDe } from './roles';
  * del cupo en aquel fichero.
  */
 
-const ANCHOS = [390, 640, 700, 760, 1280] as const;
 const SHOTS = '_qa/SPEC-039';
 
 /**
@@ -75,41 +102,23 @@ const CONTENEDORES = [
 ].join(', ');
 
 type Bloque = { selector: string; alto: number; altoContenido: number; display: string };
-type Medida = { ancho: number; desbordeH: number; bloques: Bloque[] };
+type Medida = { ancho: number; desbordeH: number; desborde: MedidaM1; bloques: Bloque[] };
 
 async function medir(page: Page, ancho: number): Promise<Medida> {
-  await page.setViewportSize({ width: ancho, height: 900 });
+  await ponerVentana(page, ancho);
   await page.locator('main').first().waitFor({ state: 'visible' });
 
-  return {
-    ancho,
-    ...(await page.evaluate((selectores) => {
-      const doc = document.documentElement;
-      const bloques = [...document.querySelectorAll(selectores)].map((el) => {
-        const caja = el.getBoundingClientRect();
-        const estilo = getComputedStyle(el);
-        const relleno =
-          parseFloat(estilo.paddingTop || '0') + parseFloat(estilo.paddingBottom || '0');
-        // Lo que de verdad ocupa el contenido: del borde superior del primer hijo al
-        // inferior del último. Si la caja mide mucho más, hay hueco muerto.
-        const hijos = [...el.children].map((h) => h.getBoundingClientRect());
-        const arriba = Math.min(...hijos.map((r) => r.top));
-        const abajo = Math.max(...hijos.map((r) => r.bottom));
-        return {
-          selector: `${el.tagName.toLowerCase()}.${[...el.classList].join('.')}`,
-          // Alto ÚTIL: sin el padding, que es espacio pedido y no hueco muerto.
-          alto: caja.height - relleno,
-          altoContenido: hijos.length === 0 ? caja.height : abajo - arriba,
-          display: getComputedStyle(el).display,
-        };
-      });
-      return { desbordeH: doc.scrollWidth - doc.clientWidth, bloques };
-    }, CONTENEDORES)),
-  };
+  // Las medidas son del módulo compartido (ADR-026 §2). Lo que sigue siendo de esta
+  // guardia es QUÉ contenedores mira, con qué holgura y qué exige de su eje.
+  const doc = await medirDesbordeDeDocumento(page);
+  const desborde = await medirDesbordePorElemento(page);
+  const bloques = await medirBloques(page, CONTENEDORES);
+
+  return { ancho, desbordeH: doc.desborde, desborde, bloques };
 }
 
 const describir = (m: Medida) =>
-  `ancho ${m.ancho}: desbordeH=${m.desbordeH} ` +
+  `ancho ${m.ancho}: desbordeH=${m.desbordeH} violaciones=${m.desborde.violaciones.length} ` +
   m.bloques
     .map(
       (b) =>
@@ -124,7 +133,7 @@ for (const [nombre, ruta] of [
   ['la ayuda', '/ayuda'],
 ] as const) {
   test.describe(`SPEC-039 CA-17: ${nombre} no rompe la maquetación a ningún ancho`, () => {
-    test(`no desborda a lo ancho en ninguno de los cinco anchos (${ruta})`, async ({ page }) => {
+    test(`no desborda a lo ancho en ninguno de los ocho anchos (${ruta})`, async ({ page }) => {
       await page.goto(ruta);
 
       const medidas: Medida[] = [];
@@ -132,10 +141,18 @@ for (const [nombre, ruta] of [
 
       const informe = medidas.map(describir).join('\n');
       for (const m of medidas) {
+        // M2 - el documento.
         expect(
           m.desbordeH,
           `a ${m.ancho} px la pantalla se sale por la derecha\n${informe}`,
-        ).toBeLessThanOrEqual(1);
+        ).toBeLessThanOrEqual(TOLERANCIA_PX);
+        // M1 - y ningún ELEMENTO, aunque `overflow-x: hidden` lo recorte. Es la medida
+        // que faltaba aquí cuando el botón «Vigilar» se salía sin que nadie lo viera.
+        expect(
+          m.desborde.violaciones.length,
+          `a ${m.ancho} px se salen ${m.desborde.violaciones.length} elementos en ${ruta}:\n` +
+            `${describirViolaciones(m.desborde)}\n${informe}`,
+        ).toBe(0);
       }
     });
 
@@ -175,7 +192,7 @@ for (const [nombre, ruta] of [
       }
     });
 
-    test(`capturas y medidas de los cinco anchos (${ruta})`, async ({ page }) => {
+    test(`capturas y medidas de los ocho anchos (${ruta})`, async ({ page }) => {
       await page.goto(ruta);
       const nombreFichero = ruta === '/' ? 'primera-pantalla' : 'ayuda';
 
@@ -203,7 +220,7 @@ test('SPEC-039 CA-17: la fila de feedback del pie no deja hueco muerto', async (
   await page.goto('/ayuda');
 
   for (const ancho of ANCHOS) {
-    await page.setViewportSize({ width: ancho, height: 900 });
+    await ponerVentana(page, ancho);
     await page.locator('footer.app-footer [data-testid="feedback"]').waitFor({ state: 'visible' });
 
     const medida = await page.evaluate(() => {
@@ -258,7 +275,15 @@ test('SPEC-039 CA-17: el estado vacío de /vigiladas tampoco desborda ni deja hu
     const m = await medir(page, ancho);
     console.log(`[SPEC-039 CA-17] /vigiladas vacío — ${describir(m)}`);
 
-    expect(m.desbordeH, `a ${ancho} px la pantalla se sale por la derecha`).toBeLessThanOrEqual(1);
+    expect(
+      m.desbordeH,
+      `a ${ancho} px la pantalla se sale por la derecha`,
+    ).toBeLessThanOrEqual(TOLERANCIA_PX);
+    expect(
+      m.desborde.violaciones.length,
+      `a ${ancho} px se salen elementos del estado vacío de /vigiladas:\n` +
+        `${describirViolaciones(m.desborde)}`,
+    ).toBe(0);
     expect(m.bloques.length, `no se midió .empty-guia a ${ancho} px`).toBeGreaterThanOrEqual(1);
     for (const b of m.bloques) {
       expect(b.display, `"${b.selector}" no declara su eje a ${ancho} px`).toBe('grid');

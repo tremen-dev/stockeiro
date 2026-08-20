@@ -26,5 +26,29 @@ epica: EPIC-004
 ## Salvedades / follow-ups
 <!-- IDs F-SPEC-038-1, F-SPEC-038-2… con destino (spec futura o EPIC-MEJORA). -->
 
+- **`V-SPEC-039-4` — arrastrado hasta aquí por decisión del gate humano (2026-08-20).**
+  *Escrito por **sdd-arquitecto**, no por el implementador ni por el verificador: es una
+  corrección de `docs/fundacion/dominio.md`, documento de verdad, y por **ADR-025 pto. 1** la
+  pluma es del arquitecto.*
+
+  La fila **«Canal de feedback»** de `docs/fundacion/dominio.md` dice hoy que
+  `deploymentIdentity` es *«la misma fuente que responde `/api/version` y que **enseña el
+  pie**»*. **La frase está en presente y describe un futuro**: el pie **consume** la identidad
+  para componer el `mailto:` de feedback, pero **no la pinta** — eso es justamente lo que
+  entrega esta spec. El verificador de SPEC-039 lo levantó como `V-SPEC-039-4` y lo dirigió al
+  arquitecto; el humano decidió en el gate del 2026-08-20 **no corregirlo antes**, porque al
+  cerrar SPEC-038 la frase **pasa a ser cierta sola**.
+
+  **Qué hay que hacer al cerrar esta spec**: comprobar que el pie **enseña** de verdad la
+  versión y, si es así, **no hay nada que reescribir** — la fila deja de mentir por sí misma y
+  el residual se cierra citando esta spec. Si SPEC-038 acabara entregando la versión en otro
+  sitio que no fuera el pie, entonces **sí** hay que reescribir la fila, y la reescribe el
+  arquitecto.
+
+  Se anota aquí, y no en el texto de SPEC-038, por dos motivos: este ledger es donde trabaja
+  quien cierra, y `SPEC-038-...app.md` lo está modificando ahora mismo la rama de SPEC-039
+  (PR #42) — escribir en él desde otra rama sólo produciría un conflicto de merge sin ganar
+  nada.
+
 ## Cómo retomar (handoff)
 <!-- Estado real del trabajo para la siguiente sesión: qué está hecho, qué falta, dónde seguir. -->

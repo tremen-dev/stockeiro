@@ -1,0 +1,49 @@
+SPEC-040 CA-4 — M3 (integridad de palabra) y reparto de .cards, rol completo (tres tarjetas)
+ancho 360 · span.num «01 / cartera»: palabras=3 lineas=1 rects=1 anchoLineaMax=95 anchoTarjeta=270 · pistas=1
+ancho 360 · h3 «Cartera y P/L»: palabras=3 lineas=1 rects=1 anchoLineaMax=184 anchoTarjeta=270 · pistas=1
+ancho 360 · span.num «02 / vigiladas»: palabras=3 lineas=1 rects=1 anchoLineaMax=111 anchoTarjeta=270 · pistas=1
+ancho 360 · h3 «Acciones vigiladas»: palabras=2 lineas=1 rects=1 anchoLineaMax=265 anchoTarjeta=270 · pistas=1
+ancho 360 · span.num «03 / avisos»: palabras=3 lineas=1 rects=1 anchoLineaMax=87 anchoTarjeta=270 · pistas=1
+ancho 360 · h3 «Avisos»: palabras=1 lineas=1 rects=1 anchoLineaMax=95 anchoTarjeta=270 · pistas=1
+ancho 390 · span.num «01 / cartera»: palabras=3 lineas=1 rects=1 anchoLineaMax=95 anchoTarjeta=292 · pistas=1
+ancho 390 · h3 «Cartera y P/L»: palabras=3 lineas=1 rects=1 anchoLineaMax=184 anchoTarjeta=292 · pistas=1
+ancho 390 · span.num «02 / vigiladas»: palabras=3 lineas=1 rects=1 anchoLineaMax=111 anchoTarjeta=292 · pistas=1
+ancho 390 · h3 «Acciones vigiladas»: palabras=2 lineas=1 rects=1 anchoLineaMax=265 anchoTarjeta=292 · pistas=1
+ancho 390 · span.num «03 / avisos»: palabras=3 lineas=1 rects=1 anchoLineaMax=87 anchoTarjeta=292 · pistas=1
+ancho 390 · h3 «Avisos»: palabras=1 lineas=1 rects=1 anchoLineaMax=95 anchoTarjeta=292 · pistas=1
+ancho 640 · span.num «01 / cartera»: palabras=3 lineas=1 rects=1 anchoLineaMax=95 anchoTarjeta=234 · pistas=2
+ancho 640 · h3 «Cartera y P/L»: palabras=3 lineas=1 rects=1 anchoLineaMax=184 anchoTarjeta=234 · pistas=2
+ancho 640 · span.num «02 / vigiladas»: palabras=3 lineas=1 rects=1 anchoLineaMax=111 anchoTarjeta=234 · pistas=2
+ancho 640 · h3 «Acciones vigiladas»: palabras=2 lineas=2 rects=2 anchoLineaMax=131 anchoTarjeta=234 · pistas=2
+ancho 640 · span.num «03 / avisos»: palabras=3 lineas=1 rects=1 anchoLineaMax=87 anchoTarjeta=234 · pistas=2
+ancho 640 · h3 «Avisos»: palabras=1 lineas=1 rects=1 anchoLineaMax=95 anchoTarjeta=234 · pistas=2
+ancho 700 · span.num «01 / cartera»: palabras=3 lineas=1 rects=1 anchoLineaMax=95 anchoTarjeta=264 · pistas=2
+ancho 700 · h3 «Cartera y P/L»: palabras=3 lineas=1 rects=1 anchoLineaMax=184 anchoTarjeta=264 · pistas=2
+ancho 700 · span.num «02 / vigiladas»: palabras=3 lineas=1 rects=1 anchoLineaMax=111 anchoTarjeta=264 · pistas=2
+ancho 700 · h3 «Acciones vigiladas»: palabras=2 lineas=2 rects=2 anchoLineaMax=131 anchoTarjeta=264 · pistas=2
+ancho 700 · span.num «03 / avisos»: palabras=3 lineas=1 rects=1 anchoLineaMax=87 anchoTarjeta=264 · pistas=2
+ancho 700 · h3 «Avisos»: palabras=1 lineas=1 rects=1 anchoLineaMax=95 anchoTarjeta=264 · pistas=2
+ancho 730 · span.num «01 / cartera»: palabras=3 lineas=1 rects=1 anchoLineaMax=95 anchoTarjeta=251 · pistas=2
+ancho 730 · h3 «Cartera y P/L»: palabras=3 lineas=1 rects=1 anchoLineaMax=184 anchoTarjeta=251 · pistas=2
+ancho 730 · span.num «02 / vigiladas»: palabras=3 lineas=1 rects=1 anchoLineaMax=111 anchoTarjeta=251 · pistas=2
+ancho 730 · h3 «Acciones vigiladas»: palabras=2 lineas=2 rects=2 anchoLineaMax=131 anchoTarjeta=251 · pistas=2
+ancho 730 · span.num «03 / avisos»: palabras=3 lineas=1 rects=1 anchoLineaMax=87 anchoTarjeta=251 · pistas=2
+ancho 730 · h3 «Avisos»: palabras=1 lineas=1 rects=1 anchoLineaMax=95 anchoTarjeta=251 · pistas=2
+ancho 760 · span.num «01 / cartera»: palabras=3 lineas=1 rects=1 anchoLineaMax=95 anchoTarjeta=266 · pistas=2
+ancho 760 · h3 «Cartera y P/L»: palabras=3 lineas=1 rects=1 anchoLineaMax=184 anchoTarjeta=266 · pistas=2
+ancho 760 · span.num «02 / vigiladas»: palabras=3 lineas=1 rects=1 anchoLineaMax=111 anchoTarjeta=266 · pistas=2
+ancho 760 · h3 «Acciones vigiladas»: palabras=2 lineas=1 rects=1 anchoLineaMax=265 anchoTarjeta=266 · pistas=2
+ancho 760 · span.num «03 / avisos»: palabras=3 lineas=1 rects=1 anchoLineaMax=87 anchoTarjeta=266 · pistas=2
+ancho 760 · h3 «Avisos»: palabras=1 lineas=1 rects=1 anchoLineaMax=95 anchoTarjeta=266 · pistas=2
+ancho 800 · span.num «01 / cartera»: palabras=3 lineas=1 rects=1 anchoLineaMax=95 anchoTarjeta=286 · pistas=2
+ancho 800 · h3 «Cartera y P/L»: palabras=3 lineas=1 rects=1 anchoLineaMax=184 anchoTarjeta=286 · pistas=2
+ancho 800 · span.num «02 / vigiladas»: palabras=3 lineas=1 rects=1 anchoLineaMax=111 anchoTarjeta=286 · pistas=2
+ancho 800 · h3 «Acciones vigiladas»: palabras=2 lineas=1 rects=1 anchoLineaMax=265 anchoTarjeta=286 · pistas=2
+ancho 800 · span.num «03 / avisos»: palabras=3 lineas=1 rects=1 anchoLineaMax=87 anchoTarjeta=286 · pistas=2
+ancho 800 · h3 «Avisos»: palabras=1 lineas=1 rects=1 anchoLineaMax=95 anchoTarjeta=286 · pistas=2
+ancho 1280 · span.num «01 / cartera»: palabras=3 lineas=1 rects=1 anchoLineaMax=95 anchoTarjeta=326 · pistas=3
+ancho 1280 · h3 «Cartera y P/L»: palabras=3 lineas=1 rects=1 anchoLineaMax=184 anchoTarjeta=326 · pistas=3
+ancho 1280 · span.num «02 / vigiladas»: palabras=3 lineas=1 rects=1 anchoLineaMax=111 anchoTarjeta=326 · pistas=3
+ancho 1280 · h3 «Acciones vigiladas»: palabras=2 lineas=1 rects=1 anchoLineaMax=265 anchoTarjeta=326 · pistas=3
+ancho 1280 · span.num «03 / avisos»: palabras=3 lineas=1 rects=1 anchoLineaMax=87 anchoTarjeta=326 · pistas=3
+ancho 1280 · h3 «Avisos»: palabras=1 lineas=1 rects=1 anchoLineaMax=95 anchoTarjeta=326 · pistas=3
