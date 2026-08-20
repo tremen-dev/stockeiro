@@ -20,16 +20,176 @@ epica: EPIC-INFRA
 | 🔒 CA-1 el workflow existe, aparte, y no toca a los otros dos | `.github/workflows/neon-preview-cleanup.yml` (nuevo) | `tests/neon-preview-cleanup-workflow.test.ts` · CA-1 1.1–1.4 (el 1.4 compara `ci.yml` y `deploy-gate.yml` **byte a byte** con `origin/main`) | **Ronda 2, revisado de nuevo.** Los **blobs de git** de `ci.yml` y `deploy-gate.yml` coinciden con los del `origin/main` de ahora (`124085a`): `34b47942…` y `dcd8713f…` en ambos lados — comparacion por hash, que no admite interpretacion. `.github/workflows/` sigue teniendo exactamente tres ficheros. El test 1.4 corrio de verdad (39/39 casos, ninguno *skipped*). | ✅ |
 | 🔒 CA-2 un solo disparador `pull_request: [closed]`, sin filtro por `merged`, sin `pull_request_target` | `.github/workflows/neon-preview-cleanup.yml`, clave `on` | `tests/neon-preview-cleanup-workflow.test.ts` · CA-2 2.1–2.5 (2.4 busca `pull_request_target` también en los comentarios; 2.5, `merged` en cualquier `if` y en el texto crudo) | **Ronda 2.** `on = {"pull_request":{"types":["closed"]}}`, una sola clave. Cero `pull_request_target` en todo el fichero, comentarios incluidos. Ningun `if` sobre `merged`: el del job crecio, pero solo con los tres `!contains`. | ✅ |
 | 🔒 CA-3 `neondatabase/delete-branch-action@v3` con exactamente tres entradas | `.github/workflows/neon-preview-cleanup.yml`, único step | `tests/neon-preview-cleanup-workflow.test.ts` · CA-3 3.1–3.4 | **Ronda 2.** `with` sigue siendo exactamente `['project_id','branch','api_key']`. Volvi a la fuente: `v3` **sigue** en `4468d825…`, la accion no esta archivada ni deshabilitada. Sus cinco entradas reales, y omitir `branch_id` (deprecada) y `api_host` (default correcto) sigue siendo lo correcto. | ✅ |
-| 🔒 CA-4 nada fuera del prefijo literal `preview/`; `main` no se nombra; sin `run:` | `.github/workflows/neon-preview-cleanup.yml`: `with.branch`, forma del fichero **y el filtro de caracteres del `if` del job** (ronda 2, F-1) — `!contains(github.head_ref, '$')`, `` '`' `` y `'"'`, sumados a la condición de fork, que no se toca. El comentario del step **ya no afirma** que sin `run:` el nombre de rama no llegue a una shell: dice que la acción es composite, que su paso final es `shell: bash` y que quien impide la inyección es el filtro | `tests/neon-preview-cleanup-workflow.test.ts` · CA-4 4.1–4.4 (4.2 prohíbe `main`/`production` en el **fichero entero**, comentarios incluidos) **+ 4.5, nuevo**: (a) le pregunta a `git check-ref-format` cuál de los cuatro especiales de bash dentro de comillas dobles (`$`, backtick, `\`, `"`) acepta en una ref y exige que el filtro sea exactamente los tres que pasan — la derivación se ejecuta, no se recuerda; (b) los tres `!contains` van sobre la **misma** expresión que alimenta `with.branch`; (c) la condición de fork **sigue** ahí (tres `&&`, ni uno más); (d) el step no tiene un `if` propio que se salte al del job | **F-1 CERRADO, y verificado sin fiarme del arreglo que yo mismo propuse.** Volvi a derivar el conjunto **desde cero y exhaustivamente sobre los 95 ASCII imprimibles**, cruzando dos preguntas por caracter: si `git check-ref-format` lo acepta en una ref, y si el **cuerpo literal del `run:`** de la accion devuelve el argumento identico o bash reacciona. Resultado: `CONJUNTO PELIGROSO REAL = ['"', '$', '`']` — exactamente los tres que el filtro bloquea, **ni uno de menos ni uno de mas**. Los que bash trata como especiales pero git rechaza en una ref (`espacio`, `*`, `:`, `?`, `[`, `\`, `^`, `~`) no llegan nunca. Revise los **cuatro** caminos por los que un dato puede entrar al bash de la accion —incluida la interpolacion **sin comillas** de `project_id`— y ninguno es alcanzable desde una PR: `project_id` es variable de repo (admin), `branch_id` es la rama inalcanzable del `if [ -z ]`, y `api_key`/`api_host` solo van en `env`. El comentario del step ya dice la verdad. **No queda vector.** | ✅ |
+| 🔒 CA-4 nada fuera del prefijo literal `preview/`; `main` no se nombra; sin `run:` | `.github/workflows/neon-preview-cleanup.yml`: `with.branch`, forma del fichero **y el filtro de caracteres del `if` del job** (ronda 2, F-1) — `!contains(github.head_ref, '$')`, `` '`' `` y `'"'`, sumados a la condición de fork, que no se toca. El comentario del step **ya no afirma** que sin `run:` el nombre de rama no llegue a una shell: dice que la acción es composite, que su paso final es `shell: bash` y que quien impide la inyección es el filtro | `tests/neon-preview-cleanup-workflow.test.ts` · CA-4 4.1–4.4 (4.2 prohíbe `main`/`production` en el **fichero entero**, comentarios incluidos) **+ 4.5, nuevo**: (a) le pregunta a `git check-ref-format` cuál de los cuatro especiales de bash dentro de comillas dobles (`$`, backtick, `\`, `"`) acepta en una ref y exige que el filtro sea exactamente los tres que pasan — la derivación se ejecuta, no se recuerda; (b) los tres `!contains` van sobre la **misma** expresión que alimenta `with.branch`; (c) la condición de fork **sigue** ahí (tres `&&`, ni uno más); (d) el step no tiene un `if` propio que se salte al del job | **CERRADO ✅, y ahora con su CA declarado.** Ronda 2: rederive el conjunto peligroso **desde cero sobre los 95 ASCII imprimibles** y salio exactamente `['"', '$', '`']` — ni uno de mas ni de menos; los cuatro caminos hacia el bash de la accion revisados, ninguno alcanzable desde una PR. **Ronda 5**: la enmienda declara **CA-4.5** y corrige CA-4.3 por nota fechada, sin reescribir la historia. Juzgue la redaccion como propiedad: **es correcta y mejor que una lista**, y sus cuatro casos vigilan lo vigilable (derivacion del lado de git en vivo, filtro sobre la **misma** expresion que alimenta `branch`, condicion de fork intacta con exactamente tres `&&`, y ningun `if` de step). La mitad no vigilable —que la acción cambie su entrecomillado— **la spec la declara** en vez de esconderla. Pega precisa en el veredicto: ese aviso habla a *«quien toque esto»* y `@v3` puede moverse **sin que nadie toque nada**. `v3` sigue hoy en `4468d825…`. | ✅ |
 | 🔒 CA-5 higiene: sin forks, sin permisos de escritura, con plazo y concurrencia, sin `continue-on-error` | `.github/workflows/neon-preview-cleanup.yml`: `if` de fork, `permissions: {}`, `timeout-minutes: 10`, grupo propio con `cancel-in-progress: false` | `tests/neon-preview-cleanup-workflow.test.ts` · CA-5 5.1–5.5 | **Ronda 2.** `permissions: {}`, `timeout-minutes: 10`, grupo `neon-preview-cleanup-…` distinto de los otros dos, `cancel-in-progress: false`. **La condicion de fork sigue dentro del `if`**: el filtro se **suma**, no la sustituye (verificado sobre el YAML parseado). Sin `continue-on-error`, sin encadenado que se trague el codigo de salida, sin `always()`. | ✅ |
 | 🔒 CA-6 frontera: `ci.yml` y `deploy-gate.yml` siguen sin secretos; este no gobierna el merge | ningún cambio en `ci.yml` ni `deploy-gate.yml`; punto 3 escrito en `docs/despliegue.md` §9 | `tests/neon-preview-cleanup-workflow.test.ts` · CA-6 6.1–6.2 + `tests/spec-031-frontera.test.ts` y `tests/spec-032-frontera.test.ts` verdes **sin editarlos**; el punto 3 lo congela `tests/runbook-limpieza-preview.test.ts` · CA-7.2 | **Ronda 2.** `git grep -l 'secrets\.'` fuera de `docs/` y `tests/` → **solo** el limpiador. `tests/spec-031-frontera.test.ts` (11) y `tests/spec-032-frontera.test.ts` (19) verdes **sin una linea editada** (`git diff` contra `origin/main` sobre esos ficheros: vacio). Ruleset `Protected main` comprobado vivo: contextos `E2E` y `Checks`, bypass vacio. **La lectura de CA-6.2 no se ha tocado**: sigue siendo la que juzgue legitima en la ronda 1. | ✅ |
-| 🔒 CA-7 el runbook cuenta la trampa, la solución y su contrapartida (§6, §9, §13, §13.3) | `docs/despliegue.md`: §6 (gotcha nuevo), §9 (tabla de los tres workflows), §13 (filas de ops 7, 8 y 9), §13.3 **reescrita**. Ronda 2 (F-2): §13.3 ya **no** dice *"con tres entradas y ni una línea de shell"* ni *"eso es lo que acota el peor caso"*. Dice que la acción es composite y **sí** ejecuta bash por dentro, que sin filtro el peor caso era ejecución de comandos con la clave, que lo que acota el peor caso es el **filtro de caracteres** más el prefijo literal, y **qué cuesta el filtro** (`F-SPEC-042-7`). **Ronda 3 (N-1)**: la línea de diagnóstico decía que un job saltado *«no aparece en Actions»* — es **falso**, y comprobado contra la API de GitHub, no discutido: el evento crea la ejecución y el `if` se evalúa después, a nivel de job. §13.3 dice ahora lo que de verdad se ve (ejecución **completada, en gris, `skipped`, el job sin un solo paso**) y **distingue los dos *fail-closed*** del apartado: el del filtro *y en silencio*, el de las variables de ops *y en rojo*. **Ronda 4 (cierre operativo)**: §13.3 pierde el párrafo *«Lo que aún no se sabe»* y gana el veredicto de CA-9 (abajo), y las dos viñetas del filtro quedan **alineadas con la enmienda del 2026-08-20**: la del `run:` nombra **CA-4.3** y lo que sí compra (ninguna shell **nuestra**), la del filtro dice que **eso es `CA-4.5`** con el reparto de trabajo en una línea, y la del coste deja de leerse como el residuo de un apaño suelto — es el **coste declarado de CA-4.5**, y quitarlo rompe un CA. §9 se revisó y **no hacía falta tocarla**: no afirma nada sobre CA-4.3 | `tests/runbook-limpieza-preview.test.ts` · CA-7.1–7.6, troceando el documento por secciones, **más el bloque O-2 (5 casos)** que congela el filtro, su coste, la frase de diagnóstico correcta y la distinción de los dos *fail-closed*, **más los 6 bloques nuevos de la ronda 4 (18 casos)**: el veredicto de CA-9, la regla de lectura, `F-SPEC-042-8` con su frecuencia, la prohibición fechada de `continue-on-error`, el orden de las vías de medición y la alineación CA-4.3/CA-4.5. **52/52 verdes** | **F-2 CERRADO en los tres artefactos, y sin borrar la explicacion** — que era lo que importaba para que nadie lo reintroduzca «simplificando». §13.3 perdio *«ni una linea de shell»* y gano una viñeta que dice que **este runbook lo dio por bueno** y por que es falso a medias. Los seis subpuntos de CA-7 siguen ahi y siguen siendo ciertos (citas de Neon literales, aritmetica, §9 afirmando la ausencia de secretos **solo** de la CI de las PR). **N-1**, no bloqueante: una frase añadida por encima de CA-7 —*«no aparece en Actions»*— es falsa; ver el veredicto. | ✅ |
+| 🔒 CA-7 el runbook cuenta la trampa, la solución y su contrapartida (§6, §9, §13, §13.3) | `docs/despliegue.md`: §6 (gotcha nuevo), §9 (tabla de los tres workflows), §13 (filas de ops 7, 8 y 9), §13.3 **reescrita**. Ronda 2 (F-2): §13.3 ya **no** dice *"con tres entradas y ni una línea de shell"* ni *"eso es lo que acota el peor caso"*. Dice que la acción es composite y **sí** ejecuta bash por dentro, que sin filtro el peor caso era ejecución de comandos con la clave, que lo que acota el peor caso es el **filtro de caracteres** más el prefijo literal, y **qué cuesta el filtro** (`F-SPEC-042-7`). **Ronda 3 (N-1)**: la línea de diagnóstico decía que un job saltado *«no aparece en Actions»* — es **falso**, y comprobado contra la API de GitHub, no discutido: el evento crea la ejecución y el `if` se evalúa después, a nivel de job. §13.3 dice ahora lo que de verdad se ve (ejecución **completada, en gris, `skipped`, el job sin un solo paso**) y **distingue los dos *fail-closed*** del apartado: el del filtro *y en silencio*, el de las variables de ops *y en rojo*. **Ronda 4 (cierre operativo)**: §13.3 pierde el párrafo *«Lo que aún no se sabe»* y gana el veredicto de CA-9 (abajo), y las dos viñetas del filtro quedan **alineadas con la enmienda del 2026-08-20**: la del `run:` nombra **CA-4.3** y lo que sí compra (ninguna shell **nuestra**), la del filtro dice que **eso es `CA-4.5`** con el reparto de trabajo en una línea, y la del coste deja de leerse como el residuo de un apaño suelto — es el **coste declarado de CA-4.5**, y quitarlo rompe un CA. §9 se revisó y **no hacía falta tocarla**: no afirma nada sobre CA-4.3 | `tests/runbook-limpieza-preview.test.ts` · CA-7.1–7.6, troceando el documento por secciones, **más el bloque O-2 (5 casos)** que congela el filtro, su coste, la frase de diagnóstico correcta y la distinción de los dos *fail-closed*, **más los 6 bloques nuevos de la ronda 4 (18 casos)**: el veredicto de CA-9, la regla de lectura, `F-SPEC-042-8` con su frecuencia, la prohibición fechada de `continue-on-error`, el orden de las vías de medición y la alineación CA-4.3/CA-4.5. **52/52 verdes** | **CERRADO ✅ — y este era MI motivo para no firmar.** Comprobado por mi sobre el fichero: el parrafo *«Lo que aun no se sabe»* **ya no existe** en §13.3 (grep sin ninguna aparicion; la unica del fichero es una cabecera de tabla de otra seccion). En su lugar, el veredicto de CA-9 con run id, fecha, `conclusion=failure`, salida 1, el mensaje literal y el reparto de culpa (instalacion verde / borrado rojo ⇒ falla la accion). Estan **las cinco ediciones** que detalle **y la sexta opcional**. Las cifras que aporte se repiten con su fuente: *0 de 43*, `vercel.json` sin `ignoreCommand`/`ignoredBuildStep`, y que el unico rojo observado lo provoco el propio re-run. **Y ahora tiene red**: `tests/runbook-limpieza-preview.test.ts` prohibe que §13.3 vuelva a decir que la respuesta se ignora — ese parrafo habia sido falso **dos veces**. | ✅ |
 | 🚀 CA-8 al cerrar la PR, la rama desaparece de Neon y el recuento baja en una | `.github/workflows/neon-preview-cleanup.yml` | **no testeable desde el repo** — evidencia abajo. Bloqueado por F-SPEC-042-1 y F-SPEC-042-2 | **CERRADO ✅ — verificado por mi, y no por la transcripcion de una captura.** `gh run list --workflow=neon-preview-cleanup.yml` devuelve **una sola** ejecucion en toda la historia del repositorio: `32371568962`, evento `pull_request`, rama `ft/SPEC-042-limpieza-automatica-de-ramas-de-preview-en-neon`, `conclusion=success`, 12:57:28Z → 12:57:44Z (**16 s**), disparada 2 s despues del merge de la PR#45 (`ad7ad3b`, 12:57:26Z). **Y el job CORRIO, no se salto** —que es la comprobacion que importa aqui, porque un job saltado tambien pinta verde (`F-SPEC-042-7`)—: la API de jobs da `conclusion=success` con el paso *Delete the Neon branch…* en `success`, 12:57:32Z → 12:57:43Z. En el log, la salida de `neonctl` es una tabla con **exactamente una fila**: `preview/ft/SPEC-042-limpieza-automatica-de-ramas-de-preview-en-neon` · `br-muddy-pond-asffs4lv` · `ready` · creada 12:45:27Z. Creada al desplegar la preview, borrada 12 min despues al cerrar la PR. | ✅ |
-| 🚀 CA-9 comportamiento ante una rama inexistente, medido y escrito | **La mitad de §13.3, entregada en la ronda 4.** `docs/despliegue.md` §13.3: el párrafo *«Lo que aún no se sabe»* y sus dos ramas especulativas (*«si sale verde» / «si sale rojo»*) **desaparecen**, sustituidos por *«Qué hace ante una rama que ya no existe: **ROJO**, medido el 2026-08-20»* — run `32371568962`, `conclusion=failure`, salida 1, salida **literal** de la acción en bloque de código, y la nota de que el paso de instalación fue **verde** (falla la acción, no el entorno). Debajo, *«La consecuencia, con nombre: `F-SPEC-042-8`»* con los tres disparadores, la frecuencia medida (**0 de 43**, `vercel.json` sin `ignoreCommand` ni `ignoredBuildStep`) y el aviso de que **el único rojo observado lo provocó el propio *re-run***; la **regla de lectura** en cita destacada (`not found` → benigno; cualquier otra cosa → el incidente del 19/20 volviendo); el **NO a `continue-on-error`** con la historia fechada (propuesto y aprobado el 2026-08-20, **revocado por el humano el mismo día**) y el argumento correcto —**la ambigüedad, no la frecuencia**—; y la vía de medición **corregida**: el ***Re-run* en Actions** (`gh run rerun 32371568962`) va **primero** y `neonctl` queda como vía de reserva. Más una línea de higiene: el mensaje de error **enumera todos los nombres de rama del proyecto** y los logs de este repositorio son **públicos** | **no testeable desde el repo, pero YA NO DEPENDE DE CA-8.** No necesita una PR cerrada ni un *Re-run*: necesita la credencial, que existe desde el 2026-08-20. Lo responde, sin tocar nada, `neonctl branches delete preview/no-existe-jamas --project-id orange-lab-24079923` — **corrible antes de mezclar**. Verde ⇒ la acción se traga la rama inexistente, no habrá falsos rojos, CA-9 cerrado. Rojo (lo esperable: `neonctl` resuelve el nombre a un id) ⇒ este limpiador dará rojo en **toda PR cerrada sin preview**, hay que saberlo **antes** del merge y se abre follow-up en el acto. En ninguno de los dos casos se pone `continue-on-error` (CA-5.5, congelado en `tests/neon-preview-cleanup-workflow.test.ts` · 5.5). **Y la mitad escrita SÍ es testeable, y desde la ronda 4 lo está**: `tests/runbook-limpieza-preview.test.ts` · bloques *«§13.3 escribe el veredicto medido, y no vuelve a decir que se ignora»* (4 casos), *«la regla de lectura separa el rojo benigno del grave»* (3), *«F-SPEC-042-8 queda declarado en el runbook, con su frecuencia real»* (5), *«`continue-on-error` sigue prohibido, con fecha»* (4) y *«la vía de medición barata va primero»* (2). El primero es el que importa: §13.3 **no puede volver a decir** que la respuesta se ignora — ese párrafo ya ha sido falso **dos veces**. El acto de medir sigue sin ser testeable; el implementador no pudo ejecutarlo (la clave no está en el entorno local y no se pide), y lo midió el verificador con `gh` | **MEDIDO — la respuesta es ROJO. Verificado por mi con `gh`, no transcrito.** Re-ejecutada `32371568962` (attempt 2, 2026-08-20T13:11Z) sobre la rama **ya borrada**: `conclusion=failure`, paso de borrado en `failure` y los de instalacion en `success` — no es fallo de entorno, es la accion respondiendo. Salida literal: `ERROR: Branch preview/ft/SPEC-042-… not found.` + `Available branches: preview, main, preview/ft/SPEC-039-…, SPEC-040-…, SPEC-041-…`, `exit code 1`. **Salvedad, y por eso ⚠️ y no ✅**: CA-9 pide que quede escrito *«en el ledger **y en §13.3**»*. La mitad del ledger esta hecha; la de §13.3 no la puedo escribir yo (no edito el runbook), y hoy §13.3 sigue diciendo en presente que *«no se sabe»* — que ya es **falso**. Consecuencia declarada como **F-SPEC-042-8**. Ver el veredicto: edicion exacta listada. | ⚠️ |
+| 🚀 CA-9 comportamiento ante una rama inexistente, medido y escrito | **La mitad de §13.3, entregada en la ronda 4.** `docs/despliegue.md` §13.3: el párrafo *«Lo que aún no se sabe»* y sus dos ramas especulativas (*«si sale verde» / «si sale rojo»*) **desaparecen**, sustituidos por *«Qué hace ante una rama que ya no existe: **ROJO**, medido el 2026-08-20»* — run `32371568962`, `conclusion=failure`, salida 1, salida **literal** de la acción en bloque de código, y la nota de que el paso de instalación fue **verde** (falla la acción, no el entorno). Debajo, *«La consecuencia, con nombre: `F-SPEC-042-8`»* con los tres disparadores, la frecuencia medida (**0 de 43**, `vercel.json` sin `ignoreCommand` ni `ignoredBuildStep`) y el aviso de que **el único rojo observado lo provocó el propio *re-run***; la **regla de lectura** en cita destacada (`not found` → benigno; cualquier otra cosa → el incidente del 19/20 volviendo); el **NO a `continue-on-error`** con la historia fechada (propuesto y aprobado el 2026-08-20, **revocado por el humano el mismo día**) y el argumento correcto —**la ambigüedad, no la frecuencia**—; y la vía de medición **corregida**: el ***Re-run* en Actions** (`gh run rerun 32371568962`) va **primero** y `neonctl` queda como vía de reserva. Más una línea de higiene: el mensaje de error **enumera todos los nombres de rama del proyecto** y los logs de este repositorio son **públicos** | **no testeable desde el repo, pero YA NO DEPENDE DE CA-8.** No necesita una PR cerrada ni un *Re-run*: necesita la credencial, que existe desde el 2026-08-20. Lo responde, sin tocar nada, `neonctl branches delete preview/no-existe-jamas --project-id orange-lab-24079923` — **corrible antes de mezclar**. Verde ⇒ la acción se traga la rama inexistente, no habrá falsos rojos, CA-9 cerrado. Rojo (lo esperable: `neonctl` resuelve el nombre a un id) ⇒ este limpiador dará rojo en **toda PR cerrada sin preview**, hay que saberlo **antes** del merge y se abre follow-up en el acto. En ninguno de los dos casos se pone `continue-on-error` (CA-5.5, congelado en `tests/neon-preview-cleanup-workflow.test.ts` · 5.5). **Y la mitad escrita SÍ es testeable, y desde la ronda 4 lo está**: `tests/runbook-limpieza-preview.test.ts` · bloques *«§13.3 escribe el veredicto medido, y no vuelve a decir que se ignora»* (4 casos), *«la regla de lectura separa el rojo benigno del grave»* (3), *«F-SPEC-042-8 queda declarado en el runbook, con su frecuencia real»* (5), *«`continue-on-error` sigue prohibido, con fecha»* (4) y *«la vía de medición barata va primero»* (2). El primero es el que importa: §13.3 **no puede volver a decir** que la respuesta se ignora — ese párrafo ya ha sido falso **dos veces**. El acto de medir sigue sin ser testeable; el implementador no pudo ejecutarlo (la clave no está en el entorno local y no se pide), y lo midió el verificador con `gh` | **CERRADO ✅.** Mi condicion era literal: *«queda escrito en el ledger **y en §13.3**»*. Ledger hecho en la ronda 4 con la salida verificada por mi (`attempt=2`, `conclusion=failure`, paso de borrado en `failure` con los de instalacion en `success`, `ERROR: Branch … not found.`, salida 1). §13.3 comprobado arriba. **Las dos mitades estan.** La consecuencia queda declarada como `F-SPEC-042-8` en el ledger, en la spec y en el runbook, con su frecuencia medida y su regla de lectura, y **sin** `continue-on-error` (verificado: no existe en ningun workflow). | ✅ |
 | 🚀 CA-10 nada que no fuera una preview se tocó (`main` sigue ahí) | prefijo `preview/` literal en `.github/workflows/neon-preview-cleanup.yml` | **no testeable desde el repo** — comparación de las dos listas del panel de Neon | **CERRADO ✅ — y ahora con confirmacion del propio proveedor, no solo mia.** (a) En el borrado real, `neonctl` imprimio **una sola fila**: se toco una rama y solo una. (b) **El mensaje de error del re-run de CA-9 enumera lo que queda**: `preview, main, preview/ft/SPEC-039-…, SPEC-040-…, SPEC-041-…` — es **Neon** diciendo que `main` sigue ahi y que la unica que desaparecio es la de SPEC-042. Mejor evidencia que la captura del panel y que mi sonda indirecta. (c) Ademas, y por si hiciera falta: `GET https://stockeiro.tremen.dev/register` → **200** con 12 782 bytes despues del borrado, y esa ruta hace `await resolveRegistrationState(db)` en cada render. (d) Las tres previews de arrastre no son un fallo: ver la nota de Evidencia visual. | ✅ |
 
 ## Veredicto del verificador
 <!-- GREEN/RED + fecha + resumen. Lo escribe SOLO sdd-verificador. -->
+
+### ✅ GREEN FINAL — 10/10 CA, spec a `hecho` (ronda 5, 2026-08-20, sdd-verificador)
+
+**Firmo.** Es la primera vez en cinco rondas: me negué tres veces y las tres el motivo era el
+mismo — un observable que nadie había visto, o una afirmación falsa en el documento que alguien
+abriría en el peor momento. Ya no queda ninguna de las dos.
+
+| Bloque | ✅ | ⚠️ | ❌ |
+|---|---|---|---|
+| 🔒 CA-1 … CA-7 (+ **CA-4.5**, declarado hoy) | **8** | 0 | 0 |
+| 🚀 CA-8, CA-9, CA-10 | **3** | 0 | 0 |
+
+**Los seis gates, corridos por mí sobre `cfee174`**: `typecheck` 0 · `lint` 0 · `test`
+**1231/1231** en 86 ficheros · `build` 0 · `test:e2e` **214/214** · `db:scan` 0 (11 migraciones, 2 destructivas con
+*waiver*).
+
+---
+
+#### CA-7 — CIERRA. Ya no queda ninguna afirmación falsa en §13.3
+
+Era **mi** motivo para no firmar en la ronda 4, y lo comprobé yo, no de oídas:
+
+- **El párrafo «Lo que aún no se sabe» no existe.** `grep -niE "no se sabe|lo que aún|se mide en
+  el primer cierre"` sobre `docs/despliegue.md` no devuelve **ni una** aparición en §13.3 (la
+  única coincidencia del fichero es *«Valor si no se sabe»*, cabecera de una tabla de variables
+  de entorno en otra sección, sin relación).
+- **En su lugar hay veredicto**, y es exacto: run id `32371568962`, fecha, `conclusion=failure`,
+  **salida 1**, el mensaje literal completo, y el reparto de culpa que yo había señalado
+  —instalación verde, borrado rojo ⇒ **falla la acción, no el entorno**—. Contrasté cada dato
+  contra la API y el log: **todos correctos**.
+- **Las cinco ediciones que detallé están, y la sexta opcional también** (que el mensaje de error
+  enumera los nombres de rama del proyecto y los logs son públicos).
+- Y las cifras que aporté las repite **con la fuente y no como adjetivo**: *0 de 43*,
+  `vercel.json` sin `ignoreCommand`/`ignoredBuildStep`, y —dato honesto que agradezco— que **el
+  único rojo observado lo provocó el propio re-run**.
+
+**Lo que hace que esto no vuelva a pasar, que es lo que faltaba**: `tests/runbook-limpieza-preview.test.ts`
+gana un caso que **prohíbe** que §13.3 vuelva a decir que la respuesta se ignora
+(`.not.toMatch(/Lo que a[úu]n no se sabe/i)`, más el *«el veredicto se escribe aquí»* y las dos
+ramas especulativas). Ese párrafo **había sido falso dos veces**; ahora tiene red. Es
+exactamente la clase de guardia que pedí y no llegué a exigir.
+
+#### CA-9 — CIERRA. La evidencia está en los dos sitios que el CA pide
+
+Mi condición fue literal: *«queda escrito en el ledger **y en §13.3** si sale verde o rojo y con
+qué mensaje»*. Ledger ✅ (lo escribí en la ronda 4). §13.3 ✅ (comprobado arriba). **Cerrado.**
+
+#### CA-4.5 — juicio: bien redactado, y la guardia vigila lo que se puede vigilar
+
+Es mi finding **F-1** el que lo originó, así que lo miré con lupa: **¿promete la spec algo que su
+guardia no vigila?**
+
+**La redacción como propiedad es correcta, y es mejor que una lista.** El criterio que fija —*no
+entregar a la acción un nombre con un carácter que su shell interpretaría*— es el invariante
+real; la lista de tres es su consecuencia. Y la spec lo dice con todas las letras: *«esa cifra es
+el resultado de hoy, no el criterio»*. Eso es lo correcto: una spec que congelara «excluye `$`,
+backtick y comilla» quedaría caduca y **con aspecto de cumplida** el día que la acción cambiara
+de entrecomillado.
+
+**Qué vigilan de verdad los cuatro casos** — los repasé uno a uno:
+
+| Lo que dice CA-4.5 | ¿Lo vigila el test? |
+|---|---|
+| La lista sale de cruzar dos hechos, no se fija a mano | **A medias, y es el único punto**: el lado de **git** se re-deriva en cada ejecución (`git check-ref-format`, caso 4.5a) — si git aflojara, rojo, no silencio. El lado de la **acción** (`ESPECIALES_EN_COMILLAS = ['$','`','\\','"']`) es una **constante escrita a mano** |
+| El filtro se aplica a la **misma expresión** que alimenta `branch` | ✅ 4.5b la extrae de `with.branch` y exige el `!contains` sobre ella: cambiar la fuente sin mover el filtro pinta rojo |
+| Se **suma** a la condición de fork, no la sustituye; y nada de cláusulas de adorno | ✅ 4.5c exige la condición de fork y cuenta **exactamente tres** `&&` |
+| Ningún step lleva su propio `if` que salte el del job | ✅ 4.5d |
+
+**Veredicto: no hay promesa hueca — hay una mitad inherentemente no vigilable desde el
+repositorio, y la spec la declara.** Textualmente: *«si cambiara el otro lado … el conjunto
+correcto sería otro … quien toque esto sin rehacer la derivación estará copiando un resultado
+caduco»*. Eso es honesto y suficiente.
+
+**Pero le pongo una pega precisa, y es la misma de siempre con otra cara.** Ese aviso está
+dirigido a *«quien toque esto»* — y el modo de fallo real **no requiere que nadie toque nada**:
+la acción está clavada a **`@v3`, un tag móvil**. El lado que la guardia no vigila puede cambiar
+**solo**, bajo un fichero que nadie ha editado, y el aviso no le habla a nadie. Hoy el riesgo es
+teórico (comprobé que `v3` sigue en `4468d825…`, sin moverse desde la ronda 1).
+
+→ Esto **eleva O-1 de manía a algo con función**: clavar la acción a su SHA no es higiene de
+supply-chain, es **lo que hace verdadero el descargo de CA-4.5** — convierte *«puede cambiar
+solo»* en *«solo cambia si alguien edita el fichero»*, que es justo el lector al que el aviso se
+dirige. Exige enmendar CA-3.1, así que **no es de esta spec**; queda como follow-up con ese
+argumento nuevo.
+
+*Nota menor de precisión*: `FOUNDATION.md` cita el caso 4.5 como molde de *«vuelve a derivar en
+vez de escribirla»*. Es verdad **de una de las dos mitades**. Buen molde igualmente; la cita se
+queda un poco por encima de lo que el caso hace.
+
+#### El borrado del caso 1.4 — legítimo, y no se perdió cobertura
+
+Lo comprobé antes de aceptarlo:
+
+- **Lo que afirmaba era del momento de la entrega, no del sistema**: leía el blob del limpiador
+  en `origin/main` y exigía que la lectura **fallara**. Al mergear la PR #45 el blob entró en
+  `origin/main`, así que la aserción pasó a ser **permanentemente falsa**. No es un test que
+  pueda volver a pasar: es un test muerto.
+- **Las alternativas eran peores.** Clavar la base a un SHA anterior lo convierte en arqueología
+  que no puede fallar nunca; envolverlo en un `skipIf` es **aflojar**, que es justo lo que la
+  convención nueva prohíbe. **Borrar era la única salida honesta.**
+- **Cobertura**: lo durable de CA-1 sigue entero. Los **dos** casos byte a byte contra
+  `origin/main` siguen ahí (y los verifiqué por hash en la ronda 2); **1.2** sigue exigiendo que
+  `.github/workflows/` contenga **exactamente** los tres ficheros, y **1.3** que el `name` del
+  limpiador difiera del de los otros dos. Lo que 1.4 protegía —*«no es una copia de otro»*— lo
+  siguen cubriendo 1.2, 1.3 y la identidad byte a byte de los otros dos. **No se perdió nada.**
+- Y **queda el epitafio en el sitio**, con el motivo y el id (`F-SPEC-042-9`). Eso importa más
+  que el borrado: el próximo que lea el fichero sabrá por qué hay un hueco.
+
+#### La convención de `FOUNDATION.md` — describe bien lo que este proyecto ya hacía
+
+Verifiqué los **tres moldes** que cita, porque una convención que inventa precedentes es peor que
+ninguna:
+
+- `tests/deploy-gate-workflow.test.ts` acota su ventana de diff a su propia entrega — **existe**:
+  `const BASE = 'de3a6ee'` y `const HASTA = '0d389c8'`, no `HEAD`.
+- `tests/spec-032-frontera.test.ts` pasó de un **recuento** a **nombre y orden** — **existe**: la
+  lista literal de las nueve migraciones, `'0000_real_tusk.sql'` … `'0008_puzzling_eddie_brock.sql'`.
+- El caso 4.5 re-deriva preguntándole a git — **existe** (con el matiz de arriba).
+
+Los tres son reales y están descritos con exactitud. La regla que destila —*un test de frontera
+fija una propiedad, no un estado del árbol*— es la generalización correcta de lo que ya se hacía,
+y las dos salidas legítimas (**re-encuadrar** o **borrar**, nunca **aflojar**) son el reparto
+correcto. Añade además algo que yo no había formulado y que vale por sí solo: **«quien lo toca no
+es quien se beneficia»** — un implementador no ablanda en silencio la guardia que le está
+fallando. Eso es gobierno, no estilo. Cierra `F-SPEC-034-6` con fundamento.
+
+#### Lo que verifiqué de nuevo, por si la ronda había roto algo
+
+- **El workflow no se ha tocado desde el merge**: `git diff ad7ad3b..HEAD -- .github/workflows/`
+  está **vacío**. Los CA-1…CA-6 que di por buenos siguen apoyados en el mismo fichero.
+- **`continue-on-error` no existe en ningún workflow** (la única coincidencia es un comentario de
+  `deploy-gate.yml` que dice que no lo lleva). CA-5.5 intacto, como el runbook afirma.
+- **Las specs de SPEC-034 y SPEC-036 no se han tocado**; sus ledgers sí, y solo en la sección de
+  residuales. La enmienda de la spec de SPEC-042 es **aditiva**: corrige por nota fechada y
+  tachado, sin reescribir la historia — que es la forma correcta de enmendar un documento
+  aprobado.
+
+#### Qué queda abierto (nada bloquea)
+
+- **`F-SPEC-042-8`** — el rojo cuando no hay nada que borrar. Declarado con frecuencia medida,
+  regla de lectura y dos salidas. La barata —issue *upstream* pidiendo idempotencia— **sigue sin
+  abrirse**: cuesta cero y no toca ningún CA.
+- **`F-SPEC-042-7`** — ramas con `$`, backtick o `"` no se limpian, en silencio. Ahora es el
+  coste declarado de CA-4.5, que es mejor sitio del que tenía.
+- **O-1 / clavar `@v3` al SHA `4468d825…`** — con el argumento nuevo de arriba: es lo que hace
+  verdadero el descargo de CA-4.5. Exige enmendar CA-3.1.
+- **`F-SPEC-042-9`** — cerrado con el borrado y su epitafio.
+- **`F-SPEC-028-2` mitad 1** — el techo sigue en 10; el panel, en 5. La **mitad 2 se cierra
+  aquí**: es lo que CA-8 demostró.
+- **SPEC-036 R-1 punto 1** — la sonda del `fetchFunction` sigue sin estar en `tests/`. Ajeno a
+  esta spec.
+
+#### Estado
+
+**`hecho`.** Los diez CA están cerrados con evidencia: siete verificables en el repositorio, y
+tres —CA-8, CA-9, CA-10— con log de producción, run id y salida literal. El observable central de
+la spec **se ha visto**: una rama de Neon creada por Vercel a las 12:45 y barrida sola a las
+12:57, sin que nadie se acordara de nada.
+
+---
 
 ### 🔴 CA-9 medido — la acción da ROJO ante una rama que no existe (2026-08-20)
 
