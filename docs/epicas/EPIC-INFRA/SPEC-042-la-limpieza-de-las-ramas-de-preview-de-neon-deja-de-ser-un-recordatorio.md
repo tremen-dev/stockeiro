@@ -9,6 +9,8 @@ historial:
   - {estado: aprobada, fecha: 2026-08-20, por: humano (Alberto Fojo)}
   - {estado: en-progreso, fecha: 2026-08-20, por: sdd-implementador}
   - {estado: en-revision, fecha: 2026-08-20, por: sdd-implementador}
+  - {estado: en-progreso, fecha: 2026-08-20, por: sdd-orquestador}
+  - {estado: en-revision, fecha: 2026-08-20, por: sdd-implementador}
 ---
 # SPEC-042 — La limpieza de las ramas de preview de Neon deja de ser un recordatorio
 
