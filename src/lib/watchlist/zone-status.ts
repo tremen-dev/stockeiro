@@ -21,6 +21,18 @@ export interface ZoneStatusView {
   micCode: string | null;
   /** Etiqueta de tipo del proveedor (SPEC-029 CA-13); NULL = no lo sabemos. */
   instrumentType: string | null;
+  /**
+   * **Nombre del activo** (SPEC-041 CA-1): el *instrument_name* del proveedor tal como
+   * lo guardó el buscador («Industria de Diseño Textil SA»). Es metadato informativo,
+   * como el tipo de instrumento: identifica para el humano, pero la IDENTIDAD del
+   * símbolo sigue siendo `(ticker, micCode)` (ADR-007) y el nombre no entra en ningún
+   * cálculo, ni en la petición de cotizaciones, ni en ninguna clave.
+   *
+   * NULL en los símbolos que se crearon sin él. Y NULL se queda: no hay backfill en
+   * esta spec (§Fuera de alcance) ni se inventa un sustituto — la celda muestra sólo el
+   * ticker (CA-3), la misma honestidad que ya aplican *Mercado* y *Tipo de instrumento*.
+   */
+  name: string | null;
   currency: string;
   buyMin: string | null;
   buyMax: string | null;
@@ -68,6 +80,9 @@ export async function zoneStatusForUser(db: Db, userId: string): Promise<ZoneSta
       ticker: symbols.ticker,
       micCode: symbols.micCode,
       instrumentType: symbols.instrumentType,
+      // SPEC-041 CA-1: UNA columna más en el `select`, ninguna columna más en la base.
+      // El dato ya estaba; lo que faltaba era pedirlo.
+      name: symbols.name,
       currency: symbols.currency,
       buyMin: watchedSymbols.buyMin,
       buyMax: watchedSymbols.buyMax,
