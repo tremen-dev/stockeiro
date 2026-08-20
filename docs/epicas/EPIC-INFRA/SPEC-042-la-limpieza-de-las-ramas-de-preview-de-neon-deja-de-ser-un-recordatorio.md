@@ -2,10 +2,11 @@
 id: SPEC-042
 tipo: spec
 epica: EPIC-INFRA
-estado: borrador
-aprobada-por:
+estado: aprobada
+aprobada-por: humano (Alberto Fojo)
 historial:
   - {estado: borrador, fecha: 2026-08-20, por: sdd-arquitecto}
+  - {estado: aprobada, fecha: 2026-08-20, por: humano (Alberto Fojo)}
 ---
 # SPEC-042 — La limpieza de las ramas de preview de Neon deja de ser un recordatorio
 
