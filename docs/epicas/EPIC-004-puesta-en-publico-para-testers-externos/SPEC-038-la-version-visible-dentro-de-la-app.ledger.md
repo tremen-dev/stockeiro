@@ -142,13 +142,15 @@ comprueban ahora algo que **no puede caducar**.
 **Estado: implementación completa, spec en `en-revision`, lista para el verificador.**
 
 Rama `ft/SPEC-038-la-version-visible-dentro-de-la-app`, salida de `origin/main` (`31bb01b`),
-**cuatro commits**:
+**seis commits**:
 
 1. `b577637` — el semver entra en el contrato de la identidad (CA-3, CA-6, CA-8).
 2. `852a9d6` — el gate de CI y el `npm version minor` a **0.2.0** (CA-12, CA-13, CA-14).
 3. `cdbc314` — re-encuadre de las dos guardias del listado de `scripts/`.
 4. `587778c` — la versión en el pie, el módulo de presentación, el grafo de imports y
    F-SPEC-038-7 (CA-1, CA-2, CA-4, CA-5, CA-7, CA-9, CA-10, CA-11).
+5. `be293c1` — el contrato de cuatro claves en el e2e de `/api/version`, y este ledger.
+6. `ebc61de` — la spec a `en-revision`.
 
 **Dónde mirar primero si algo se pone rojo:**
 
