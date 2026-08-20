@@ -107,6 +107,14 @@ jobs:
     #    de Neon huérfana (`F-SPEC-042-7`). No limpiar una rama cuesta un hueco de
     #    los diez del techo; ejecutar código con la única clave de borrado del
     #    proyecto cuesta el proyecto.
+    #
+    #    Este fail-closed es de los que NO avisan, y su silencio no es el que uno
+    #    se imagina: `pull_request: [closed]` no filtra por rama ni por ruta, así
+    #    que el evento SÍ crea la ejecución y este `if` se evalúa después, a nivel
+    #    de job. En Actions aparece una ejecución completada, en gris, con
+    #    conclusión `skipped` y el job sin un solo paso. La señal no es que falte
+    #    la ejecución: es que la ejecución no hizo nada. Ver docs/despliegue.md
+    #    §13.3, donde está escrito para quien diagnostique.
     if: >-
       github.event.pull_request.head.repo.full_name == github.repository
       && !contains(github.head_ref, '$')
@@ -143,7 +151,8 @@ jobs:
       #
       # Las dos entradas de ops NO viven en el repositorio y son F-SPEC-042-1 y
       # F-SPEC-042-2 (docs/despliegue.md §13). Si faltan, esto da rojo: es
-      # fail-closed, igual que `ALLOW_MIGRATE` (ADR-018 D-3).
+      # fail-closed Y EN ROJO, igual que `ALLOW_MIGRATE` (ADR-018 D-3) — el
+      # contrario del fail-closed del filtro de arriba, que es silencioso.
       #
       # Sin tolerancia al fallo, sin encadenados que se traguen el código de
       # salida y sin condición de cortesía (CA-5.5): un fallo del borrado TIENE

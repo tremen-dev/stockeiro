@@ -1040,14 +1040,23 @@ despliegue de Preview y no el merge—. Es la vía que recomienda Neon
   4.5 se la vuelve a preguntar a git en cada ejecución de la suite.
 - **Y lo que el filtro cuesta**, porque es un hueco nuevo y no una victoria limpia: una PR cuya
   rama contenga uno de esos tres caracteres **no se limpia**, y su rama de Neon **queda
-  huérfana** hasta que alguien la borre a mano (`F-SPEC-042-7`). Es *fail-closed* a propósito: no
-  barrer una rama cuesta uno de los diez huecos del techo; ejecutar código con esa clave cuesta
-  el proyecto. En este repositorio los nombres de rama los generan **agentes** a partir de
-  títulos de spec, así que un `$` puede llegar ahí **sin ninguna malicia**: si una PR cerrada no
-  aparece en Actions, mire el nombre de su rama antes de buscar en otro sitio.
+  huérfana** hasta que alguien la borre a mano (`F-SPEC-042-7`). Es *fail-closed* **y en
+  silencio** —de los dos *fail-closed* de este apartado es el que **no avisa**; el otro, dos
+  viñetas más abajo, pinta rojo—: no barrer una rama cuesta uno de los diez huecos del techo;
+  ejecutar código con esa clave cuesta el proyecto. En este repositorio los nombres de rama los
+  generan **agentes** a partir de títulos de spec, así que un `$` puede llegar ahí **sin ninguna
+  malicia**.
+- **Cómo se diagnostica ese silencio**, porque no es el silencio que uno se imagina: el
+  disparador `pull_request: [closed]` **no filtra por rama ni por ruta**, así que el evento **sí
+  crea la ejecución** —el `if` se evalúa después, **a nivel de job**—. En Actions **aparece** una
+  ejecución completada, en **gris**, con conclusión `skipped` y el job **sin un solo paso**. No
+  pinta rojo, no bloquea nada y de un vistazo se pasa por buena; `skipped` es un estado listable
+  de la API de ejecuciones de GitHub (`/actions/runs?status=skipped`), no una ausencia. Así que
+  **la señal no es que falte la ejecución, sino que la ejecución no hizo nada**: si una PR cerrada
+  dejó una ejecución sin trabajo hecho, el primer sitio donde mirar es el nombre de su rama.
 - **Qué necesita**: las acciones de ops **7** y **8** de la tabla de arriba. Si faltan, el
-  workflow da **rojo** en el primer cierre de PR: es *fail-closed* a propósito, igual que
-  `ALLOW_MIGRATE`.
+  workflow da **rojo** en el primer cierre de PR: es *fail-closed* **y en rojo**, igual que
+  `ALLOW_MIGRATE`. Es el contrario del hueco del filtro: **este sí avisa**, aquel no.
 - **Qué no hace**: no corre para PRs de un **fork** (`F-SPEC-042-5`) —darles servicio exigiría el
   disparador que entrega secretos a código de terceros, y este repositorio es público—, no vigila
   cuántas ramas quedan, y no barre lo ya acumulado: actúa sobre PRs que se cierren **a partir de
