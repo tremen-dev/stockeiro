@@ -2,11 +2,12 @@
 id: SPEC-038
 tipo: spec
 epica: EPIC-004
-estado: aprobada
+estado: en-progreso
 aprobada-por: humano (Alberto Fojo)
 historial:
   - {estado: borrador, fecha: 2026-08-19, por: sdd-arquitecto}
   - {estado: aprobada, fecha: 2026-08-19, por: humano (Alberto Fojo)}
+  - {estado: en-progreso, fecha: 2026-08-20, por: sdd-implementador}
 ---
 # SPEC-038 — La versión visible dentro de la app
 
