@@ -1,4 +1,4 @@
-import { describe, it, expect } from 'vitest';
+import { describe, it, expect, afterEach, vi } from 'vitest';
 import { execFile } from 'node:child_process';
 import { createServer, type IncomingMessage, type ServerResponse } from 'node:http';
 import { readFileSync, existsSync } from 'node:fs';
@@ -80,6 +80,29 @@ function identityServer(commit: string, extra: Record<string, unknown> = {}) {
     );
   };
 }
+
+/**
+ * El cuerpo que sirve HOY `/api/version`, producido por el manejador de verdad.
+ *
+ * No se escribe a mano: se importa la ruta con el canal de build fijado y se lee lo
+ * que responde. Así el caso de extremo a extremo de CA-15.1 no puede quedarse
+ * probando una forma que la app ya no sirva — que es exactamente cómo esta suite
+ * estuvo en verde mientras la puerta post-despliegue se rompía.
+ */
+async function cuerpoRealDeApiVersion(commit: string): Promise<Record<string, unknown>> {
+  process.env.STOCKEIRO_VERSION = '0.2.0';
+  process.env.STOCKEIRO_COMMIT = commit;
+  process.env.STOCKEIRO_ENVIRONMENT = 'production';
+  process.env.STOCKEIRO_BUILT_AT = '2026-08-21T09:30:00.000Z';
+  vi.resetModules();
+  const { GET } = await import('@/app/api/version/route');
+  return (await (await GET()).json()) as Record<string, unknown>;
+}
+
+const entornoOriginal = { ...process.env };
+afterEach(() => {
+  process.env = { ...entornoOriginal };
+});
 
 // ---------------------------------------------------------------------------
 
@@ -380,12 +403,129 @@ describe('SPEC-031 CA-11: `unknown` tiene su propio rojo', () => {
     }
   });
 
-  it('200 con claves de MÁS también es 3: el contrato es exacto', async () => {
-    const toy = await toyServer(identityServer(SHA, { cycle: 'ayer' }));
+  it('200 con JSON al que le falta EL COMMIT -> 3', async () => {
+    // El simétrico que CA-15.1 exige que siga en rojo: sin `commit` no hay nada
+    // que comparar, y decir "vivo" sobre eso sería peor que no comprobar nada.
+    const toy = await toyServer((_req, res) => {
+      res
+        .writeHead(200, { 'content-type': 'application/json' })
+        .end(JSON.stringify({ environment: 'production', builtAt: '2026-08-18T09:30:00.000Z' }));
+    });
     try {
       expect((await run(['--url', toy.origin, '--commit', SHA, '--timeout', '2'])).code).toBe(3);
     } finally {
       await toy.close();
+    }
+  });
+
+  it('200 con `commit` que no es una cadena -> 3', async () => {
+    // El otro simétrico. La guardia mira el TIPO y no solo la presencia: un
+    // `commit: null` "está" y no sirve para nada.
+    const toy = await toyServer((_req, res) => {
+      res.writeHead(200, { 'content-type': 'application/json' }).end(
+        JSON.stringify({
+          commit: null,
+          environment: 'production',
+          builtAt: '2026-08-18T09:30:00.000Z',
+        }),
+      );
+    });
+    try {
+      const { code, stderr } = await run(['--url', toy.origin, '--commit', SHA, '--timeout', '2']);
+      expect(code).toBe(3);
+      expect(stderr).toMatch(/contrato|ininteligible/i);
+    } finally {
+      await toy.close();
+    }
+  });
+
+  /**
+   * Aquí vivía `200 con claves de MÁS también es 3: el contrato es exacto`.
+   *
+   * **Re-encuadrado el 2026-08-21 por SPEC-038 CA-15.1**, firmado en el gate por el
+   * humano. Qué afirmaba antes: que el conjunto de claves del cuerpo fuera
+   * EXACTAMENTE `{builtAt, commit, environment}`. Qué afirma ahora, en el bloque de
+   * abajo: que el script acepte el cuerpo cuando trae lo que necesita, **traiga
+   * además otras claves o no**, y que lo siga rechazando cuando le falta una o no es
+   * del tipo esperado — los dos casos de aquí arriba, que son nuevos.
+   *
+   * Por qué no se afloja sino que se re-encuadra: aquella igualdad exacta no fijaba
+   * una propiedad, fijaba **el estado del contrato el día de la entrega**. ADR-024
+   * aprobó que `/api/version` ganara `version` y esta guardia leyó ese crecimiento
+   * como avería —salida 3, y *ininteligible* no reintenta— sobre un despliegue
+   * perfectamente vivo. Es el antipatrón que FOUNDATION § *Cómo se trabaja aquí*
+   * proscribió el 2026-08-20, cobrado esta vez fuera de un test: no pintaba rojo en
+   * la PR, pintaba rojo DESPUÉS del merge, en la puerta que dice si el despliegue
+   * está vivo.
+   */
+});
+
+describe('SPEC-038 CA-15.1: la guardia del contrato fija una propiedad, no una foto', () => {
+  it('una clave que el script NO conoce se ignora, y llega a comparar el commit', async () => {
+    // La clave es INVENTADA a propósito, **no** `version`. Probarlo con `version`
+    // demostraría que alguien se acordó de meterla en una lista —que es justo el
+    // mantenimiento a mano que este CA existe para eliminar—; con un nombre que
+    // nadie va a añadir nunca, este caso NO hay que volver a tocarlo cuando el
+    // contrato gane una quinta clave, y por tanto no puede volver a caducar.
+    const toy = await toyServer(identityServer(SHA, { unaClaveQueNadieVaAAnadirJamas: 'x' }));
+    try {
+      const { code, stdout } = await run(['--url', toy.origin, '--commit', SHA, '--timeout', '2']);
+      expect(code).toBe(0);
+      // Y no la ha "aceptado mirando para otro lado": ha llegado a comparar.
+      expect(stdout).toContain(SHA);
+    } finally {
+      await toy.close();
+    }
+  });
+
+  it('con una clave desconocida, un commit que NO coincide sigue siendo 1', async () => {
+    // La otra mitad de "llega a comparar": tolerar el exceso no puede convertir el
+    // veredicto en un verde automático.
+    const toy = await toyServer(identityServer(OTRO_SHA, { loQueSea: 42 }));
+    try {
+      expect((await run(['--url', toy.origin, '--commit', SHA, '--timeout', '2'])).code).toBe(1);
+    } finally {
+      await toy.close();
+    }
+  });
+
+  it('el cuerpo REAL de la app de hoy —cuatro claves— sale con 0', async () => {
+    // De extremo a extremo, y sin inventarse la forma: el cuerpo lo produce el
+    // manejador de `/api/version` de verdad. Es el escenario que ANTES de esta
+    // enmienda salía con **3** y habría puesto roja la puerta post-despliegue en el
+    // primer merge de esta rama, sobre un despliegue perfectamente vivo.
+    const cuerpo = await cuerpoRealDeApiVersion(SHA);
+    expect(Object.keys(cuerpo).sort()).toEqual(['builtAt', 'commit', 'environment', 'version']);
+
+    const toy = await toyServer((req, res) => {
+      if (req.url !== '/api/version') {
+        res.writeHead(404).end();
+        return;
+      }
+      res.writeHead(200, { 'content-type': 'application/json' }).end(JSON.stringify(cuerpo));
+    });
+    try {
+      const { code, stdout } = await run(['--url', toy.origin, '--commit', SHA, '--timeout', '2']);
+      expect(code, stdout).toBe(0);
+    } finally {
+      await toy.close();
+    }
+  });
+
+  it('y el semver NO participa: el veredicto lo decide el commit (ADR-024 pto. 11)', async () => {
+    // Dos cuerpos con el MISMO semver y distinto commit: uno coincide y el otro no.
+    // Si el script mirase el semver, los dos darían lo mismo — y RI-02 dejaría de
+    // significar "este despliegue viene de este merge".
+    const igual = await toyServer(identityServer(SHA, { version: '0.2.0' }));
+    const distinto = await toyServer(identityServer(OTRO_SHA, { version: '0.2.0' }));
+    try {
+      expect((await run(['--url', igual.origin, '--commit', SHA, '--timeout', '2'])).code).toBe(0);
+      expect((await run(['--url', distinto.origin, '--commit', SHA, '--timeout', '2'])).code).toBe(
+        1,
+      );
+    } finally {
+      await igual.close();
+      await distinto.close();
     }
   });
 });
