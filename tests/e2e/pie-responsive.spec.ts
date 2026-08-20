@@ -1,4 +1,5 @@
 import { test, expect, type Page } from '@playwright/test';
+import { ANCHOS, ponerVentana } from './geometria';
 
 /**
  * SPEC-035 CA-17 (no degradar lo entregado) — la GEOMETRÍA del pie compartido,
@@ -41,12 +42,17 @@ import { test, expect, type Page } from '@playwright/test';
  * cambie el `padding`. Si `flex-basis` vuelve a interpretarse como altura, el hueco
  * reaparece y esta comprobación se pone roja.
  *
- * Los anchos son los del finding: 390 (móvil), 640 y 700 (por debajo del breakpoint
- * de 720), 760 (justo por encima) y 1280 (escritorio, la referencia).
+ * ## De dónde salen los anchos (SPEC-040 / ADR-026 §3)
+ *
+ * Ya no los declara este fichero. Los anchos de referencia son **del proyecto** y viven
+ * en `tests/e2e/geometria.ts`: a los cinco del finding de SPEC-035 (390, 640, 700, 760,
+ * 1280) se les sumaron **730 y 800** —el tramo donde vivía `V-SPEC-039-3`, que ninguna
+ * guardia miraba porque caía justo entre dos anchos medidos— y **360**, el suelo que
+ * fijó el humano en el gate del 2026-08-20.
+ *
+ * Lo que este fichero AFIRMA no cambia: sigue siendo suyo el factor del pie, la holgura
+ * del descargo y el eje declarado. Lo que se comparte es **cómo se mide**.
  */
-
-/** Anchos de referencia. 720 px es el breakpoint del sistema de diseño. */
-const ANCHOS = [390, 640, 700, 760, 1280] as const;
 
 /** Alto máximo del pie en móvil respecto al de escritorio. */
 const FACTOR_MAXIMO = 2.2;
@@ -74,7 +80,7 @@ type Medida = {
  * mientras su texto ocupa 39.
  */
 async function medirPie(page: Page, ancho: number): Promise<Medida> {
-  await page.setViewportSize({ width: ancho, height: 900 });
+  await ponerVentana(page, ancho);
   await page.locator('footer.app-footer').waitFor({ state: 'visible' });
 
   return {
