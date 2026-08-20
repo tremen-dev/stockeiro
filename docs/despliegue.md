@@ -1016,13 +1016,35 @@ Sus dos techos, declarados como **F-SPEC-028-2**:
 o no —una PR cerrada sin mezclar deja exactamente la misma rama huérfana, porque la creó el
 despliegue de Preview y no el merge—. Es la vía que recomienda Neon
 (<https://neon.com/docs/guides/vercel-branch-cleanup>), y consume
-`neondatabase/delete-branch-action@v3` con tres entradas y ni una línea de shell.
+`neondatabase/delete-branch-action@v3` con tres entradas.
 
 - **Qué borra, y solo eso**: `preview/${{ github.head_ref }}`. El prefijo `preview/` va
-  **literal** en el YAML, delante de la interpolación. Eso es lo que acota el peor caso
-  alcanzable desde el fichero a *"borré una preview que no tocaba"* — **no** el alcance de la
-  credencial: una clave de Neon, incluso acotada al proyecto, **puede borrar cualquier rama**.
-  El fichero, además, **no nombra ninguna rama fija** y **no tiene ni un `run:`**.
+  **literal** en el YAML, delante de la interpolación, y el fichero **no nombra ninguna rama
+  fija**. Eso acota **qué se pide borrar**; lo que **no** acota es el alcance de la credencial:
+  una clave de Neon, incluso acotada al proyecto, **puede borrar cualquier rama**.
+- **Cuidado con el argumento "no tiene ni un `run:`"**, que este runbook llegó a dar por bueno
+  el 2026-08-20 y **es falso a medias**. Es cierto que el workflow no ejecuta ni una línea de
+  shell **nuestra**, y eso quita un sitio donde el secreto pudiera acabar en un log. Pero
+  `neondatabase/delete-branch-action` es una ***composite action***: su paso final es un
+  `shell: bash` que interpola el nombre de rama **textualmente** —dos veces, y con la clave de
+  la API en el entorno de ese paso—, así que `github.head_ref` **sí llega a un intérprete de
+  comandos**. Dentro de comillas dobles bash expande `$(…)` y las backticks sin necesidad de
+  romper la comilla, y git **acepta** esos caracteres en un nombre de rama. Sin filtro, el peor
+  caso alcanzable no era *"borré una preview que no tocaba"* sino **ejecución de comandos con la
+  única clave con permiso de borrado del proyecto**.
+- **Lo que sí acota el peor caso**: el **filtro de caracteres** que el job aplica al nombre de
+  rama antes de dárselo a la acción. Son tres —`$`, la backtick y la comilla doble—, que son los
+  únicos a los que bash reacciona dentro de comillas dobles y que git deja pasar en una ref (la
+  barra invertida, el cuarto, git ya la rechaza). Con el filtro puesto, el peor caso vuelve a ser
+  *"borré una preview que no tocaba"*. La derivación no se cree: `tests/neon-preview-cleanup-workflow.test.ts`
+  4.5 se la vuelve a preguntar a git en cada ejecución de la suite.
+- **Y lo que el filtro cuesta**, porque es un hueco nuevo y no una victoria limpia: una PR cuya
+  rama contenga uno de esos tres caracteres **no se limpia**, y su rama de Neon **queda
+  huérfana** hasta que alguien la borre a mano (`F-SPEC-042-7`). Es *fail-closed* a propósito: no
+  barrer una rama cuesta uno de los diez huecos del techo; ejecutar código con esa clave cuesta
+  el proyecto. En este repositorio los nombres de rama los generan **agentes** a partir de
+  títulos de spec, así que un `$` puede llegar ahí **sin ninguna malicia**: si una PR cerrada no
+  aparece en Actions, mire el nombre de su rama antes de buscar en otro sitio.
 - **Qué necesita**: las acciones de ops **7** y **8** de la tabla de arriba. Si faltan, el
   workflow da **rojo** en el primer cierre de PR: es *fail-closed* a propósito, igual que
   `ALLOW_MIGRATE`.
@@ -1043,10 +1065,25 @@ de enterarse es este párrafo y no ese día.
 
 **Lo que aún no se sabe**, dicho en vez de inventado: el README de la acción **no documenta qué
 pasa ante una rama que ya no existe** —ni falla ni no-falla—. Hay PRs que se cierran sin haber
-tenido nunca preview, y hay cierres dobles. Se mide en el primer cierre real (SPEC-042 CA-9) y el
-veredicto —verde o rojo, y con qué mensaje— se escribe **aquí**. Hasta entonces el workflow va
-**sin** red de seguridad a propósito: tapar un fallo que aún no se ha medido cambia un problema
-conocido por uno invisible.
+tenido nunca preview, y hay cierres dobles. Es SPEC-042 CA-9, y el veredicto —verde o rojo, y con
+qué mensaje— se escribe **aquí**.
+
+**No hace falta esperar a cerrar una PR para saberlo.** La pregunta no necesita un cierre real:
+necesita la credencial, y la credencial ya existe (acciones de ops **7** y **8**). Un solo
+comando la responde, sin tocar nada, y conviene correrlo **antes** de mezclar:
+
+```bash
+neonctl branches delete preview/no-existe-jamas --project-id orange-lab-24079923
+```
+
+- **Si sale verde**: la acción se traga la rama inexistente, el limpiador no dará falsos rojos y
+  no hay nada que decidir. Se anota aquí y se cierra CA-9.
+- **Si sale rojo** —que es lo esperable, porque `neonctl` tiene que resolver el nombre a un id—:
+  este limpiador pintará **rojo en toda PR que se cierre sin haber tenido preview**. Hay que
+  saberlo **antes** de mezclar, no después del primer falso rojo, y se abre follow-up en el acto.
+  Lo que **no** se hace ni entonces ni ahora es taparlo preventivamente con una red de seguridad
+  (SPEC-042 CA-5.5): tapar un fallo que aún no se ha medido cambia un problema conocido por uno
+  invisible.
 
 #### Y lo que NO arregla, para que nadie lo confunda
 
