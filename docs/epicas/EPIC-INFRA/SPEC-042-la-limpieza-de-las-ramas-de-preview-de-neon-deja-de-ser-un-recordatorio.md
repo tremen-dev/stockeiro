@@ -538,5 +538,65 @@ repositorio. El patrón es el de `F-SPEC-032-2` — el **acto** es ops, el **efe
   habrá que decidir entonces. → EPIC-INFRA.
 - **F-SPEC-042-6 — La rama `preview` suelta del panel, creada a mano.** Ni la creó Vercel ni
   la borra este workflow. Ocupa techo. Decidir si sobra es ops. → ops.
-- **Hereda de SPEC-028: F-SPEC-028-2, mitad 1 — el techo de 10 ramas del plan Free.** No se
-  cierra aquí (R-6). La mitad 2 sí la cierra esta spec.
+Añadido el 2026-08-20, al medirse CA-9 *(`F-SPEC-042-7` lo declaró el implementador en el
+ledger, y allí vive: las ramas con `$`, backtick o comilla doble no se limpian, y en silencio)*:
+
+- **F-SPEC-042-8 — El limpiador da rojo en toda PR que se cierre sin una rama de preview que
+  borrar.**
+  *Qué es, medido y no supuesto*: el 2026-08-20 se re-ejecutó `32371568962` sobre la rama ya
+  borrada. Salida **1**, con los pasos de instalación en verde y el de borrado en rojo — es la
+  acción respondiendo, no un fallo de entorno:
+  ```
+  ERROR: Branch preview/ft/SPEC-042-limpieza-automatica-de-ramas-de-preview-en-neon not found.
+  Available branches: preview, main, preview/ft/SPEC-039-…, preview/ft/SPEC-040-…, preview/ft/SPEC-041-…
+  ```
+  Responde CA-9: la incógnita que el README dejaba abierta era **rojo**.
+  *Cuándo pasa de verdad, con el dato delante — y no es rutina*: tres disparadores, todos
+  manuales o excepcionales. **(1)** un *re-run* a mano; **(2)** reabrir una PR y volver a
+  cerrarla; **(3)** una PR cuya preview se borró a mano para desbloquear el techo. En el flujo
+  normal **siempre hay algo que borrar**: **0 de 43** PRs de este repositorio se han cerrado sin
+  mergear, y `vercel.json` no lleva `ignoreCommand` ni `ignoredBuildStep`, así que **toda rama
+  con PR recibe preview** y con ella su rama de Neon. El único rojo observado hasta hoy lo
+  provocó el propio *re-run* con el que se respondió CA-9.
+  *La regla de lectura, que es lo que este follow-up aporta de verdad*: un rojo de este workflow
+  puede ser **benigno** (`Branch <nombre> not found.`) o **grave** —clave caducada o revocada,
+  `project_id` equivocado, Neon caído, borrado fallido con la rama todavía viva— y **en Actions
+  se ven idénticos**: mismo check rojo, mismo step. Así que la regla es, literal:
+  > **Abre el log antes de encogerte de hombros.** La primera línea del error distingue los dos
+  > casos. Si dice `not found`, es benigno y se cierra ahí. Si dice **cualquier otra cosa**, las
+  > ramas se están acumulando otra vez —y eso es el incidente del 2026-08-19/20 volviendo a
+  > empezar, con el techo llenándose en silencio.
+
+  *Por qué NO se pone `continue-on-error`, con fecha, para que nadie lo reabra creyendo que
+  nadie lo pensó*: **se propuso el 2026-08-20 y se aprobó en el gate —y la decisión se revocó
+  el mismo día**, al llegar los dos datos de arriba. **CA-5.5 sigue vigente sin un cambio.** El
+  argumento que la revocó **no es la frecuencia, es la ambigüedad**: `continue-on-error` no
+  taparía solo el rojo benigno, taparía **los dos**, porque son indistinguibles desde fuera. Y
+  el que importa es el grave, precisamente porque su síntoma —ramas acumulándose— **no vuelve a
+  aparecer hasta que un despliegue de producción falla con `Branch limit reached`**, que es el
+  fallo que fundó esta spec. Cambiar un rojo raro y legible por un verde que miente es un mal
+  negocio a cualquier frecuencia. Quien vuelva aquí porque *"molesta"*: el rojo molesta tres
+  veces al año y el silencio cuesta un despliegue de producción.
+
+  *Las dos salidas limpias, ambas **fuera** de esta spec*:
+  1. **Abrir un issue en `neondatabase/delete-branch-action`** pidiendo idempotencia — una
+     entrada tipo `if-exists`, o salir **0** ante *not found*. **Cuesta cero, no toca ningún
+     CA y no necesita spec**: es el **sitio correcto del arreglo**, porque el defecto es de la
+     acción y no de nuestro workflow. Lento y fuera de nuestro control. **Es la que yo haría
+     primero.** *Qué la dispara*: nada — se puede abrir hoy. Si el *upstream* la acepta, esto
+     se reduce a subir de versión y el follow-up se cierra solo.
+  2. **Llamar a la API de Neon directamente** (`DELETE /projects/{id}/branches/{id}`) y tratar
+     el **404 como éxito**, distinguiéndolo del 401/403/5xx, que seguirían en rojo. Es el
+     arreglo de verdad —quita el ruido **sin** perder la señal, que es justo lo que
+     `continue-on-error` no sabe hacer— y el más caro: exige un `run:` propio, luego **enmienda
+     CA-4.3**, y **rehace a mano la superficie de shell que la ronda 2 cerró** (el nombre de
+     rama tendría que viajar por `env:` y no interpolado). **Spec nueva en EPIC-INFRA.**
+     *Qué la dispara*: que la vía 1 se estanque o la rechacen **y** el ruido deje de ser
+     excepcional — es decir, que alguno de los tres disparadores se vuelva rutina, o que el
+     recuento de PRs cerradas sin mergear deje de ser 0 de 43.
+  → EPIC-INFRA.
+
+Heredados:
+
+- **F-SPEC-028-2, mitad 1 — el techo de 10 ramas del plan Free.** No se cierra aquí (R-6). La
+  mitad 2 sí la cierra esta spec.
