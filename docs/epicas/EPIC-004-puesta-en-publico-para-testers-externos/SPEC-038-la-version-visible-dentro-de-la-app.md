@@ -2,11 +2,14 @@
 id: SPEC-038
 tipo: spec
 epica: EPIC-004
-estado: aprobada
+estado: hecho
 aprobada-por: humano (Alberto Fojo)
 historial:
   - {estado: borrador, fecha: 2026-08-19, por: sdd-arquitecto}
   - {estado: aprobada, fecha: 2026-08-19, por: humano (Alberto Fojo)}
+  - {estado: en-progreso, fecha: 2026-08-20, por: sdd-implementador}
+  - {estado: en-revision, fecha: 2026-08-20, por: sdd-implementador}
+  - {estado: hecho, fecha: 2026-08-20, por: sdd-verificador}
 ---
 # SPEC-038 — La versión visible dentro de la app
 
@@ -192,12 +195,90 @@ CI) con el mismo estilo de prueba que ya usan `tests/version-import-graph.test.t
   variables calculadas que vigila ese test pasa de tres a cuatro; el de claves configurables,
   de diez a diez.
 
-- **CA-15 (La puerta post-despliegue no cambia — RI-02, ADR-024 pto. 11).**
+- **CA-15 (La puerta post-despliegue sigue identificando por el commit — RI-02, ADR-024
+  pto. 11).** ⚠️ *enmendado el 2026-08-21 — leer el recuadro antes de implementarlo*
   Dado `scripts/check-alive.mjs`,
   cuando se ejecuta contra un despliegue,
   entonces sigue comprobando **`commit`** contra el sha del merge y **no** el semver: la
-  identidad del artefacto para *"hecho significa vivo"* sigue siendo el commit. El script
-  **no se modifica** y `tests/check-alive.test.ts` sigue verde sin tocar expectativas.
+  identidad del artefacto para *"hecho significa vivo"* sigue siendo el commit, y
+  `tests/check-alive.test.ts` sigue verde en todo lo que afirma sobre **esa comparación**.
+  ~~El script **no se modifica** y `tests/check-alive.test.ts` sigue verde sin tocar
+  expectativas.~~ **Retirado el 2026-08-21**: era una garantía falsa. Ver CA-15.1.
+
+  > ⚠️ **Enmienda del 2026-08-21 sobre CA-15 — lo que CA-15 protegía sigue exigiéndose
+  > entero; la cláusula *"el script no se modifica"* era una garantía falsa y se retira.**
+  >
+  > - **Qué exigía y sigue exigiendo, sin tocar una coma**: que la identidad que compara la
+  >   puerta de despliegue **siga siendo el commit y nunca el semver**. Dos despliegues
+  >   comparten semver y nunca comparten commit; mover esa comparación al semver vaciaría
+  >   **RI-02** de significado (ADR-024 pto. 11). Eso no se negocia.
+  > - **Qué se descubrió el 2026-08-21**: que *no tocar el script* **no era conservar la
+  >   puerta — era romperla**. `check-alive.mjs` valida la forma del cuerpo por **igualdad
+  >   exacta de conjunto**: `CONTRATO = ['builtAt','commit','environment']` (línea 44)
+  >   comparado con `claves.join(',') !== CONTRATO.join(',')` (línea 144). La cuarta clave
+  >   que **CA-3 y ADR-024 aprobaron añadir** hace que declare el cuerpo **ininteligible** —
+  >   y *ininteligible* no reintenta: sale de inmediato con **3**. Verificado ejecutando el
+  >   script contra un origen que sirve la respuesta real de hoy: `el cuerpo no es el
+  >   contrato {builtAt, commit, environment} (recibido: {builtAt, commit, environment,
+  >   version})`, `EXIT=3`. La puerta post-despliegue se pondría **roja en el primer merge
+  >   de esta rama**, y la tabla de `docs/despliegue.md §12.3` mandaría a mirar donde no es.
+  > - **Por qué ningún test lo cazó**: sus fixtures llevan tres claves, así que `check-alive`
+  >   se prueba contra un cuerpo que **ninguna versión de la app volverá a servir**. El
+  >   *"sigue verde sin tocar expectativas"* que CA-15 pedía como prueba era **el síntoma**,
+  >   no la garantía.
+  > - **Cómo apareció, que también es información**: escribiendo las dos filas de
+  >   `docs/fundacion/dominio.md` (F-SPEC-038-8), al contrastar contra el código la frase
+  >   *"`check-alive` mira el commit"* **antes** de canonizarla. Lo destapó **redactar el
+  >   glosario contra el código**, no un test — que es exactamente para lo que **ADR-025**
+  >   pone esa pluma en el gate y no al cierre.
+  > - **Qué NO cambia, y conviene decirlo entero**: el script sigue identificando por el
+  >   commit (arriba); `/api/version` sigue respondiendo **con la base de datos caída**, sin
+  >   dato personal, con los valores **congelados en el build** y con una **sentinela
+  >   distinguible** — lo que de **D-6 de ADR-018** reafirma por escrito **ADR-024 pto. 2**;
+  >   y de la puerta de despliegue no se toca **nada más**: ni el plazo, ni los códigos de
+  >   salida, ni el modo *smoke*, ni la semántica de `unknown`, ni `deploy-gate.yml`. Lo
+  >   único que se abre es la **guardia de forma**, y solo en la dirección de CA-15.1.
+
+- **CA-15.1 (La guardia del contrato fija una propiedad, no una foto: tolera que el contrato
+  crezca).** ⚠️ *declarado por enmienda el 2026-08-21, firmado en el gate por el humano*
+  Dado `scripts/check-alive.mjs`,
+  cuando recibe un cuerpo JSON que trae **las claves que el script necesita para hacer su
+  trabajo** —`commit`, `environment` y `builtAt`— con valores del tipo que espera,
+  entonces **lo acepta y sigue**, traiga además otras claves o no traiga ninguna;
+  y cuando le **falta** una de esas tres, o alguna no es una cadena, o la respuesta no es un
+  objeto JSON, entonces **lo sigue rechazando** como ininteligible, **con el mismo código de
+  salida y el mismo mensaje explicativo de hoy**.
+
+  *Rechazar por exceso era el defecto, no una tolerancia que se conceda ahora.* Un conjunto
+  **exacto** de claves congela **el estado del contrato el día de la entrega**, y es el mismo
+  antipatrón que **FOUNDATION § *Cómo se trabaja aquí*** proscribió el **2026-08-20**: *"un
+  test de frontera fija una propiedad, no un estado del árbol… caduca al mergear, no cuando
+  algo se rompe, y entonces pinta rojo sin defecto detrás"*. Caducó exactamente así — ADR-024
+  aprobó que el contrato creciera y la guardia leyó ese crecimiento como una avería. Aquí la
+  lección se cobra **fuera de un test**, en la guardia de un script de producción, y eso la
+  hace más cara: un test caduco pinta rojo **en la PR**; esto pinta rojo **después** del
+  merge, en la puerta que dice si el despliegue está vivo. **Subirla de tres a cuatro no
+  vale**: compra un año y se vuelve a romper igual el día que el contrato gane una quinta
+  clave.
+
+  *Qué NO es*: no es **aflojar hasta que pase**, que es la salida que FOUNDATION declara
+  ilegítima. Las dos mitades del CA son inseparables —se exige la tolerancia **y** se exige
+  el rechazo—, y la segunda es la que impide que *"tolerante"* acabe significando *"no
+  comprueba nada"*. El script no deja de validar: valida **lo que necesita**, que es lo que
+  siempre debió validar. Nótese que `version` **no** entra en esa lista: `check-alive` no lo
+  usa para nada, y meterlo lo ataría a un contrato que no le incumbe.
+
+  *Cómo se verifica —porque un CA sin forma verificable no es un CA—, y es un caso de test
+  explícito*: hay que pasarle un cuerpo con una clave **que el script no conoce y que nadie
+  va a añadir a ninguna lista** —un nombre inventado, **no** `version`— y exigir que la
+  **ignore** y llegue a comparar el commit. Probarlo con `version` **no demuestra la
+  propiedad**: demuestra que alguien se acordó de meter `version`, que es justo el
+  mantenimiento a mano que este CA existe para eliminar. Con una clave inventada, el caso
+  **no hay que volver a tocarlo** cuando llegue la quinta clave, y por tanto **no puede
+  volver a caducar**. Sus dos simétricos —falta `commit`, y `commit` no es una cadena—
+  tienen que seguir en rojo. Y al menos una comprobación **de extremo a extremo**: el script
+  ejecutado contra un origen que sirva **la respuesta real de cuatro claves**, saliendo con
+  **0** cuando el commit coincide — que es el escenario que hoy sale con 3.
 
 - **CA-16 (No degrada lo entregado).**
   Dada la suite existente,
@@ -259,7 +340,11 @@ Aparcado a propósito, no por descuido:
   comunica nada. La CI exige **que suba**, no decide **cuánto**.
 - **Cambiar cualquier otra cosa de `/api/version`**: prohibido por CA-3 y por **ADR-024**
   pto. 2, que reafirma las garantías de D-6 que **no** se tocan.
-- **Cambiar `scripts/check-alive.mjs` o la puerta de despliegue**: prohibido por CA-15.
+- **Cambiar la puerta de despliegue**: sigue prohibido. ~~Cambiar `scripts/check-alive.mjs`~~
+  **corregido el 2026-08-21**: de ese script se toca **una sola cosa**, la guardia de forma
+  del cuerpo, y **solo** como manda **CA-15.1**. Todo lo demás sigue fuera de alcance —el
+  plazo, los códigos de salida, el modo *smoke*, la semántica de `unknown`, la comparación
+  por commit y `deploy-gate.yml`—, y lo sigue amparando **CA-15**.
 - **Página "acerca de"** con detalle del despliegue, dependencias o licencias. El pie basta.
 - **Mostrar el estado del último ciclo junto a la versión.** Eso es **SPEC-037**;
   `/api/version` **no dice nada de ciclos** (frontera de SPEC-031) y el pie tampoco.
@@ -315,6 +400,38 @@ Aparcado a propósito, no por descuido:
   **No amplía el alcance**: cierra una promesa ya aprobada de EPIC-004 en lugar de dejarla
   rota. Si el implementador lo lee como alcance nuevo, **que no lo invente**: lo devuelve al
   gate humano y se decide allí.
+
+### Descubierto el 2026-08-21, al escribir el glosario (van en la misma ronda que CA-15.1)
+
+Los tres salieron de contrastar la spec contra **el código realmente entregado** para poder
+redactar F-SPEC-038-8. Ninguno es alcance nuevo: son afirmaciones de esta entrega que hoy no
+son ciertas.
+
+- **F-SPEC-038-13 (afirmación falsa en un documento de verdad).** La cabecera de
+  `src/app/api/version/route.ts` sigue diciendo *"Responde `{ commit, environment, builtAt }`
+  y nada más"* y *"devuelve tres constantes congeladas en el build"*. Con **CA-3** son
+  **cuatro**. El fichero **no tiene ni un byte de diff** contra `origin/main`, así que la
+  nota del ledger —*"sin cambio de código; sí de documentación"*— describe algo que no
+  ocurrió. No es cosmético: ese comentario es lo que lee quien vaya a tocar el endpoint, y
+  hoy le dice que el contrato es el de antes de ADR-024. **Qué hacer**: poner las cuatro
+  claves y el puntero a ADR-024, sin cambiar el código (CA-3 lo prohíbe) y sin repetir lo
+  que ya explica `identity.ts`.
+
+- **F-SPEC-038-14 (cifra citada mal, propiedad intacta).** **CA-14** dice que el juego de
+  claves de `.env.example` pasa *"de diez a diez"*; el ledger dice *"siguen siendo once"*; y
+  el fichero tiene **nueve** asignaciones sin comentar. La **propiedad** que el CA defiende
+  se cumple sin discusión —`.env.example` no cambia y las variables del canal se **calculan**,
+  no se configuran—, y `tests/spec-031-frontera.test.ts` la comprueba sobre el fichero, no
+  sobre el número escrito aquí. Lo que hay que arreglar es la **cifra**, en el CA y en el
+  ledger, cuadrándola con la convención que use el test. Se anota en vez de corregirse a
+  ojo porque tres fuentes dicen tres números y **ninguna** debería estar contándolo a mano.
+
+- **F-SPEC-038-15 (el ledger, cuando se toque CA-15.1).** La fila **CA-15** del ledger anota
+  como evidencia que `git diff origin/main -- scripts/check-alive.mjs` está **vacío**. Eso
+  era la evidencia de cumplir CA-15 y pasa a ser lo contrario: la evidencia de que la puerta
+  se rompía. Al implementar CA-15.1 hay que reescribir esa fila con lo que de verdad la
+  cierra —la guardia tolerante, su caso de clave inventada y la comprobación de extremo a
+  extremo—. Lo dejo escrito aquí porque **el ledger no es mío**.
 
 ## Notas para el gate humano
 

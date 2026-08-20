@@ -13,6 +13,12 @@
  * módulo bajo `src/` las menciona (CA-2, mitad estática). No valida nada: juzgar
  * los valores es trabajo de `resolveIdentity` en runtime (CA-3), que es donde
  * está la sentinela `unknown` y sus tests exhaustivos.
+ *
+ * SPEC-038 / ADR-024 pto. 4 añade una CUARTA clave, `STOCKEIRO_VERSION`, y lo
+ * hace por la misma puerta: llega como PARÁMETRO. Este módulo no abre
+ * `package.json` — quien lo lee es `next.config.mjs`, igual que lee las variables
+ * de Vercel. Leerlo aquí metería E/S de disco en el canal que alimenta la ruta
+ * que tiene que responder cuando todo lo demás falla.
  */
 import { execFileSync } from 'node:child_process';
 
@@ -45,18 +51,23 @@ export function gitHeadSha(options = {}) {
 }
 
 /**
- * Las tres variables del canal de build, siempre presentes y siempre cadenas.
+ * Las CUATRO variables del canal de build, siempre presentes y siempre cadenas.
  *
- * @param {{ sha?: string | null, vercelEnv?: string | null, now?: Date,
- *           cwd?: string, gitBinary?: string }} [options]
- * @returns {{ STOCKEIRO_COMMIT: string, STOCKEIRO_ENVIRONMENT: string, STOCKEIRO_BUILT_AT: string }}
+ * @param {{ version?: string | null, sha?: string | null, vercelEnv?: string | null,
+ *           now?: Date, cwd?: string, gitBinary?: string }} [options]
+ * @returns {{ STOCKEIRO_VERSION: string, STOCKEIRO_COMMIT: string,
+ *             STOCKEIRO_ENVIRONMENT: string, STOCKEIRO_BUILT_AT: string }}
  */
 export function buildIdentity(options = {}) {
-  const { sha, vercelEnv, now = new Date(), cwd, gitBinary } = options;
+  const { version, sha, vercelEnv, now = new Date(), cwd, gitBinary } = options;
   const fromVercel = typeof sha === 'string' ? sha.trim() : '';
   const commit = fromVercel !== '' ? fromVercel : gitHeadSha({ cwd, gitBinary });
 
   return {
+    // Sin validar, como sus tres hermanas: si el campo llega raro, llega raro, y
+    // `resolveIdentity` lo convierte en `unknown` en runtime. Un canal que
+    // "arregla" valores esconde el diagnóstico en vez de darlo.
+    STOCKEIRO_VERSION: typeof version === 'string' ? version : '',
     STOCKEIRO_COMMIT: commit,
     STOCKEIRO_ENVIRONMENT: typeof vercelEnv === 'string' ? vercelEnv : '',
     STOCKEIRO_BUILT_AT: now.toISOString(),

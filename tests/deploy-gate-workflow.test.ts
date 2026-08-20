@@ -159,11 +159,28 @@ describe('SPEC-028 CA-5: consume scripts/check-alive.mjs tal cual', () => {
     expect(run).not.toContain('/api/version');
   });
 
-  it('5.5 — scripts/ sigue teniendo exactamente tres habitantes', () => {
-    expect(
-      readdirSync(join(rootDir, 'scripts')).sort(),
-      'Esta spec cablea lo que SPEC-031 y SPEC-032 entregaron; no añade scripts.',
-    ).toEqual(['check-alive.mjs', 'guard-migrate.mjs', 'scan-destructive-sql.mjs']);
+  it('5.5 — los tres scripts que esta spec cablea siguen ahí, y ella no añadió ninguno', () => {
+    // Re-encuadrado por SPEC-038 (FOUNDATION §Cómo se trabaja aquí, 2026-08-20).
+    //
+    // Qué vigilaba antes: que `scripts/` tuviera EXACTAMENTE tres habitantes.
+    // Qué vigila ahora: que los tres que esta spec cablea sigan estando. La
+    // afirmación de CA-5.5 —"esta spec cablea lo que SPEC-031 y SPEC-032
+    // entregaron; no añade scripts"— es un hecho sobre SU entrega y sigue siendo
+    // cierta; lo que caducaba era su FORMA, una foto del árbol que se pone roja
+    // la primera vez que otra spec añade un script legítimo. Es el mismo
+    // re-encuadre que ya se le hizo a `LAS_NUEVE` migraciones en
+    // `tests/spec-032-frontera.test.ts`, y por el mismo motivo.
+    //
+    // Quien lo dispara: SPEC-038 CA-12 trae `check-version-bump.mjs`, declarado
+    // en su spec y aprobado en su gate.
+    const habitantes = readdirSync(join(rootDir, 'scripts')).sort();
+    for (const script of ['check-alive.mjs', 'guard-migrate.mjs', 'scan-destructive-sql.mjs']) {
+      expect(
+        habitantes,
+        `Falta ${script}: esta spec lo cablea y no puede desaparecer sin que la puerta ` +
+          'post-despliegue deje de tener qué ejecutar.',
+      ).toContain(script);
+    }
   });
 });
 
@@ -300,6 +317,14 @@ describe('SPEC-028 CA-9: nada más queda cableado', () => {
       'Lint',
       'Unit tests',
       'Migration scan',
+      // SPEC-038 CA-13 / ADR-024 pto. 9. Esta lista congelaba «SPEC-028 no le
+      // añade un step a ci.yml», y esa propiedad SIGUE siendo la que se protege:
+      // lo que caduca al mergear no es la afirmación sino su forma —una foto del
+      // árbol—. Se amplía con la entrada que un CA pide, y con esa sola; la lista
+      // queda igual de cerrada que estaba y la siguiente vuelve a ponerla roja.
+      // El gate hermano de esta misma entrada vive en
+      // `tests/spec-031-frontera.test.ts` CA-13.1, ampliado igual y por lo mismo.
+      'Version bump',
       'Checkout',
       'Set up Node',
       'Install dependencies',
@@ -319,7 +344,12 @@ describe('SPEC-028 CA-9: nada más queda cableado', () => {
     });
   });
 
-  it('9.3 — package.json no gana ningún script', () => {
+  it('9.3 — package.json no gana ningún script sin un CA que lo pida', () => {
+    // Igual que 9.1: lo que esta lista afirma es que SPEC-028 no añadió scripts, y
+    // eso sigue siendo cierto. `version:check` lo trae SPEC-038 CA-13 —el gate de
+    // ADR-024 pto. 9— y entra por la puerta de delante, declarado en su spec y
+    // discutido en su gate. La lista sigue cerrada: el siguiente que aparezca sin
+    // CA detrás vuelve a poner esto en rojo.
     const { scripts } = JSON.parse(readFileSync(join(rootDir, 'package.json'), 'utf8')) as {
       scripts: Record<string, string>;
     };
@@ -336,6 +366,7 @@ describe('SPEC-028 CA-9: nada más queda cableado', () => {
         'test:e2e',
         'test:watch',
         'typecheck',
+        'version:check',
       ].sort(),
     );
   });

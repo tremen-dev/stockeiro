@@ -98,19 +98,85 @@ describe('SPEC-031 CA-3: la sentinela es `unknown`', () => {
     }
   });
 
-  it('un entorno del todo vacío devuelve las tres claves en `unknown`', () => {
-    expect(resolveIdentity({ commit: '', environment: '', builtAt: '' })).toEqual({
+  it('un entorno del todo vacío devuelve las CUATRO claves en `unknown`', () => {
+    // SPEC-038 CA-8 / ADR-024 pto. 1: el contrato pasó de tres claves a cuatro.
+    // Lo que este caso vigila no es el número, es la propiedad: un canal de build
+    // del todo vacío no puede devolver ni una cadena vacía ni un valor inventado.
+    expect(resolveIdentity({ version: '', commit: '', environment: '', builtAt: '' })).toEqual({
+      version: UNKNOWN,
       commit: UNKNOWN,
       environment: UNKNOWN,
       builtAt: UNKNOWN,
     });
   });
 
-  it('el objeto resuelto tiene exactamente las tres claves del contrato', () => {
+  it('el objeto resuelto tiene exactamente las claves del contrato', () => {
+    // De tres a CUATRO por ADR-024 pto. 1, que enmienda D-6 de ADR-018. La
+    // igualdad de conjunto sigue siendo la guardia: ni una clave más entra sin un
+    // CA que la pida (SPEC-038 CA-3).
     expect(Object.keys(resolveIdentity({ commit: SHA })).sort()).toEqual([
       'builtAt',
       'commit',
       'environment',
+      'version',
     ]);
+  });
+});
+
+/**
+ * SPEC-038 CA-8 / ADR-024 pto. 5 — el semver se valida por CONTENIDO.
+ *
+ * Misma regla que SPEC-031 aplica al sha y a la fecha, y por el mismo motivo: un
+ * `version: ""` que se colara diría que este despliegue sabe qué versión es
+ * cuando no lo sabe.
+ *
+ * Con una diferencia deliberada respecto al `commit`: aquí NO se recortan los
+ * espacios. CA-8 enumera «con espacios» entre los casos que devuelven la
+ * sentinela, así que ` 1.2.3 ` **no** es un semver — es una forma que no es
+ * `MAJOR.MINOR.PATCH`. El valor llega de un campo JSON de `package.json` leído en
+ * `next.config.mjs`, donde no hay espacios que recortar; ser estricto aquí no
+ * cuesta nada y cierra la puerta a que un canal sucio pase por limpio.
+ */
+describe('SPEC-038 CA-8: el semver de producto', () => {
+  for (const valido of ['0.1.0', '10.20.30', '1.0.0', '0.0.0'] as const) {
+    it(`\`${valido}\` es un semver admitido y pasa tal cual`, () => {
+      expect(resolveIdentity({ version: valido }).version).toBe(valido);
+    });
+  }
+
+  for (const [caso, valor] of [
+    ['ausente', undefined],
+    ['nulo', null],
+    ['cadena vacía', ''],
+    ['solo espacios', '   '],
+    ['con espacios alrededor', ' 1.2.3 '],
+    ['con un espacio dentro', '1. 2.3'],
+    ['sin el segmento de parche', 'v1.2'],
+    ['con la `v` delante — la `v` es de la ETIQUETA, no del número', 'v1.2.3'],
+    ['con precedencia de prelanzamiento', '1.2.3-beta'],
+    ['con metadatos de build', '1.2.3+build.7'],
+    ['una palabra', 'latest'],
+    ['cuatro segmentos', '1.2.3.4'],
+    ['con ceros a la izquierda', '01.2.3'],
+    ['un rango de npm', '^1.2.3'],
+  ] as const) {
+    it(`${caso} -> unknown`, () => {
+      expect(resolveIdentity({ version: valor }).version).toBe(UNKNOWN);
+    });
+  }
+
+  it('validar el semver no contamina a las otras tres claves', () => {
+    const identidad = resolveIdentity({
+      version: 'latest',
+      commit: SHA,
+      environment: 'production',
+      builtAt: '2026-08-18T10:20:30.123Z',
+    });
+    expect(identidad).toEqual({
+      version: UNKNOWN,
+      commit: SHA,
+      environment: 'production',
+      builtAt: '2026-08-18T10:20:30.123Z',
+    });
   });
 });

@@ -41,7 +41,35 @@
  *     un despliegue tarda en propagarse.
  */
 
-const CONTRATO = ['builtAt', 'commit', 'environment'];
+/**
+ * Las claves que este script NECESITA para hacer su trabajo, y solo esas.
+ *
+ * SPEC-038 CA-15.1 (enmienda del 2026-08-21). Antes esto se comparaba por
+ * IGUALDAD EXACTA de conjunto, y eso congelaba el estado del contrato el día de
+ * la entrega en vez de fijar una propiedad — el antipatrón que FOUNDATION
+ * § *Cómo se trabaja aquí* proscribió el 2026-08-20 para los tests de frontera,
+ * aquí cobrado en la guardia de un script de producción, que es más caro: un test
+ * caduco pinta rojo en la PR; esto pintaba rojo DESPUÉS del merge, en la puerta
+ * que dice si el despliegue está vivo.
+ *
+ * Caducó exactamente así: **ADR-024 aprobó que el contrato creciera** con la clave
+ * `version` (SPEC-038 CA-3) y esta guardia leyó ese crecimiento como una avería —
+ * cuerpo *ininteligible*, que no reintenta, salida **3**— sobre un despliegue
+ * perfectamente vivo.
+ *
+ * Rechazar por exceso ERA el defecto, no una tolerancia que se conceda ahora.
+ * Subir la lista de tres a cuatro no valía: compra un año y se rompe igual con la
+ * quinta. `version` **no** está aquí porque este script no lo usa para nada, y
+ * meterlo lo ataría a un contrato que no le incumbe: la identidad que compara la
+ * puerta sigue siendo **el commit, nunca el semver** (ADR-024 pto. 11), porque dos
+ * despliegues comparten semver y nunca comparten commit — y ahí se juega **RI-02**
+ * entero.
+ *
+ * Lo que NO se afloja: si falta una de las tres, si alguna no es una cadena o si
+ * la respuesta no es un objeto JSON, se sigue rechazando igual, con el mismo
+ * código de salida y el mismo mensaje.
+ */
+const CLAVES_NECESARIAS = ['builtAt', 'commit', 'environment'];
 const UNKNOWN = 'unknown';
 
 const SALIDA = { COINCIDE: 0, NO_LLEGA: 1, DESCONOCIDO: 2, USO: 3 };
@@ -141,10 +169,13 @@ async function sondear(endpoint, milisegundos) {
     return { tipo: 'ininteligible', motivo: 'la respuesta no es un objeto JSON' };
   }
   const claves = Object.keys(json).sort();
-  if (claves.join(',') !== CONTRATO.join(',') || claves.some((k) => typeof json[k] !== 'string')) {
+  // Se pregunta por lo que hace falta, no por lo que sobra: una clave que este
+  // script no conoce se IGNORA (CA-15.1). Comprobar el tipo aquí y no solo la
+  // presencia es lo que impide que un `commit: null` pase por identidad.
+  if (CLAVES_NECESARIAS.some((clave) => typeof json[clave] !== 'string')) {
     return {
       tipo: 'ininteligible',
-      motivo: `el cuerpo no es el contrato {${CONTRATO.join(', ')}} (recibido: {${claves.join(', ')}})`,
+      motivo: `el cuerpo no es el contrato {${CLAVES_NECESARIAS.join(', ')}} (recibido: {${claves.join(', ')}})`,
     };
   }
 

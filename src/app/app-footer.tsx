@@ -2,6 +2,7 @@ import Link from 'next/link';
 import { DESCARGO_BREVE, MARCA } from '@/lib/legal/content';
 import { ETIQUETA_FEEDBACK, construirMailtoDeFeedback } from '@/lib/feedback/channel';
 import { deploymentIdentity } from '@/lib/version/identity';
+import { SEPARADOR, etiquetaDeVersion } from '@/lib/version/presentation';
 
 /**
  * Pie compartido de la app (SPEC-035). Hermano de `AppNav` (`src/app/app-nav.tsx`)
@@ -15,11 +16,20 @@ import { deploymentIdentity } from '@/lib/version/identity';
  * resolver una sesión que no tiene, y tumbaría `/legal` con la base caída (CA-14).
  * `tests/legal-import-graph.test.ts` vigila que siga siendo verdad.
  *
- * Aloja cuatro cosas y solo cuatro:
+ * Aloja cinco cosas y solo cinco:
  *   - el descargo de no asesoramiento, con enlace al texto completo (SPEC-035 CA-9);
  *   - los enlaces a las páginas legales (SPEC-035 CA-10);
  *   - el canal de feedback (SPEC-039 CA-12), con la versión del despliegue puesta;
+ *   - la versión del despliegue, legible y copiable (SPEC-038 CA-1 y CA-2);
  *   - la marca «Stockeiro, un proyecto de tremen.dev», con enlace (SPEC-035 CA-11).
+ *
+ * La versión va AQUÍ y no en una pantalla propia por lo mismo que el descargo: el
+ * pie está en el layout raíz, así que se lee desde cualquier página y **también sin
+ * sesión** (RN-03: es un dato del artefacto, no del usuario). Es texto normal, no
+ * una imagen ni un tooltip, porque lo que tiene que poder hacer un tester con ella
+ * es **copiarla y pegarla** en un hilo (CA-2). El semver va primero por eso mismo;
+ * el commit abreviado y la fecha van detrás, para el operador que lee el reporte.
+ * El formato lo pone `src/lib/version/presentation.ts`; aquí solo se coloca.
  *
  * El feedback vive AQUÍ y no en una pantalla propia por lo mismo que el descargo: el
  * pie va en el layout raíz, así que el camino está a un clic desde **cualquier**
@@ -41,6 +51,11 @@ import { deploymentIdentity } from '@/lib/version/identity';
  * no el principio de los términos.
  */
 export function AppFooter() {
+  // Se compone aquí, en el servidor, a partir de la MISMA constante que responde
+  // `/api/version`: la coincidencia que exige CE-3 es por construcción, no un
+  // acuerdo entre dos lectores (SPEC-038 CA-5).
+  const version = etiquetaDeVersion(deploymentIdentity);
+
   return (
     <footer className="app-footer">
       <p className="app-footer-descargo" data-testid="descargo">
@@ -59,6 +74,28 @@ export function AppFooter() {
         <a href={construirMailtoDeFeedback(deploymentIdentity)} data-testid="feedback-enlace">
           {ETIQUETA_FEEDBACK}
         </a>
+      </p>
+
+      <p className="app-footer-version" data-testid="version">
+        <span data-testid="version-semver">{version.version}</span>
+        {version.entorno !== null && (
+          <>
+            <span aria-hidden="true">{SEPARADOR}</span>
+            <span className="app-footer-version-entorno" data-testid="version-entorno">
+              {version.entorno}
+            </span>
+          </>
+        )}
+        <span aria-hidden="true">{SEPARADOR}</span>
+        <span data-testid="version-commit">{version.commit}</span>
+        <span aria-hidden="true">{SEPARADOR}</span>
+        {version.construidoISO === null ? (
+          <span data-testid="version-construido">{version.construido}</span>
+        ) : (
+          <time dateTime={version.construidoISO} data-testid="version-construido">
+            {version.construido}
+          </time>
+        )}
       </p>
 
       <p className="app-footer-marca">

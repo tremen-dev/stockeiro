@@ -130,19 +130,45 @@ function git(...args: string[]): string {
   });
 }
 
-/** ¿Hay un `origin/main` en este clon? En uno superficial puede no haberlo. */
-function hayBase(): boolean {
+/**
+ * La ventana de ESTA entrega, y no `origin/main`.
+ *
+ * `124085a` es el merge de la PR #44 (lo último antes de SPEC-042) y `31bb01b` el de
+ * la #46 (lo último de SPEC-042). Entre esos dos commits está TODO lo que esta spec
+ * entregó, y ahí es donde se puede afirmar para siempre que no tocó los workflows de
+ * otras specs. Es el mismo encuadre que `tests/deploy-gate-workflow.test.ts` usa con
+ * su propio rango.
+ *
+ * Re-encuadrado por SPEC-038 el 2026-08-20 (FOUNDATION §Cómo se trabaja aquí).
+ * Qué vigilaba antes: que `ci.yml` y `deploy-gate.yml` fueran BYTE A BYTE idénticos a
+ * los de `origin/main` **hoy**. Qué vigila ahora: que el diff de la entrega de
+ * SPEC-042 no toque ninguno de los dos. La afirmación de CA-1 es la misma —"esta
+ * entrega no le añade un step, un disparador ni un comentario a los workflows de
+ * otras specs"— pero deja de depender de un `HEAD` móvil: comparar contra
+ * `origin/main` caduca en cuanto CUALQUIER spec posterior edita esos ficheros con un
+ * CA que lo pida, y entonces pinta rojo sin defecto detrás. Lo disparó SPEC-038
+ * CA-13, que añade el step `Version bump` a `ci.yml`.
+ */
+const ENTREGA_DE_SPEC_042 = { antes: '124085a', despues: '31bb01b' };
+
+/** ¿Están en este clon los dos extremos de la ventana? En uno superficial puede que no. */
+function hayVentana(): boolean {
   try {
-    git('rev-parse', '--verify', 'origin/main^{commit}');
+    for (const ref of Object.values(ENTREGA_DE_SPEC_042)) {
+      git('rev-parse', '--verify', `${ref}^{commit}`);
+    }
     return true;
   } catch {
     return false;
   }
 }
 
-/** El contenido de un fichero tal y como está en `origin/main`. */
-function enBase(rutaEnGit: string): string {
-  return git('show', `origin/main:${rutaEnGit}`);
+/** Los ficheros que cambiaron en la ventana de esta entrega. */
+function cambiadosEnLaEntrega(): string[] {
+  return git('diff', '--name-only', ENTREGA_DE_SPEC_042.antes, ENTREGA_DE_SPEC_042.despues)
+    .split('\n')
+    .map((linea) => linea.trim())
+    .filter((linea) => linea !== '');
 }
 
 describe('SPEC-042 CA-1: el workflow existe, aparte, y no toca a los otros dos', () => {
@@ -170,19 +196,26 @@ describe('SPEC-042 CA-1: el workflow existe, aparte, y no toca a los otros dos',
   });
 });
 
-describe.skipIf(!hayBase())(
+describe.skipIf(!hayVentana())(
   'SPEC-042 CA-1: y ni ci.yml ni deploy-gate.yml cambian ni una línea',
   () => {
-    // Byte a byte contra `origin/main`, no "por estructura": lo que CA-1 afirma es
-    // que esta entrega no le añade un step, un disparador ni un comentario a los
-    // workflows de otras specs. El precedente que se evita es `F-SPEC-032-3`, donde
-    // hubo que tocar literales congelados de otra spec y declararlo.
-    it('1.4 — ci.yml es idéntico al de origin/main', () => {
-      expect(readFileSync(ciPath, 'utf8')).toBe(enBase('.github/workflows/ci.yml'));
+    // Sobre la VENTANA de esta entrega, no contra `origin/main`: lo que CA-1 afirma
+    // es que esta entrega no le añade un step, un disparador ni un comentario a los
+    // workflows de otras specs, y eso es un hecho sobre unos commits concretos que
+    // ya no puede cambiar. El precedente que se evita es `F-SPEC-032-3`, donde hubo
+    // que tocar literales congelados de otra spec y declararlo.
+    it('1.4 — el diff de esta entrega no toca ci.yml', () => {
+      expect(cambiadosEnLaEntrega()).not.toContain('.github/workflows/ci.yml');
     });
 
-    it('1.4 — deploy-gate.yml es idéntico al de origin/main', () => {
-      expect(readFileSync(puertaPath, 'utf8')).toBe(enBase('.github/workflows/deploy-gate.yml'));
+    it('1.4 — el diff de esta entrega no toca deploy-gate.yml', () => {
+      expect(cambiadosEnLaEntrega()).not.toContain('.github/workflows/deploy-gate.yml');
+    });
+
+    it('1.4 — y la ventana no está vacía: lo que sí trajo fue el limpiador', () => {
+      // Sin esto, un rango mal escrito dejaría los dos casos de arriba en verde sin
+      // haber mirado nada — el modo de fallo clásico de una guardia por diff.
+      expect(cambiadosEnLaEntrega()).toContain('.github/workflows/neon-preview-cleanup.yml');
     });
 
     // Aquí vivía un tercer caso, `1.4 — y el limpiador es un fichero NUEVO, no una copia

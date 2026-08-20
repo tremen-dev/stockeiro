@@ -1,0 +1,16 @@
+SPEC-038 CA-15.1 — la puerta post-despliegue, antes y despues de la enmienda
+
+Un solo origen de juguete sirviendo LA RESPUESTA REAL de /api/version con las
+cuatro claves que aprobo ADR-024, y el mismo --commit en los dos casos.
+Izquierda: scripts/check-alive.mjs tal y como esta en origin/main (31bb01b).
+Derecha:   el de esta rama, con la guardia de forma de CA-15.1.
+
+
+===== check-alive-ANTES.mjs =====
+[check-alive] http://127.0.0.1:55516/api/version: el cuerpo no es el contrato {builtAt, commit, environment} (recibido: {builtAt, commit, environment, version}).
+EXIT=3
+
+===== check-alive.mjs =====
+[check-alive] VIVO en http://127.0.0.1:55516/api/version
+[check-alive] commit=a1b2c3d4e5f60718293a4b5c6d7e8f9012345678 environment=production builtAt=2026-08-21T09:30:00.000Z
+EXIT=0

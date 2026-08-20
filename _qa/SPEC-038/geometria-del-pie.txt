@@ -1,0 +1,17 @@
+SPEC-038 CA-16 — desborde con la fila de la versión en el pie
+/login ancho 360: documento=360/360 (desborde 0) · elementos medidos=32 violaciones=0
+/login ancho 390: documento=390/390 (desborde 0) · elementos medidos=32 violaciones=0
+/login ancho 640: documento=640/640 (desborde 0) · elementos medidos=32 violaciones=0
+/login ancho 700: documento=700/700 (desborde 0) · elementos medidos=32 violaciones=0
+/login ancho 730: documento=730/730 (desborde 0) · elementos medidos=32 violaciones=0
+/login ancho 760: documento=760/760 (desborde 0) · elementos medidos=32 violaciones=0
+/login ancho 800: documento=800/800 (desborde 0) · elementos medidos=32 violaciones=0
+/login ancho 1280: documento=1280/1280 (desborde 0) · elementos medidos=32 violaciones=0
+/legal/terminos ancho 360: documento=360/360 (desborde 0) · elementos medidos=54 violaciones=0
+/legal/terminos ancho 390: documento=390/390 (desborde 0) · elementos medidos=54 violaciones=0
+/legal/terminos ancho 640: documento=640/640 (desborde 0) · elementos medidos=54 violaciones=0
+/legal/terminos ancho 700: documento=700/700 (desborde 0) · elementos medidos=54 violaciones=0
+/legal/terminos ancho 730: documento=730/730 (desborde 0) · elementos medidos=54 violaciones=0
+/legal/terminos ancho 760: documento=760/760 (desborde 0) · elementos medidos=54 violaciones=0
+/legal/terminos ancho 800: documento=800/800 (desborde 0) · elementos medidos=54 violaciones=0
+/legal/terminos ancho 1280: documento=1280/1280 (desborde 0) · elementos medidos=54 violaciones=0

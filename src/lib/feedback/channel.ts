@@ -1,5 +1,5 @@
 import { TITULAR } from '@/lib/legal/content';
-import type { DeploymentIdentity } from '@/lib/version/identity';
+import { UNKNOWN, type DeploymentIdentity } from '@/lib/version/identity';
 
 /**
  * El canal de feedback (SPEC-039, CE-8).
@@ -54,23 +54,46 @@ export function direccionDeFeedback(env: NodeJS.ProcessEnv | Record<string, stri
 }
 
 /**
- * El `mailto:` que compone el mensaje, con la versión delante.
+ * El `mailto:` que compone el mensaje, con la identidad del despliegue delante.
  *
  * El asunto la lleva **prefijada** —lo primero que se lee en la bandeja del
- * operador— y el cuerpo repite los tres datos de identidad en claro, porque el
- * asunto lo puede reescribir cualquiera sin darse cuenta. Entre medias queda un
- * hueco en blanco: el tester escribe y envía, sin borrar nada.
+ * operador— y el cuerpo repite los datos de identidad en claro, porque el asunto
+ * lo puede reescribir cualquiera sin darse cuenta. Entre medias queda un hueco en
+ * blanco: el tester escribe y envía, sin borrar nada.
+ *
+ * ## El orden: semver primero, commit detrás (SPEC-038, F-SPEC-038-7)
+ *
+ * SPEC-039 entregó esto cuando el único identificador que existía era el commit, y
+ * dejó escrito que el semver entraría "solo" al llegar SPEC-038. **No entraba
+ * solo**: aquélla lo añade en una clave NUEVA —y hace bien, porque dos despliegues
+ * comparten semver y nunca comparten commit (ADR-024 pto. 11)—, así que esta línea
+ * había que escribirla. Se escribió con SPEC-038 en `en-progreso`, declarada de
+ * antemano en su spec en vez de descubrirse en una verificación roja.
+ *
+ * El orden es el mismo que el pie usa y por el mismo motivo: **el semver es lo que
+ * el tester cita; el commit es lo que precisa**. El commit va ENTERO —no abreviado
+ * como en el pie— porque en un asunto no compite por sitio y quien lo reciba querrá
+ * pegarlo en un `git show`.
+ *
+ * Y el cuerpo etiqueta cada dato por su nombre. Antes ponía «versión: <sha>»,
+ * que era honesto cuando el sha era lo único que había; con dos datos distintos,
+ * llamarlos igual sería peor que no etiquetarlos.
  */
 export function construirMailtoDeFeedback(
   identidad: DeploymentIdentity,
   direccion: string = direccionDeFeedback(),
 ): string {
-  const asunto = `[Stockeiro ${identidad.commit}] `;
+  // Sin `v` cuando no se sabe: `vunknown` no es una versión, es un adorno sobre
+  // una ausencia. La sentinela viaja tal cual, que es lo que la hace visible.
+  const version = identidad.version === UNKNOWN ? UNKNOWN : `v${identidad.version}`;
+
+  const asunto = `[Stockeiro ${version} ${identidad.commit}] `;
   const cuerpo = [
     '',
     '',
     '— No borres estas líneas: dicen desde qué despliegue escribes —',
-    `versión: ${identidad.commit}`,
+    `versión: ${version}`,
+    `commit: ${identidad.commit}`,
     `entorno: ${identidad.environment}`,
     `construido: ${identidad.builtAt}`,
   ].join('\n');

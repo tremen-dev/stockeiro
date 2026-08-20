@@ -71,12 +71,18 @@ describe('SPEC-031 CA-4: gitHeadSha', () => {
 describe('SPEC-031 CA-4: buildIdentity', () => {
   const now = new Date('2026-08-18T09:30:00.000Z');
 
-  it('declara exactamente las tres claves del canal de build, todas cadenas', () => {
-    const identity = buildIdentity({ sha: SHA, vercelEnv: 'production', now });
+  it('declara exactamente las claves del canal de build, todas cadenas', () => {
+    // De TRES a CUATRO por SPEC-038 CA-14 / ADR-024 pto. 4: entra
+    // `STOCKEIRO_VERSION`, la versión de producto, que llega como parámetro igual
+    // que el sha. Lo que esta igualdad de conjunto vigila no cambia —ninguna clave
+    // del canal entra sin un CA que la pida, y todas son cadenas porque `env` de
+    // Next no admite otra cosa—; cambia el número de claves que la cumplen.
+    const identity = buildIdentity({ version: '0.2.0', sha: SHA, vercelEnv: 'production', now });
     expect(Object.keys(identity).sort()).toEqual([
       'STOCKEIRO_BUILT_AT',
       'STOCKEIRO_COMMIT',
       'STOCKEIRO_ENVIRONMENT',
+      'STOCKEIRO_VERSION',
     ]);
     for (const value of Object.values(identity)) expect(typeof value).toBe('string');
   });

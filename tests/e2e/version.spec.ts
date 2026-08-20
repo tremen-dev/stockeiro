@@ -13,7 +13,14 @@ import { test, expect } from '@playwright/test';
  * literalmente una petición anónima.
  */
 
-const CONTRATO = ['builtAt', 'commit', 'environment'];
+/**
+ * El contrato exacto. De TRES claves a CUATRO por SPEC-038 CA-3 / ADR-024 pto. 1,
+ * que enmienda D-6 de ADR-018 —y solo eso: el endpoint sigue respondiendo con la
+ * base caída, sigue sin exponer dato personal y sus valores siguen congelados en
+ * el build—. La igualdad de conjunto vigila lo mismo que vigilaba: que no se cuele
+ * ni una clave más sin un CA que la pida.
+ */
+const CONTRATO = ['builtAt', 'commit', 'environment', 'version'];
 
 test('CA-1: /api/version responde 200 sin sesión, con el contrato exacto', async ({ request }) => {
   const res = await request.get('/api/version');
@@ -24,6 +31,16 @@ test('CA-1: /api/version responde 200 sin sesión, con el contrato exacto', asyn
   const body = await res.json();
   expect(Object.keys(body).sort()).toEqual(CONTRATO);
   for (const clave of CONTRATO) expect(typeof body[clave]).toBe('string');
+});
+
+test('SPEC-038 CA-3: el semver que sirve es un semver, no una cadena cualquiera', async ({
+  request,
+}) => {
+  // Sale de `package.json` por el canal de build y lo valida `resolveIdentity`.
+  // Si algún día llegara con otra forma, el endpoint diría `unknown` — y eso
+  // también es información, pero no es lo que este despliegue debería servir.
+  const body = await (await request.get('/api/version')).json();
+  expect(body.version).toMatch(/^\d+\.\d+\.\d+$/);
 });
 
 test('CA-6: la respuesta no se cachea', async ({ request }) => {
