@@ -1,9 +1,11 @@
 ---
 id: ADR-026
 tipo: adr
-estado: borrador
+estado: aprobada
 historial:
   - {estado: borrador, fecha: 2026-08-20, por: sdd-arquitecto}
+  - {estado: aprobada, fecha: 2026-08-20, por: humano (Alberto Fojo)}
+aprobada-por: humano (Alberto Fojo)
 ---
 # ADR-026: La geometría de la interfaz se mide elemento a elemento, en un módulo compartido, y `overflow: hidden` no es un arreglo
 
