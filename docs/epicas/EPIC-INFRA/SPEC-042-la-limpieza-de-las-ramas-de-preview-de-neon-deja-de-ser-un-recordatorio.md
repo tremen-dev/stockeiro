@@ -266,12 +266,11 @@ casilla marcada, no una garantía.
   >   preview que no tocaba"* sino **ejecución de comandos con la única clave con permiso de
   >   borrado del proyecto**.
   >
-  > *Dónde vive hoy ese filtro, dicho con precisión*: en el workflow, y congelado por los
-  > cuatro casos que `tests/neon-preview-cleanup-workflow.test.ts` rotula **`CA-4.5`**. Esta
-  > spec **nunca llegó a declarar un CA-4.5**: el filtro nació del finding **F-1** del
-  > verificador, después de aprobarse CA-4. La corrección de arriba **no lo declara** —eso
-  > cambiaría lo que CA-4 exige y no es de esta ronda—; lo deja **anotado**, que es lo que
-  > faltaba para que la spec no contradiga a sus propios tests.
+  > *Dónde vive ese filtro*: en el `if` del job, congelado por los cuatro casos que
+  > `tests/neon-preview-cleanup-workflow.test.ts` rotula **`CA-4.5`** — y, **desde la enmienda
+  > del 2026-08-20, exigido por el CA-4.5 que hay justo debajo**. Hasta ese día el filtro no
+  > tenía CA propio: nació del finding **F-1**, después de aprobarse CA-4, y durante unas horas
+  > los tests afirmaron un criterio que su spec no definía. Esa asimetría está cerrada.
 
   *Por qué esto es un CA y no una nota*: `main` **es la cartera real del usuario**. Un action
   mal apuntado no da un rojo, da una pérdida de datos. ~~El prefijo literal es lo que hace que
@@ -279,6 +278,70 @@ casilla marcada, no una garantía.
   **Corregido el 2026-08-20**: el prefijo literal, **él solo, no lo hacía**. Lo que deja el peor
   caso en *"borré una preview que no tocaba"* son **las dos cosas juntas** — el prefijo literal
   **y** el filtro de caracteres.
+
+- **CA-4.5 (Lo que se le pasa a la shell ajena va saneado).** ⚠️ *el otro CA de seguridad*
+  **Declarado por enmienda el 2026-08-20**, firmada en el gate por el humano. No es alcance
+  nuevo: describe lo que el workflow **ya hace** y lo que `tests/neon-preview-cleanup-workflow.test.ts`
+  **ya congela** en cuatro casos bajo este mismo rótulo. Lo que se corrige es una asimetría —
+  los tests afirmaban un criterio que su spec no definía, y la spec exigía *cero `run:`* sin
+  exigir lo único que de verdad impide la inyección.
+  Dado el workflow,
+  cuando llega el nombre de rama de una PR,
+  entonces **no se le entrega a la acción si contiene un carácter que la shell de la acción
+  interpretaría**.
+
+  *El criterio es la derivación, no la lista* — y esto es lo que hay que leer si algo cambia.
+  El conjunto a excluir **no se fija a mano**: es el resultado de cruzar dos hechos
+  comprobables, cada uno con su fuente:
+  1. **qué caracteres interpreta la shell de la acción** en el contexto exacto en que recibe el
+     nombre — hoy, dentro de unas comillas dobles de bash, y ahí solo reaccionan cuatro: `$`,
+     la backtick, la barra invertida y la propia comilla;
+  2. **cuáles de ésos pueden llegar de verdad** en un `github.head_ref`, es decir, cuáles
+     **acepta `git check-ref-format`** en un nombre de rama.
+  La intersección de hoy son **tres** —`$`, backtick y comilla doble; la barra invertida cae
+  porque git la rechaza—, y esa cifra es **el resultado de hoy, no el criterio**. El test
+  **vuelve a derivarla en cada ejecución** preguntándole a git, en vez de creérsela: si git
+  aflojara mañana, la lista se quedaría corta **con un rojo** y no en silencio.
+  **Y si cambiara el otro lado** —que la acción altere su entrecomillado, mueva el dato a un
+  `env:`, o deje de usar shell— el conjunto correcto sería **otro**, y podría ser vacío. Este
+  CA seguiría cumpliéndose con esa otra lista: **lo que se exige es la propiedad, y la lista es
+  su consecuencia.** Quien toque esto sin rehacer la derivación estará copiando un resultado
+  caduco.
+
+  *Dónde se aplica, y por qué ahí y no en otro sitio*: en el **`if` del job**, sobre la
+  **misma expresión** que alimenta la entrada `branch` de CA-3 — filtrar una expresión y pasarle
+  otra sería teatro—. Y **antes** de que el dato entre en la acción, porque cuando llega al step
+  ya es tarde: la shell que lo interpreta es la suya, no la nuestra.
+
+  *Se suma a la condición de fork de CA-5.1; no la sustituye.* Responden a preguntas distintas
+  —**quién** puede disparar esto, y **qué** se le puede pasar— y cambiar una por la otra sería
+  un aflojamiento disfrazado de limpieza. La condición del job es esa suma **y nada más**: sin
+  cláusulas de adorno que nadie pueda auditar. Y **ningún step lleva su propio `if`**, que
+  podría saltarse el del job.
+
+  *De dónde sale, porque no nació con la spec*: del finding **F-1** del verificador, **después**
+  de aprobarse CA-4. No es una precaución teórica: la shell ajena está **verificada en
+  producción**, en el log de la ejecución `32371568962`. Sin este filtro, el peor caso alcanzable
+  no era *"borré una preview que no tocaba"* sino **ejecución de comandos con la única clave con
+  permiso de borrado del proyecto**, dos veces y con la credencial en el `env` de ese paso.
+
+  *La división de trabajo con CA-4.3, que hablan de lo mismo desde lados opuestos y conviene no
+  confundir*:
+
+  | | Qué exige | Qué protege |
+  |---|---|---|
+  | **CA-4.3** | que **no haya shell nuestra** (cero `run:` en el fichero) | que el secreto no acabe impreso en un log **nuestro** |
+  | **CA-4.5** | que **lo que le damos a la shell ajena esté saneado** | que un nombre de rama no se ejecute como comando **dentro de la acción** |
+
+  Ninguno cubre al otro. CA-4.3 no puede impedir la inyección —la shell que importa no es
+  suya—, y CA-4.5 no elimina la necesidad de CA-4.3 —añadir un `run:` propio reabriría una
+  superficie que hoy no existe—. Por eso el arreglo bueno de `F-SPEC-042-8`, que sí exige un
+  `run:`, **enmienda CA-4.3** y tiene que rehacer a mano lo que hoy sale gratis.
+
+  *Qué cuesta, y no se esconde*: una rama que contenga uno de esos caracteres **no se limpia**,
+  y el job se salta **en silencio**. Es `F-SPEC-042-7`, y es *fail-closed* a sabiendas: no
+  barrer una rama cuesta uno de los diez huecos del techo; ejecutar código con esa clave cuesta
+  el proyecto.
 
 - **CA-5 (Higiene del workflow: fork, permisos, plazo, concurrencia, y sin red de seguridad
   que tape el fallo).**
@@ -577,9 +640,20 @@ repositorio. El patrón es el de `F-SPEC-032-2` — el **acto** es ops, el **efe
   habrá que decidir entonces. → EPIC-INFRA.
 - **F-SPEC-042-6 — La rama `preview` suelta del panel, creada a mano.** Ni la creó Vercel ni
   la borra este workflow. Ocupa techo. Decidir si sobra es ops. → ops.
-Añadido el 2026-08-20, al medirse CA-9 *(`F-SPEC-042-7` lo declaró el implementador en el
-ledger, y allí vive: las ramas con `$`, backtick o comilla doble no se limpian, y en silencio)*:
+Añadidos el 2026-08-20:
 
+- **F-SPEC-042-7 — Una rama cuyo nombre lleve `$`, backtick o comilla doble no se limpia, y el
+  job se salta en silencio.** Lo declaró el implementador en el ledger, y allí vive su detalle.
+  Se lista aquí porque **desde la enmienda del 2026-08-20 ya no es el residuo de un arreglo
+  huérfano: es el coste declarado de `CA-4.5`**, que es quien exige el filtro. Eso cambia cómo
+  hay que tratarlo — no es una rareza que alguien pueda "limpiar" quitando el filtro, porque
+  quitarlo rompe un CA.
+  *Y no es tan improbable como suena*: en este repositorio los nombres de rama los generan
+  **agentes** a partir de títulos de spec, así que un `$` puede llegar ahí **sin ninguna
+  malicia**. El síntoma es el del CA-4.5: una ejecución **completada, en gris, `skipped`, con
+  el job sin un solo paso** — no un rojo. Se cierra el día que el arreglo de `F-SPEC-042-8`
+  saque el nombre de rama de cualquier shell (vía `env:`), porque entonces el filtro deja de
+  hacer falta y con él desaparece su coste. → EPIC-INFRA.
 - **F-SPEC-042-8 — El limpiador da rojo en toda PR que se cierre sin una rama de preview que
   borrar.**
   *Qué es, medido y no supuesto*: el 2026-08-20 se re-ejecutó `32371568962` sobre la rama ya
