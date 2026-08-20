@@ -79,6 +79,7 @@
 | `RESEND_API_KEY` | Resend | Envío de avisos por email **y del enlace de reset** | ADR-006 / F-SPEC-006-1 |
 | `RESEND_FROM` | Resend | Remitente (dominio verificado) | ADR-006 |
 | `APP_BASE_URL` | — | Origen absoluto de los enlaces de **recuperación de contraseña** | SPEC-023 / F-SPEC-023-3 |
+| `FEEDBACK_EMAIL` | — | **Opcional.** Buzón del canal de feedback del pie | SPEC-039 / F-SPEC-039-6 |
 
 > ⚠️ **`APP_BASE_URL` debe ser el origen REAL del despliegue** (hoy
 > `https://stockeiro-lemon.vercel.app`), no el valor de ejemplo de `.env.example`
@@ -87,6 +88,14 @@
 > configurado. `appBaseUrl()` **falla ruidosamente si la variable falta**, pero no puede
 > detectar que esté *mal*: eso solo lo ve el usuario que pincha el enlace. Y ojo: el error
 > es en tiempo de **petición**, no de build, así que el deploy sale verde igualmente.
+
+> ℹ️ **`FEEDBACK_EMAIL` es la única variable que añade EPIC-004, y normalmente NO hay que
+> ponerla** (SPEC-039 CA-16). El enlace «contar algo o reportar un fallo» del pie compone un
+> `mailto:` a esta dirección; si la variable falta o llega vacía, se usa el **contacto del
+> titular** del aviso legal (`src/lib/legal/content.ts`), que es la dirección prevista. Solo
+> se define para desviar el feedback a otro buzón sin desplegar código. Lo que **sí** es
+> prerrequisito de publicar es que ese buzón **exista y alguien lo lea** (F-SPEC-039-6): sin
+> él, CE-8 tiene enlace y no tiene canal, que es peor que no tener enlace.
 
 Plantilla completa en `.env.example`. Genera los secretos propios:
 
@@ -267,6 +276,8 @@ tras mergear es el **check de la puerta**, y el pipeline entero está documentad
   *recuperación de contraseña* no hay fallback y sin Resend no funciona.
 - [ ] `APP_BASE_URL` con el **origen real del despliegue** (no el ejemplo de `.env.example`) — §0.
 - [ ] `E2E_OUTBOX_FILE` **NO** definida en Vercel (desviaría el correo a un fichero) — F-SPEC-023-8.
+- [ ] Buzón del canal de feedback **creado y leído por alguien** (F-SPEC-039-6). `FEEDBACK_EMAIL`
+  solo hace falta si se desvía a un buzón distinto del contacto del aviso legal.
 - [ ] `ALLOW_MIGRATE=1` en el entorno **Preview** — sin ella, **todas** las previews fallan en la
   guardia (§11 y §13).
 - [ ] Repositorio conectado a Vercel con rama de producción `main` (§13).

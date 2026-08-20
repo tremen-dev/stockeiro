@@ -1,9 +1,11 @@
+import Link from 'next/link';
 import { requireUser } from '@/lib/auth/session';
 import { db } from '@/db/client';
 import { zoneStatusForUser, type ZoneState } from '@/lib/watchlist/zone-status';
 import { failReasonText } from '@/lib/market/fail-reason-text';
 import { instrumentTypeText } from '@/lib/market/instrument-type-text';
 import { marketName } from '@/lib/market/market-name';
+import { CADENCIA_LINEA, RUTA_AYUDA, VACIO_VIGILADAS } from '@/lib/help/content';
 import { AppNav } from '../app-nav';
 import { WatchForm } from './watch-form';
 import { removeAction } from './actions';
@@ -44,9 +46,34 @@ export default async function VigiladasPage() {
         </div>
 
         {rows.length === 0 ? (
-          <div className="empty">
-            <span className="empty-title">Aún no vigilas ninguna acción</span>
-            <p>Añade un ticker con su zona de compra y/o venta para empezar a vigilarlo.</p>
+          /*
+            SPEC-039 CA-9 — el estado vacío GUÍA en vez de constatar. Antes decía
+            «añade un ticker con su zona de compra y/o venta» y ya: correcto, y
+            completamente insuficiente para quien no sabe qué es una zona en este
+            producto, si el rango es de precio, ni cada cuánto se mira.
+
+            Ahora lleva las cuatro cosas que CE-1 necesita: el primer paso (el
+            formulario está justo debajo, no hay que buscarlo), un ejemplo CON
+            NÚMEROS, la cadencia —la misma frase literal que la primera pantalla y la
+            ayuda, CA-3— y el enlace a la explicación larga.
+
+            La cadencia va aquí y no solo en la ayuda a propósito (R-4): esta es la
+            pantalla donde alguien se queda mirando un precio que no cambia, y nadie
+            lee la ayuda antes de quejarse.
+          */
+          <div className="empty" data-testid="vigiladas-vacio">
+            <span className="empty-title">{VACIO_VIGILADAS.titulo}</span>
+            <p>{VACIO_VIGILADAS.primerPaso}</p>
+            <div className="empty-guia">
+              <p className="empty-ejemplo" data-testid="vigiladas-vacio-ejemplo">
+                {VACIO_VIGILADAS.ejemplo}
+              </p>
+              <p data-testid="vigiladas-vacio-cadencia">{CADENCIA_LINEA}</p>
+              <p>
+                <Link href={RUTA_AYUDA}>Cómo funciona Stockeiro</Link> — qué es una zona,
+                cuándo dispara y cuándo llega el aviso.
+              </p>
+            </div>
           </div>
         ) : (
           <div className="table-scroll">

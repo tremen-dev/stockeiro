@@ -1022,3 +1022,191 @@ td.num .quote-fail { text-align: right; }
 @media (max-width: 720px) {
   .ops-bloque { padding: 18px 16px; }
 }
+
+/* ============================================================
+   SPEC-039 — La primera pantalla, la ayuda y el canal de feedback
+   ============================================================ */
+
+/* TODO lo que sigue usa `display: grid` con su eje declarado y NUNCA un flex sin
+   eje. Es la lección que SPEC-035 pagó con una ronda RED entera y que SPEC-037
+   siguió al pie: por debajo de 720 px, `design/tremen-ds/responsive.css` aplica
+   `flex-direction: column` a selectores de ELEMENTO (`footer`, `nav`, `h1`…), y un
+   contenedor que no fija su eje lo hereda — con lo que cualquier `flex-basis` de
+   dentro deja de ser un ancho y pasa a ser un alto. Un grid de una columna no tiene
+   ese modo de fallo. `tests/e2e/ayuda-responsive.spec.ts` lo mide a 390, 640, 700,
+   760 y 1280 px. */
+
+/* --- La primera pantalla (CA-2) --- */
+.landing {
+  width: min(66ch, 100%);
+  margin-inline: auto;
+  padding: 64px 0 32px;
+  display: grid;
+  gap: 20px;
+  align-content: start;
+}
+.landing-eyebrow {
+  margin: 0;
+  font: 600 11px/1 var(--font-mono);
+  letter-spacing: .16em;
+  text-transform: uppercase;
+  color: var(--accent);
+}
+.landing-title {
+  margin: 0;
+  font: 700 clamp(32px, 6vw, 52px)/1.05 var(--font-sans);
+  letter-spacing: -0.03em;
+  color: var(--fg);
+}
+.landing-lede {
+  margin: 0;
+  font-size: var(--t-lede, 18px);
+  line-height: 1.55;
+  color: var(--fg);
+}
+.landing-cadencia {
+  margin: 0;
+  padding: 16px 18px;
+  border-left: 3px solid var(--amber);
+  background: var(--bg-step);
+  border-radius: var(--radius-card);
+  line-height: 1.6;
+  color: var(--fg-muted);
+}
+.landing-limites,
+.landing-pie {
+  margin: 0;
+  line-height: 1.6;
+  color: var(--fg-muted);
+}
+.landing-pie { font-size: var(--t-body-sm); color: var(--fg-dim); }
+.landing-pie a,
+.landing-ayuda {
+  color: var(--fg);
+  text-decoration: underline;
+  text-underline-offset: 3px;
+}
+.landing-pie a:hover,
+.landing-ayuda:hover { color: var(--accent); }
+/* Rejilla, no flex: las acciones se apilan solas en pantalla estrecha sin heredar
+   ningún eje del sistema de diseño. */
+.landing-acciones {
+  display: grid;
+  grid-auto-flow: column;
+  grid-auto-columns: max-content;
+  justify-content: start;
+  align-items: center;
+  gap: 12px 18px;
+  margin-top: 4px;
+}
+
+/* --- La ayuda (CA-3 a CA-8) --- */
+.ayuda {
+  width: min(72ch, 100%);
+  margin-inline: auto;
+  padding: 48px 0 24px;
+  display: grid;
+  gap: 22px;
+  align-content: start;
+}
+.ayuda-title {
+  margin: 0;
+  font: 700 clamp(30px, 5vw, 44px)/1.05 var(--font-sans);
+  letter-spacing: -0.03em;
+  color: var(--fg);
+}
+.ayuda-lede {
+  margin: 0;
+  font-size: var(--t-lede, 18px);
+  line-height: 1.55;
+  color: var(--fg);
+}
+.ayuda-aviso {
+  margin: 0;
+  padding: 14px 16px;
+  border-left: 3px solid var(--line-strong);
+  color: var(--fg-muted);
+  line-height: 1.6;
+}
+.ayuda-indice {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+  gap: 8px 18px;
+  padding: 16px 0;
+  border-top: 1px solid var(--line);
+  border-bottom: 1px solid var(--line);
+}
+.ayuda-indice a {
+  color: var(--fg-dim);
+  text-decoration: none;
+  font-size: var(--t-body-sm);
+}
+.ayuda-indice a:hover { color: var(--fg); }
+.ayuda-seccion { display: grid; gap: 12px; align-content: start; }
+.ayuda-seccion h2 {
+  margin: 0;
+  font: 600 var(--t-h3)/1.25 var(--font-sans);
+  color: var(--fg);
+}
+.ayuda-seccion p { margin: 0; line-height: 1.65; color: var(--fg-muted); }
+.ayuda-seccion a { color: var(--fg); text-decoration: underline; text-underline-offset: 3px; }
+.ayuda-seccion a:hover { color: var(--accent); }
+.ayuda-mercados {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
+  gap: 8px 14px;
+}
+.ayuda-mercados li {
+  padding: 8px 12px;
+  border: 1px solid var(--line);
+  border-radius: var(--radius-card);
+  font: 600 13px/1.2 var(--font-mono);
+  color: var(--fg);
+}
+.ayuda-motivos { margin: 0; display: grid; gap: 14px; }
+.ayuda-motivos > div { display: grid; gap: 4px; min-width: 0; }
+.ayuda-motivos dt { font-weight: 600; color: var(--fg); }
+.ayuda-motivos dd { margin: 0; line-height: 1.6; color: var(--fg-muted); }
+
+/* --- El canal de feedback en el pie (CA-12) ---
+   Fila propia de ancho completo dentro del pie, como la marca: así no compite por el
+   sitio con el descargo ni con los enlaces legales a ningún ancho, y el pie crece un
+   renglón por igual en móvil y en escritorio (que es lo que mantiene la proporción
+   que mide `tests/e2e/pie-responsive.spec.ts`). */
+.app-footer-feedback {
+  margin: 0;
+  flex-basis: 100%;
+  color: var(--fg-muted);
+}
+.app-footer-feedback a {
+  color: var(--fg);
+  text-decoration: underline;
+  text-underline-offset: 3px;
+}
+.app-footer-feedback a:hover { color: var(--accent); }
+
+/* --- Estados vacíos que guían (CA-9, CA-10, CA-11) --- */
+.empty-guia {
+  display: grid;
+  justify-self: stretch;
+  width: min(58ch, 100%);
+  margin-inline: auto;
+  gap: 10px;
+  margin-top: 12px;
+  padding-top: 14px;
+  border-top: 1px dashed var(--line);
+  text-align: left;
+}
+.empty-guia p { margin: 0; line-height: 1.6; color: var(--fg-muted); font-size: var(--t-body-sm); }
+.empty-guia .empty-ejemplo { color: var(--fg); }
+.empty-guia a { color: var(--fg); text-decoration: underline; text-underline-offset: 3px; }
+.empty-guia a:hover { color: var(--accent); }
+
+@media (max-width: 720px) {
+  .landing { padding: 40px 0 24px; }
+  .landing-acciones { grid-auto-flow: row; grid-auto-columns: auto; justify-items: start; }
+  .ayuda { padding: 36px 0 20px; }
+}

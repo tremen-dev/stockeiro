@@ -103,7 +103,17 @@ describe('SPEC-031 CA-13.3: ninguna variable de entorno nueva', () => {
   const declaradas = () =>
     [...envExample().matchAll(/^#?\s*([A-Z][A-Z0-9_]*)=/gm)].map((m) => m[1]).sort();
 
-  it('.env.example declara las mismas claves de siempre', () => {
+  it('.env.example declara las mismas claves de siempre, más la que SPEC-039 pidió', () => {
+    // Lista CERRADA, y sigue cerrada. Lo que esta guardia vigila no es el número diez
+    // sino la propiedad: **ninguna clave entra sin un CA que la pida**. SPEC-031 no
+    // añadió ninguna (esa era su CA-13.3) y esta lista lo demostraba con un literal.
+    //
+    // SPEC-039 CA-16 añade `FEEDBACK_EMAIL` —la dirección del canal de feedback— y lo
+    // hace DECLARÁNDOLO aquí, que es exactamente el mecanismo funcionando: la spec
+    // escribió «de diez claves a once, con esa y solo con esa» para que la variable se
+    // discutiera en el gate en vez de descubrirse en una CI roja. Antes vigilaba que
+    // no hubiera ninguna nueva; ahora vigila que no haya ninguna nueva **más allá de
+    // la que se aprobó**. La lista sigue siendo el sitio donde hay que pedir permiso.
     expect(declaradas()).toEqual(
       [
         'APP_BASE_URL',
@@ -112,12 +122,17 @@ describe('SPEC-031 CA-13.3: ninguna variable de entorno nueva', () => {
         'CRON_SECRET',
         'DATABASE_URL',
         'DB_DRIVER',
+        'FEEDBACK_EMAIL',
         'MARKETSTACK_API_KEY',
         'RESEND_API_KEY',
         'RESEND_FROM',
         'TWELVE_DATA_API_KEY',
       ].sort(),
     );
+  });
+
+  it('y son ONCE: si mañana hay doce, es que alguien no pasó por un gate', () => {
+    expect(declaradas()).toHaveLength(11);
   });
 
   it('las tres del canal de build NO se configuran en ninguna parte: se calculan', () => {

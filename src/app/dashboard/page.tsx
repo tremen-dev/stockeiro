@@ -1,7 +1,9 @@
 import Link from 'next/link';
 import { requireUser, BOUNCE_PARAM } from '@/lib/auth/session';
 import { db } from '@/db/client';
-import { countUnread } from '@/lib/notifications/service';
+import { countUnread, listNotificationsForUser } from '@/lib/notifications/service';
+import { listWatched } from '@/lib/watchlist/service';
+import { RUTA_AYUDA, VACIO_PANEL } from '@/lib/help/content';
 import { canSee, SECTIONS, type Section } from '@/lib/auth/sections';
 import { notaDeRebote } from '@/lib/auth/section-messages';
 import { AppNav } from '../app-nav';
@@ -17,6 +19,12 @@ import { AppNav } from '../app-nav';
 // SPEC-034 CA-8: si se llega aquí REBOTADO desde una sección cerrada, se explica en
 // una línea. La nota viene en la URL, así que aparece solo tras el rebote y no en
 // cada visita al panel.
+//
+// SPEC-039 CA-11: y ese hueco se llena con algo que ENSEÑA. Quien acaba de registrarse
+// ve un panel de tres tarjetas que le ofrecen listas vacías; lo que necesita es UN
+// siguiente paso, no tres puertas. Se le señala uno solo —crear su primera vigilada— y
+// se le ofrece la ayuda. Con datos, el panel es exactamente el de siempre: esto no es
+// una pantalla nueva, es lo que se pinta encima cuando no hay nada que pintar debajo.
 export default async function DashboardPage({
   searchParams,
 }: {
@@ -24,6 +32,12 @@ export default async function DashboardPage({
 }) {
   const user = await requireUser(); // SPEC-023 CA-13: sesión revocada -> login
   const unread = await countUnread(db, user.id);
+
+  // Las dos condiciones de CA-11, y en este orden: si ya vigila algo no hace falta
+  // preguntar por los avisos, porque el panel de recién llegado ya no aplica.
+  const vigiladas = await listWatched(db, user.id);
+  const reciénLlegado =
+    vigiladas.length === 0 && (await listNotificationsForUser(db, user.id)).length === 0;
 
   const params = await searchParams;
   const rebotadoDe = leerRebote(params[BOUNCE_PARAM]);
@@ -47,6 +61,25 @@ export default async function DashboardPage({
           <p className="auth-note" role="status" data-testid="nota-sin-acceso">
             {notaDeRebote(rebotadoDe)}
           </p>
+        ) : null}
+
+        {reciénLlegado ? (
+          <div className="empty" data-testid="panel-primer-paso">
+            <span className="empty-title">{VACIO_PANEL.titulo}</span>
+            <p>{VACIO_PANEL.primerPaso}</p>
+            <div className="empty-guia">
+              <p>{VACIO_PANEL.nota}</p>
+              <p>
+                <Link className="btn primary" href="/vigiladas">
+                  Vigilar mi primera acción
+                </Link>
+              </p>
+              <p>
+                ¿Antes quieres saber qué es una zona y cada cuánto se mira?{' '}
+                <Link href={RUTA_AYUDA}>Cómo funciona Stockeiro</Link>.
+              </p>
+            </div>
+          </div>
         ) : null}
 
         <div className="cards">

@@ -1,7 +1,7 @@
 <!-- GENERADO por tremen-sdd (scripts/tablero.mjs). NO EDITAR A MANO. -->
 # Tablero
 
-Actualizado: 2026-08-19
+Actualizado: 2026-08-20
 
 ## EPIC-001 — vigilancia-de-zonas-de-compra-venta-con-cartera-y-avisos (hecho)
 
@@ -40,7 +40,7 @@ Actualizado: 2026-08-19
 | SPEC-036 — borrar-mi-cuenta | hecho | 2026-08-19 (sdd-verificador) |
 | SPEC-037 — el-grifo-del-registro-y-la-pantalla-de-operacion | hecho | 2026-08-19 (sdd-verificador) |
 | SPEC-038 — la-version-visible-dentro-de-la-app | aprobada | 2026-08-19 (humano (Alberto Fojo)) |
-| SPEC-039 — ayuda-de-vigiladas-estados-vacios-que-guian-y-canal-de-feedback | aprobada | 2026-08-19 (humano (Alberto Fojo)) |
+| SPEC-039 — ayuda-de-vigiladas-estados-vacios-que-guian-y-canal-de-feedback | hecho | 2026-08-19 (sdd-verificador) |
 
 ## EPIC-FIX (aprobada)
 
@@ -99,6 +99,6 @@ Actualizado: 2026-08-19
 
 ## Resumen
 
-- hecho: 31
-- aprobada: 2
+- hecho: 32
+- aprobada: 1
 - en-revision: 2

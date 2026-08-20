@@ -226,6 +226,10 @@ CI) con el mismo estilo de prueba que ya usan `tests/version-import-graph.test.t
   importar la base (CA-7).
 - **El pie compartido (`AppFooter`) que entrega SPEC-035**: esta spec lo **extiende** con la
   versión. El pie es de SPEC-035; **SPEC-039** le añade el feedback. Ninguna lo duplica.
+- **`src/lib/feedback/channel.ts`** (`construirMailtoDeFeedback`, **SPEC-039**, ya entregado):
+  **segundo consumidor** de `DeploymentIdentity`. Hoy prefija el asunto del feedback con el
+  **commit**, porque es el único identificador que existe. Cuando aparezca la clave `version`,
+  ese asunto tiene que pasar a llevarla — **no ocurre solo**: ver **F-SPEC-038-7**.
 - **`.github/workflows/ci.yml`** y **`scripts/`**: el gate de CA-12/CA-13, con el mismo
   patrón que `scripts/scan-destructive-sql.mjs` (SPEC-032).
 - **`tests/version-import-graph.test.ts`** y **`tests/spec-031-frontera.test.ts`**: se
@@ -291,6 +295,26 @@ Aparcado a propósito, no por descuido:
   original **no se reescribe**: la nota solo evita que alguien lea D-6 aislado y actúe sobre
   un contrato caduco. Precedente rectificado: ADR-016 extendió ADR-001 sin anotarlo, y eso
   era un hueco, no una regla a preservar.
+- **F-SPEC-038-7 (una promesa escrita de SPEC-039 que solo esta spec puede cumplir).**
+  **SPEC-039 CA-13 afirma que "si SPEC-038 ya está entregada, el prefijo incluirá el semver
+  sin ningún cambio aquí". Verificado contra el código entregado, eso es falso**, y más vale
+  saberlo antes de implementar que descubrirlo después. `construirMailtoDeFeedback`
+  (`src/lib/feedback/channel.ts`) compone el asunto como `[Stockeiro ${identidad.commit}]`:
+  lee **el campo `commit`**, no un campo genérico de versión. Y CA-3 y CA-8 de esta spec
+  añaden el semver en una **clave nueva** (`version`), sin meterlo dentro de `commit` — y
+  hacen bien, porque dos despliegues pueden compartir semver y nunca comparten commit
+  (CA-15). Conclusión: si nadie toca esa línea, el feedback del tester **seguirá viajando
+  con el sha** y CA-13 de SPEC-039 se quedará con una afirmación falsa detrás.
+  **Qué hacer al implementar esta spec**: que el asunto lleve **el semver primero y el commit
+  detrás** — el mismo orden que CA-2 impone en el pie y por el mismo motivo (el semver es lo
+  que el tester cita; el commit es lo que precisa). El **cuerpo** del `mailto:` no cambia de
+  forma: ya repite los datos de identidad en claro, basta con que incluya también el nuevo.
+  Es una línea con su test, en un fichero de `src/` que el gate `require-spec` deja escribir
+  mientras esta spec esté `en-progreso`, y por eso queda **declarado aquí** en vez de
+  descubrirse en una verificación roja.
+  **No amplía el alcance**: cierra una promesa ya aprobada de EPIC-004 en lugar de dejarla
+  rota. Si el implementador lo lee como alcance nuevo, **que no lo invente**: lo devuelve al
+  gate humano y se decide allí.
 
 ## Notas para el gate humano
 
