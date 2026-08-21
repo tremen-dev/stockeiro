@@ -1,7 +1,7 @@
 <!-- GENERADO por tremen-sdd (scripts/tablero.mjs). NO EDITAR A MANO. -->
 # Tablero
 
-Actualizado: 2026-08-20
+Actualizado: 2026-08-21
 
 ## EPIC-001 — vigilancia-de-zonas-de-compra-venta-con-cartera-y-avisos (hecho)
 
@@ -54,8 +54,9 @@ Actualizado: 2026-08-20
 | SPEC-025 — cartera-vender-dividir-y-cobrar-dividendo-sobre-la-posicion-del-mercado-correcto | hecho | 2026-08-17 (sdd-verificador) |
 | SPEC-029 — el-buscador-ofrece-cualquier-instrumento-del-mercado-soportado-dice-de-que-tipo-es-y-por-que-descarta | hecho | 2026-08-18 (sdd-verificador) |
 | SPEC-030 — coma-decimal-en-el-alta-manual-y-errores-que-distinguen-el-dato-del-fallo | hecho | 2026-08-18 (sdd-verificador) |
-| SPEC-033 — la-puerta-post-deploy-deja-de-perder-la-carrera-con-commit-unknown-es-transitorio | en-revision | 2026-08-19 (sdd-implementador) |
+| SPEC-033 — la-puerta-post-deploy-deja-de-perder-la-carrera-con-commit-unknown-es-transitorio | hecho | 2026-08-21 (sdd-verificador) |
 | SPEC-040 — el-movil-completa-el-alta-de-una-vigilada-y-la-guardia-de-geometria-deja-de-ser-ciega | hecho | 2026-08-20 (sdd-verificador) |
+| SPEC-043 — la-cotizacion-que-dejo-de-refrescarse-lo-dice-y-la-cuota-agotada-deja-de-disfrazarse-de-caida-del-proveedor | borrador | 2026-08-21 (sdd-arquitecto) |
 
 ## EPIC-INFRA (aprobada)
 
@@ -105,8 +106,10 @@ Actualizado: 2026-08-20
 | ADR-024 | aprobada | la-version-de-producto-es-semver-en-package-json-y-viaja-en-el-contrato-de-api-version-enmienda-d-6-de-adr-018 | 2026-08-19 (humano (Alberto Fojo)) |
 | ADR-025 | aprobada | los-terminos-del-dominio-los-escribe-el-arquitecto-en-el-gate-y-un-retoque-descubierto-tras-el-cierre-no-reabre-la-spec | 2026-08-19 (humano (Alberto Fojo)) |
 | ADR-026 | aprobada | la-geometria-de-la-interfaz-se-mide-elemento-a-elemento-en-un-modulo-compartido-y-overflow-hidden-no-es-un-arreglo | 2026-08-20 (humano (Alberto Fojo)) |
+| ADR-027 | borrador | el-presupuesto-del-proveedor-de-precios-se-mide-en-simbolos-por-ciclo-no-en-llamadas-y-la-cuota-agotada-es-un-motivo-propio | 2026-08-21 (sdd-arquitecto) |
 
 ## Resumen
 
-- hecho: 36
-- en-revision: 2
+- hecho: 37
+- borrador: 1
+- en-revision: 1

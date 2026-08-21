@@ -2,13 +2,14 @@
 id: SPEC-033
 tipo: spec
 epica: EPIC-FIX
-estado: en-revision
+estado: hecho
 aprobada-por: humano (Alberto Fojo)
 historial:
   - {estado: borrador, fecha: 2026-08-19, por: sdd-arquitecto}
   - {estado: aprobada, fecha: 2026-08-19, por: humano (Alberto Fojo)}
   - {estado: en-progreso, fecha: 2026-08-19, por: sdd-implementador}
   - {estado: en-revision, fecha: 2026-08-19, por: sdd-implementador}
+  - {estado: hecho, fecha: 2026-08-21, por: sdd-verificador}
 ---
 # SPEC-033 — La puerta post-deploy deja de perder la carrera: con `--commit`, `unknown` es transitorio
 
