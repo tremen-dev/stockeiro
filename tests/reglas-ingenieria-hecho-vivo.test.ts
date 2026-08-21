@@ -132,7 +132,7 @@ describe('SPEC-028 CA-14.3: alcance estricto — nada más se mueve', () => {
     ).toBe(RI_01_INTACTA);
   });
 
-  it('las quince RN de dominio siguen siendo quince, y en el mismo orden', () => {
+  it('las RN de dominio siguen todas, y en el mismo orden', () => {
     expect([...seccionDeDominio().matchAll(/\*\*(RN-\d+)\*\*/g)].map((m) => m[1])).toEqual([
       'RN-01',
       'RN-02',
@@ -149,15 +149,21 @@ describe('SPEC-028 CA-14.3: alcance estricto — nada más se mueve', () => {
       'RN-13',
       'RN-14',
       'RN-15',
+      // SPEC-043, gate humano del 2026-08-21: «Cotización sin refrescar». Es de dominio
+      // —dictamen de sdd-mercados, ADR-027, D-2— y entra en la serie que le toca.
+      'RN-16',
     ]);
   });
 
-  it('no nace ninguna RN-16: la serie de dominio no se ensucia', () => {
+  it('la serie de dominio no se ensucia con reglas de ingeniería', () => {
+    // Antes se decía «no nace ninguna RN-16», porque entonces no la había. RN-16 nació
+    // con SPEC-043 y es de dominio; lo que CA-14.3 protege —que las RI no se cuelen en
+    // la serie RN— se sigue comprobando, y ahora por lo que es, no por el número.
     expect(
-      source(),
+      seccionDeDominio(),
       'La numeración RN la vigilan sdd-cartera y sdd-mercados. Las RI van aparte, que es ' +
         'la razón por la que SPEC-032 creó la sección.',
-    ).not.toMatch(/\bRN-1[6-9]\b|\bRN-[2-9]\d\b/);
+    ).not.toMatch(/\*\*RI-\d+\*\*/);
   });
 
   it('ninguna regla de dominio se ha colado dentro de la sección de ingeniería', () => {

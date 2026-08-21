@@ -2,6 +2,7 @@ import { eq } from 'drizzle-orm';
 import type { PgDatabase } from 'drizzle-orm/pg-core';
 import { watchedSymbols, symbols, quotes, quoteDiagnostics } from '@/db/schema';
 import type { QuoteFailureReason } from '@/lib/market/provider';
+import { estaSinRefrescar } from '@/lib/market/sin-refrescar';
 import { entraEnZona, type Zona } from './zones';
 
 type Db = PgDatabase<any, any, any>;
@@ -41,6 +42,21 @@ export interface ZoneStatusView {
   /** Última cotización ingerida del símbolo; null si aún no hay (estado neutro). */
   price: string | null;
   asOf: Date | null;
+  /**
+   * Cuándo escribió el ciclo esta cotización (SPEC-043 CA-7). NO es `asOf`: ver
+   * `src/lib/market/sin-refrescar.ts`, donde está el razonamiento entero.
+   */
+  updatedAt: Date | null;
+  /**
+   * **La cotización dejó de refrescarse** (RN-16, SPEC-043 CA-8). Se decide en el
+   * servidor, con la misma función que usa `/cartera`, y llega ya resuelto a la tabla —
+   * igual que el `state` de zona (SPEC-041: el cliente sólo ordena).
+   *
+   * Es INDEPENDIENTE de `state`: el defecto que esta spec arregla es precisamente que
+   * el aviso estaba condicionado a `state === 'none'`, y una cotización sin refrescar
+   * **sí** tiene precio y **sí** tiene estado de zona («Fuera de zona», decía).
+   */
+  sinRefrescar: boolean;
   hasQuote: boolean;
   inBuy: boolean;
   inSell: boolean;
@@ -90,6 +106,9 @@ export async function zoneStatusForUser(db: Db, userId: string): Promise<ZoneSta
       sellMax: watchedSymbols.sellMax,
       price: quotes.price,
       asOf: quotes.asOf,
+      // SPEC-043 CA-7: cuándo escribió el CICLO la fila. Es lo que decide si la
+      // cotización está sin refrescar, y no `asOf`, que es la fecha de mercado.
+      updatedAt: quotes.updatedAt,
       failReason: quoteDiagnostics.reason,
     })
     .from(watchedSymbols)
@@ -110,6 +129,8 @@ export async function zoneStatusForUser(db: Db, userId: string): Promise<ZoneSta
       inBuy,
       inSell,
       state: stateOf(hasQuote, inBuy, inSell),
+      // RN-16. Una sola función y un solo umbral, compartidos con `/cartera` (CA-12).
+      sinRefrescar: estaSinRefrescar(r.updatedAt),
       failReason: (r.failReason as QuoteFailureReason | null) ?? null,
     };
   });

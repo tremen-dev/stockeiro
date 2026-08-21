@@ -610,12 +610,18 @@
 }
 
 /* ── Diagnóstico del símbolo sin cotización (SPEC-016) ────────────────── */
-.quote-fail, .quote-pending {
+.quote-fail, .quote-pending, .quote-stale {
   display: block; margin: 4px 0 0; font-size: 12px; line-height: 1.35; max-width: 34ch;
 }
 .quote-fail { color: var(--ember); }
 .quote-pending { color: var(--fg-dim); }
-td.num .quote-fail { text-align: right; }
+/* SPEC-043 — la cotizacion que dejo de refrescarse. Hereda la caja acotada de
+   `.quote-fail` a proposito (SPEC-040 CA-4): esta tabla YA se rompio una vez por un
+   parrafo de motivo que se extendia en vez de envolverse, y la marca nueva entra en la
+   MISMA celda. Un tono propio, mas templado que el del fallo: no hay nada roto, hay un
+   dato que dejo de moverse. */
+.quote-stale { color: var(--ember); opacity: .85; }
+td.num .quote-fail, td.num .quote-stale { text-align: right; }
 
 /* ============================================================
    SPEC-035 — Páginas legales y pie compartido
@@ -1381,7 +1387,8 @@ td.num .quote-fail { text-align: right; }
   max-width: 170px;
 }
 .data-table .estado-caja .quote-fail,
-.data-table .estado-caja .quote-pending {
+.data-table .estado-caja .quote-pending,
+.data-table .estado-caja .quote-stale {
   max-width: 100%;
   margin: 0;
 }

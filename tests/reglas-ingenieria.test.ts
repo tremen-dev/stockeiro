@@ -98,11 +98,17 @@ describe('SPEC-032 CA-15.2 y CA-15.3: RI-01 dice qué es, quién la decidió y q
   });
 });
 
-describe('SPEC-032 CA-15: y las quince RN de dominio siguen intactas', () => {
-  /** El nombre entre paréntesis de cada regla, tal como estaba antes de esta
-   *  spec. Congela el encabezado de cada RN sin congelar su prosa: renumerar,
-   *  reescribir un título o colar una RN-16 se cae aquí; una precisión de
-   *  redacción que sdd-cartera o sdd-mercados hagan mañana, no. */
+describe('SPEC-032 CA-15: y las RN de dominio siguen intactas', () => {
+  /** El nombre entre paréntesis de cada regla. Congela el encabezado de cada RN
+   *  sin congelar su prosa: renumerar, reescribir un título o colar una regla de
+   *  INGENIERÍA en esta serie se cae aquí; una precisión de redacción que
+   *  sdd-cartera o sdd-mercados hagan mañana, no.
+   *
+   *  **RN-16 se añadió aquí con SPEC-043** (gate humano del 2026-08-21, ADR-025:
+   *  el vocabulario y las reglas las escribe el arquitecto al aprobar). Era
+   *  quince porque quince había, no porque quince fuera el tope: lo que este
+   *  bloque defiende es que la serie **no se ensucie**, y RN-16 es una regla de
+   *  dominio de pleno derecho, con su dictamen de sdd-mercados detrás. */
   const DOMINIO: ReadonlyArray<[string, string]> = [
     ['RN-01', 'Aislamiento de datos por usuario'],
     ['RN-02', 'Identidad por email único'],
@@ -119,9 +125,10 @@ describe('SPEC-032 CA-15: y las quince RN de dominio siguen intactas', () => {
     ['RN-13', 'Disparo por entrada; permanencia observable'],
     ['RN-14', 'Tipos de aviso e idempotencia del envío'],
     ['RN-15', 'Canal proactivo con registro y fallback'],
+    ['RN-16', 'Cotización sin refrescar'],
   ];
 
-  it('siguen siendo quince, y en el mismo orden', () => {
+  it('siguen estando todas, y en el mismo orden', () => {
     const encontradas = [...seccionDeDominio().matchAll(/\*\*(RN-\d+)\*\*/g)].map((m) => m[1]);
     expect(encontradas).toEqual(DOMINIO.map(([id]) => id));
   });
@@ -132,12 +139,18 @@ describe('SPEC-032 CA-15: y las quince RN de dominio siguen intactas', () => {
     });
   }
 
-  it('no nace ninguna RN-16: la regla de ingeniería NO entra en la serie de dominio', () => {
+  it('ninguna regla de INGENIERÍA se cuela en la serie de dominio', () => {
+    // La forma vieja de decir esto era «no nace ninguna RN-16», y fue cierta mientras
+    // quince fueron quince. SPEC-043 escribió RN-16 —de dominio, con dictamen de
+    // sdd-mercados detrás y su hueco reservado por el gate humano del 2026-08-21— y el
+    // enunciado por número dejó de servir. Lo que CA-15 defiende de verdad es esto otro,
+    // que no caduca: las RI viven en SU sección y ninguna RN es una RI disfrazada.
     expect(
-      source(),
+      seccionDeDominio(),
       'Meter una regla de ingeniería en la serie RN ensucia una numeración que ' +
         'vigilan sdd-cartera y sdd-mercados.',
-    ).not.toMatch(/\bRN-1[6-9]\b|\bRN-[2-9]\d\b/);
+    ).not.toMatch(/\*\*RI-\d+\*\*/);
+    expect(seccionDeIngenieria()).not.toMatch(/\*\*RN-\d+\*\*/);
   });
 
   it('la cabecera del fichero sigue presentando la serie RN como lo que es', () => {

@@ -129,13 +129,19 @@ function contextoPrevio(texto: string, pos: number): string {
 }
 
 /**
- * Las afirmaciones prohibidas que un texto contiene DE VERDAD: cada aparición de una
- * raíz prohibida que no viene negada en su propia frase.
+ * **El motor de la regla de la negación, para cualquier lista cerrada** (SPEC-043 CA-4).
+ *
+ * Vive aquí porque aquí nació (SPEC-039 CA-7) y aquí está documentado por qué la
+ * ventana es corta y por qué `sin` no niega. Se exporta —en vez de copiarse— porque
+ * este proyecto ya sabe lo que cuesta la otra opción: **ADR-026** existe porque cuatro
+ * guardias de geometría se copiaron una de otra y la medida buena se perdió por el
+ * camino en dos de las copias. Una lista nueva trae **sus patrones y sus ejemplos**;
+ * **cómo se decide si una raíz viene negada** se decide en un solo sitio.
  */
-export function afirmacionesProhibidasEn(texto: string): Violacion[] {
+export function violacionesDe(texto: string, lista: readonly AfirmacionProhibida[]): Violacion[] {
   const violaciones: Violacion[] = [];
 
-  for (const { patron, motivo } of AFIRMACIONES_PROHIBIDAS_AYUDA) {
+  for (const { patron, motivo } of lista) {
     const rx = new RegExp(patron.source, patron.flags.includes('g') ? patron.flags : `${patron.flags}g`);
     for (const encontrado of texto.matchAll(rx)) {
       const pos = encontrado.index ?? 0;
@@ -149,6 +155,14 @@ export function afirmacionesProhibidasEn(texto: string): Violacion[] {
     }
   }
   return violaciones;
+}
+
+/**
+ * Las afirmaciones prohibidas que un texto contiene DE VERDAD: cada aparición de una
+ * raíz prohibida que no viene negada en su propia frase.
+ */
+export function afirmacionesProhibidasEn(texto: string): Violacion[] {
+  return violacionesDe(texto, AFIRMACIONES_PROHIBIDAS_AYUDA);
 }
 
 /**
