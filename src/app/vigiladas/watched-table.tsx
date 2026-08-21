@@ -4,6 +4,7 @@ import { useMemo, useState } from 'react';
 import { failReasonText } from '@/lib/market/fail-reason-text';
 import { instrumentTypeText } from '@/lib/market/instrument-type-text';
 import { marketName } from '@/lib/market/market-name';
+import { marcaSinRefrescar } from '@/lib/market/sin-refrescar';
 import type { ZoneStatusView, ZoneState } from '@/lib/watchlist/zone-status';
 import {
   CRITERIOS_ORDEN,
@@ -172,6 +173,25 @@ export function WatchedTable({ filas }: { filas: ZoneStatusView[] }) {
                           {r.failReason
                             ? `⚠ No se vigila: ${failReasonText(r.failReason)}`
                             : SIN_DATO_AUN}
+                        </p>
+                      )}
+                      {/* SPEC-043 CA-8 — **el defecto de esta spec vivía justo aquí**.
+                          El aviso de SPEC-016 estaba condicionado a `r.state === 'none'`,
+                          y una cotización que dejó de refrescarse SÍ tiene precio y SÍ
+                          tiene estado de zona: decía «Fuera de zona» sobre un precio de
+                          hace tres días y no lo advertía. La marca es INDEPENDIENTE del
+                          estado — ésa es literalmente la corrección (RN-16, D-2).
+
+                          Y sigue siendo excluyente con el bloque de arriba sin necesidad
+                          de decirlo: sin cotización no hay `updatedAt`, y sin `updatedAt`
+                          no se puede haber dejado de refrescar nada. */}
+                      {r.sinRefrescar && r.updatedAt && (
+                        <p
+                          className="quote-stale"
+                          data-testid="sin-refrescar"
+                          data-reason={r.failReason ?? undefined}
+                        >
+                          {marcaSinRefrescar(r.updatedAt, r.failReason)}
                         </p>
                       )}
                     </div>

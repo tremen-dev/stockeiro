@@ -36,6 +36,15 @@ export interface QuoteView {
   price: string;
   currency: string;
   asOf: Date;
+  /**
+   * Cuándo **escribió el ciclo** esta fila — no la fecha de mercado del precio, que es
+   * `asOf`. Es el dato del que sale «cotización sin refrescar» (SPEC-043 CA-7, RN-16):
+   * `asOf` se queda legítimamente en el viernes durante el fin de semana, mientras que
+   * esto se mueve en todo ciclo con éxito porque el upsert reescribe la fila aunque el
+   * precio no cambie. Ya estaba en la tabla; lo que faltaba era **exponerlo**, para que
+   * las pantallas pudieran decidir sin volver a la base.
+   */
+  updatedAt: Date;
 }
 
 /**
@@ -50,6 +59,7 @@ export async function getQuoteViews(db: Db, tickers?: string[]): Promise<QuoteVi
       price: quotes.price,
       currency: quotes.currency,
       asOf: quotes.asOf,
+      updatedAt: quotes.updatedAt, // SPEC-043: una columna más en el select, ninguna en la base
     })
     .from(quotes)
     .innerJoin(symbols, eq(quotes.symbolId, symbols.id));
