@@ -2,11 +2,12 @@
 id: SPEC-044
 tipo: spec
 epica: EPIC-005
-estado: aprobada
+estado: en-progreso
 aprobada-por: humano (Alberto Fojo)
 historial:
   - {estado: borrador, fecha: 2026-08-22, por: sdd-arquitecto}
   - {estado: aprobada, fecha: 2026-08-21, por: humano (Alberto Fojo)}
+  - {estado: en-progreso, fecha: 2026-08-21, por: sdd-implementador}
 ---
 # SPEC-044 — Ajustar las zonas de una vigilada sin perder su episodio
 
