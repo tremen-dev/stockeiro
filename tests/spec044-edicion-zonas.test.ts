@@ -188,7 +188,7 @@ describe('SPEC-044 CA-3: los episodios y los avisos siguen siendo suyos', () => 
     const w = await watchSymbol(db, userA, 'ITX', 'EUR', { buyMin: 12, buyMax: 14 });
     const abierto = await sembrarEpisodio(w, null);
     const cerrado = await sembrarEpisodio(w, new Date('2026-07-10T00:00:00.000Z'));
-    const n1 = await sembrarAviso(userA, abierto.id, 'ITX en zona de compra @ 13');
+    await sembrarAviso(userA, abierto.id, 'ITX en zona de compra @ 13');
     const n2 = await sembrarAviso(userA, cerrado.id, 'ITX en zona de compra @ 12,5');
     await markNotificationRead(db, n2.id, userA); // uno leído, otro no
 
@@ -200,7 +200,7 @@ describe('SPEC-044 CA-3: los episodios y los avisos siguen siendo suyos', () => 
         t.price,
         t.asOf.toISOString(),
       ].join('|');
-    const claveAviso = (n: (typeof n1)) =>
+    const claveAviso = (n: (typeof n2)) =>
       [n.id, n.zoneTriggerId, n.payload, n.readAt?.toISOString() ?? null, n.status].join('|');
 
     const episodiosAntes = (await db.select().from(zoneTriggers)).map(claveEpisodio).sort();

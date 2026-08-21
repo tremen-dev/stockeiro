@@ -12,7 +12,9 @@ import {
   type ClaveOrden,
   type DireccionOrden,
 } from '@/lib/watchlist/sort';
+import { CADENCIA_LINEA } from '@/lib/help/content';
 import { removeAction } from './actions';
+import { WatchForm } from './watch-form';
 
 /**
  * SPEC-041 — **la tabla de acciones vigiladas, ahora legible y ordenable**.
@@ -64,8 +66,26 @@ const ariaSort = (
 export function WatchedTable({ filas }: { filas: ZoneStatusView[] }) {
   const [clave, setClave] = useState<ClaveOrden>('ticker');
   const [direccion, setDireccion] = useState<DireccionOrden>('asc');
+  /*
+    SPEC-044 CA-24 — se guarda el **id** de la fila que se edita, nunca su posición. El
+    control de orden reordena el array en el cliente, así que un índice señalaría a otra
+    vigilada en cuanto alguien cambie el criterio: es el mismo motivo por el que la baja
+    manda el id en un `hidden` desde SPEC-024 (ADR-007).
+  */
+  const [editandoId, setEditandoId] = useState<string | null>(null);
+  /*
+    SPEC-044 CA-22 — la ventana de una cadencia es real y se DICE. Si la edición deja el
+    precio dentro de una zona en la que no estaba, la fila lo enseña al instante (el
+    estado se computa en render, SPEC-007 CA-1) pero el aviso llega con el ciclo siguiente
+    (ADR-028 ptos. 4 y 5). Es la primera vez que esa espera la provoca un clic del
+    usuario, así que se cuenta con la MISMA frase que la primera pantalla, `/ayuda` y el
+    estado vacío (`CADENCIA_LINEA`, SPEC-039 CA-3) — ni una promesa de inmediatez, ni una
+    frase nueva.
+  */
+  const [guardada, setGuardada] = useState(false);
 
   const ordenadas = useMemo(() => ordenarVigiladas(filas, clave, direccion), [filas, clave, direccion]);
+  const enEdicion = filas.find((f) => f.id === editandoId) ?? null;
 
   // «Ticker» y «Nombre» ordenan por la MISMA columna de la tabla —el nombre vive bajo el
   // ticker, en la celda «Activo» (CA-2)—, así que las dos marcan ese `<th>`.
@@ -201,17 +221,36 @@ export function WatchedTable({ filas }: { filas: ZoneStatusView[] }) {
                   <td className="num">{zona(r.buyMin, r.buyMax)}</td>
                   <td className="num">{zona(r.sellMin, r.sellMax)}</td>
                   <td>
-                    <form action={removeAction}>
-                      {/* SPEC-024: viaja el id de la ACCIÓN VIGILADA (el mismo que la
-                          fila usa como key), no el ticker: dos mercados del mismo ticker
-                          son dos vigiladas distintas (ADR-007). Y por eso reordenar no lo
-                          afecta (CA-18): lo que viaja es la identidad de SU fila, no su
-                          posición en la lista. */}
-                      <input type="hidden" name="watchedId" value={r.id} />
-                      <button className="btn-sm" type="submit">
-                        Quitar
+                    <div className="fila-acciones">
+                      {/* SPEC-044 CA-19: el control de edición vive EN SU FILA y lleva el
+                          id de esa fila. Reordenar no lo afecta, por el mismo motivo que
+                          no afecta a «Quitar». */}
+                      <button
+                        className="btn-sm"
+                        type="button"
+                        data-testid="editar-zonas"
+                        data-watched-id={r.id}
+                        aria-expanded={editandoId === r.id}
+                        aria-controls="editar-panel"
+                        onClick={() => {
+                          setGuardada(false);
+                          setEditandoId(editandoId === r.id ? null : r.id);
+                        }}
+                      >
+                        Editar
                       </button>
-                    </form>
+                      <form action={removeAction}>
+                        {/* SPEC-024: viaja el id de la ACCIÓN VIGILADA (el mismo que la
+                            fila usa como key), no el ticker: dos mercados del mismo ticker
+                            son dos vigiladas distintas (ADR-007). Y por eso reordenar no lo
+                            afecta (CA-18): lo que viaja es la identidad de SU fila, no su
+                            posición en la lista. */}
+                        <input type="hidden" name="watchedId" value={r.id} />
+                        <button className="btn-sm" type="submit">
+                          Quitar
+                        </button>
+                      </form>
+                    </div>
                   </td>
                 </tr>
               );
@@ -219,6 +258,43 @@ export function WatchedTable({ filas }: { filas: ZoneStatusView[] }) {
           </tbody>
         </table>
       </div>
+
+      {/*
+        El panel va FUERA de `.table-scroll`, y es deliberado. Dentro heredaría el ancho
+        de la tabla y —peor— quedaría en el subárbol de un contenedor desplazable, donde
+        M1 deja de medir (ADR-026 §4): el formulario podría salirse de la ventana sin que
+        ninguna guardia lo viera. Fuera, se mide como el del alta y con la misma caja
+        (SPEC-040), que es justo lo que pide CA-20.
+      */}
+      {enEdicion && (
+        <div className="editar-vigilada" id="editar-panel" data-testid="editar-panel">
+          <WatchForm
+            // Cambiar de fila REMONTA el formulario: sin `key`, los campos no
+            // controlados conservarían los valores de la vigilada anterior.
+            key={enEdicion.id}
+            edicion={{
+              id: enEdicion.id,
+              ticker: enEdicion.ticker,
+              micCode: enEdicion.micCode,
+              buyMin: enEdicion.buyMin,
+              buyMax: enEdicion.buyMax,
+              sellMin: enEdicion.sellMin,
+              sellMax: enEdicion.sellMax,
+              onGuardado: () => {
+                setEditandoId(null);
+                setGuardada(true);
+              },
+              onCancelar: () => setEditandoId(null),
+            }}
+          />
+        </div>
+      )}
+
+      {guardada && !enEdicion && (
+        <p className="editar-cadencia" data-testid="edicion-cadencia" role="status">
+          {CADENCIA_LINEA}
+        </p>
+      )}
     </>
   );
 }
