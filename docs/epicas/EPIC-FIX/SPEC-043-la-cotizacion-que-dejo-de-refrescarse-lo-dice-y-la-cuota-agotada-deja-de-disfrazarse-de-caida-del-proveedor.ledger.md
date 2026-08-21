@@ -6,10 +6,12 @@ epica: EPIC-FIX
 # Ledger — SPEC-043 La cotizacion que dejo de refrescarse lo dice, y la cuota agotada deja de disfrazarse de caida del proveedor
 
 ## Resumen
-- Fase: **borrador** — spec escrita por sdd-arquitecto el 2026-08-21, **pendiente del gate
-  humano**. Nada implementado.
+- Fase: **en-progreso** — spec **aprobada** en el gate humano (Alberto Fojo, 2026-08-21) y
+  puesta en curso por sdd-implementador el 2026-08-21. Implementación en marcha.
 - Rama: `ft/SPEC-043-la-cotizacion-que-dejo-de-refrescarse-lo-dice`
-- Decisión que la acompaña: **ADR-027** (`docs/adr/ADR-027-…`), también en `borrador`.
+- Decisión que la acompaña: **ADR-027** (`docs/adr/ADR-027-…`), **aprobada** el 2026-08-21 y
+  por tanto inmutable. El vocabulario (`dominio.md`) y **RN-16** (`reglas.md`) ya están
+  escritos: son el rótulo del que copia esta implementación.
 
 ## Matriz de criterios de aceptación
 <!-- Escritores: sdd-implementador rellena Implementado y Test; sdd-verificador rellena Verif. y Estado. Nunca al revés. -->
