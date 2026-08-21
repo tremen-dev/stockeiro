@@ -161,12 +161,23 @@ describe('CA-8: resiliencia por símbolo', () => {
   // como excepción y NADIE la capturaba: el ciclo entero moría con 500 y todos los
   // usuarios se quedaban sin refresco, sin disparos y sin avisos. Ahora degrada a fallo
   // POR SÍMBOLO. Lo que se conserva es lo esencial: el fallo no desaparece en silencio.
+  //
+  // **SPEC-043 CA-1 cambia el MOTIVO, y el cambio es el arreglo, no un ajuste de test.**
+  // El caso de ejemplo que este test eligió resultó ser —literalmente— el defecto: un
+  // `usage_limit_reached` clasificado como `proveedor_no_disponible`, cuyo contrato
+  // promete que el próximo ciclo puede ir bien. El 2026-08-19 y el 20 no fue bien, y el
+  // operador estuvo esperando en vez de reponiendo cuota. ADR-027 pto. 4 le da nombre
+  // propio: si el proveedor nos dice que hemos consumido nuestro presupuesto, eso es lo
+  // que se persiste, venga con el estado HTTP que venga.
+  //
+  // Lo que este test afirma —que un fallo global NO tumba el ciclo y sale por símbolo—
+  // sigue siendo exactamente lo mismo y sigue verde.
   it('un fallo GLOBAL (HTTP 200 con {error}) NO tumba el ciclo: sale por símbolo', async () => {
     const provider = new MarketstackProvider('key', fakeFetch({ error: { code: 'usage_limit_reached', message: 'limit' } }));
     const { quotes, failures } = await provider.getQuotes([{ ticker: 'ITX', micCode: 'BMEX' }]);
 
     expect(quotes).toEqual([]);
-    expect(failures).toEqual([{ ticker: 'ITX', micCode: 'BMEX', reason: 'proveedor_no_disponible' }]);
+    expect(failures).toEqual([{ ticker: 'ITX', micCode: 'BMEX', reason: 'cuota_agotada' }]);
   });
 });
 

@@ -165,20 +165,57 @@ function classify(row: MarketstackRow): QuoteFailureReason {
 }
 
 /**
- * Motivo de un fallo GLOBAL (SPEC-020 CA-8). Son dos cosas distintas y el usuario merece
- * saber cuál:
+ * Motivo de un fallo GLOBAL (SPEC-020 CA-8, **SPEC-043 CA-1/CA-2/CA-3**). Son cosas
+ * distintas y el usuario merece saber cuál:
  *  - el proveedor respondió y **rechazó nuestra petición** (`no_valid_symbols_provided`):
  *    reintentar no lo arregla → `simbolo_no_admitido`;
- *  - el proveedor **se cayó** (HTTP 5xx, red, timeout): es transitorio y el próximo ciclo
- *    puede ir bien → `proveedor_no_disponible`.
- * Ninguno de los dos es `simbolo_desconocido`: acusar al valor de estar deslistado sería
- * mentira, y esa mentira es justo el defecto que EPIC-FIX vino a matar (CE-F2).
+ *  - el proveedor nos dice que **hemos consumido nuestro presupuesto**
+ *    (`usage_limit_reached`) → `cuota_agotada`;
+ *  - el proveedor **se cayó** (HTTP 5xx, red, timeout) o nos frena por pedirle demasiado
+ *    seguido: es transitorio y el próximo ciclo puede ir bien → `proveedor_no_disponible`.
+ * Ninguno es `simbolo_desconocido`: acusar al valor de estar deslistado sería mentira, y
+ * esa mentira es justo el defecto que EPIC-FIX vino a matar (CE-F2).
+ *
+ * ## El estado HTTP entra aquí porque es información necesaria
+ *
+ * Hasta SPEC-043 esta función solo veía el CUERPO, y por eso el **429** del 2026-08-19
+ * —`{"code":"usage_limit_reached"}`— cayó al motivo por defecto y le dijo al operador
+ * *«se reintentará en el próximo ciclo»* durante dos ciclos que fallaron igual. El
+ * estado no puede seguir descartándose.
+ *
+ * ## La taxonomía del 429, que NO es un solo caso (ADR-027 pto. 5)
+ *
+ * Marketstack usa el mismo estado para dos cosas y solo una es transitoria:
+ *  - `usage_limit_reached` → presupuesto **mensual** agotado → `cuota_agotada`;
+ *  - `rate_limit_reached` / `too_many_requests` → tope de **5 peticiones por segundo**,
+ *    que sí es pasajero → `proveedor_no_disponible`.
+ *
+ * ## Y la presunción, escrita aquí para que se lea al lado (CA-3)
+ *
+ * **Un 429 con cuerpo ilegible o con un código que no reconocemos se presume cuota.**
+ * El motivo: esta app hace **una llamada por ciclo** (dedupe de ADR-002), así que **no
+ * puede** alcanzar un tope de cinco peticiones por segundo — el 429 que nos llegue casi
+ * solo puede ser el mensual. Y los dos errores no cuestan lo mismo: equivocarse hacia
+ * *«revisa tu cuota»* manda al operador al sitio correcto, mientras que equivocarse
+ * hacia *«se reintentará»* es **reproducir el defecto exacto** que ADR-027 cierra.
+ *
+ * La presunción está acotada al 429 a propósito: un 5xx mudo **sí** es una caída y
+ * sigue siendo `proveedor_no_disponible`.
  */
-function classifyGlobal(body: MarketstackBody | null): QuoteFailureReason {
+function classifyGlobal(body: MarketstackBody | null, status: number | null): QuoteFailureReason {
   const code = (body?.error?.code ?? '').toLowerCase();
   const msg = (body?.error?.message ?? '').toLowerCase();
   if (/no_valid_symbols|invalid_symbol/.test(code) || /no valid symbols|invalid symbol/.test(msg)) {
     return 'simbolo_no_admitido';
+  }
+  // El tope por segundo, ANTES que la presunción: es el único 429 que sí es transitorio.
+  if (/rate_limit_reached|too_many_requests/.test(code) || /too many requests|rate limit/.test(msg)) {
+    return 'proveedor_no_disponible';
+  }
+  // La cuota se reconoce por su código diga lo que diga el estado —es la verdad venga
+  // como venga—; y ante un 429 sin código legible, se presume (ver cabecera).
+  if (/usage_limit_reached/.test(code) || /usage limit/.test(msg) || status === 429) {
+    return 'cuota_agotada';
   }
   return 'proveedor_no_disponible';
 }
@@ -352,8 +389,10 @@ export class MarketstackProvider implements MarketDataProvider {
     } catch {
       body = null; // cuerpo ilegible: se clasifica por el estado HTTP
     }
-    if (!res.ok) return { ok: false, reason: classifyGlobal(body) };
-    if (body?.error) return { ok: false, reason: classifyGlobal(body) };
+    // El ESTADO viaja al clasificador (SPEC-043): sin él, el 429 de la cuota agotada es
+    // indistinguible de cualquier otro fallo global y vuelve a caer en el cajón.
+    if (!res.ok) return { ok: false, reason: classifyGlobal(body, res.status) };
+    if (body?.error) return { ok: false, reason: classifyGlobal(body, res.status) };
     return { ok: true, data: body?.data ?? [] };
   }
 }
