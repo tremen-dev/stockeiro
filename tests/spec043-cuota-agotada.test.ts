@@ -5,6 +5,8 @@ import { watchSymbol } from '@/lib/watchlist/service';
 import { MarketstackProvider } from '@/lib/market/marketstack-provider';
 import { refreshQuotes, symbolUniverse } from '@/lib/market/refresh';
 import { getDiagnosticMap, upsertQuote } from '@/lib/market/quotes';
+import { zoneStatusForUser } from '@/lib/watchlist/zone-status';
+import { quotes } from '@/db/schema';
 import { FAIL_REASON_TEXT, failReasonText } from '@/lib/market/fail-reason-text';
 import { runCronCycle } from '@/lib/triggers/cycle';
 import { FakeNotificationSender } from '@/lib/notifications/fake-sender';
@@ -220,6 +222,80 @@ describe('SPEC-043 CA-4: el texto de usuario no promete lo que no puede cumplir'
     // ADR-027 pto. 4: no se hace vago el motivo verdadero para acomodar al impostor.
     // Lo que cambia es que deja de ser el cajón donde caía la cuota.
     expect(FAIL_REASON_TEXT.proveedor_no_disponible).toMatch(/pr[óo]ximo ciclo|reintent/i);
+  });
+});
+
+describe('SPEC-043 CA-16: el incidente real, reproducido (CE-F1)', () => {
+  /** Los trece del universo del 2026-08-19, con su mercado y su dialecto real. */
+  const TRECE: [string, string, string][] = [
+    ['ITX', 'BMEX', 'EUR'],
+    ['SAN', 'BMEX', 'EUR'],
+    ['TEF', 'BMEX', 'EUR'],
+    ['PHM', 'BMEX', 'EUR'],
+    ['SAP', 'XETR', 'EUR'],
+    ['MC', 'XPAR', 'EUR'],
+    ['ASML', 'XAMS', 'EUR'],
+    ['AAPL', 'XNAS', 'USD'],
+    ['WEN', 'XNAS', 'USD'],
+    ['DOCS', 'XNAS', 'USD'],
+    ['TTD', 'XNAS', 'USD'],
+    ['APP', 'XNAS', 'USD'],
+    ['KO', 'XNYS', 'USD'],
+  ];
+
+  it('trece símbolos, UN 429 `usage_limit_reached`: trece motivos `cuota_agotada`', async () => {
+    for (const [ticker, mic, divisa] of TRECE) {
+      await watchSymbol(db, userA, ticker, divisa, {}, { micCode: mic, exchange: mic });
+    }
+    // Última ingesta buena: 2026-08-18T23:43Z, leída de producción. El `updated_at` se
+    // pone RELATIVO —el mismo hueco de tres días— para que el test no dependa del reloj
+    // de quien lo ejecute; es el hueco lo que importa, no la fecha del calendario.
+    const universo = await symbolUniverse(db);
+    expect(universo).toHaveLength(13);
+    for (const u of universo) {
+      await upsertQuote(db, u.symbolId, { price: '10', currency: u.currency, asOf: '2026-08-18T23:43:00.000Z' });
+    }
+    await db.update(quotes).set({ updatedAt: new Date(Date.now() - 60 * 3_600_000) });
+
+    const f = fetchQueResponde(CUERPO_429_CUOTA, { ok: false, status: 429 });
+    const res = await refreshQuotes(db, new MarketstackProvider('key', f.impl));
+
+    // Firma del incidente: requested=13, updated=0, skipped=13… pero ya no mintiendo.
+    expect(f.llamadas(), 'una sola llamada por ciclo (ADR-002)').toBe(1);
+    expect(res.requested).toHaveLength(13);
+    expect(res.updated).toHaveLength(0);
+    expect(res.skipped).toHaveLength(13);
+    expect(motivos(res.skipped)).toEqual(['cuota_agotada']);
+
+    const diag = await getDiagnosticMap(db);
+    expect(Object.keys(diag)).toHaveLength(13);
+    expect([...new Set(Object.values(diag).map((d) => d.reason))]).toEqual(['cuota_agotada']);
+  });
+
+  it('y las dos pantallas lo dicen: trece filas sin refrescar, con su porqué', async () => {
+    for (const [ticker, mic, divisa] of TRECE) {
+      await watchSymbol(db, userA, ticker, divisa, {}, { micCode: mic, exchange: mic });
+    }
+    const universo = await symbolUniverse(db);
+    for (const u of universo) {
+      await upsertQuote(db, u.symbolId, { price: '10', currency: u.currency, asOf: '2026-08-18T23:43:00.000Z' });
+    }
+    await db.update(quotes).set({ updatedAt: new Date(Date.now() - 60 * 3_600_000) });
+    await refreshQuotes(db, new MarketstackProvider('key', fetchQueResponde(CUERPO_429_CUOTA, { ok: false, status: 429 }).impl));
+
+    const filas = await zoneStatusForUser(db, userA);
+
+    expect(filas).toHaveLength(13);
+    for (const fila of filas) {
+      // Lo que el usuario veía: un precio, un estado de zona, y ni una palabra sobre que
+      // llevaba tres días congelado. Ahora las dos cosas conviven.
+      expect(fila.price).toBe('10');
+      expect(fila.state, `${fila.ticker} perdió su estado de zona`).not.toBe('none');
+      expect(fila.sinRefrescar, `${fila.ticker} no dice que dejó de actualizarse`).toBe(true);
+      expect(fila.failReason).toBe('cuota_agotada');
+    }
+    // Y el motivo que llega a la pantalla ya no manda a esperar, sino a reponer.
+    expect(failReasonText('cuota_agotada')).not.toMatch(/pr[óo]ximo ciclo|reintent/i);
   });
 });
 
