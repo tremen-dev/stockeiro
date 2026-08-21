@@ -6,8 +6,9 @@ epica: EPIC-FIX
 # Ledger — SPEC-043 La cotizacion que dejo de refrescarse lo dice, y la cuota agotada deja de disfrazarse de caida del proveedor
 
 ## Resumen
-- Fase: **en-progreso** — spec **aprobada** en el gate humano (Alberto Fojo, 2026-08-21) y
-  puesta en curso por sdd-implementador el 2026-08-21. Implementación en marcha.
+- Fase: **en-revision** — spec aprobada en el gate humano (Alberto Fojo, 2026-08-21),
+  implementada por sdd-implementador el mismo día y entregada al gate adversarial. **Los
+  16 CA tienen código y test**; falta la verificación, que no es del implementador.
 - Rama: `ft/SPEC-043-la-cotizacion-que-dejo-de-refrescarse-lo-dice`
 - Decisión que la acompaña: **ADR-027** (`docs/adr/ADR-027-…`), **aprobada** el 2026-08-21 y
   por tanto inmutable. El vocabulario (`dominio.md`) y **RN-16** (`reglas.md`) ya están
@@ -19,33 +20,81 @@ epica: EPIC-FIX
 <!-- Un CA está ✅ solo cuando Implementado + Test + Verif. aplicables están en verde. Una salvedad se marca ⚠️, nunca ✅. -->
 | CA | Implementado (fichero) | Test (fichero/caso) | Verif. | Estado |
 |---|---|---|---|---|
-| CA-1 (cuota_agotada por `usage_limit_reached`) | | | | ❌ |
-| CA-2 (429 por segundo sigue transitorio) | | | | ❌ |
-| CA-3 (429 mudo se presume cuota) | | | | ❌ |
-| CA-4 (texto sin promesa de reintento) | | | | ❌ |
-| CA-5 (resiliencia y contrato del ciclo — no regresión) | | | | ❌ |
-| CA-6 (ayuda explica el motivo y su cuenta no miente) | | | | ❌ |
-| CA-7 (definición por `updated_at`, no por `as_of`) | | | | ❌ |
-| CA-8 (`/vigiladas` lo dice con precio y con estado de zona) | | | | ❌ |
-| CA-9 (`/cartera` lo dice con P/L calculado) | | | | ❌ |
-| CA-10 (sin diagnóstico no se inventa el motivo) | | | | ❌ |
-| CA-11 (la marca desaparece sola) | | | | ❌ |
-| CA-12 (una sola definición y umbral derivado de la cadencia) | | | | ❌ |
-| CA-13 (RN-06 y RN-11 intactos: marcar no es borrar) | | | | ❌ |
-| CA-14 (no se alerta a nadie — ADR-023 pto. 15) | | | | ❌ |
-| CA-15 (geometría a 360 y 1280 — ADR-026) | | | | ❌ |
-| CA-16 (el incidente real reproducido — CE-F1) | | | | ❌ |
+| CA-1 (cuota_agotada por `usage_limit_reached`) | `src/lib/market/provider.ts` (valor nuevo en `QuoteFailureReason`) · `src/lib/market/marketstack-provider.ts` (`classifyGlobal` recibe el **estado HTTP**, que antes se descartaba) | `tests/spec043-cuota-agotada.test.ts` → «CA-1: la cuota agotada tiene nombre propio» (2 casos: clasificación y persistencia por símbolo vía `refreshQuotes` + `getDiagnosticMap`) | | ❌ |
+| CA-2 (429 por segundo sigue transitorio) | `src/lib/market/marketstack-provider.ts` (`classifyGlobal`, rama del tope por segundo **antes** de la presunción) | `tests/spec043-cuota-agotada.test.ts` → «CA-2» (3 casos: `rate_limit_reached`, `too_many_requests`, y que los dos 429 no se confunden) | | ❌ |
+| CA-3 (429 mudo se presume cuota) | `src/lib/market/marketstack-provider.ts` (`classifyGlobal` + el porqué de la presunción escrito en su cabecera) | `tests/spec043-cuota-agotada.test.ts` → «CA-3» (4 casos: cuerpo ilegible, código no reconocido, el 503 mudo que **no** se contagia, y que la razón está escrita junto al código) | | ❌ |
+| CA-4 (texto sin promesa de reintento) | `src/lib/market/fail-reason-text.ts` (`cuota_agotada`) · `src/lib/help/content.ts` (`EXPLICACION.cuota_agotada`) | `tests/spec043-formulas-prohibidas.ts` (lista cerrada, 7 patrones, con sus ejemplos prohibidos y permitidos) + `tests/spec043-cuota-agotada.test.ts` → «CA-4» (6 casos, incluida la guardia probándose a sí misma y que `proveedor_no_disponible` **conserva** su contrato) | | ❌ |
+| CA-5 (resiliencia y contrato del ciclo — no regresión) | Sin cambio de diseño: la rama nueva vive dentro de `fetchBody`/`classifyGlobal` y no toca el flujo | `tests/spec043-cuota-agotada.test.ts` → «CA-5» (2 casos: `runCronCycle` devuelve 200 con el mismo cuerpo; el camino feliz sigue actualizando) | | ❌ |
+| CA-6 (ayuda explica el motivo y su cuenta no miente) | `src/lib/help/content.ts` (`EXPLICACION.cuota_agotada` + **`MOTIVOS_EN_PROSA`**, del que sale la intro de `SIN_PRECIO_SECCION`) | `tests/spec043-cuota-agotada.test.ts` → «CA-6» (3 casos: la explicación existe y no repite la etiqueta corta; la cifra en prosa atada a `MOTIVOS_SIN_PRECIO.length`; el «seis» suelto ya no está) | | ❌ |
+| CA-7 (definición por `updated_at`, no por `as_of`) | **`src/lib/market/sin-refrescar.ts`** (nuevo: umbral y `estaSinRefrescar`) · `src/lib/market/quotes.ts` (`QuoteView.updatedAt`) | `tests/spec043-sin-refrescar.test.ts` → «CA-7» (8 casos; los dos que sostienen la decisión son el **contrapositivo del fin de semana** y el **retraso desigual de publicación**, los dos con el `expect` que demuestra que por `as_of` serían falsos positivos; más la guardia de que el cron de `vercel.json` sigue corriendo todos los días) | | ❌ |
+| CA-8 (`/vigiladas` lo dice con precio y con estado de zona) | `src/app/vigiladas/watched-table.tsx` (marca **independiente** de `r.state`) · `src/lib/watchlist/zone-status.ts` (`updatedAt` + `sinRefrescar`) | `tests/e2e/sin-refrescar.spec.ts` → «CA-8» (fila en zona de compra, con precio, marcada y con motivo; y la fila fresca de control **sin** marcar) + `tests/spec043-sin-refrescar.test.ts` → «CA-13» | | ❌ |
+| CA-9 (`/cartera` lo dice con P/L calculado) | `src/app/cartera/page.tsx` (marca **independiente** de `p.plActual`) | `tests/e2e/sin-refrescar.spec.ts` → «CA-9» (P/L actual = 210, sin «—», y aun así marcada) | | ❌ |
+| CA-10 (sin diagnóstico no se inventa el motivo) | `src/lib/market/sin-refrescar.ts` (`marcaSinRefrescar`, el motivo es opcional) | `tests/spec043-sin-refrescar.test.ts` → «CA-10» (2 casos) + `tests/e2e/sin-refrescar.spec.ts` → «CA-10» (`Z6MUDA`: sin `data-reason` y sin nombrar causa alguna) | | ❌ |
+| CA-11 (la marca desaparece sola) | Sin cambio: el upsert de `quotes` ya reescribe `updated_at` y `clearDiagnostic` ya limpia (SPEC-016 CA-8) | `tests/spec043-sin-refrescar.test.ts` → «CA-11» (2 casos; el segundo prueba que la fila se reescribe **aunque el precio no cambie**, que es de lo que cuelga todo CA-7) + `tests/e2e/sin-refrescar.spec.ts` → «CA-11» | | ❌ |
+| CA-12 (una sola definición y umbral derivado de la cadencia) | `src/lib/market/sin-refrescar.ts` (`HORAS_POR_CICLO` × `CICLOS_HASTA_SIN_REFRESCAR` = 36 h; y la marca, en una sola redacción) | `tests/spec043-sin-refrescar.test.ts` → «CA-12» (4 casos: ninguna pantalla escribe el número ni su aritmética; las dos importan del mismo módulo; la marca sale de una sola función; y RN-16 cita el mismo umbral que el código) | | ❌ |
+| CA-13 (RN-06 y RN-11 intactos: marcar no es borrar) | `src/lib/watchlist/zone-status.ts` y `src/app/cartera/page.tsx`: la marca es **aditiva**, no sustituye ni el estado ni el P/L | `tests/spec043-sin-refrescar.test.ts` → «CA-13» (2 casos: `state` sigue siendo `buy` con su precio; `plActual` = 50 y no pasa a `null`) | | ❌ |
+| CA-14 (no se alerta a nadie — ADR-023 pto. 15) | Ninguno: la frontera se cumple **no escribiendo nada** | `tests/spec043-frontera.test.ts` (4 casos: ciclo completo con cuota agotada y fila congelada sin un solo correo ni fila en `notifications`; el ciclo que no corrió; ni un `import` del canal desde los tres ficheros nuevos; y ninguna tabla nueva) | | ❌ |
+| CA-15 (geometría a 360 y 1280 — ADR-026) | `src/app/globals.css` (`.quote-stale` hereda la caja acotada que SPEC-040 CA-4 puso en `.estado-caja`) | `tests/e2e/sin-refrescar-geometria.spec.ts` (3 casos con el módulo compartido: M1+M2 en `/vigiladas` y `/cartera` a 360 y 1280 con filas marcadas y sin marcar, y el ancho de la tabla con/sin marca — **con prueba de eficacia**, ADR-026 §7: al reinyectar la caja sin acotar, la medida se pone roja) | | ❌ |
+| CA-16 (el incidente real reproducido — CE-F1) | Todo lo anterior junto | `tests/spec043-cuota-agotada.test.ts` → «CA-16» (2 casos: trece símbolos, **una** llamada, un 429 `usage_limit_reached`, la firma `requested=13 / updated=0 / skipped=13` reproducida y trece `cuota_agotada`; y las trece filas conservando precio y estado de zona) + `tests/e2e/sin-refrescar.spec.ts` → «CA-16» (las trece marcadas en **las dos pantallas**) | | ❌ |
 
 ## Veredicto del verificador
 <!-- GREEN/RED + fecha + resumen. Lo escribe SOLO sdd-verificador. -->
 
 ## Evidencia visual
 <!-- Tabla CA → captura en _qa/SPEC-043/. Informe HTML opcional: _qa/SPEC-043/informe.html -->
-Pendiente. CA-8, CA-9, CA-10 y CA-15 pedirán captura (`/vigiladas` y `/cartera` con fila
-marcada y sin marcar, a 360 px y a 1280 px).
+Pendiente **de commitear por el verificador**, que es a quien le toca esta sección. Las
+guardias e2e ya **producen** los ficheros al correr, en `_qa/SPEC-043/`:
+
+| CA | Fichero que genera la guardia |
+|---|---|
+| CA-8 | `vigiladas-sin-refrescar.png` |
+| CA-9 | `cartera-sin-refrescar.png` |
+| CA-15 | `geometria-vigiladas.txt`, `geometria-cartera.txt` (las cifras de M1/M2 a 360 y 1280) |
+| CA-16 | `incidente-vigiladas.png`, `incidente-cartera.png` (las trece filas) |
+
+**El implementador NO ha commiteado ninguna captura**, ni las suyas ni las ajenas: ver
+**F-SPEC-043-3**, porque correr la suite entera reescribe las de todas las specs y ese
+diff se descartó a propósito.
 
 ## Salvedades / follow-ups
-Abiertas desde el diseño, antes de implementar:
+
+### Levantadas al implementar (2026-08-21)
+
+- **F-SPEC-043-3 (hallazgo de proceso, no de esta spec): correr la suite e2e completa
+  reescribe TODAS las capturas de `_qa/`.** Medido: un `npx playwright test` deja **~60
+  PNG modificados** de SPEC-001 a SPEC-041, porque cada spec vuelve a hacer sus
+  `page.screenshot()` sobre los mismos ficheros y los bytes nunca salen idénticos. No es
+  un fallo de nadie ni un dato corrupto —son las mismas pantallas—, pero **cualquiera que
+  ejecute la suite entera se encuentra un diff enorme de origen aparentemente
+  desconocido** y acaba, o bien commiteándolo dentro de un cambio ajeno, o bien
+  descartándolo a ciegas. Aquí se descartó con `git checkout -- _qa` y **no se ha
+  commiteado ni una captura**. Merece decisión propia (¿`_qa/` versionado o generado?),
+  que es de proceso y no de producto.
+- **F-SPEC-043-4: dos expectativas ajenas estaban escritas sobre el defecto, y se han
+  corregido.** No es alcance nuevo: es que el arreglo las volvió falsas.
+  - `tests/market-operating-mic.test.ts` (SPEC-015 CA-8) usaba **`usage_limit_reached`**
+    como ejemplo de fallo global y esperaba que saliera como `proveedor_no_disponible`.
+    Eso **era literalmente el defecto** que ADR-027 pto. 4 cierra. Lo que ese test afirma
+    —que un fallo global no tumba el ciclo y sale por símbolo— no ha cambiado y sigue
+    verde; lo que ha cambiado es el motivo esperado.
+  - `tests/reglas-ingenieria.test.ts` (SPEC-032 CA-15) y
+    `tests/reglas-ingenieria-hecho-vivo.test.ts` (SPEC-028 CA-14.3) prohibían **una RN-16
+    por número**. RN-16 la escribió el arquitecto **al aprobar esta spec** (ADR-025), así
+    que las dos guardias estaban rojas antes de tocar una línea de `src/`. Se han
+    reescrito para vigilar **lo que de verdad defendían** —que ninguna regla de
+    ingeniería se cuele en la serie de dominio— en vez de un número que caduca. **La
+    congelación de la serie sigue intacta**: RN-16 entra en la lista con su enunciado, y
+    cualquier otro movimiento sigue poniéndolas rojas.
+- **Retoque de texto que no es un CA pero sí una consecuencia**: la explicación de
+  `proveedor_no_disponible` en `/ayuda` decía *«se cayó, tardó demasiado o se agotó la
+  cuota del día»*. Con `cuota_agotada` ya existiendo, esa frase era la vieja confusión
+  escrita en la ayuda. Ahora dice *«…o nos frenó por pedirle varias cosas demasiado
+  seguidas»*, que es el 429 que **sí** le corresponde (CA-2). Su contrato —transitorio,
+  el próximo ciclo puede ir bien— se conserva y hay un test que lo exige.
+- **La versión sube a `0.2.1`** (ADR-024 / gate de SPEC-038 CA-12): la rama toca código
+  de aplicación, y esto es un defecto corregido, no una funcionalidad.
+
+### Abiertas desde el diseño, antes de implementar:
 
 - **F-ADR-027-1** (gate humano, **no la resuelve esta spec**): **CE-F3 de EPIC-FIX**
   (*coste cero de arranque*) y la realidad medida ya no caben juntos — 13 símbolos × ~31
@@ -88,34 +137,60 @@ Abiertas desde el diseño, antes de implementar:
   verifican con el fake y con `fetchImpl`, no contra la API real.
 
 ## Cómo retomar (handoff)
-Estado real: **solo diseño**. En el árbol hay tres ficheros y **ni una línea de `src/`**:
 
-1. `docs/epicas/EPIC-FIX/SPEC-043-…md` — la spec, 16 CA, en `borrador`.
-2. `docs/epicas/EPIC-FIX/SPEC-043-…ledger.md` — este fichero.
-3. `docs/adr/ADR-027-…md` — la decisión, en `borrador`.
+Estado real: **implementada y en `en-revision`**. Los 16 CA tienen código y test; lo que
+falta es el gate adversarial (`sdd-verificador`), que es quien rellena **Verif.** y
+**Estado** de la matriz y esta sección de evidencia.
 
-**El gate ya respondió (2026-08-21) y las respuestas están plegadas en la spec y en el
-ADR.** Lo decidido, para no tener que releerlo todo:
+**Rama**: `ft/SPEC-043-la-cotizacion-que-dejo-de-refrescarse-lo-dice`. **Sin push, sin
+PR, sin merge** — eso es del humano.
 
-| Cuestión | Resuelto |
+### Los commits, en orden
+
+| Commit | Qué trae |
 |---|---|
-| Umbral de rancidez | **36 h** — fijado en CA-7, con un solo sitio por CA-12 |
-| Vocabulario de `dominio.md` | **ok tal cual** (nota 1); se escribe **al aprobar** |
-| **RN-16** en `reglas.md` | **SÍ** — redacción cerrada en la nota 5; se escribe **al aprobar** |
-| `outcome='success'` con `updated=0` | **Se queda**, como decisión consciente |
-| RN-14 sobre precio congelado | **Fuera** → F-SPEC-043-1 |
-| Salto de fin de semana | **Fuera** → F-SPEC-043-2 |
+| `b0b6388` | `chore`: spec a `en-progreso` y el `## Resumen` de este ledger, que seguía diciendo `borrador` |
+| `358b11d` | `feat`: bloque **A** — `cuota_agotada`, el estado HTTP en `classifyGlobal`, la lista de fórmulas prohibidas y la cifra en prosa de la ayuda (CA-1 a CA-6) |
+| `345c1e2` | `feat`: bloque **B** — `sin-refrescar.ts`, `QuoteView.updatedAt`, y las dos pantallas (CA-7 a CA-13). Sube la versión a `0.2.1` |
+| `39c1201` | `test`: **CA-14** (la frontera de ADR-023 pto. 15) y la mitad de ciclo de **CA-16** |
+| `f3e5629` | `test`: las guardias e2e de las dos pantallas y de la geometría (CA-8, CA-9, CA-10, CA-11, CA-15 y la mitad visual de CA-16) |
 
-**Lo único que falta es la aprobación explícita, y no la da el arquitecto.** Al aprobar,
-tres escrituras que **no puede hacer el implementador** (ADR-025):
+### Cómo se corre todo
 
-1. `docs/fundacion/dominio.md` ← las dos filas de la **nota 1** (`cuota_agotada` y
-   «Cotización sin refrescar»), ya redactadas y listas para pegar. Sin ellas la
-   implementación no tiene rótulo del que copiar.
-2. `docs/fundacion/reglas.md` ← **RN-16**, ya redactada en la **nota 5**.
-3. **ADR-027** a `aprobada`: es lo que autoriza el motivo nuevo y lo que deja escrita la
-   enmienda a **ADR-002 pto. 4** y la corrección de cifra de **ADR-012**.
+```
+npm run typecheck && npm run lint && npx vitest run
+DATABASE_URL=postgres://ci:ci@localhost:5432/ci   AUTH_SECRET=ci-not-a-real-secret-ci-not-a-real-secret   AUTH_TRUST_HOST=true APP_BASE_URL=http://localhost:3200   npm run build && npx playwright test
+```
 
-Sugerencia de orden de implementación, si se parte la entrega: **bloque B primero** (CA-7 a
-CA-13, la cotización sin refrescar), porque el bloque A sin el B seguiría dejando el motivo
-escondido detrás de un precio viejo.
+Las variables son las de juguete del job de e2e de `ci.yml`: `next build` solo exige que
+**existan** —el cliente de BD se instancia al importar— y el launcher del e2e reinyecta
+las suyas, incluida la `DATABASE_URL` del Postgres efímero que él mismo levanta.
+
+Medido el 2026-08-21 en esta rama: **1400 unitarios en verde** (91 ficheros) y **235 e2e
+en verde**. `typecheck` y `lint` limpios.
+
+> ⚠️ **Antes de commitear después de correr el e2e completo**, mira `git status`: la suite
+> reescribe las capturas de **todas** las specs (**F-SPEC-043-3**). Lo de esta spec vive
+> en `_qa/SPEC-043/`; lo demás se descarta con `git checkout -- _qa`.
+
+### Los tres sitios donde mirar primero si algo se rompe
+
+1. **`src/lib/market/sin-refrescar.ts`** — el umbral y la definición, en un solo sitio
+   (CA-12). Si aparece un segundo literal `36` en una pantalla, hay dos definiciones y una
+   de las dos está mal; hay un test que lo caza.
+2. **`classifyGlobal`** en `src/lib/market/marketstack-provider.ts` — la taxonomía del
+   429. El orden de las ramas **importa**: el tope por segundo se comprueba **antes** que
+   la presunción de cuota, o CA-2 se lo come CA-3.
+3. **`quotes.updated_at`**, nunca `as_of`. Es la decisión central de la spec y está
+   razonada en cuatro sitios (CA-7, RN-16, la fila de `dominio.md` y la cabecera del
+   módulo). Los tests están construidos **para caerse** si se cambia la medida: en el
+   escenario e2e todas las filas comparten `as_of` a propósito.
+
+### Lo que el verificador debería mirar con más lupa
+
+- Que la marca aparece **con precio y con estado de zona** (ése era el defecto) y que el
+  P/L actual y el estado de zona **siguen calculándose** (CA-13): marcar no es borrar.
+- Que ningún test toca la **API real** de Marketstack. Todo va con `fetchImpl` inyectado o
+  con el fake tras el puerto.
+- **F-SPEC-043-4**: dos expectativas de otras specs se han corregido porque estaban
+  escritas sobre el defecto. Merecen lectura, no un vistazo.
