@@ -1,0 +1,2 @@
+ancho 360: documento=360/360 (desborde 0) · elementos medidos=44 violaciones=0
+ancho 1280: documento=1280/1280 (desborde 0) · elementos medidos=113 violaciones=0
