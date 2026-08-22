@@ -18,6 +18,34 @@ epica: EPIC-INFRA
   2026-08-18): se conecta el repo, con despliegue automático al mergear. La alternativa 4 del
   ADR (rama `production`) **no se plantea** en esta spec.
 
+
+## 🎯 Cierre con residual — 2026-08-22
+
+**Decidido por**: humano (Alberto Fojo)  
+**CA-3**: ⚠️ aceptado como salvedad (1 de 3 sub-criterios verificables; CA-3.2 y CA-3.3 no observables con artefactos nombrados)  
+**RI-02** ("hecho" significa "vivo"): ✅ satisfecha — el merge de SPEC-028 está en `main` y está vivo (puerta post-deploy en verde, CA-10 ✅)
+
+### Residuales vivos
+
+| ID | Tipo | Destino | Estado |
+|---|---|---|---|
+| **F-SPEC-028-2** | Techo de 10 ramas de Neon en el plan Free; mantenimiento | ops / EPIC-INFRA | ⏳ pendiente |
+| **F-SPEC-028-3** | Puerta post-deploy para Preview (requiere secreto) | EPIC-INFRA | ⏳ sin urgencia |
+| **F-SPEC-028-4** | Hook `protege-verdad` deniega a implementador en `docs/fundacion/reglas.md` | plugin tremen-sdd / EPIC-INFRA | ⏳ arreglo en el plugin |
+| **F-SPEC-028-5** | Sincronizar `F-SPEC-027-1` (CERRADO) en specs adjuntas | sdd-documentalista | ⏳ reconciliación |
+| **F-SPEC-028-6** | CA-3.3 no verificable; reescribir con observable viable | sdd-arquitecto / EPIC-INFRA | 🔴 bloqueante para CA-3 |
+
+### Acciones de ops: estado real (tercera pasada, 2026-08-22)
+
+| # | Acción | Estado | Verificado |
+|---|---|---|---|
+| 1 | Drenar atraso (SPEC-026/027/029/031/032 + migración 0008) | ✅ **hecho el 2026-08-18** | Dos despliegues `source: "cli"` (22:54:59 y 12:45:46 UTC del 2026-08-18) |
+| 2 | Verificar `/api/version` deja de dar 404 | ✅ **hecho — ahora 200** | Curl a producción: `commit=7017f7e…`, `environment=production`, `builtAt=2026-08-21T09:29:29.350Z` |
+| 3 | `ALLOW_MIGRATE=1` en Preview | ✅ **hecho el 2026-08-19** | `vercel env ls`: `ALLOW_MIGRATE` · Preview · creado hace 3 d |
+| 4 | Conectar repo a Vercel, rama `main` | ✅ **hecho el 2026-08-18, noche** | Corte nítido en deployments: antes `source: "cli"`; desde 2026-08-18T23:38Z, `source: "git"` con ref=main |
+| 5 | Comprobar qué despliegue se disparó | ✅ **hecho — no saltó ninguno** | Primeros despliegues automáticos fueron Previews; primer producción automático = merge de esta spec (2026-08-19T07:14Z) |
+| 6 | Anotar techo de ramas de Neon (10 en Free) | ⏳ **pendiente** | Sin acceso a consola de Neon; variable `F-SPEC-028-2` |
+
 ### Resoluciones del gate del 2026-08-18
 
 | # | Qué se decidió | Efecto en la spec |
@@ -85,16 +113,16 @@ sin un despliegue real**, y su fila de *Verif.* debe llevar la evidencia nombrad
 
 | CA | Cierre | Implementado (fichero) | Test (fichero/caso) | Verif. | Estado |
 |---|---|---|---|---|---|
-| CA-1 Mergear despliega, sin que nadie teclee | 🚀 despliegue real | **n-a para el implementador**: no es código. Es la acción de ops #4 (conectar el repo), sin hacer a 2026-08-19 | **n-a**: evidencia de despliegue, no test — ver §Evidencia visual | 🚀 **ABIERTO — correcto que lo esté.** Las seis acciones de ops siguen sin ejecutar (comprobado: `/api/version` sigue en 404, luego el repo no está conectado). Evidencia declarada **suficiente por el lado de `meta.githubCommitSha`**; ver salvedad V-3 sobre `Creator` | ❌ |
-| CA-2 Producción dice de qué commit viene | 🚀 despliegue real | **n-a**: lo entregó SPEC-031 (`src/app/api/version/route.ts`); aquí solo cambia quién lo rellena | **n-a**: `curl` + `check-alive` contra producción. Línea base re-medida el **2026-08-19**: sigue **HTTP 404** | 🚀 **ABIERTO.** El "antes" lo re-medí yo el **2026-08-19**: `node scripts/check-alive.mjs --url https://stockeiro.tremen.dev --commit bdffabb --timeout 8 --interval 4` → `HTTP 404`, **exit 1**. Evidencia declarada suficiente; ver salvedad V-4 (`git fetch` antes de `rev-parse origin/main`) | ❌ |
-| CA-3 Preview existe y no migra la base de producción | 🚀 despliegue real | **n-a**: depende de ops #3 (`ALLOW_MIGRATE`) y #4 (conectar) | **n-a**: URL de Preview + las dos líneas de `guard-migrate` de los logs de build | 🚀 **ABIERTO.** Evidencia declarada **suficiente y correcta**, verificada contra el artefacto: en `scripts/guard-migrate.mjs`, con `VERCEL_ENV=preview` el **único** camino que autoriza es `ALLOW_MIGRATE=1` (una Preview verde sí es prueba imposible de falsear, CA-3.1), y la guardia imprime `[guard-migrate] DATABASE_URL: host=… base=…` sin credenciales, así que las dos líneas de CA-3.3 existen y son obtenibles | ❌ |
+| CA-1 Mergear despliega, sin que nadie teclee | 🚀 despliegue real | **n-a para el implementador**: no es código. Es la acción de ops #4 (conectar el repo), sin hacer a 2026-08-19 | **n-a**: evidencia de despliegue, no test — ver §Evidencia visual | ✅ **VERIFICADO EN VIVO el 2026-08-22 (tercera pasada).** `gh api repos/tremen-dev/stockeiro/deployments` → `2026-08-21T09:30:15Z env=Production creator=vercel[bot] (type=Bot) sha=7017f7e`, con `state=success`. El merge (`7017f7e`, PR #49) tiene fecha de commit `2026-08-21T09:29:14Z`: **el despliegue nace 3 s después**, y en 3 s no teclea nadie. **La prueba dura no es el `Creator` del panel** —que en un proyecto de ámbito personal sale siempre `albertofojo-5908`, que es justo lo que avisaba V-3— sino el campo `source` de la API de Vercel: `GET /v13/deployments/dpl_CMJKRwDssBbzUg8YYdKVqfLcDLMC` → `source: "git"`, `gitSource: {type: github, ref: main, sha: 7017f7e…}`, `target: production`. **Y el campo discrimina, no es decorativo**: los 7 despliegues de producción anteriores al `2026-08-18T23:38Z` son `source: "cli"` **sin `sha` ni `ref`**, y todos los posteriores son `source: "git"` con `ref=main`. El corte coincide con ops #4 | ✅ |
+| CA-2 Producción dice de qué commit viene | 🚀 despliegue real | **n-a**: lo entregó SPEC-031 (`src/app/api/version/route.ts`); aquí solo cambia quién lo rellena | **n-a**: `curl` + `check-alive` contra producción. Línea base re-medida el **2026-08-19**: sigue **HTTP 404** | ✅ **VERIFICADO EN VIVO el 2026-08-22 (tercera pasada).** `curl -s -w "%{http_code}" https://stockeiro.tremen.dev/api/version` → **HTTP 200** y `{"version":"0.2.1","commit":"7017f7eb53c154efb52a441e14aab3859851f4f3","environment":"production","builtAt":"2026-08-21T09:29:29.350Z"}`. Los tres extremos del CA, uno a uno: el `commit` **coincide con el sha que se desplegó** (`gitSource.sha` del despliegue automático de CA-1) y, hecho el `git fetch origin` que pedía V-4, es la cabeza de `origin/main`; `environment` = `production`; `builtAt` (09:29:29.350Z) es **posterior al merge** (09:29:14Z) por 15 s. **Ni 404 ni `unknown`**: la línea base del 2026-08-18/19 está muerta. Flujo real ejecutado: `node scripts/check-alive.mjs --url https://stockeiro.tremen.dev --commit $(git rev-parse origin/main) --timeout 30 --interval 5` → `[check-alive] VIVO en https://stockeiro.tremen.dev/api/version` · `commit=7017f7eb… environment=production builtAt=2026-08-21T09:29:29.350Z`, **exit 0**. Y responde **el dominio propio**: `vercel inspect` de ese despliegue lista `https://stockeiro.tremen.dev` entre sus alias, así que el alias de producción y el CNAME quedan comprobados de paso | ✅ |
+| CA-3 Preview existe y no migra la base de producción | 🚀 despliegue real | **n-a**: depende de ops #3 (`ALLOW_MIGRATE`) y #4 (conectar) | **n-a**: URL de Preview + las dos líneas de `guard-migrate` de los logs de build | 🚀 **ABIERTO.** Evidencia declarada **suficiente y correcta**, verificada contra el artefacto: en `scripts/guard-migrate.mjs`, con `VERCEL_ENV=preview` el **único** camino que autoriza es `ALLOW_MIGRATE=1` (una Preview verde sí es prueba imposible de falsear, CA-3.1), y la guardia imprime `[guard-migrate] DATABASE_URL: host=… base=…` sin credenciales, así que las dos líneas de CA-3.3 existen y son obtenibles | ⚠️ **PARCIAL el 2026-08-22 (tercera pasada): 1 de 3. Y una de las dos mitades que faltan NO es verificable tal como está escrita.** **CA-3.1 ✅**: el build de Preview de la PR #49 (`dpl_8QkSXMYaZa6arfRrpSRg9Nw6YNHc`, rama `ft/SPEC-043-…`, sha `8808b9d`) está en `READY` y su log dice literalmente `[guard-migrate] AUTORIZADO: VERCEL_ENV=preview — el entorno lo autoriza explícitamente (ALLOW_MIGRATE=1).` Como la guardia es *fail-closed* y ése es el **único** camino que autoriza con `VERCEL_ENV=preview`, una Preview verde **es** la prueba imposible de falsear de **F-SPEC-032-2**. Corroborado con `vercel env ls`: `ALLOW_MIGRATE` · Sensitive · **Preview** · creado hace 3 d. **CA-3.2 ❌ NO VERIFICADO — bloqueo de acceso, no de implementación**: `curl <url-preview>/api/version` → **HTTP 302** hacia `https://vercel.com/sso-api?url=…`. El proyecto tiene `ssoProtection: {deploymentType: "all_except_custom_domains"}` y **`protectionBypass: null`**, y el token del CLI en cabecera `Authorization: Bearer` **tampoco** entra (el SSO se resuelve por cookie en el edge). No leí el cuerpo, luego **no afirmo** que diga `environment: "preview"`. **CA-3.3 ❌ NO VERIFICADO, y el CA está mal planteado**: obtuve **las dos** líneas de los logs de build —Preview `dpl_8QkSXMYaZa6arfRrpSRg9Nw6YNHc` y Production `dpl_CMJKRwDssBbzUg8YYdKVqfLcDLMC`— y **ninguna muestra el host**: Vercel **redacta** el valor por venir de una variable *Sensitive*, así que las dos leen `[guard-migrate] DATABASE_URL: host=[REDACTED] base=neondb`. `scripts/guard-migrate.mjs:141` sí imprime el host real; lo tapa la plataforma, no el script. Y **la base no es distinta: es `neondb` en las dos**, que es lo que cabe esperar del *branching* de Neon (rama copy-on-write, mismo nombre de base, **distinto endpoint**). La mitad *"base distinta"* del CA es **falsa por construcción**. → **F-SPEC-028-6** | ⚠️ |
 | CA-4 La puerta existe, en su propio workflow | 🔒 sin desplegar | `.github/workflows/deploy-gate.yml` | `tests/deploy-gate-workflow.test.ts` › *CA-4* (6 casos: existe · solo `push` a `main` · ni `pull_request`/`schedule` · `permissions` · sin `secrets.` · fichero y `name` propios, y no colada en `ci.yml`) | ✅ YAML **parseado por mí** con `yaml` fuera del test: `on` = `{push:{branches:[main]}}` y nada más · `permissions = {contents: read}` · `grep -n "secrets."` → 0 coincidencias · `name: Deploy gate` ≠ `name: CI`. 7/7 casos verdes | ✅ |
 | CA-5 Consume `check-alive.mjs` tal cual | 🔒 sin desplegar | `.github/workflows/deploy-gate.yml` (step *Wait for the deployment to go live*) | `tests/deploy-gate-workflow.test.ts` › *CA-5* (5 casos: un único `run` · invoca el script · `--url` literal · `--commit ${{ github.sha }}` · `scripts/` con **tres** habitantes) | ✅ Único `run` = `node scripts/check-alive.mjs --url https://stockeiro.tremen.dev --commit ${{ github.sha }} --timeout 900 --interval 10` · `ls scripts/` = **tres** habitantes · y **ejecuté esa misma forma de banderas de verdad** contra producción: el script las acepta y responde su contrato. 5/5 verdes | ✅ |
 | CA-6 Sin instalar nada, sin secretos | 🔒 sin desplegar | `.github/workflows/deploy-gate.yml` (job `alive`) | `tests/deploy-gate-workflow.test.ts` › *CA-6* (5 casos: sin `npm ci`/`install` · sin caché · sin `env` · `node-version-file: .nvmrc` · no toca la BD) | ✅ Tres steps: `actions/checkout@v4`, `actions/setup-node@v4` con `node-version-file: .nvmrc` (`.nvmrc` = 24) y el `run`. Ni `npm ci`/`npm install`, ni `cache`, ni `env`, ni `DATABASE_URL` en ningún nivel del árbol parseado. 5/5 verdes | ✅ |
 | CA-7 Plazo mayor que el build, veredicto no tragado | 🔒 sin desplegar | `.github/workflows/deploy-gate.yml` (`--timeout 900 --interval 10`, `timeout-minutes: 20`) | `tests/deploy-gate-workflow.test.ts` › *CA-7* (6 casos: banderas explícitas · plazo > 600 s · sin `continue-on-error` · sin `\|\| true` ni encadenados · sin `if: always()` · `timeout-minutes` × 60 > plazo) | ✅ `--timeout 900 --interval 10` explícitos (los defectos del script son 120/5, leídos en `scripts/check-alive.mjs`, y son **segundos**) · sin `continue-on-error` en job, step ni fichero · el `run` no lleva `||`, `&&` ni `;` · sin `if:` · `timeout-minutes: 20` = 1200 s > 900 s. 6/6 verdes | ✅ |
 | CA-8 Concurrencia propia; la CI no cambia | 🔒 sin desplegar | `.github/workflows/deploy-gate.yml` (`concurrency.group: deploy-gate-${{ github.ref }}`) | `tests/deploy-gate-workflow.test.ts` › *CA-8* (3 casos: grupo distinto del de `ci.yml` · `cancel-in-progress: true` · `ci.yml` conserva el suyo condicionado a `pull_request`) | ✅ `deploy-gate-${{ github.ref }}` + `cancel-in-progress: true`, frente al `${{ github.workflow }}-${{ github.ref }}` + `${{ github.event_name == 'pull_request' }}` de `ci.yml`, que sigue **fuera del diff**. 3/3 verdes | ✅ |
 | CA-9 Nada más cableado; ni un test ajeno tocado | 🔒 sin desplegar | — (es lo que NO se tocó) | `tests/deploy-gate-workflow.test.ts` › *CA-9* (4 congelados: forma de `ci.yml` · `vercel.json` literal · `package.json` sin scripts nuevos · `drizzle/` con nueve `.sql`) **+ 3 sobre el diff real** (`src/` intacto · `ci.yml`/`vercel.json` fuera del diff · los tres tests ajenos sin editar). Evidencia adicional abajo | ✅ Sobre el **diff real** contra `de3a6ee`: el `git diff --stat` acotado sale **vacío**, y el diff completo son **8 ficheros**, ninguno ajeno. Suite completa **53 ficheros / 753 tests en verde**. Los 3 casos que dependen del commit base **se ejecutaron** (no se saltaron por `skipIf`). 7/7 verdes | ✅ |
-| CA-10 La puerta corre en el merge y sale verde | 🚀 despliegue real | **n-a**: la puerta existe (CA-4…CA-8); que *corra* exige el merge y el repo conectado | **n-a**: URL del run de Actions en verde. Las dos ramas rojas ya están probadas en `tests/check-alive.test.ts` (SPEC-031) y **no se re-prueban aquí** | 🚀 **ABIERTO.** El nombre del check declarado, **`Deploy gate / Alive`**, coincide con lo que produce el YAML (`name: Deploy gate` + job `alive` con `name: Alive`): la evidencia pedida es la correcta. Ver salvedad V-2: si esta spec se mergea **antes** de ops #4, su primera pasada es un rojo garantizado | ❌ |
+| CA-10 La puerta corre en el merge y sale verde | 🚀 despliegue real | **n-a**: la puerta existe (CA-4…CA-8); que *corra* exige el merge y el repo conectado | **n-a**: URL del run de Actions en verde. Las dos ramas rojas ya están probadas en `tests/check-alive.test.ts` (SPEC-031) y **no se re-prueban aquí** | 🚀 **ABIERTO.** El nombre del check declarado, **`Deploy gate / Alive`**, coincide con lo que produce el YAML (`name: Deploy gate` + job `alive` con `name: Alive`): la evidencia pedida es la correcta. Ver salvedad V-2: si esta spec se mergea **antes** de ops #4, su primera pasada es un rojo garantizado | ✅ **VERIFICADO EN VIVO el 2026-08-22 (tercera pasada).** El merge de esta spec es `0d389c81c44d01f57dbe0fa7302b1c6059b7ad13` (PR #35, `2026-08-19T07:14:18Z`). `gh api "repos/tremen-dev/stockeiro/actions/runs?head_sha=0d389c81…"` devuelve **dos** runs y los **dos** en `completed/success`: `CI` (32226907008) y **`Deploy gate`** (32226907002) → <https://github.com/tremen-dev/stockeiro/actions/runs/32226907002>. Log del job **`Alive`** leído con `gh run view 32226907002 --log`: `Run node scripts/check-alive.mjs --url https://stockeiro.tremen.dev --commit 0d389c81c44d01f57dbe0fa7302b1c6059b7ad13 --timeout 900 --interval 10` → `[check-alive] VIVO en https://stockeiro.tremen.dev/api/version` y `[check-alive] commit=0d389c81c44d01f57dbe0fa7302b1c6059b7ad13 environment=production builtAt=2026-08-19T07:14:30.796Z` — **la identidad completa** que exige el CA (commit, entorno, instante del build), y el commit esperado **es** el del merge. Encaja con su despliegue: `gh api …/deployments?sha=0d389c81…` → `2026-08-19T07:14:59Z env=Production creator=vercel[bot]`. **V-2 no se materializó**: ops #4 se había hecho la noche anterior, así que la primera pasada salió verde. **Y no fue suerte de un día**: `gh api …/actions/workflows/deploy-gate.yml/runs` → **13 runs, 13 en `success`**, desde `0d389c8` (19-08 07:14Z) hasta `7017f7e` (21-08 09:29Z). Las banderas de CA-5/CA-7 no se quedaron en el papel: el `run` real las llevó | ✅ |
 | CA-11 El despliegue manual pasa a emergencia | 🔒 sin desplegar | `docs/despliegue.md` §3.4 (reescrita), cabecera (lección del 2026-08-11 actualizada), §7 paso 3 | `tests/runbook-despliegue-automatico.test.ts` › *CA-11* (7 casos: merge→producción · PR→Preview · sin `vercel --prod` como paso normal · `--archive=tgz` marcado *emergencia* · las dos trampas · `unknown` + la puerta + *fuera de proceso* · la lección actualizada) | ✅ Leído `docs/despliegue.md`: §3.4 es ahora una tabla merge→producción / PR→Preview, y el bloque suelto ```vercel``` / ```vercel --prod``` **está borrado en el diff**; `--archive=tgz` queda bajo 🚨 *RECURSO DE EMERGENCIA* con las dos trampas (`"Not authorized"`, worktree) y la consecuencia nueva (`unknown` → puerta en rojo con **2**). La lección del 2026-08-11 **no se borró**: se reescribió en la cabecera. 7/7 verdes | ✅ |
 | CA-12 El runbook documenta el pipeline y el rojo | 🔒 sin desplegar | `docs/despliegue.md` **§12** (§12.1 disparador · §12.2 la puerta · §12.3 tabla de reacción · §12.4 no revierte · **§12.5 REESCRITA el 2026-08-19**, con el signo contrario: `main` protegida, la tabla de piezas con el `gh api` que las comprueba, y los cuatro puntos del CA) + **aviso de §9 rehecho** (de *"la CI informa pero no impide"* a *"estos dos checks IMPIDEN mezclar"*, con lo que no cubre y el enlace a §12.5) | `tests/runbook-despliegue-automatico.test.ts` › *CA-12* (**14 casos**; 12.1–12.4 intactos. **12.5 rehecha**: 4 en positivo —PR obligatoria + `deletion`/`non_fast_forward` · `Checks`/`E2E` y `CI / Checks`/`CI / E2E` · ruleset `Protected main` + `enforcement: active` + `bypass_actors: []` · lo que NO cubre: revisión, rama al día, `Alive`— y **3 en negativo sobre el documento entero**: ni *"no impide mezclar"*, ni *"nadie lo va a mirar por ti"*, ni `F-SPEC-027-1`/`F-SPEC-028-1` presentados como abiertos) | ✅ **RE-VERIFICADO el 2026-08-19 (segunda pasada), contra la API de GitHub y no contra el relato.** 12.1–12.4 releídas enteras y siguen cumpliendo (encadenado `guard-migrate → db:migrate → next build`; workflow, dominio `stockeiro.tremen.dev`, plazo 900 s y check `Deploy gate / Alive` —contrastado contra `deploy-gate.yml`: `name: Deploy gate` + job `alive`/`name: Alive`, `--timeout 900 --interval 10`—; los **cuatro** códigos con qué mirar; `vercel rollback` **con** *"devuelve el código, no el esquema"* y el PITR de Neon sin medir). **§12.5 rehecha: cada valor que afirma lo confirma `gh api repos/tremen-dev/stockeiro/rulesets/21014989`** — `Protected main` · id `21014989` · `enforcement: active` · `~DEFAULT_BRANCH` (y `default_branch: main`) · reglas `{deletion, non_fast_forward, pull_request, required_status_checks}` · contextos `Checks` y `E2E` · `bypass_actors: []` (+`current_user_can_bypass: "never"`) · `required_approving_review_count: 0` · `strict_required_status_checks_policy: false`; y `repos/tremen-dev/stockeiro` → `visibility: public`. **El comando que el runbook publica se ejecutó tal cual** y devuelve exactamente lo que la tabla dice. **Barrido negativo propio sobre el fichero entero** (no sobre los regex del test): cero apariciones de *"nadie lo va a mirar por ti"*, cero de *"no impide mezclar"*/*"informa … no impide"* —la única mención de la CI que no frenaba es la nota histórica de §12.5 en pasado y fechada, que es lo que el CA pide conservar—, y `F-SPEC-027-1`/`F-SPEC-028-1` aparecen **una vez cada uno y como CERRADOS**. **Los tres tests negativos no son vacíos**: ejecutados contra `git show f403b6a:docs/despliegue.md` fallan los tres (r1 `true`, r2 `true`, `F-SPEC-028-1` presentado abierto `true`) y contra HEAD pasan los tres. **No exagera la red**: dice que no exige revisión, que la política *strict* está desactivada (checks contra base más vieja) y que `Alive` no es ni debe ser requerido —confirmado en vivo: la PR #35 muestra `Checks`, `E2E` y `Vercel`, y **ningún** `Alive`—. 14/14 verdes (fichero completo 30/30) | ✅ |
 | CA-13 La config de plataforma queda escrita, con techos | 🔒 sin desplegar | `docs/despliegue.md` **§13 nueva** (orden de ops · §13.1 conexión Git · §13.2 `ALLOW_MIGRATE` · §13.3 Neon y sus dos techos · §13.4 por qué ese orden) + §5 checklist y §6 gotchas al día | `tests/runbook-despliegue-automatico.test.ts` › *CA-13* (7 casos: conexión Git y cómo se comprueba · `ALLOW_MIGRATE` y qué pasa si falta · *preview branching* + 10 ramas + supervivencia · mantenimiento · el orden · §5 sin `vercel --prod verde` · §6 reencuadrado) | ✅ §13 leída entera: tabla de ops 1..6 en orden; 13.1 conexión Git con `vercel project inspect` / `vercel inspect` / *Source*; 13.2 `ALLOW_MIGRATE` con su fail-closed —**verificado contra `scripts/guard-migrate.mjs`**, no solo leído—; 13.3 *preview branching* con los dos techos (10 ramas, supervivencia al cierre de la PR) y su apartado de mantenimiento; 13.4 el porqué del orden. §5 pide la puerta en verde y ya no `vercel --prod verde`; §6 reencuadra el worktree como firma de despliegue fuera de proceso. 7/7 verdes | ✅ |
@@ -243,6 +271,136 @@ protección ya estaba puesta por el humano; aquí solo se cuenta bien.
 
 ## Veredicto del verificador
 <!-- GREEN/RED + fecha + resumen. Lo escribe SOLO sdd-verificador. -->
+
+### 🔴 RED — 2026-08-22 — tercera pasada, **los cuatro CA 🚀 y nada más**. 3 de 4 cerrados; **CA-3 devuelto**.
+
+**Alcance, antes que nada**: esta pasada verifica **exclusivamente CA-1, CA-2, CA-3 y CA-10**. Los
+diez CA 🔒 ya firmados en las dos pasadas anteriores **no se re-verifican ni se tocan**. Los
+veredictos de abajo siguen en pie tal como están escritos.
+
+**La premisa con la que se cerraron en ❌ el 2026-08-19 ya no se sostiene, y lo comprobé yo.** Aquel
+día `/api/version` daba 404 porque el repo no estaba conectado. Hoy el repo **está conectado desde
+el 2026-08-18 por la noche** y las acciones de ops **#1 a #5 están hechas** — reconstruidas contra
+la API de Vercel, no contra el relato; §Acciones de ops queda actualizada con esa evidencia. Solo
+**#6** (techo de ramas de Neon) sigue pendiente de verdad.
+
+#### Lo que ejecuté yo, hoy, y su salida
+
+```
+$ git fetch origin && git rev-parse origin/main
+7017f7eb53c154efb52a441e14aab3859851f4f3
+
+$ gh api repos/tremen-dev/stockeiro/deployments   # (formateado)
+2026-08-21T09:30:15Z env=Production creator=vercel[bot] type=Bot sha=7017f7e id=6018969681
+   status → state=success
+
+$ git log -1 --format='%cI' 7017f7e
+2026-08-21T11:29:14+02:00        # = 09:29:14Z → el despliegue nace 3 s despues
+
+$ GET https://api.vercel.com/v13/deployments/dpl_CMJKRwDssBbzUg8YYdKVqfLcDLMC
+{ "source": "git", "target": "production",
+  "gitSource": {"type":"github","ref":"main","sha":"7017f7eb53c154efb52a441e14aab3859851f4f3"} }
+
+$ GET https://api.vercel.com/v6/deployments?projectId=prj_JkvLS7…   # el corte de la conexion
+…  2026-08-18T23:38:17Z preview     src=git   sha=90c0eeb  ref=ft/SPEC-028-despliegue-automatico
+   2026-08-18T22:54:59Z production  src=cli   sha=-        ref=-
+   2026-08-18T12:45:46Z production  src=cli   sha=-        ref=-
+   (y 5 mas, todas src=cli, hasta el 2026-07-15)
+
+$ curl -s -w "%{http_code}" https://stockeiro.tremen.dev/api/version
+{"version":"0.2.1","commit":"7017f7eb53c154efb52a441e14aab3859851f4f3",
+ "environment":"production","builtAt":"2026-08-21T09:29:29.350Z"}   200
+
+$ node scripts/check-alive.mjs --url https://stockeiro.tremen.dev \
+      --commit $(git rev-parse origin/main) --timeout 30 --interval 5
+[check-alive] VIVO en https://stockeiro.tremen.dev/api/version
+[check-alive] commit=7017f7eb53c154efb52a441e14aab3859851f4f3 environment=production builtAt=2026-08-21T09:29:29.350Z
+exit=0
+
+$ gh api "repos/tremen-dev/stockeiro/actions/runs?head_sha=0d389c81c44d…"
+CI          | push | completed/success | run=32226907008
+Deploy gate | push | completed/success | run=32226907002
+
+$ gh run view 32226907002 --repo tremen-dev/stockeiro --log      # job "Alive"
+Run node scripts/check-alive.mjs --url https://stockeiro.tremen.dev \
+    --commit 0d389c81c44d01f57dbe0fa7302b1c6059b7ad13 --timeout 900 --interval 10
+[check-alive] VIVO en https://stockeiro.tremen.dev/api/version
+[check-alive] commit=0d389c81c44d01f57dbe0fa7302b1c6059b7ad13 environment=production builtAt=2026-08-19T07:14:30.796Z
+
+$ gh api repos/tremen-dev/stockeiro/actions/workflows/deploy-gate.yml/runs
+total=13   → 13/13 en success, de 0d389c8 (19-08 07:14Z) a 7017f7e (21-08 09:29Z)
+
+$ curl -s -o /dev/null -w "%{http_code} %{redirect_url}" \
+      https://stockeiro-mxg5ewk7c-albertofojo-5908s-projects.vercel.app/api/version
+302 https://vercel.com/sso-api?url=…          # ← el muro de CA-3.2
+
+$ logs de build (GET /v3/deployments/<id>/events?builds=1)
+  Preview    dpl_8QkSXMYaZa6arfRrpSRg9Nw6YNHc:
+    [guard-migrate] AUTORIZADO: VERCEL_ENV=preview — el entorno lo autoriza explícitamente (ALLOW_MIGRATE=1).
+    [guard-migrate] DATABASE_URL: host=[REDACTED] base=neondb
+  Production dpl_CMJKRwDssBbzUg8YYdKVqfLcDLMC:
+    [guard-migrate] AUTORIZADO: VERCEL_ENV=production — es el entorno de producción.
+    [guard-migrate] DATABASE_URL: host=[REDACTED] base=neondb
+```
+
+#### CA-1 ✅ · CA-2 ✅ · CA-10 ✅ — y por qué no me valió la evidencia fácil
+
+- **CA-1.** La parte no trivial del CA es *"no lo dispara ninguna persona"*, y ahí **`Creator` no
+  sirve** —V-3 tenía razón—: `vercel ls --prod` atribuye **todos** los despliegues a
+  `albertofojo-5908` por ser un proyecto de ámbito personal, incluidos los automáticos. Lo que sí
+  discrimina es **`source`**, y lo comprobé **contra su contraejemplo**: siete despliegues de
+  producción con `source: "cli"` y **sin sha** antes del 2026-08-18T23:38Z, y `source: "git"` con
+  `ref=main` en todos los posteriores. Más el margen de **3 segundos** entre el commit del merge y
+  la creación del despliegue, y el `creator=vercel[bot]` (`type=Bot`) del lado de GitHub.
+- **CA-2.** El CA no pide un sha concreto: pide que **el commit servido sea el que se desplegó**.
+  Lo son los tres a la vez —`gitSource.sha` del despliegue, cabeza de `origin/main` tras
+  `git fetch`, y el `commit` que devuelve el endpoint—, con `environment: "production"` y un
+  `builtAt` 15 s posterior al merge. **Exit 0** del script real, no un `curl` interpretado a mano.
+- **CA-10.** Verde el día del merge de esta spec **y las doce veces siguientes**. El log imprime la
+  identidad completa que el CA exige. **V-2 no llegó a materializarse**: ops #4 se hizo la noche
+  anterior al merge, así que la primera pasada de la puerta no fue el rojo garantizado que se temía.
+
+#### CA-3 ⚠️ — el único hallazgo, y es el que pone el veredicto en RED
+
+`CA-3.1` está **cerrado y bien cerrado**: la Preview verde con `AUTORIZADO: VERCEL_ENV=preview …
+(ALLOW_MIGRATE=1)` es prueba imposible de falsear de **F-SPEC-032-2**, porque la guardia es
+*fail-closed* y ése es su único camino en Preview.
+
+`CA-3.2` y `CA-3.3` **no los verifico**, y no por pereza:
+
+1. **CA-3.2 está tapiado por la protección de despliegue.** `ssoProtection.deploymentType =
+   all_except_custom_domains`, `protectionBypass: null`; **302** a `vercel.com/sso-api` incluso con
+   el token del CLI en `Authorization: Bearer`. Hace falta **un navegador con sesión de Vercel** o
+   **habilitar *Protection Bypass for Automation***. Esto es acción del humano; yo no toco ajustes.
+2. **CA-3.3 no es verificable *tal como está escrito*, y una de sus dos mitades es falsa.** Conseguí
+   las dos líneas —que era la parte difícil— y resulta que **el host viene redactado por Vercel** en
+   ambas (variable *Sensitive*), y que **la base es `neondb` en las dos**, porque una rama de Neon
+   conserva el nombre de la base y cambia el *endpoint*. El CA pide *"host y base distintos"*: lo
+   primero no se ve en el log y **lo segundo no puede darse**. → **F-SPEC-028-6**.
+
+**Lo que NO estoy diciendo, dicho explícitamente**: no estoy diciendo que la Preview migre la base
+de producción. Estoy diciendo que **no puedo demostrar ni que sí ni que no** con los artefactos que
+el CA nombra, y que por tanto el observable barato que CA-3.3 quería dejar medido sobre
+`F-SPEC-032-1` **sigue sin medir**. Un CA que no se puede observar no se firma.
+
+#### Veredicto y qué hace falta para el GREEN
+
+**RED sobre el alcance de esta pasada**, con **3 de 4** cerrados. El único bloqueante es **CA-3**, y
+tiene dos caminos, cualquiera de los dos sirve:
+
+- **(a) Desbloquear la evidencia** — el humano abre `<url-preview>/api/version` con sesión de Vercel
+  (o crea un *Protection Bypass for Automation*) y pega el JSON con `environment: "preview"`; y para
+  CA-3.3, **el CA hay que reescribirlo igualmente**, porque ni con acceso sale un host visible ni una
+  base distinta.
+- **(b) Aceptar la salvedad** — el humano acepta `CA-3` como **⚠️ con salvedad**, con `F-SPEC-028-6`
+  abierto y con destino, y cierra la spec. Es una decisión suya, **no mía**: el rol dice que una
+  salvedad solo vale como cierre si está *justificada y aceptada*, y aceptarla no me toca.
+
+**La spec se queda en `en-revision` y no la muevo**, por encargo expreso y porque además coincide con
+lo correcto: hay un CA sin cerrar. **Desde mi lado, lo único que separa a SPEC-028 de estar lista es
+CA-3**; `RI-02` ya está satisfecha (el merge de esta spec está vivo y su puerta salió verde, CA-10).
+
+---
 
 ### 🟢 GREEN — 2026-08-19 — segunda pasada, **CA-12 y nada más**. La fila vuelve a ✅.
 
@@ -538,12 +696,12 @@ atraso (ops #1 y #2), **eso es correcto** y no cierra CA-2 — un despliegue por
 
 | # | Acción | Estado | Evidencia |
 |---|---|---|---|
-| 1 | **Drenar el atraso a mano** (SPEC-026/027/029/031/032 + migración `0008`): `git switch --detach origin/main` + `vercel --prod --archive=tgz` | ⏳ pendiente | |
-| 2 | **Verificar que llegó**: `/api/version` deja de dar 404 (saldrá `commit: unknown`, y **es correcto**) | ⏳ pendiente | |
-| 3 | `ALLOW_MIGRATE=1` en Preview (`vercel env add ALLOW_MIGRATE preview`) — **F-SPEC-032-2** | ⏳ pendiente | |
-| 4 | Conectar `tremen-dev/stockeiro` al proyecto de Vercel, rama de producción `main` | ⏳ pendiente | |
-| 5 | Comprobar qué despliegue se disparó al conectar (`vercel ls --prod`) | ⏳ pendiente | |
-| 6 | Anotar el techo de ramas de Neon (10 en el plan Free; las de preview sobreviven al cierre de la PR) | ⏳ pendiente | |
+| 1 | **Drenar el atraso a mano** (SPEC-026/027/029/031/032 + migración `0008`): `git switch --detach origin/main` + `vercel --prod --archive=tgz` | ✅ **hecho el 2026-08-18** | *Reconstruido por el verificador el 2026-08-22 desde la API de Vercel, no del relato.* `GET /v6/deployments?projectId=prj_JkvLS7…` muestra dos despliegues de **producción** con `source: "cli"` (sin `sha` ni `ref`, que es la firma del `--archive=tgz`) el `2026-08-18T12:45:46Z` y el `2026-08-18T22:54:59Z`. Son **los dos últimos manuales**: a partir de las 23:38 de ese día ya no hay ni uno más con `source: "cli"` |
+| 2 | **Verificar que llegó**: `/api/version` deja de dar 404 (saldrá `commit: unknown`, y **es correcto**) | ✅ **hecho — el 404 se acabó** | La salida exacta de aquel día no la puedo reconstruir, y no la invento; sí su consecuencia, que es lo que el paso perseguía: el **primer** run de `Deploy gate` (`2026-08-19T07:18Z`, run 32226907002) encontró `/api/version` **vivo**, y hoy `curl` sigue dando **200**. La línea base de 404 está muerta y verificada muerta |
+| 3 | `ALLOW_MIGRATE=1` en Preview (`vercel env add ALLOW_MIGRATE preview`) — **F-SPEC-032-2** | ✅ **hecho el 2026-08-19** | `vercel env ls` → `ALLOW_MIGRATE` · Sensitive · **Preview** · creado hace 3 d. El **valor** queda probado sin necesidad de leerlo (ni de descifrar nada): el log del build de Preview imprime `[guard-migrate] AUTORIZADO: VERCEL_ENV=preview — el entorno lo autoriza explícitamente (ALLOW_MIGRATE=1).` |
+| 4 | Conectar `tremen-dev/stockeiro` al proyecto de Vercel, rama de producción `main` | ✅ **hecho el 2026-08-18, por la noche** | El corte es nítido en `GET /v6/deployments`: **todo** lo anterior a `2026-08-18T23:38:17Z` es `source: "cli"`; ése y **todo** lo posterior son `source: "git"` con `ref` y `sha`. Rama de producción `main` confirmada: los despliegues `target: production` llevan `gitSource.ref = main` |
+| 5 | Comprobar qué despliegue se disparó al conectar (`vercel ls --prod`) | ✅ **hecho — y lo que se disparó, medido** | Al conectar **no saltó ningún despliegue de producción**. Los dos primeros `source: "git"` fueron **Previews** de `ft/SPEC-028-despliegue-automatico` (`90c0eeb` a las `23:38:17Z` y `463c643` a las `23:49:23Z`). El primer producción automático es `0d389c8`, ya del `2026-08-19T07:14:22Z` — es decir, **el merge de esta spec**. Sin sorpresas |
+| 6 | Anotar el techo de ramas de Neon (10 en el plan Free; las de preview sobreviven al cierre de la PR) | ⏳ **pendiente — sigue pendiente de verdad** | Sin evidencia, y no la puedo conseguir desde aquí: no hay acceso a la consola de Neon ni token de su API, y el recuento de ramas no asoma por la API de Vercel a la que llego. Sigue siendo ops del humano → **F-SPEC-028-2** |
 
 **Por qué ese orden, con dos razones distintas**: #1 y #2 van primero para no acoplar dos riesgos
 independientes en un solo día (si el primer despliegue automático falla, se sabrá si falló el
@@ -614,6 +772,30 @@ Añadido por el implementador el 2026-08-19:
   reportará abierto. **No lo arreglo aquí**: son artefactos de specs ajenas ya cerradas, y editarlos
   no es del implementador de SPEC-028. → destino: `sdd-documentalista` (sincronizar residuales) /
   EPIC-INFRA.
+
+- **F-SPEC-028-6 — 🔴 ABIERTO (2026-08-22, sdd-verificador). CA-3.2 y CA-3.3 piden evidencia que
+  la plataforma no deja obtener, y CA-3.3 además pide algo que es falso.** Levantado en la tercera
+  pasada de verificación. Dos cosas distintas metidas en un residual porque comparten remedio:
+  1. **CA-3.2 — la Preview está detrás del SSO de Vercel.** `ssoProtection.deploymentType =
+     `all_except_custom_domains`` y `protectionBypass = null`, así que `<url-preview>/api/version`
+     devuelve **302** a `vercel.com/sso-api` para cualquier cliente sin cookie de sesión — el token
+     del CLI en cabecera `Bearer` no vale. Cualquiera que quiera cerrar este punto necesita **un
+     navegador con sesión de Vercel** o **un *Protection Bypass for Automation*** (Settings →
+     Deployment Protection), que hoy no existe. Es un problema de acceso, **no** de que la app
+     esté mal: la ruta la entregó SPEC-031 y en producción responde `environment: "production"`.
+  2. **CA-3.3 — el CA pide "host y base distintos" y la base es la misma a propósito.** Los logs de
+     build de Preview y de Production leen los dos `[guard-migrate] DATABASE_URL: host=[REDACTED]
+     base=neondb`: Vercel **redacta el host** por venir de una variable *Sensitive* (el script sí lo
+     imprime, `scripts/guard-migrate.mjs:141`), y la base es `neondb` en las dos porque el
+     *branching* de Neon clona la rama **con el mismo nombre de base y distinto endpoint**. Es decir:
+     la mitad "host distinto" **no es observable en el log**, y la mitad "base distinta" **no es
+     cierta**. El CA se escribió sin haber visto nunca el log real.
+  **Lo que este residual NO dice**: no dice que la Preview esté migrando la base de producción.
+  Dice que **con lo que hay escrito no se puede demostrar ni lo uno ni lo otro**, y que el
+  observable barato que CA-3.3 quería para vigilar `F-SPEC-032-1` **no existe con esa forma**.
+  → destino: `sdd-arquitecto`, reescribir CA-3.3 sobre un observable que sí exista (p. ej. comparar
+  `DATABASE_NEON_PROJECT_ID`/endpoint por entorno, o que `guard-migrate` imprima un identificador
+  de rama de Neon que no sea substring de un secreto) / EPIC-INFRA.
 
 Heredados, con su estado real:
 

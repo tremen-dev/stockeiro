@@ -133,8 +133,8 @@ tipo: roadmap
 - **EPIC-INFRA — Infraestructura y mantenimiento** (bucket, `aprobada`). Parcheo de
   CVE y línea mantenida de Next.js (ADR-008), una sola definición del esquema
   (SPEC-026) y CI en cada PR (SPEC-027).
-  ↳ **Estado real a 2026-08-18**: sus cuatro specs (SPEC-009, 010, 026, 027) están
-  `hecho`; la épica sigue abierta como bucket.
+  ↳ **Estado real a 2026-08-22**: todas sus 8 specs (SPEC-009, 010, 026, 027, 028, 031, 032, 042) están
+  `hecho`; la épica bucket permanece abierta (no se cierran aunque todas sus specs lo estén).
 
 ## Después (comprometido, sin empezar)
 <!-- Sigue vacío. La regla que lo vaciaba ("nada nuevo hasta que EPIC-FIX restaure la

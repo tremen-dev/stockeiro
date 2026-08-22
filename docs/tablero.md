@@ -1,7 +1,7 @@
 <!-- GENERADO por tremen-sdd (scripts/tablero.mjs). NO EDITAR A MANO. -->
 # Tablero
 
-Actualizado: 2026-08-21
+Actualizado: 2026-08-22
 
 ## EPIC-001 — vigilancia-de-zonas-de-compra-venta-con-cartera-y-avisos (hecho)
 
@@ -73,7 +73,7 @@ Actualizado: 2026-08-21
 | SPEC-010 — bump-de-drizzle-orm-por-cve-de-sql-injection | hecho | 2026-07-14 (sdd-verificador) |
 | SPEC-026 — una-sola-definicion-del-esquema-los-tests-corren-contra-las-migraciones-de-produccion | hecho | 2026-08-17 (sdd-verificador) |
 | SPEC-027 — ci-en-cada-pr-la-suite-deja-de-depender-de-que-alguien-se-acuerde | hecho | 2026-08-18 (sdd-verificador) |
-| SPEC-028 — despliegue-automatico-desde-main-conexion-git-puerta-post-deploy-y-runbook-reescrito | en-revision | 2026-08-18 (sdd-implementador) |
+| SPEC-028 — despliegue-automatico-desde-main-conexion-git-puerta-post-deploy-y-runbook-reescrito | hecho | 2026-08-22 (humano (Alberto Fojo)) |
 | SPEC-031 — el-despliegue-dice-de-que-commit-viene-api-version-y-comprobacion-de-vida | hecho | 2026-08-18 (sdd-verificador) |
 | SPEC-032 — las-guardias-de-migracion-nada-migra-sin-permiso-y-ningun-drop-pasa-mudo | hecho | 2026-08-18 (sdd-verificador) |
 | SPEC-042 — la-limpieza-de-las-ramas-de-preview-de-neon-deja-de-ser-un-recordatorio | hecho | 2026-08-20 (sdd-verificador) |
@@ -119,6 +119,5 @@ Actualizado: 2026-08-21
 
 ## Resumen
 
-- hecho: 39
+- hecho: 40
 - aprobada: 1
-- en-revision: 1
