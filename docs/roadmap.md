@@ -7,6 +7,36 @@ tipo: roadmap
 > El estado fino por spec vive en el tablero; aquí vive la INTENCIÓN.
 
 ## Ahora (en curso)
+- **EPIC-005 — Gobernar la vigilada que ya existe: ajustar sus zonas y silenciarla sin
+  destruirla** (estado: aprobada; gate humano el 2026-08-22, Alberto Fojo).
+  **Qué falta.** Una vigilada es hoy **inmutable**: `src/app/vigiladas/actions.ts` solo
+  sabe dar de alta y dar de baja. Para mover un rango hay que borrarla y recrearla, y eso
+  **no es equivalente** — ADR-017 dejó los episodios de zona como derivados, con
+  `zone_triggers` en cascada sobre `watched_symbols`: al recrear no hay episodio abierto,
+  así que el motor lee el precio como entrada nueva y **vuelve a avisar de algo ya
+  avisado**; los avisos viejos quedan huérfanos y `createdAt` miente sobre la edad de la
+  vigilada. Entrega además **silenciar** una vigilada sin borrarla: deja de avisar pero
+  sigue viva, con su precio al día y su estado visible.
+  **Por qué manda ahora.** Nació en "Después" el 2026-08-22 —es alcance nuevo, y el
+  criterio de corte dice que el alcance nuevo no adelanta— y **el humano la subió el mismo
+  día**. La razón que lo sostiene: "Ahora" está de facto drenada (EPIC-004 tiene sus seis
+  specs en `hecho`, EPIC-003 la suya, y EPIC-FIX y EPIC-MEJORA son *buckets* que no ocupan
+  turno), así que esperar al cierre formal de EPIC-004 habría sido respetar la letra del
+  criterio contra su propósito. Y la fricción que arregla es la que EPIC-004 pone delante
+  de gente que llega **sin sus zonas puestas**, al contrario que el autor, que ya las
+  tenía: el primer tester que quiera mover un rango descubrirá que la app le pide destruir
+  su propia vigilancia para hacerlo.
+  ⚠️ **Trae migración de esquema** (R-2): "silenciada" es estado nuevo en
+  `watched_symbols`, y **Preview comparte la BD de producción** (ver "Ops y despliegue"),
+  así que una PR de esta épica migra producción. No es un detalle de implementación:
+  condiciona cómo se abre la rama.
+  ⚠️ **Probable ADR** (R-1): la continuidad del episodio cuando **la zona se mueve debajo
+  de un precio quieto** es un suceso que ADR-005 (*edge-triggered*) no contempla.
+  ⚠️ **R-6 — el silencio puede tapar la promesa**: una vigilada callada y olvidada es
+  exactamente el fallo que EPIC-FIX persiguió ocho specs (la app deja de avisar y el
+  usuario no se entera de que no le avisa). CE-3 lo trata como requisito, no como detalle
+  visual.
+
 - **EPIC-004 — Puesta en público para testers externos** (estado: aprobada;
   gate humano el 2026-08-19, Alberto Fojo).
   **Por qué manda ahora.** No entrega capacidad nueva de vigilancia: entrega la
@@ -109,7 +139,8 @@ tipo: roadmap
 ## Después (comprometido, sin empezar)
 <!-- Sigue vacío. La regla que lo vaciaba ("nada nuevo hasta que EPIC-FIX restaure la
 promesa") ya se ha cumplido, pero eso no la convierte en barra libre: lo único que ha
-subido es EPIC-003, y por las razones propias que allí se argumentan. -->
+subido es EPIC-003, y por las razones propias que allí se argumentan. EPIC-005 nació
+aquí el 2026-08-22 y subió a "Ahora" el mismo día por decisión del humano. -->
 
 ## Más adelante (idea, sin compromiso)
 - **Observabilidad del ciclo diario**: registrar el resultado de cada ejecución del cron

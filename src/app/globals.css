@@ -122,6 +122,36 @@
   width: 100%;
 }
 
+/* --- SPEC-044 — el panel de edición de zonas y los controles por fila ---------
+
+   Tres reglas y ninguna declara un ancho, a propósito (CA-20): la CAJA del formulario
+   —anchos, `min-width`, cómo encogen los campos— la fija SPEC-040 sobre `.auth-form`, y
+   este panel sólo decide CUÁNDO está en pantalla. Lo único que se dice aquí es que puede
+   encoger (`min-width: 0`, ADR-026 §5) y cuánto se separa de la tabla.
+
+   Los controles de la fila se envuelven en vez de crecer en una sola línea: con tres
+   acciones por fila (SPEC-045 traerá la tercera) y la pantalla de 360 px, la salida
+   legítima ante la estrechez es apilar, nunca esconder (ADR-026 §4, nota 5 del gate). */
+.fila-acciones {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  align-items: center;
+  min-width: 0;
+}
+.editar-vigilada {
+  display: grid;
+  gap: 12px;
+  margin-top: 18px;
+  min-width: 0;
+}
+.editar-cadencia {
+  margin-top: 18px;
+  color: var(--fg-dim);
+  font-size: var(--t-body-sm);
+  min-width: 0;
+}
+
 .auth-error {
   color: var(--error);
   font-size: var(--t-body-sm);
