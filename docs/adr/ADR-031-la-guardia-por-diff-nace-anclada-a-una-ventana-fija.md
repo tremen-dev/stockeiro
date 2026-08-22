@@ -1,9 +1,11 @@
 ---
 id: ADR-031
 tipo: adr
-estado: borrador
+estado: aprobada
 historial:
   - {estado: borrador, fecha: 2026-08-22, por: sdd-arquitecto}
+  - {estado: aprobada, fecha: 2026-08-22, por: humano (Alberto Fojo)}
+aprobada-por: humano (Alberto Fojo)
 ---
 # ADR-031: Un criterio sobre un cambio se verifica en el gate; si se queda en la suite, nace anclado a una ventana de dos sha fijos
 

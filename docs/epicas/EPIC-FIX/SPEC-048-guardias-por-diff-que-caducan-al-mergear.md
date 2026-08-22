@@ -2,10 +2,11 @@
 id: SPEC-048
 tipo: spec
 epica: EPIC-FIX
-estado: borrador
-aprobada-por:
+estado: aprobada
+aprobada-por: humano (Alberto Fojo)
 historial:
   - {estado: borrador, fecha: 2026-08-22, por: sdd-arquitecto}
+  - {estado: aprobada, fecha: 2026-08-22, por: humano (Alberto Fojo)}
 ---
 # SPEC-048 — Guardias por diff que caducan al mergear: `main` vuelve a verde y no puede volver a romperse sola
 
