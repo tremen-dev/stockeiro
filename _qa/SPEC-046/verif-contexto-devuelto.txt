@@ -1,0 +1,33 @@
+SPEC-046 CA-6(f) / F-SPEC-046-2 — CUÁNTO CONTEXTO DEVUELVE EL VELO, medido por sdd-verificador
+(2026-08-22, rama ft/SPEC-046-panel-edicion-fuera-de-pantalla, instrumento propio del
+verificador: cálculo de contraste WCAG escrito aparte del de la guardia, mismo resultado
+±0,03)
+
+Filas de la tabla ENTERAS y visibles por encima de la capa, con la capa abierta:
+
+ancho | página ARRIBA, primera fila | página DESPLAZADA, fila intermedia
+------|-----------------------------|-----------------------------------
+  360 | 0 filas                     | 3 filas (contraste 5,54:1)
+  390 | 0 filas                     | 3 filas (contraste 5,54:1)
+  640 | 1 fila  (contraste 5,54:1)  | —
+  700 | 1 fila  (contraste 5,54:1)  | —
+  730 | 1 fila  (contraste 5,54:1)  | —
+  760 | 1 fila  (contraste 5,54:1)  | —
+  800 | 1 fila  (contraste 5,54:1)  | —
+ 1280 | 2 filas (contraste 5,54:1)  | 7 filas (contraste 5,54:1)
+
+Contraste efectivo del texto de la tabla con el velo `rgba(10, 9, 8, 0.45)` puesto:
+17,01:1 → 5,54:1 (la guardia del proyecto mide 5,57:1 sobre otra fila; las dos por encima
+del umbral AA de 4,5:1). El velo ATENÚA, no oculta: se cumple CA-6(f) en los ocho anchos.
+
+Lo que corrige este fichero (ver veredicto del verificador):
+- La guardia `vigiladas-capa-edicion.spec.ts › CA-6(f)` sólo se ejecuta a **1280 px**,
+  aunque CA-6 pide los ocho. A 360 y 390, con la página arriba y la primera fila, su
+  precondición interna —«queda alguna fila por encima»— NO se cumple y el test lanzaría
+  «la capa tapa la tabla entera».
+- La cifra de F-SPEC-046-2 en el ledger («a 360 px … quedan dos filas legibles») es de
+  1280 px, no de 360. A 360 son **0** con la página arriba y **3** con la página
+  desplazada.
+
+Capturas: `verif-contexto-360.png`, `verif-contexto-390.png`, `verif-contexto-1280.png`
+(fila intermedia, página desplazada: el caso normal de una lista larga).
