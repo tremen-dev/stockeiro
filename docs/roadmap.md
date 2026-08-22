@@ -166,6 +166,20 @@ aquí el 2026-08-22 y subió a "Ahora" el mismo día por decisión del humano. -
   splits/contrasplits): EPIC-002 lo delega en confirmación humana; automatizarlo
   requiere una fuente de eventos fiable. *(El proveedor que entra por EPIC-FIX expone
   `split_factor`/`dividend`, lo que lo haría más viable — pero sigue sin compromiso.)*
+  ⏸️ **Continuidad del valor: EN STAND-BY por decisión humana (2026-08-21).** Hubo una
+  EPIC-003 anterior —*"continuidad del valor a través de eventos corporativos"*— con
+  SPEC-017 (`hecho`), SPEC-018 (`RED`, 7/9) y SPEC-019 (`aprobada`), que **nunca llegó a
+  `main`**: su hueco lo ocupó *"Recuperación y cambio de contraseña"* cuando EPIC-FIX se
+  volvió urgente. Su trabajo sigue vivo en la **PR #21** (`ft/EPIC-003-continuidad-del-valor`),
+  que **se deja abierta a propósito**.
+  **Motivo del stand-by, en palabras del humano**: *"es algo demasiado complejo que aporta
+  muy poco valor"*. Y es consistente con el caso real que lo originó — PharmaMar,
+  contrasplit 12:1 con cambio de nombre: el problema solo afecta a los valores que **han
+  pasado por un evento corporativo**, no a la cartera entera, y exige modelar linaje de
+  símbolos, posición derivada y re-escalado con confirmación.
+  **Qué lo reabriría**: que un tester del foro se tope con el caso y lo reporte, o que la
+  cartera real acumule suficientes valores con eventos corporativos como para que el "—"
+  permanente del P/L deje de ser una anécdota. Hasta entonces, no se toca.
 - Canales de aviso adicionales (push móvil / app nativa).
 - Analítica histórica de la cartera y de aciertos de zona.
 - **Analítica de uso y retención** (cuántos usuarios vuelven, qué secciones tocan):

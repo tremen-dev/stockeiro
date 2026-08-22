@@ -61,7 +61,7 @@ Actualizado: 2026-08-21
 | SPEC-025 — cartera-vender-dividir-y-cobrar-dividendo-sobre-la-posicion-del-mercado-correcto | hecho | 2026-08-17 (sdd-verificador) |
 | SPEC-029 — el-buscador-ofrece-cualquier-instrumento-del-mercado-soportado-dice-de-que-tipo-es-y-por-que-descarta | hecho | 2026-08-18 (sdd-verificador) |
 | SPEC-030 — coma-decimal-en-el-alta-manual-y-errores-que-distinguen-el-dato-del-fallo | hecho | 2026-08-18 (sdd-verificador) |
-| SPEC-033 — la-puerta-post-deploy-deja-de-perder-la-carrera-con-commit-unknown-es-transitorio | en-revision | 2026-08-19 (sdd-implementador) |
+| SPEC-033 — la-puerta-post-deploy-deja-de-perder-la-carrera-con-commit-unknown-es-transitorio | hecho | 2026-08-21 (sdd-verificador) |
 | SPEC-040 — el-movil-completa-el-alta-de-una-vigilada-y-la-guardia-de-geometria-deja-de-ser-ciega | hecho | 2026-08-20 (sdd-verificador) |
 | SPEC-043 — la-cotizacion-que-dejo-de-refrescarse-lo-dice-y-la-cuota-agotada-deja-de-disfrazarse-de-caida-del-proveedor | hecho | 2026-08-21 (sdd-verificador) |
 
@@ -119,6 +119,6 @@ Actualizado: 2026-08-21
 
 ## Resumen
 
-- hecho: 38
+- hecho: 39
 - aprobada: 1
-- en-revision: 2
+- en-revision: 1
