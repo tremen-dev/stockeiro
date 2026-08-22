@@ -1,7 +1,7 @@
 <!-- GENERADO por tremen-sdd (scripts/tablero.mjs). NO EDITAR A MANO. -->
 # Tablero
 
-Actualizado: 2026-08-21
+Actualizado: 2026-08-22
 
 ## EPIC-001 — vigilancia-de-zonas-de-compra-venta-con-cartera-y-avisos (hecho)
 
@@ -49,6 +49,11 @@ Actualizado: 2026-08-21
 | SPEC-044 — ajustar-las-zonas-de-una-vigilada-sin-perder-su-episodio | hecho | 2026-08-21 (sdd-verificador) |
 | SPEC-045 — silenciar-una-vigilada-calla-los-avisos-sin-cegar-la-vigilancia-y-al-reactivarla-cuenta-lo-que-se-perdio | aprobada | 2026-08-21 (humano (Alberto Fojo)) |
 
+## EPIC-006 — el-historial-de-una-vigilada (borrador)
+
+| Spec | Estado | Último cambio |
+|---|---|---|
+
 ## EPIC-FIX (aprobada)
 
 | Spec | Estado | Último cambio |
@@ -83,6 +88,7 @@ Actualizado: 2026-08-21
 | Spec | Estado | Último cambio |
 |---|---|---|
 | SPEC-041 — vigiladas-legible-y-ordenable-el-nombre-del-activo-el-orden-a-eleccion-y-el-alta-plegable | hecho | 2026-08-20 (sdd-verificador) |
+| SPEC-047 — el-icono-de-la-app | hecho | 2026-08-22 (sdd-verificador) |
 
 ## ADRs
 
@@ -119,6 +125,6 @@ Actualizado: 2026-08-21
 
 ## Resumen
 
-- hecho: 39
+- hecho: 40
 - aprobada: 1
 - en-revision: 1
