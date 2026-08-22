@@ -6,8 +6,9 @@ epica: EPIC-FIX
 # Ledger — SPEC-046 El panel de edición se abre donde el usuario mira, y la guardia lo mide
 
 ## Resumen
-- Fase: `borrador` — spec y **ADR-030** escritos por sdd-arquitecto el 2026-08-22, a la
-  espera del gate humano. Nada implementado.
+- Fase: `borrador` — spec y **ADR-030** escritos por sdd-arquitecto el 2026-08-22 y
+  **revisados el mismo día** tras la primera vuelta del gate, en la que el humano pidió
+  evaluar la edición inline / fila desplegable. Nada implementado.
 - Rama: `ft/SPEC-046-panel-edicion-fuera-de-pantalla`
 - Worktree: `D:/src/wt-46`
 
@@ -57,6 +58,9 @@ Abiertos ya en el ADR que escribe esta spec, para que no se pierdan:
 - **F-ADR-030-2** — ADR-030 decide la colocación de lo que abre **una fila de una lista**.
   No se extiende por analogía a otras superficies (alta plegable, ayuda, formularios de
   página completa).
+- **F-ADR-030-3** — la forma **débil** de M4 (proximidad, para superficies en flujo) queda
+  definida y **sin implementar**, porque nada la usa. Si una spec futura elige una forma en
+  flujo, la aporta al módulo con ese nombre en vez de inventar otra medida.
 
 ### Re-encuadre de guardias (CA-14) — a rellenar al implementar
 
@@ -75,6 +79,11 @@ siendo cierta y necesaria (CA-4b).
 ## Cómo retomar (handoff)
 <!-- Estado real del trabajo para la siguiente sesión: qué está hecho, qué falta, dónde seguir. -->
 
-Hecho: `SPEC-046` (borrador) y `docs/adr/ADR-030-...` (borrador). Pendiente: el gate humano
-sobre las notas 1 (modal vs. cajón inferior), 3 (confirmación de cadencia) y 6 (posible
-colisión de numeración de ADR con las ramas paralelas). No hay código ni tests escritos.
+Hecho: `SPEC-046` (borrador) y `docs/adr/ADR-030-...` (borrador), ya con la segunda vuelta
+del gate incorporada. **Resuelto por el humano el 2026-08-22**: CA-13 se confirma dentro de
+la ventana; ADR-030 no colisiona. **Evaluado y respondido**: la fila desplegable y la
+edición en celda **son posibles** — el mecanismo y los cuatro costes están en ADR-030
+§Alternativas (a) y (b), y el resumen legible en el §«¿No se puede editar dentro de la
+tabla?» de la spec. **Pendiente**: la firma del humano, sabiendo que (i) puede pedir la
+fila desplegable con el coste ya escrito, y (ii) puede pedir el cajón no modal si lo que
+quiere es seguir tocando la tabla mientras edita. No hay código ni tests escritos.

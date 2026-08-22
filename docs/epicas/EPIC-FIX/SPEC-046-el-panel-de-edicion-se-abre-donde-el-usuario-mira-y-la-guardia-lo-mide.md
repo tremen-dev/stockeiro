@@ -29,13 +29,15 @@ está roto**.
 
 Tres cosas más que hay que tener delante antes de tocar nada:
 
-1. **La colocación estaba razonada, y su razón es buena.** El comentario que la acompaña
-   dice que el panel va fuera de `.table-scroll` porque dentro heredaría el ancho de una
-   tabla de nueve columnas y quedaría en el subárbol de un contenedor de desplazamiento
-   realmente desplazado, **donde M1 deja de medir a propósito** (`tests/e2e/geometria.ts`,
-   `dentroDeContenedorDesplazable`; ADR-026 §4). Es verdad, y por eso **el arreglo
-   intuitivo —meter el panel en su fila— está descartado**: cambiaría un defecto visible
-   por un punto ciego.
+1. **La colocación estaba razonada, y su razón es buena a medias.** El comentario que la
+   acompaña dice que el panel va fuera de `.table-scroll` porque dentro heredaría el ancho
+   de una tabla de nueve columnas y quedaría en el subárbol de un contenedor de
+   desplazamiento realmente desplazado, donde **M1 deja de medir**
+   (`tests/e2e/geometria.ts`, `dentroDeContenedorDesplazable`; ADR-026 §4). Las dos cosas
+   son ciertas, con un matiz que importa y que **ADR-030** detalla: la ceguera de M1 **no
+   es universal** —pide `overflow-x: auto|scroll` **y** que el contenedor desborde de
+   verdad—, así que aparece entre 360 y 800 px y no a 1280. Es decir: exactamente donde el
+   defecto duele.
 2. **Había guardia y no lo vio.** `tests/e2e/vigiladas-editar.spec.ts` (SPEC-044 CA-23)
    abre el panel y lo mide **a los ocho anchos** con M1, M2 y M3, guarda capturas y escribe
    un fichero de medidas. Y pasa. Porque las tres medidas de ADR-026 son **horizontales**:
@@ -50,10 +52,48 @@ Tres cosas más que hay que tener delante antes de tocar nada:
    previó este momento cuando dijo que una spec que necesite un invariante que no existe
    **lo aporta al módulo**; es la primera vez que toca ejercerlo.
 
-Esta spec hace las dos mitades: **mueve la superficie de edición a una capa anclada a la
-ventana** (ADR-030, que escribe esta spec) y **añade la medida que faltaba** —M4, la
-respuesta al gesto cae dentro de la ventana— al módulo compartido, con la prueba de que la
-guardia vieja no la habría cazado y la nueva sí.
+Esta spec hace las dos mitades: **mueve la superficie de edición a una capa anclada al
+borde inferior de la ventana** (ADR-030, que escribe esta spec) y **añade la medida que
+faltaba** —M4, la respuesta al gesto cae dentro de la ventana— al módulo compartido, con la
+prueba de que la guardia vieja no la habría cazado y la nueva sí.
+
+### «¿No se puede editar dentro de la tabla?» — sí se puede, y aun así no se hace
+
+El humano lo preguntó en el gate del 2026-08-22 y la pregunta es buena, porque desplegar
+la edición **debajo de su fila** es lo que cualquiera espera. La respuesta honesta es que
+**sí es posible** —una fila desplegable con `colSpan` se puede escribir, se puede hacer
+que quepa y se puede medir— y que aun así no se elige. El razonamiento completo, con el
+mecanismo, está en **ADR-030 §Alternativas (a) y (b)**; el resumen, para que se pueda leer
+sin abrirlo:
+
+- **El ancho no se hereda: se impone.** `.data-table` declara `width: 100%`, pero con
+  `table-layout: auto` eso es un **suelo**. Sus anchos mínimos suman mucho más — 288 px
+  sólo de relleno (nueve columnas × 32), `.activo-caja { min-width: 170px }`,
+  `.estado-caja { max-width: 170px }` y `.zone-label { white-space: nowrap }`. A 360 px la
+  tabla mide varios cientos de píxeles más que la ventana, y un `<td colspan="9">` **mide
+  lo que mida la tabla**: `.auth-form` resolvería su `min(420px, 100%)` a **420 px sobre
+  una ventana de 360**.
+- **Y el control *Editar* está en la novena columna.** En móvil hay que arrastrar la tabla
+  a la derecha para alcanzarlo (SPEC-040 CA-5), así que al pulsar, el `scrollLeft` está al
+  máximo y la fila desplegada se ancla ~800 px a la izquierda de lo que se ve: **el mismo
+  defecto girado 90°**.
+- **Ambas cosas tienen arreglo, y ése es el problema.** `position: sticky; left: 0` y una
+  anchura sacada de la ventana (`calc(100vw − relleno)` o un `ResizeObserver`) lo
+  resuelven. Pero la primera mete el relleno de un ancestro dentro de un descendiente
+  (ADR-026 §5), y las dos hay que volver a acertarlas cada vez que la tabla cambie.
+- **Y la guardia pasaría a depender de que alguien se acuerde.** Se puede medir un panel
+  dentro de `.table-scroll` pasándolo como **raíz de medida**; funciona. Pero deja de valer
+  *por defecto* y vale *porque se añadió una raíz*: lo siguiente que otra spec meta ahí
+  dentro nace ciego. Esa apuesta ya se perdió en SPEC-037, SPEC-039 y aquí.
+- **La edición en celda es peor, y no por maquetación**: cuatro `<input>` sueltos son un
+  **segundo camino de edición**, y eso deshace lo que SPEC-044 compró con CA-15/CA-20 — que
+  *«la edición no puede validar más flojo que el alta»* fuera verdad **por construcción**.
+  Además, *Guardar* y *Cancelar* por fila se comen el hueco que SPEC-045 necesita.
+
+Lo que sí se hace es **pagar el coste que esa opción evitaba**: la capa se ancla **abajo**
+(no centrada), el velo **atenúa en vez de ocultar** para que la lista se siga leyendo
+detrás, y **la fila que se edita queda marcada**. Recupera la vista de la tabla; no la
+interacción con ella, que el modo modal suspende a propósito.
 
 ### Por qué es EPIC-FIX y no EPIC-MEJORA
 
@@ -125,20 +165,27 @@ prefijados y son suyos: el registro de símbolos es compartido (ADR-002), como y
   entonces la capa **nombra a ese activo** (su nombre accesible y su bloque
   `editar-activo` contienen el **ticker y el mercado de esa fila**, no los de otra) y los
   cuatro campos traen **los valores de esa fila**; se cierra y se abre otra, y cambian los
-  dos. Es la comprobación de **relación fila ↔ panel** que la guardia anterior nunca hizo:
-  no basta con que se vea algo, tiene que verse **lo de esa fila**.
+  dos. Y **la fila que se está editando queda marcada** mientras la capa está abierta —de
+  forma comprobable en el árbol y visible detrás del velo—, y deja de estarlo al cerrar.
+  Es la comprobación de **relación fila ↔ panel** que la guardia anterior nunca hizo: no
+  basta con que se vea algo, tiene que verse **lo de esa fila**, y tiene que poder
+  encontrarse **de qué fila era**.
 
 ### Rebanada 2 — La capa anclada (ADR-030)
 
-- **CA-4 (Anclada a la ventana, no al documento).**
+- **CA-4 (Anclada a la ventana por abajo, no al documento).**
   Dada la superficie de edición abierta,
   cuando se inspecciona y se mide,
   entonces (a) su `position` computada es `fixed`; (b) sigue estando **fuera de
   `.table-scroll`** (`closest('.table-scroll') === null`), que es lo que SPEC-044 protegía
-  y aquí no se toca; y (c) **su caja respecto a la ventana no depende del
-  desplazamiento**: abriéndola con la página arriba del todo y con la página al fondo, el
-  `getBoundingClientRect()` de la capa coincide en ±1 px. (c) es la propiedad estructural
-  entera de este arreglo, expresada como medida.
+  y aquí no se toca; (c) **su caja respecto a la ventana no depende del desplazamiento**:
+  abriéndola con la página arriba del todo, con la página al fondo y con `.table-scroll`
+  arrastrado a su extremo derecho, el `getBoundingClientRect()` de la capa coincide en los
+  tres casos con ±1 px; y (d) está **anclada al borde inferior** de la ventana
+  (`bottom ≥ innerHeight − 1`, salvo el margen que declare). (c) es la propiedad
+  estructural entera de este arreglo expresada como medida, y su tercer caso —la tabla
+  arrastrada— es el que distingue esta forma de una fila desplegable, que ahí se iría con
+  el `scrollLeft` (ADR-030, alternativa (a), pto. 2).
 
 - **CA-5 (El vehículo, y lo que la plataforma da hecho).**
   Dada la capa,
@@ -160,7 +207,12 @@ prefijados y son suyos: el registro de símbolos es compartido (ADR-002), como y
   dispare la exención de contenedor desplazable de M1 y el subárbol deje de medirse; (d) si
   su contenido no cabe a lo alto, el desplazamiento es **vertical, propio y declarado**
   (ADR-026 §4, segunda salida), nunca `overflow: hidden` ni una capa que sobresalga por
-  abajo; y (e) **M3**: ninguna etiqueta ni rótulo de la capa parte palabras.
+  abajo; (e) **M3**: ninguna etiqueta ni rótulo de la capa parte palabras; y (f) el velo
+  **atenúa sin ocultar** — con la capa abierta, las filas que quedan por encima de ella
+  siguen siendo legibles, comprobado sobre el contraste efectivo del texto de la tabla, no
+  sobre la opacidad declarada. (f) es la devolución parcial del contexto que se le debe a
+  la opción que el humano prefería (ADR-030 §1); si se implementa un velo opaco, esta spec
+  no ha pagado ese coste.
 
 - **CA-7 (La capa se mide: no se excluye, y la guardia lo afirma).**
   Dado el módulo `tests/e2e/geometria.ts`,
@@ -235,7 +287,11 @@ prefijados y son suyos: el registro de símbolos es compartido (ADR-002), como y
   foco a su fila (CA-5). Hoy esa frase se pinta **detrás de la tabla**, así que con
   cuarenta filas es invisible: es el mismo defecto que esta spec arregla, en su segunda
   instancia, y arreglar uno sin el otro dejaría media promesa de SPEC-044 CA-22 sin
-  cumplir. *(Ver nota 3 del gate: hay una alternativa y la firma el humano.)*
+  cumplir. **Decidido por el humano en el gate del 2026-08-22** —«confirmar dentro de la
+  ventana»— frente a la alternativa de cierre automático más franja anclada. Consecuencia
+  aceptada: **un clic más por edición**. Y consecuencia que este CA vigila: la
+  confirmación se mide con **M4** igual que el formulario, porque el defecto que arregla
+  esta spec era precisamente un mensaje que nadie lee.
 
 - **CA-14 (Las aserciones que codificaban la colocación se re-encuadran, y se declara).**
   Dado `tests/e2e/vigiladas-editar.spec.ts`,
@@ -329,8 +385,13 @@ Aparcado a propósito, no por descuido:
   los formularios de página completa). ADR-030 decide **lo que abre una fila de una lista**
   y deja escrito que no se extiende por analogía (`F-ADR-030-2`).
 - **Una franja de estado anclada y reutilizable (*toast*)** para confirmar acciones en todo
-  el producto. Es mecanismo nuevo y traería temporizadores a la suite; ver nota 3 del gate,
-  donde se ofrece como alternativa a CA-13 si el humano la prefiere.
+  el producto. Es mecanismo nuevo y traería temporizadores a la suite. **Descartada por el
+  humano en el gate del 2026-08-22** al elegir «confirmar dentro de la ventana» (CA-13).
+- **La fila desplegable y la edición en celda.** Evaluadas a fondo a petición del humano en
+  el mismo gate: **son posibles** y se rechazan con mecanismo en **ADR-030 §Alternativas
+  (a) y (b)**. Si el uso real demuestra que perder la interacción con la tabla pesa más que
+  las cuatro compensaciones que la fila desplegable exige, el camino de vuelta está escrito
+  y medido — pero no se implementan las dos formas «por si acaso».
 - **Editar desde el teclado sin ratón como recorrido completo**, más allá de lo que CA-5
   exige (foco que entra, Escape, foco que vuelve). Una auditoría de teclado de
   `/vigiladas` entera es otra cosa.
@@ -343,34 +404,44 @@ Aparcado a propósito, no por descuido:
 
 Lo que necesitas mirar con lupa antes de firmar:
 
-1. **La solución cambia el gesto, no sólo el sitio.** Editar pasa a abrirse como una
-   **ventana modal**: se oscurece la tabla, el foco entra en el formulario y Escape cierra.
-   Ganas que funcione igual con tres vigiladas que con cuarenta, y que el teclado y el
-   lector de pantalla funcionen de verdad. **Pierdes ver la tabla mientras editas** — no
-   puedes comparar la zona nueva con la de la fila de al lado sin cerrar. Si eso te importa
-   más de lo que parece, la alternativa está escrita y evaluada en ADR-030: un **cajón
-   inferior no modal** que deja la tabla viva detrás. Cuesta más código (foco y Escape a
-   mano), tapa filas a 360 px, y **no cambia ni una línea de la guardia**. Es un cambio que
-   se pide aquí y ya.
+1. **Tu pregunta del gate: sí, editar dentro de la tabla es posible. Y aun así no lo hago.**
+   Una fila desplegable con `colSpan` se puede escribir y se puede medir; no te estoy
+   diciendo que no se pueda. Lo que hace falta para que funcione son **cuatro
+   compensaciones**: `position: sticky; left: 0` (porque *Editar* está en la novena columna
+   y al pulsarlo la tabla está arrastrada a la derecha, así que el panel nacería fuera de
+   pantalla **por la izquierda**), una anchura sacada de la ventana con `calc(100vw − …)` o
+   un `ResizeObserver` (porque un `<td colspan="9">` mide lo que mide la tabla: ~800 px a
+   360, y el formulario se pintaría a 420 sobre una ventana de 360), **una raíz de medida
+   extra** para que la guardia no se quede ciega entre 360 y 800 px, y **un M4 más flojo**
+   (un formulario de 400 px de alto desplegado desde una fila de la mitad inferior no cabe
+   entero). Cuatro parches para colocar una superficie es la señal de que se está colocando
+   mal. El detalle completo, con los números y el código de la guardia, está en **ADR-030
+   §Alternativas (a)**; si tras leerlo sigues queriéndolo, es un «sí» que puedes dar y que
+   cuesta lo que ahí pone.
 
-2. **El arreglo intuitivo está descartado, y conviene que sepas por qué.** «Que el panel
-   salga debajo de su fila» heredaría el ancho de una tabla de nueve columnas y —lo grave—
-   metería el formulario dentro de `.table-scroll`, donde **M1 deja de medir por diseño**.
-   Cambiaríamos un defecto que se ve por un punto ciego que no. Es justo el motivo que
-   SPEC-044 dejó escrito en el código, y sigue siendo válido: lo que estaba mal de aquella
-   decisión era la **otra** mitad, «después de la tabla entera».
+2. **La edición en celda la descarto por un motivo que no es de maquetación.** Cuatro
+   `<input>` sueltos en las columnas de zona son un **segundo camino de edición**, y eso
+   deshace lo que SPEC-044 compró: que *«la edición no pueda validar más flojo que el
+   alta»* fuera verdad **por construcción** (mismo `WatchForm`, CA-15/CA-20) en vez de por
+   vigilancia. Además los mensajes de error de SPEC-030 no caben en una celda, y *Guardar*
+   y *Cancelar* por fila se comen el hueco donde va *Silenciar*. Es la única de las tres
+   opciones que puede **romper algo que hoy funciona**.
 
-3. **CA-13 te cuesta un clic y hay que decidirlo.** Hoy, al guardar, el panel se cierra
-   solo y la frase *«el aviso llega con el próximo ciclo diario»* se pinta detrás de la
-   tabla — con cuarenta filas **no la lee nadie**: es el mismo defecto en su segunda
-   instancia. La propuesta es que el guardado se confirme **en la propia ventana**, que se
-   cierra cuando tú lo dices. **Alternativa**: que se cierre sola y la frase aparezca en una
-   franja anclada abajo; se lee sin clic extra, pero es un mecanismo nuevo (aparición,
-   cierre, temporizador) y los temporizadores dan pruebas frágiles. **Si prefieres que no
-   se diga nada al guardar, CA-13 se cae sin arrastrar nada más** — pero entonces SPEC-044
-   CA-22 queda incumplida a sabiendas y hay que anotarlo.
+3. **Lo que sí te devuelvo del coste que señalaste.** La capa se ancla **abajo** y no en el
+   centro; el velo **atenúa en vez de ocultar**, así que la lista se sigue leyendo detrás
+   (CA-6f lo mide sobre el contraste real, no sobre la opacidad declarada); y **la fila que
+   editas queda marcada** para que la encuentres al cerrar (CA-3). Recuperas la **vista** de
+   la tabla, no la **interacción**: eso el modo modal lo suspende a propósito. Si lo que
+   quieres es seguir tocando la tabla mientras editas, entonces lo que quieres es el **cajón
+   no modal** que sigue evaluado en ADR-030, y hay que pedirlo aquí.
 
-4. **Toco una guardia de una spec `hecho`, y lo declaro.** Tres aserciones de
+4. **CA-13 queda como lo decidiste**: al guardar, la confirmación con la frase de cadencia
+   se lee **en la propia capa** y ésta se cierra cuando tú lo dices. Cuesta **un clic más
+   por edición**; a cambio la frase se lee siempre, que era el problema (hoy se pinta detrás
+   de la tabla y con cuarenta filas no la ve nadie). La guardia la mide con M4, igual que
+   al formulario — porque el defecto original era exactamente un mensaje invisible.
+
+5. **Toco una guardia de una spec `hecho`, y lo declaro.** Tres aserciones de
    `vigiladas-editar.spec.ts` codificaban **dónde** estaba el panel (`max-width: none`, su
    ancho igual al del formulario, y que al guardar desaparece del árbol). Con la capa
    anclada dejan de ser expresables tal cual. **No se aflojan: se re-encuadran** a la
@@ -379,25 +450,24 @@ Lo que necesitas mirar con lupa antes de firmar:
    exactamente la condición que FOUNDATION fijó el 2026-08-20. Es CA-14 y es el punto donde
    más fácil sería hacer trampa.
 
-5. **ADR-030 constriñe a SPEC-045 antes de que se escriba.** Le dice dónde vivirá su
+6. **ADR-030 constriñe a SPEC-045 antes de que se escriba.** Le dice dónde vivirá su
    superficie si la necesita, le regala M4 sin copiar nada, y le libera el ancho de la fila
    (la edición deja de competir por él). CA-15 mide **hoy** que la celda de acciones tolera
    un tercer control a 360 px con un botón simulado. Si al medirlo resulta que no cabe con
    dignidad, **la salida es apilar, nunca esconder**, y saldrá en la evidencia de `_qa/`.
 
-6. **El número de ADR puede colisionar.** Escribo **ADR-030** porque el máximo en `main`
-   más el commit de producto de esta rama es ADR-029. Hay dos sesiones en paralelo
-   (SPEC-047, favicon en EPIC-MEJORA). Si alguna escribe un ADR, hay que renumerar antes de
-   mergear. Lo mismo con las guardias de geometría: dos ramas que añadan medidas al mismo
-   módulo van a chocar — ADR-026 ya avisó de que el módulo compartido es punto único de
-   conflicto entre ramas.
+7. **El número de ADR ya no es una duda: ADR-030 está libre** (confirmado en el gate del
+   2026-08-22 — `origin/main` llega a ADR-029 y la sesión del favicon no escribió ninguno).
+   Lo que **sigue** siendo riesgo de rama es `tests/e2e/geometria.ts`: dos ramas que añadan
+   medidas al mismo módulo van a chocar, y ADR-026 ya avisó de que el módulo compartido es
+   punto único de conflicto.
 
-7. **Esto no toca base de datos, ni motor, ni avisos.** Ni migración, ni esquema, ni
+8. **Esto no toca base de datos, ni motor, ni avisos.** Ni migración, ni esquema, ni
    término nuevo de dominio. Es maquetación, colocación y guardia — lo cual también
    significa que **la única forma de saber si está bien es mirar la evidencia**: CA-17 deja
    en `_qa/SPEC-046/` el antes y el después con la distancia medida en píxeles.
 
-8. **Lo que esta spec no promete.** Que la tabla sea cómoda con cuarenta filas. No hay
+9. **Lo que esta spec no promete.** Que la tabla sea cómoda con cuarenta filas. No hay
    paginación, ni búsqueda dentro de la lista, ni filtro. Editar la vigilada número 40
    seguirá exigiendo desplazarse hasta ella; lo que se arregla es que **una vez que la
    pulsas, pase algo que veas**.
