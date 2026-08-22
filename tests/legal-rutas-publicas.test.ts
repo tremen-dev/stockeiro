@@ -49,8 +49,34 @@ describe('SPEC-035 CA-2: /legal y sus subrutas son públicas', () => {
 
 describe('SPEC-035 CA-2: el matcher del proxy no cambia', () => {
   it('sigue siendo el de siempre — quien decide es el guard, no el matcher', () => {
+    // AMPLIADA POR SPEC-047 (CA-19), arbitraje del humano del 2026-08-22.
+    //
+    // Qué vigilaba antes: que el literal del matcher fuera EXACTAMENTE el que había el
+    // día en que SPEC-035 CA-2 lo congeló — o sea, una foto del árbol.
+    // Qué vigila ahora: exactamente lo mismo, sobre la foto de hoy. La lista de
+    // exclusiones crece en UN elemento, `icon.svg`, y sigue siendo un literal completo
+    // comparado carácter a carácter: un quinto que apareciera sin CA detrás vuelve a
+    // poner esto en rojo, igual que antes.
+    //
+    // En virtud de qué entra: **CA-6 y CA-7 de SPEC-047**. El navegador pide el icono
+    // SIN sesión; con `icon.svg` dentro del matcher la petición entraba en Auth.js,
+    // salía redirigida a `/login` y estampaba `authjs.csrf-token` y
+    // `authjs.callback-url` — es decir, ponía RED a SPEC-035 CA-13, que es justo lo que
+    // esta guardia existe para proteger.
+    //
+    // Por qué no debilita nada: `icon.svg` NO es una ruta de producto, es un ACTIVO, de
+    // la misma familia que `_next/static`, `_next/image` y `favicon.ico`, que ya estaban
+    // en esta misma línea y por la misma razón. La propiedad de verdad la mide el caso
+    // de abajo —«ninguna ruta concreta se cuela como excepción DENTRO del matcher»—, que
+    // sigue verde y SIN TOCAR, y `PUBLIC_PREFIXES` no se ha tocado (SPEC-047 CA-8).
+    //
+    // El implementador no tocó esto por su cuenta: escaló, lo decidió el humano y la
+    // autorización está escrita en la spec (SPEC-047 §El arbitraje de las tres guardias
+    // ajenas y CA-19) ANTES de ejecutarse.
     const proxy = readFileSync(join(rootDir, 'src', 'proxy.ts'), 'utf8');
-    expect(proxy).toContain("matcher: ['/((?!api|_next/static|_next/image|favicon.ico).*)']");
+    expect(proxy).toContain(
+      "matcher: ['/((?!api|_next/static|_next/image|favicon.ico|icon.svg).*)']",
+    );
   });
 
   it('ninguna ruta concreta se cuela como excepción DENTRO del matcher', () => {

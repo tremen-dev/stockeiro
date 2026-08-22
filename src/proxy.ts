@@ -51,7 +51,26 @@ export default function proxy(request: NextRequest, event: NextFetchEvent) {
   return (conSesion as unknown as NextMiddleware)(request, event);
 }
 
+/**
+ * SPEC-047 CA-6, CA-7 y CA-8 — `icon.svg` se suma a la lista de estáticos excluidos.
+ *
+ * El navegador pide el icono SIN sesión, y hasta ahora `icon.svg` caía dentro de este
+ * matcher: la petición entraba en Auth.js, salía redirigida a `/login` y, de paso,
+ * estampaba `authjs.csrf-token` y `authjs.callback-url`. Es decir, el icono fallaba
+ * justo en las páginas públicas que ve primero un desconocido (`/`, `/login`, `/legal`,
+ * `/ayuda`) y ponía RED lo que SPEC-035 CA-13 arregló.
+ *
+ * Va aquí y no en `PUBLIC_PREFIXES`, que es lo que primero apetece. Esa lista es la
+ * excepción DOCUMENTADA a RN-03 y es de **páginas**: engordarla con estáticos la
+ * desdibuja. Lo que hay en esta línea es otra cosa —`_next/static`, `_next/image`,
+ * `favicon.ico`—: activos idénticos para todo el mundo, sin un byte de dato de usuario.
+ * `icon.svg` es exactamente eso, y `favicon.ico` ya estaba aquí por la misma razón.
+ *
+ * Lo que NO se toca es el resto de la línea. Sus alternativas no están ancladas ni
+ * escapadas (`favicon.ico` empareja el punto como comodín); está visto y anotado, y
+ * arreglarlo es otra spec — no algo que se cuele en el guardián de sesión de paso.
+ */
 export const config = {
   // Todo salvo estáticos y las rutas internas de auth.
-  matcher: ['/((?!api|_next/static|_next/image|favicon.ico).*)'],
+  matcher: ['/((?!api|_next/static|_next/image|favicon.ico|icon.svg).*)'],
 };

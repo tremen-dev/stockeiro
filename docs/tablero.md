@@ -49,6 +49,11 @@ Actualizado: 2026-08-22
 | SPEC-044 — ajustar-las-zonas-de-una-vigilada-sin-perder-su-episodio | hecho | 2026-08-21 (sdd-verificador) |
 | SPEC-045 — silenciar-una-vigilada-calla-los-avisos-sin-cegar-la-vigilancia-y-al-reactivarla-cuenta-lo-que-se-perdio | aprobada | 2026-08-21 (humano (Alberto Fojo)) |
 
+## EPIC-006 — el-historial-de-una-vigilada (borrador)
+
+| Spec | Estado | Último cambio |
+|---|---|---|
+
 ## EPIC-FIX (aprobada)
 
 | Spec | Estado | Último cambio |
@@ -83,6 +88,7 @@ Actualizado: 2026-08-22
 | Spec | Estado | Último cambio |
 |---|---|---|
 | SPEC-041 — vigiladas-legible-y-ordenable-el-nombre-del-activo-el-orden-a-eleccion-y-el-alta-plegable | hecho | 2026-08-20 (sdd-verificador) |
+| SPEC-047 — el-icono-de-la-app | hecho | 2026-08-22 (sdd-verificador) |
 
 ## ADRs
 

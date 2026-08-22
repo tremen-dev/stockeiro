@@ -1,6 +1,6 @@
 {
   "name": "stockeiro",
-  "version": "0.3.0",
+  "version": "0.3.1",
   "private": true,
   "type": "module",
   "scripts": {
@@ -15,6 +15,7 @@
     "db:generate": "drizzle-kit generate",
     "db:migrate": "drizzle-kit migrate",
     "db:scan": "node scripts/scan-destructive-sql.mjs",
+    "icon:build": "node scripts/build-icon.mjs",
     "version:check": "node scripts/check-version-bump.mjs"
   },
   "dependencies": {

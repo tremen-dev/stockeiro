@@ -48,6 +48,30 @@ tres roces observados por el humano sobre la pantalla real:
 Como ayuda observada para el hueco de (1): la columna `Estado` es la más ancha de la
 tabla y su contenido más largo ("En compra y venta") no justifica ese ancho.
 
+### Segundo caso — la app no tiene icono (2026-08-22)
+Observado por el humano en la pestaña real del navegador: **Stockeiro no tiene favicon**.
+No hay `public/`, ni `src/app/icon.*`, ni `favicon.ico` en el repositorio; `src/app/layout.tsx`
+declara `metadata.title` y `metadata.description` y nada más. El navegador cae en su icono por
+defecto —el folio en blanco— en cada pestaña, en cada marcador y en cada pantallazo que un
+tester comparta en el foro.
+
+**Por qué esto es mejora y no rediseño**, que es la frontera delicada. La lista de "fuera" de
+esta épica excluye *"cambiar la identidad gráfica, la tipografía o el sistema de color
+completo"*. Aquí no se cambia ninguna de las tres: **la identidad ya existe y está en el
+código**. La marca es un *wordmark* montado en `src/app/app-nav.tsx:45` —`Stockeiro` seguido de
+un `<span className="dot">.</span>`— con el punto pintado en el color de acento
+(`.app-nav .brand .dot { color: var(--accent); }`, `src/app/globals.css:271`). Un icono que sea
+**la inicial y ese punto** no inventa identidad: **aplica la que ya hay** a la única superficie
+que se quedó sin ella. La intuición del humano al pedirlo —*"una S y un punto"*— coincide
+literalmente con el marcado que ya está escrito. Si alguna vez se propusiera un icono que **no**
+se derive del wordmark existente, eso sí sería identidad nueva y saldría de esta épica.
+
+**Cuidado con el alcance**, porque este roce es de los que crecen solos: lo observado es la
+pestaña vacía. El manifiesto PWA, el *apple-touch-icon*, la imagen de Open Graph para cuando
+alguien pegue el enlace en el foro y el *theme-color* son parientes cercanos y **ninguno está
+observado**. CE-M2 aplica aquí igual que en la tabla: los delimita sdd-arquitecto al escribir la
+spec, y lo que no se justifique se aparca.
+
 ## Criterios de éxito
 Medibles, por spec. Los tres primeros son de la épica; el cuarto es del caso que la
 motiva y se mide sobre `/vigiladas`.
