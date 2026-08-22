@@ -588,6 +588,53 @@ export async function medirRespuestaAlGesto(
   };
 }
 
+export interface MedidaFondoDeLista {
+  selector: string;
+  /** Dónde acaba la lista, respecto al borde superior de la ventana. */
+  fondo: number;
+  ventanaAlto: number;
+  /** `fondo - ventanaAlto`. Positivo = la lista NO cabe entera: es larga de verdad. */
+  porDebajoDelPliegue: number;
+  /** Cuántos elementos tiene la lista. Informativo: la propiedad es el fondo, no éste. */
+  elementos: number;
+}
+
+/**
+ * **La precondición de una guardia de lista** (ADR-030 §4), aquí porque es del proyecto
+ * y no de una spec.
+ *
+ * Una guardia que mide el comportamiento de una **lista** y se ejecuta con dos filas no
+ * prueba nada sobre listas: mide el caso en el que el defecto **no puede existir**. Le
+ * pasó a SPEC-044, cuyo escenario de dos filas dejaba el panel de edición dentro de la
+ * ventana por accidente del tamaño de la muestra.
+ *
+ * Lo que se afirma **no es un número de filas** —eso es un estado del árbol, y caduca en
+ * silencio cuando cambie el alto de una fila— sino la propiedad: **el fondo de la lista
+ * cae por debajo del pliegue**. Quien la use, la afirma antes de medir y falla si dejó de
+ * cumplirse (FOUNDATION, 2026-08-20).
+ */
+export async function medirFondoDeLista(
+  page: Page,
+  opciones: { lista: string; elementos?: string },
+): Promise<MedidaFondoDeLista> {
+  return page.evaluate(
+    ({ lista, elementos }) => {
+      const el = document.querySelector(lista);
+      if (!el) throw new Error(`no hay ninguna lista que case "${lista}" en la pantalla`);
+      const r = el.getBoundingClientRect();
+      const alto = document.documentElement.clientHeight;
+      return {
+        selector: lista,
+        fondo: r.bottom,
+        ventanaAlto: alto,
+        porDebajoDelPliegue: r.bottom - alto,
+        elementos: elementos ? el.querySelectorAll(elementos).length : el.children.length,
+      };
+    },
+    { lista: opciones.lista, elementos: opciones.elementos ?? null },
+  );
+}
+
 /** El relato de una medida de M4, **con la cifra**: lo que se pega en un fallo o en `_qa/`. */
 export const describirRespuestaAlGesto = (m: MedidaM4): string =>
   `${m.etiqueta} → ${m.selector}: top=${Math.round(m.top)} bottom=${Math.round(m.bottom)} ` +

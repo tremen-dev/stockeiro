@@ -31,10 +31,14 @@ const MODULO = `${DIR}/geometria.ts`;
 
 const fuenteDelModulo = () => readFileSync(MODULO, 'utf8');
 
-/** Todas las guardias e2e del proyecto, que es donde puede reaparecer una copia de M4. */
-const guardiasE2E = () =>
+/**
+ * Todo el árbol de e2e MENOS el módulo: guardias y también los ficheros de apoyo de cada
+ * spec (`spec041.ts`, `spec046.ts`…), que es donde con más comodidad reaparecería una
+ * copia de la medida — «total, es un helper».
+ */
+const consumidoresDelModulo = () =>
   readdirSync(DIR)
-    .filter((n) => n.endsWith('.spec.ts'))
+    .filter((n) => n.endsWith('.ts') && `${DIR}/${n}` !== MODULO)
     .map((n) => `${DIR}/${n}`);
 
 describe('SPEC-046 CA-9: M4 vive en el módulo compartido, junto a M1, M2 y M3', () => {
@@ -44,6 +48,8 @@ describe('SPEC-046 CA-9: M4 vive en el módulo compartido, junto a M1, M2 y M3',
       'export async function medirRespuestaAlGesto', // M4
       'export const describirRespuestaAlGesto',
       'export interface MedidaM4',
+      // ADR-030 §4: la precondición de una guardia de lista también es del proyecto.
+      'export async function medirFondoDeLista',
     ]) {
       expect(fuente, `${MODULO} no expone \`${exportado}\` (M4, ADR-030 §3)`).toContain(exportado);
     }
@@ -83,7 +89,7 @@ describe('SPEC-046 CA-9: M4 vive en el módulo compartido, junto a M1, M2 y M3',
   it('NINGUNA guardia de spec escribe su propia versión de M4', () => {
     // Misma comprobación binaria que SPEC-040 CA-6 hace con `scrollWidth`, y por el mismo
     // motivo: la medida buena entró una vez y se cayó en las dos copias siguientes.
-    for (const fichero of guardiasE2E()) {
+    for (const fichero of consumidoresDelModulo()) {
       const lineas = readFileSync(fichero, 'utf8')
         .split('\n')
         // Los comentarios SÍ pueden nombrarla: contar la lección no es cometerla.
