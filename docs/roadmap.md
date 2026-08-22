@@ -80,6 +80,20 @@ tipo: roadmap
   `F-ADR-020-3` ya anotó para el tipo, ahora con consecuencia visible: SPEC-041 saca el nombre
   del activo a la tabla de Vigiladas, y esas filas se quedarán sin él. Es **escritura de
   datos**, no presentación, así que CE-M1 lo expulsa de EPIC-MEJORA. Sin spec asignada todavía.
+  ⚠️ **Defecto observado el 2026-08-22 — el panel de edición se abre fuera de la pantalla.**
+  Al pulsar "Editar" en una vigilada que está **arriba de la tabla**, el panel aparece tan
+  abajo que el usuario no lo ve: parece que el botón no hizo nada. La causa está en
+  `src/app/vigiladas/watched-table.tsx:263-270` — hay **un solo** panel (`id="editar-panel"`),
+  renderizado **fuera de `.table-scroll`, después de la tabla entera**, con un comentario que
+  lo declara deliberado para no heredar el ancho del scroll. Con 40 vigiladas, editar la
+  primera abre un panel a 40 filas de distancia. **Es defecto, no mejora**: SPEC-044 entregó
+  la edición y quedó `hecho` el 2026-08-21, así que hay una capacidad verificada que en la
+  práctica no se puede usar — CE-M1 lo expulsa de EPIC-MEJORA por la misma frontera que
+  separa "está roto" de "molesta". **Lo agrava que había guardia y no lo vio**:
+  `tests/e2e/vigiladas-editar.spec.ts` mide el panel abierto **a 8 anchos** (geometría
+  horizontal) y nunca comprobó su posición **respecto a la fila que lo abrió** — justo el
+  tipo de ceguera que SPEC-040 dijo haber curado. Va a spec propia de EPIC-FIX; es lo
+  primero de la tanda del 2026-08-22.
 
 - **EPIC-003 — Recuperación y cambio de contraseña** (estado: borrador).
   **Por qué está aquí y no en "Después", pese al criterio de corte.** El criterio dice
@@ -112,6 +126,22 @@ tipo: roadmap
   tester va a mirar a diario: identifica las acciones **solo por su ticker** teniendo el
   nombre en la base de datos, **no se puede ordenar**, y el formulario de alta ocupa
   sitio permanente al servicio de una acción ocasional.
+  ↳ **Segundo caso, 2026-08-22 — la app no tiene icono.** Observado por el humano en la
+  pestaña real: no hay `public/`, ni `src/app/icon.*`, ni `favicon.ico`; `layout.tsx` solo
+  declara `title` y `description`. El navegador sirve su folio en blanco en cada pestaña,
+  marcador y pantallazo que un tester comparta en el foro. **No choca con la frontera de
+  "identidad gráfica fuera"**: la marca ya existe en el código —el *wordmark*
+  `Stockeiro` + `<span className="dot">.</span>` de `src/app/app-nav.tsx:45`, con el punto
+  en `var(--accent)` (`globals.css:271`)— así que un icono hecho de **la inicial y ese
+  punto** no inventa identidad, **aplica la que ya hay**. La intuición del humano al
+  pedirlo (*"una S y un punto"*) coincide literalmente con el marcado existente. Ojo al
+  alcance: manifiesto PWA, *apple-touch-icon*, imagen de Open Graph y *theme-color* son
+  parientes cercanos y **ninguno está observado** — CE-M2 aplica.
+  ↳ **Barrido de diseño encargado el 2026-08-22.** El humano pide ayuda con lo que él no
+  ve (*"seguro que hay más"*). **No se especifica: se mira.** Es descubrimiento, no spec —
+  redactar una spec de "mejorar el diseño" antes de mirar las pantallas sería exactamente
+  lo que CE-M2 prohíbe, imaginar roces. Su salida es una **lista de roces observados** que
+  entra aquí caso a caso, cada uno con dónde se vio.
   ⚠️ **No adelanta a EPIC-004** (R-M4): EPIC-004 sigue siendo lo único que separa el
   producto de su primer usuario real. Si esta mejora entra antes es porque es barata y
   toca esa misma pantalla, no porque haya cambiado la prioridad.
@@ -137,10 +167,47 @@ tipo: roadmap
   `hecho`; la épica sigue abierta como bucket.
 
 ## Después (comprometido, sin empezar)
-<!-- Sigue vacío. La regla que lo vaciaba ("nada nuevo hasta que EPIC-FIX restaure la
-promesa") ya se ha cumplido, pero eso no la convierte en barra libre: lo único que ha
-subido es EPIC-003, y por las razones propias que allí se argumentan. EPIC-005 nació
-aquí el 2026-08-22 y subió a "Ahora" el mismo día por decisión del humano. -->
+<!-- La regla que lo vaciaba ("nada nuevo hasta que EPIC-FIX restaure la promesa") ya se
+ha cumplido, pero eso no la convierte en barra libre: lo único que subió por su cuenta fue
+EPIC-003, por las razones propias que allí se argumentan. EPIC-005 nació aquí el 2026-08-22
+y subió a "Ahora" el mismo día por decisión del humano. -->
+
+- **EPIC-006 — El historial de una vigilada** (estado: borrador; nace el 2026-08-22 a
+  petición del humano).
+  **Qué entrega.** Que una vigilada sepa decir **cómo ha estado**, no solo cómo está:
+  cuándo entró en zona, **cuándo salió**, a qué precio y cuánto duró dentro.
+  **El hallazgo que la justifica.** No es capacidad que haya que inventar: es dato que la
+  app **ya calcula, ya guarda y hoy tira**. `zone_triggers` (`src/db/schema.ts:257`) tiene
+  `zoneKind`, `price`, `asOf`, `openedAt` y `closedAt`; el ciclo **cierra los episodios**
+  (`src/lib/triggers/service.ts:109`) y su función **devuelve `{ opened, closed }`**
+  (línea 117). Y ahí muere: `src/lib/notifications/service.ts` solo crea `kind: 'entry'`
+  (línea 107) y `kind: 'digest'` (línea 146). **La salida de zona se detecta, se persiste,
+  se retorna — y no se cuenta en ninguna pantalla.** `/avisos` no lo cubre: es una bandeja
+  plana y transversal de *avisos*, responde "¿qué me han notificado?", no "¿qué ha hecho
+  **esta** acción?".
+  **Por qué en "Después" y no en "Ahora".** Decidido contigo el 2026-08-22, y por dos
+  razones que se refuerzan. La primera es de **valor no demostrado**: lo pediste con estas
+  palabras — *"no es obligatorio, pero me gustaría ver si es útil"*—, así que su utilidad es
+  **hipótesis a validar con testers** (R-4), no hecho. La segunda es de **orden técnico**:
+  SPEC-045 (silenciar) está aprobada y sin implementar, y su **CE-4 ya obliga a contar lo que
+  pasó mientras la vigilada callaba** — la misma materia prima. Que SPEC-045 fije primero cómo
+  se le cuenta el pasado al usuario, y que el historial lo **herede** en vez de contradecirlo,
+  vale más que ganar unos días (R-2).
+  **Por qué épica propia.** Se descartaron las tres candidatas con su razón escrita:
+  EPIC-MEJORA excluye *"una acción que la app no sabe hacer"* y esto responde una pregunta
+  nueva en una superficie que no existe; EPIC-005 gobierna **actuar** sobre la vigilada, no
+  consultar su pasado, y acaba de trazar la frontera del "historial de cambios de zona" —
+  meter aquí un historial de *episodios* la emborronaría; EPIC-001 está en `hecho`.
+  ⚠️ **Cero esquema** (CE-4): solo lee. Es la diferencia con el *historial de cambios de zona*,
+  que EPIC-005 aparcó por exigir tabla nueva y que **sigue fuera**.
+  ⚠️ **R-1, el riesgo serio**: `zone_triggers.price` está guardado **sin ajustar por splits**
+  (RN-12, comentado en `src/db/schema.ts:269`). Un episodio anterior a un split enseñará un
+  precio incomparable con el de hoy y el usuario leerá un movimiento que nunca ocurrió — y
+  **parecerá un dato correcto**. Consúltese `sdd-mercados` al especificar.
+  ⚠️ **Avisar de la salida queda FUERA**, y no por descuido: `vision.md` promete avisar
+  *"cuando una acción entra en su zona"* y ADR-005 fijó el modelo *edge-triggered* sobre esa
+  promesa. Un aviso de salida **cambia la promesa del producto** y necesita su propio gate.
+  Esta épica **cuenta** la salida; no la notifica.
 
 ## Más adelante (idea, sin compromiso)
 - **Observabilidad del ciclo diario**: registrar el resultado de cada ejecución del cron
