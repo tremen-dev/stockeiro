@@ -57,6 +57,16 @@ export const ANCHO_DE_DERIVACION = 1280;
  */
 export const TICKER_DUAL = 'Z6DUAL';
 
+/**
+ * Una de cada cinco filas va **sin zona de venta**.
+ *
+ * No es adorno del escenario: es lo que hace comprobable, sobre la lista larga, que una
+ * zona sin definir aparece **vacía y no con `0`** (SPEC-044 CA-19, que SPEC-046 CA-12
+ * exige que siga siendo verdad). `0` es un número que el usuario no escribió, y vaciar
+ * una zona es una edición válida (RN-10).
+ */
+export const TICKER_SIN_ZONA_DE_VENTA = 'Z6L001';
+
 /** Las zonas de la fila dual, distintas por mercado: son la huella de CADA fila. */
 export const ZONAS_DUAL = {
   BMEX: { buyMin: '11', buyMax: '13', sellMin: '31', sellMax: '33' },
@@ -100,6 +110,8 @@ export function listaLarga(n: number): FilaSembrada[] {
       continue;
     }
     const num = String(i + 1).padStart(3, '0');
+    // Una de cada cinco, sin zona de venta (ver `TICKER_SIN_ZONA_DE_VENTA`).
+    const sinZonaDeVenta = i % 5 === 0;
     filas.push({
       ticker: `Z6L${num}`,
       micCode: i % 2 === 0 ? 'BMEX' : 'XNYS',
@@ -107,8 +119,7 @@ export function listaLarga(n: number): FilaSembrada[] {
       instrumentType: i % 3 === 0 ? 'ETF' : 'Common Stock',
       buyMin: '10',
       buyMax: '20',
-      sellMin: '40',
-      sellMax: '50',
+      ...(sinZonaDeVenta ? {} : { sellMin: '40', sellMax: '50' }),
       price: i % 4 === 0 ? '15' : '30',
     });
   }

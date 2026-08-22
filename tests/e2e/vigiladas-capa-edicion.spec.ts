@@ -19,6 +19,7 @@ import {
   CUENTA,
   SHOTS,
   TICKER_DUAL,
+  TICKER_SIN_ZONA_DE_VENTA,
   ZONAS_DUAL,
   afirmarListaLarga,
   cadencia,
@@ -694,6 +695,17 @@ test('SPEC-046 CA-12: los cuatro campos precargados, guardar, fallar y reordenar
   await prepararLista(page);
   await ponerVentana(page, 1280);
   await afirmarListaLarga(page, 1280);
+
+  // CA-19 — una zona SIN definir aparece vacía, nunca con `0`. Se comprueba sobre la
+  // lista larga, que es donde vive esta spec: `0` es un número que el usuario no escribió.
+  await filas(page)
+    .filter({ hasText: TICKER_SIN_ZONA_DE_VENTA })
+    .getByTestId('editar-zonas')
+    .click();
+  await expect(campo(page, 'buyMin')).toHaveValue('10');
+  await expect(campo(page, 'sellMin'), 'una zona sin definir se precargó con `0`').toHaveValue('');
+  await expect(campo(page, 'sellMax')).toHaveValue('');
+  await cerrarCapa(page);
 
   // CA-19 — precargados con lo vigente, el activo identificado y sin buscador.
   await filaDual(page, 'BME').getByTestId('editar-zonas').click();

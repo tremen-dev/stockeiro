@@ -2,12 +2,13 @@
 id: SPEC-046
 tipo: spec
 epica: EPIC-FIX
-estado: en-progreso
+estado: en-revision
 aprobada-por: humano (Alberto Fojo)
 historial:
   - {estado: borrador, fecha: 2026-08-22, por: sdd-arquitecto}
   - {estado: aprobada, fecha: 2026-08-22, por: humano (Alberto Fojo)}
   - {estado: en-progreso, fecha: 2026-08-22, por: sdd-implementador}
+  - {estado: en-revision, fecha: 2026-08-22, por: sdd-implementador}
 ---
 # SPEC-046 — El panel de edición se abre donde el usuario mira, y la guardia lo mide
 
