@@ -1,6 +1,9 @@
 SPEC-036 CA-15 — geometría medida en el navegador
-ancho 390: documento=390 ventana=390 nav=102 zona=0 contenidoZona=0
-ancho 640: documento=640 ventana=640 nav=64 zona=0 contenidoZona=0
-ancho 700: documento=700 ventana=700 nav=64 zona=0 contenidoZona=0
-ancho 760: documento=760 ventana=760 nav=64 zona=0 contenidoZona=0
-ancho 1280: documento=1280 ventana=1280 nav=64 zona=0 contenidoZona=0
+ancho 360: documento=360 ventana=360 violaciones=0 nav=102 zona=0 contenidoZona=0
+ancho 390: documento=390 ventana=390 violaciones=0 nav=102 zona=0 contenidoZona=0
+ancho 640: documento=640 ventana=640 violaciones=0 nav=64 zona=0 contenidoZona=0
+ancho 700: documento=700 ventana=700 violaciones=0 nav=64 zona=0 contenidoZona=0
+ancho 730: documento=730 ventana=730 violaciones=0 nav=64 zona=0 contenidoZona=0
+ancho 760: documento=760 ventana=760 violaciones=0 nav=64 zona=0 contenidoZona=0
+ancho 800: documento=800 ventana=800 violaciones=0 nav=64 zona=0 contenidoZona=0
+ancho 1280: documento=1280 ventana=1280 violaciones=0 nav=64 zona=0 contenidoZona=0

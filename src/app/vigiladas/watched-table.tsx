@@ -1,6 +1,6 @@
 'use client';
 
-import { useMemo, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import { failReasonText } from '@/lib/market/fail-reason-text';
 import { instrumentTypeText } from '@/lib/market/instrument-type-text';
 import { marketName } from '@/lib/market/market-name';
@@ -87,6 +87,51 @@ export function WatchedTable({ filas }: { filas: ZoneStatusView[] }) {
   const ordenadas = useMemo(() => ordenarVigiladas(filas, clave, direccion), [filas, clave, direccion]);
   const enEdicion = filas.find((f) => f.id === editandoId) ?? null;
 
+  /*
+    SPEC-046 / ADR-030 §2 — la capa es un `<dialog>` NATIVO abierto con `showModal()`.
+
+    Foco que entra al abrir, **Escape** que cierra, fondo inerte, capa superior y
+    `::backdrop` los da la plataforma. Un `<div role="dialog">` con trampa de foco
+    escrita a mano sería más código, peor accesibilidad y una fuente de defectos propia.
+
+    Lo que la plataforma NO da y aquí se añade: el nombre accesible que nombra al activo,
+    y el foco que **vuelve al control que la abrió**. Ese retorno es lo que reubica al
+    usuario en su fila sin que nadie desplace nada — que es media medida de M4.
+  */
+  const dialogo = useRef<HTMLDialogElement>(null);
+  const disparador = useRef<HTMLButtonElement | null>(null);
+
+  useEffect(() => {
+    const capa = dialogo.current;
+    if (capa && !capa.open) capa.showModal();
+  }, [editandoId]);
+
+  function abrir(id: string, boton: HTMLButtonElement) {
+    disparador.current = boton;
+    setGuardada(false);
+    setEditandoId(id);
+  }
+
+  /*
+    Cerrar es, en este orden: soltar el modo modal, olvidar la fila y devolver el foco.
+
+    El orden importa y no es estético: mientras la capa está en modo modal el resto del
+    documento es **inerte**, así que enfocar el disparador ANTES de `close()` no haría
+    nada. Y `close()` es síncrono, con lo que el foco se puede devolver aquí mismo, sin
+    esperar al repintado — el botón nunca se desmonta.
+  */
+  function cerrar() {
+    dialogo.current?.close();
+    setEditandoId(null);
+    setGuardada(false);
+    disparador.current?.focus();
+  }
+
+  const nombreDeLaCapa = enEdicion
+    ? `Editar zonas de ${enEdicion.ticker}` +
+      (marketName(enEdicion.micCode) !== '' ? ` · ${marketName(enEdicion.micCode)}` : '')
+    : '';
+
   // «Ticker» y «Nombre» ordenan por la MISMA columna de la tabla —el nombre vive bajo el
   // ticker, en la celda «Activo» (CA-2)—, así que las dos marcan ese `<th>`.
   const activoOrdenado = clave === 'ticker' || clave === 'name';
@@ -156,7 +201,18 @@ export function WatchedTable({ filas }: { filas: ZoneStatusView[] }) {
               // `exchange`, ni el ticker repetido: el elemento simplemente no se pinta.
               const nombre = (r.name ?? '').trim();
               return (
-                <tr key={r.id} className={`zone-${r.state}`}>
+                /*
+                  SPEC-046 CA-3 — la fila que se está editando queda MARCADA mientras la
+                  capa está abierta. La capa se ancla a la ventana, así que ya no está
+                  pegada a su fila: detrás del velo hay que poder encontrar de cuál se
+                  está hablando, y encontrarla sola al cerrar. Se dice en el árbol
+                  (`data-editando`) y se ve en pantalla (`.fila-editando`).
+                */
+                <tr
+                  key={r.id}
+                  className={`zone-${r.state}${editandoId === r.id ? ' fila-editando' : ''}`}
+                  data-editando={editandoId === r.id ? 'true' : undefined}
+                >
                   <td>
                     <div className="activo-caja">
                       <span className="ticker">{r.ticker}</span>
@@ -225,17 +281,18 @@ export function WatchedTable({ filas }: { filas: ZoneStatusView[] }) {
                       {/* SPEC-044 CA-19: el control de edición vive EN SU FILA y lleva el
                           id de esa fila. Reordenar no lo afecta, por el mismo motivo que
                           no afecta a «Quitar». */}
+                      {/* SPEC-046 / ADR-030 §2: declara `aria-haspopup="dialog"` y NO
+                          `aria-expanded`. Ya no es un desplegable en flujo, y decir que
+                          lo es engaña al lector de pantalla sobre dónde va a aparecer el
+                          contenido. El elemento que se pasa a `abrir` es ESTE botón: es
+                          al que vuelve el foco al cerrar la capa (CA-5). */}
                       <button
                         className="btn-sm"
                         type="button"
                         data-testid="editar-zonas"
                         data-watched-id={r.id}
-                        aria-expanded={editandoId === r.id}
-                        aria-controls="editar-panel"
-                        onClick={() => {
-                          setGuardada(false);
-                          setEditandoId(editandoId === r.id ? null : r.id);
-                        }}
+                        aria-haspopup="dialog"
+                        onClick={(e) => abrir(r.id, e.currentTarget)}
                       >
                         Editar
                       </button>
@@ -260,40 +317,99 @@ export function WatchedTable({ filas }: { filas: ZoneStatusView[] }) {
       </div>
 
       {/*
-        El panel va FUERA de `.table-scroll`, y es deliberado. Dentro heredaría el ancho
-        de la tabla y —peor— quedaría en el subárbol de un contenedor desplazable, donde
-        M1 deja de medir (ADR-026 §4): el formulario podría salirse de la ventana sin que
-        ninguna guardia lo viera. Fuera, se mide como el del alta y con la misma caja
-        (SPEC-040), que es justo lo que pide CA-20.
+        SPEC-046 / ADR-030 §1 — **la capa vive anclada a la VENTANA, no en el flujo detrás
+        de la lista**.
+
+        SPEC-044 la ponía fuera de `.table-scroll` y **después de la tabla entera**. La
+        primera mitad era y sigue siendo correcta: dentro heredaría el ancho de una tabla
+        de nueve columnas y quedaría en el subárbol de un contenedor desplazable, donde M1
+        deja de medir (ADR-026 §4). La segunda mitad era el defecto, y **nadie la había
+        medido**: con la superficie en un punto fijo del flujo, la distancia entre el gesto
+        y su respuesta **crece con la lista**. Con cuarenta filas, pulsar *Editar* en la
+        primera abría el formulario muy por debajo del pliegue y, para el usuario, el botón
+        no hacía nada.
+
+        Con la caja definida respecto al viewport, «lista larga», «fila de arriba» y
+        «página desplazada» dejan de ser variables: no hay un tamaño de lista a partir del
+        cual el defecto vuelva. Y sigue **fuera de `.table-scroll`**, así que lo que
+        SPEC-044 protegía no se toca (CA-4b).
+
+        Se ancla ABAJO y no al centro: el pulgar está abajo, una hoja inferior crece en una
+        sola dirección —así que «no cabe a lo alto» se resuelve acotándola y desplazándola
+        por dentro— y lo que queda a la vista por encima es la **parte alta de la lista**,
+        que es donde vive el caso que originó todo esto.
       */}
       {enEdicion && (
-        <div className="editar-vigilada" id="editar-panel" data-testid="editar-panel">
-          <WatchForm
-            // Cambiar de fila REMONTA el formulario: sin `key`, los campos no
-            // controlados conservarían los valores de la vigilada anterior.
-            key={enEdicion.id}
-            edicion={{
-              id: enEdicion.id,
-              ticker: enEdicion.ticker,
-              micCode: enEdicion.micCode,
-              buyMin: enEdicion.buyMin,
-              buyMax: enEdicion.buyMax,
-              sellMin: enEdicion.sellMin,
-              sellMax: enEdicion.sellMax,
-              onGuardado: () => {
-                setEditandoId(null);
-                setGuardada(true);
-              },
-              onCancelar: () => setEditandoId(null),
-            }}
-          />
-        </div>
-      )}
+        <dialog
+          ref={dialogo}
+          className="editar-vigilada"
+          id="editar-panel"
+          data-testid="editar-panel"
+          // La capa dice de qué activo habla: una que no lo diga reintroduce el problema
+          // en su versión semántica (ADR-030 §2).
+          aria-label={nombreDeLaCapa}
+          // Escape lo maneja la plataforma; se intercepta sólo para pasar por `cerrar` y
+          // que el foco vuelva a su fila por el mismo camino que guardar y cancelar.
+          onCancel={(e) => {
+            e.preventDefault();
+            cerrar();
+          }}
+        >
+          {guardada ? (
+            /*
+              SPEC-046 CA-13 — **la confirmación se lee donde se hizo el gesto**.
 
-      {guardada && !enEdicion && (
-        <p className="editar-cadencia" data-testid="edicion-cadencia" role="status">
-          {CADENCIA_LINEA}
-        </p>
+              Antes, la frase de cadencia se pintaba al final del documento con
+              `role="status"`: se anunciaba al lector de pantalla y era **invisible** para
+              quien mira, porque con cuarenta filas queda tan abajo como quedaba el panel.
+              Era el mismo defecto que esta spec arregla, en su segunda instancia
+              (ADR-030 §6).
+
+              La capa **no se cierra sola**: la cierra el usuario. Lo decidió el humano en
+              el gate del 2026-08-22 frente a la alternativa de cierre automático más
+              franja anclada, y la consecuencia —**un clic más por edición**— se acepta a
+              sabiendas. La frase es la MISMA constante que la primera pantalla, `/ayuda` y
+              el estado vacío (`CADENCIA_LINEA`, SPEC-039 CA-3): ni una promesa de
+              inmediatez, ni una frase nueva.
+            */
+            <div className="card auth-form editar-confirmacion" data-testid="editar-confirmacion">
+              <strong>Zonas guardadas</strong>
+              <p className="editar-cadencia" data-testid="edicion-cadencia" role="status">
+                {CADENCIA_LINEA}
+              </p>
+              {/* `autoFocus`: al desaparecer el formulario, el foco se quedaría sin sitio
+                  DENTRO de una capa modal. Aquí tiene dónde caer, y es lo que hay que
+                  pulsar. */}
+              <button
+                className="btn primary"
+                type="button"
+                data-testid="editar-cerrar"
+                autoFocus
+                onClick={cerrar}
+              >
+                Entendido
+              </button>
+            </div>
+          ) : (
+            <WatchForm
+              // Cambiar de fila REMONTA el formulario: sin `key`, los campos no
+              // controlados conservarían los valores de la vigilada anterior.
+              key={enEdicion.id}
+              edicion={{
+                id: enEdicion.id,
+                ticker: enEdicion.ticker,
+                micCode: enEdicion.micCode,
+                buyMin: enEdicion.buyMin,
+                buyMax: enEdicion.buyMax,
+                sellMin: enEdicion.sellMin,
+                sellMax: enEdicion.sellMax,
+                // Guardar ya NO cierra: enseña la confirmación en la misma capa (CA-13).
+                onGuardado: () => setGuardada(true),
+                onCancelar: cerrar,
+              }}
+            />
+          )}
+        </dialog>
       )}
     </>
   );

@@ -83,17 +83,44 @@ describe('SPEC-044 CA-19/CA-20: el panel de edición reutiliza el formulario del
     ).not.toMatch(/editZonesAction[\s\S]*?readSymbolSelection/);
   });
 
-  it('el panel no declara ancho propio (ADR-026, convención de SPEC-040)', () => {
+  /*
+    ── RE-ENCUADRE DE SPEC-046 CA-14 (cuarta aserción, fuera de las tres previstas) ──
+
+    Vigilaba: «la superficie de edición no declara ancho propio; la CAJA la fija SPEC-040
+    sobre `.auth-form` y este panel sólo decide CUÁNDO está en pantalla». Se expresaba
+    como la AUSENCIA de cualquier `width` en su bloque de CSS, que es una forma posible
+    **sólo mientras la superficie va en flujo** y hereda el ancho de la columna.
+
+    Vigila ahora: **la superficie no pinta caja propia y su anchura nunca supera la
+    ventana**. Una capa anclada al viewport (ADR-030 §1) TIENE que declarar su anchura —no
+    hay columna de la que heredarla— así que la ausencia de `width` dejó de ser una
+    propiedad alcanzable. Lo que sostenía aquella regla sí sigue vivo y aquí se exige
+    entero: sin relleno, sin borde y sin fondo propios —lo que se ve es la misma tarjeta
+    del alta— y con `max-width: 100%`, o sea sin poder declarar un ancho que no quepa.
+
+    No se afloja: se cambian tres comprobaciones débiles («no hay ningún width») por
+    cuatro fuertes sobre la propiedad que de verdad importaba (SPEC-046 CA-8).
+  */
+  it('la superficie de edición no pinta caja propia ni puede declarar un ancho que no quepa', () => {
     expect(raiz(TABLA)).not.toMatch(/style=\{\{[^}]*[Ww]idth/);
     const css = raiz(CSS);
     const desde = css.indexOf('.editar-vigilada');
     expect(desde, 'no se encontró la caja del panel de edición en globals.css').toBeGreaterThan(-1);
     const bloque = css.slice(desde, css.indexOf('}', desde));
+    for (const declaracion of ['padding: 0;', 'border: 0;', 'background: transparent;']) {
+      expect(
+        bloque,
+        `la capa de edición no declara \`${declaracion}\`: si pinta relleno, borde o fondo ` +
+          `propios, la caja que se ve deja de ser la de \`.auth-form\` que fijó SPEC-040 ` +
+          `(SPEC-044 CA-20, SPEC-046 CA-8)`,
+      ).toContain(declaracion);
+    }
     expect(
       bloque,
-      'el panel de edición declara un ancho propio: la CAJA del formulario es territorio ' +
-        'de SPEC-040 y este panel sólo decide CUÁNDO está en pantalla',
-    ).not.toMatch(/(^|[^-])(max-|)width:\s*\d/);
+      'la capa de edición no declara `max-width: 100%`: podría declarar un ancho que no ' +
+        'cabe en la ventana, que es lo que la ausencia de `width` impedía cuando iba en ' +
+        'flujo (ADR-026 §4)',
+    ).toContain('max-width: 100%;');
   });
 });
 
@@ -119,7 +146,22 @@ describe('SPEC-044 CA-24: el id viaja con su fila, no con su posición', () => {
     // El estado de edición se guarda por ID, nunca por índice del array ordenado: al
     // reordenar, un índice señalaría a otra vigilada.
     const codigo = sinComentarios(src);
-    expect(codigo).toMatch(/setEditandoId\([^)]*r\.id/);
+    /*
+      ── RE-ENCUADRE DE SPEC-046 CA-14 (quinta aserción, fuera de las tres previstas) ──
+
+      Vigilaba: «lo que se guarda al pulsar es el ID de la fila, nunca su posición». Se
+      expresaba como `setEditandoId(… r.id …)` **en el manejador del control**, que era
+      donde vivía la llamada mientras el control ALTERNABA el panel.
+
+      Vigila ahora: exactamente lo mismo. Lo único que cambió es que el manejador ya no
+      escribe el estado a mano: llama a `abrir(r.id, …)`, que además recuerda el
+      disparador para devolverle el foco al cerrar la capa (SPEC-046 CA-5). Así que la
+      aserción sigue el id hasta donde está ahora —`abrir(r.id`— y **se conservan las dos
+      negativas**, que son la mitad que de verdad protege: ni se mapea con índice, ni se
+      guarda un índice. No se afloja nada.
+    */
+    expect(codigo).toMatch(/abrir\(r\.id/);
+    expect(codigo).toMatch(/setEditandoId\(id\)/);
     expect(codigo).not.toMatch(/\.map\(\((?:r|fila),\s*(?:i|idx|index)\)/);
     expect(codigo).not.toMatch(/setEditandoId\((?:i|idx|index|posicion)\)/);
     expect(codigo).toContain('data-watched-id={r.id}');
