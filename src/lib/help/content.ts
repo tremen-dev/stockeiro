@@ -193,12 +193,27 @@ const EXPLICACION: Record<QuoteFailureReason, { titulo: string; texto: string }>
       'devuelve el de otra. El valor no está deslistado y reintentar no lo arregla: el ' +
       'trabajo es nuestro y lo estamos revisando.',
   },
+  // SPEC-043 CA-1/CA-4 — el motivo que antes se disfrazaba del de abajo. Su texto lo
+  // vigila `tests/spec043-formulas-prohibidas.ts`: ni una fórmula de reintento, ni una
+  // acusación al valor, y la causa y la acción escritas en primera persona.
+  cuota_agotada: {
+    titulo: 'Nos hemos quedado sin cuota de precios',
+    texto:
+      'Nuestro proveedor de precios nos vende un número de consultas al mes y las hemos ' +
+      'consumido, así que ha dejado de darnos precios nuevos. No dice nada del valor, que ' +
+      'cotiza con normalidad, ni de tu zona: el que se ha quedado corto es este producto. ' +
+      'Tampoco lo arregla el tiempo — lo arreglamos nosotros reponiendo la cuota o ' +
+      'cambiando de plan.',
+  },
   proveedor_no_disponible: {
     titulo: 'El proveedor no respondió',
+    // Ya NO menciona la cuota: dejó de ser el cajón donde caía (ADR-027 pto. 4). Lo que
+    // sigue aquí es lo que de verdad es transitorio — la caída, el timeout y el tope de
+    // cinco peticiones por segundo (SPEC-043 CA-2).
     texto:
-      'Se cayó, tardó demasiado o se agotó la cuota del día. Es pasajero y no dice nada del ' +
-      'valor: se vuelve a intentar en el ciclo siguiente y lo normal es que al día ' +
-      'siguiente esté resuelto.',
+      'Se cayó, tardó demasiado o nos frenó por pedirle varias cosas demasiado seguidas. Es ' +
+      'pasajero y no dice nada del valor: se vuelve a intentar en el ciclo siguiente y lo ' +
+      'normal es que al día siguiente esté resuelto.',
   },
 };
 
@@ -226,12 +241,24 @@ export const MOTIVOS_SIN_PRECIO: MotivoSinPrecio[] = [
   })),
 ];
 
+/**
+ * **Cuántos motivos dice la PROSA que hay** (SPEC-043 CA-6). Hermana de
+ * `MERCADOS_EN_PROSA` y por el mismo motivo: la lista se deriva y no puede desfasarse
+ * sola, pero la frase que dice «uno de estos seis» sí — y de hecho **iba a desfasarse
+ * hoy**, porque esta spec añade el séptimo.
+ *
+ * Ese es exactamente el defecto que `F-SPEC-039-3` dejó anotado: un literal suelto que
+ * envejece **en silencio** el día que alguien amplía un tipo cerrado. `tests/spec043-
+ * cuota-agotada.test.ts` lo ata al recuento real y se pone rojo el día del octavo.
+ */
+export const MOTIVOS_EN_PROSA = { cifra: 7, palabra: 'siete' } as const;
+
 export const SIN_PRECIO_SECCION = {
   id: 'sin-precio',
   titulo: 'Cuando una acción aparece sin precio',
   intro:
     'Pasa, y la lista lo dice en vez de dejar la celda vacía. Estos son todos los motivos ' +
-    'posibles: si ves uno, es uno de estos seis.',
+    `posibles: si ves uno, es uno de estos ${MOTIVOS_EN_PROSA.palabra}.`,
 } as const;
 
 /** Qué hace la app, en una línea. La primera pantalla y la ayuda arrancan con esto. */

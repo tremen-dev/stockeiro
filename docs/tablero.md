@@ -42,6 +42,13 @@ Actualizado: 2026-08-21
 | SPEC-038 — la-version-visible-dentro-de-la-app | hecho | 2026-08-20 (sdd-verificador) |
 | SPEC-039 — ayuda-de-vigiladas-estados-vacios-que-guian-y-canal-de-feedback | hecho | 2026-08-19 (sdd-verificador) |
 
+## EPIC-005 — gobernar-la-vigilada-que-ya-existe-ajustar-sus-zonas-y-silenciarla-sin-destruirla (aprobada)
+
+| Spec | Estado | Último cambio |
+|---|---|---|
+| SPEC-044 — ajustar-las-zonas-de-una-vigilada-sin-perder-su-episodio | hecho | 2026-08-21 (sdd-verificador) |
+| SPEC-045 — silenciar-una-vigilada-calla-los-avisos-sin-cegar-la-vigilancia-y-al-reactivarla-cuenta-lo-que-se-perdio | aprobada | 2026-08-21 (humano (Alberto Fojo)) |
+
 ## EPIC-FIX (aprobada)
 
 | Spec | Estado | Último cambio |
@@ -56,7 +63,7 @@ Actualizado: 2026-08-21
 | SPEC-030 — coma-decimal-en-el-alta-manual-y-errores-que-distinguen-el-dato-del-fallo | hecho | 2026-08-18 (sdd-verificador) |
 | SPEC-033 — la-puerta-post-deploy-deja-de-perder-la-carrera-con-commit-unknown-es-transitorio | hecho | 2026-08-21 (sdd-verificador) |
 | SPEC-040 — el-movil-completa-el-alta-de-una-vigilada-y-la-guardia-de-geometria-deja-de-ser-ciega | hecho | 2026-08-20 (sdd-verificador) |
-| SPEC-043 — la-cotizacion-que-dejo-de-refrescarse-lo-dice-y-la-cuota-agotada-deja-de-disfrazarse-de-caida-del-proveedor | borrador | 2026-08-21 (sdd-arquitecto) |
+| SPEC-043 — la-cotizacion-que-dejo-de-refrescarse-lo-dice-y-la-cuota-agotada-deja-de-disfrazarse-de-caida-del-proveedor | hecho | 2026-08-21 (sdd-verificador) |
 
 ## EPIC-INFRA (aprobada)
 
@@ -106,10 +113,12 @@ Actualizado: 2026-08-21
 | ADR-024 | aprobada | la-version-de-producto-es-semver-en-package-json-y-viaja-en-el-contrato-de-api-version-enmienda-d-6-de-adr-018 | 2026-08-19 (humano (Alberto Fojo)) |
 | ADR-025 | aprobada | los-terminos-del-dominio-los-escribe-el-arquitecto-en-el-gate-y-un-retoque-descubierto-tras-el-cierre-no-reabre-la-spec | 2026-08-19 (humano (Alberto Fojo)) |
 | ADR-026 | aprobada | la-geometria-de-la-interfaz-se-mide-elemento-a-elemento-en-un-modulo-compartido-y-overflow-hidden-no-es-un-arreglo | 2026-08-20 (humano (Alberto Fojo)) |
-| ADR-027 | borrador | el-presupuesto-del-proveedor-de-precios-se-mide-en-simbolos-por-ciclo-no-en-llamadas-y-la-cuota-agotada-es-un-motivo-propio | 2026-08-21 (sdd-arquitecto) |
+| ADR-027 | aprobada | el-presupuesto-del-proveedor-de-precios-se-mide-en-simbolos-por-ciclo-no-en-llamadas-y-la-cuota-agotada-es-un-motivo-propio | 2026-08-21 (humano (Alberto Fojo)) |
+| ADR-028 | aprobada | el-episodio-de-zona-sobrevive-al-cambio-de-opinion-editar-una-zona-es-una-actualizacion-y-la-reconciliacion-es-del-ciclo-siguiente | 2026-08-21 (humano (Alberto Fojo)) |
+| ADR-029 | aprobada | el-silencio-se-aplica-al-aviso-no-a-la-deteccion-la-vigilada-silenciada-sigue-ingiriendo-evaluando-y-abriendo-episodios-y-su-aviso-de-entrada-queda-pendiente | 2026-08-21 (humano (Alberto Fojo)) |
 
 ## Resumen
 
-- hecho: 37
-- borrador: 1
+- hecho: 39
+- aprobada: 1
 - en-revision: 1

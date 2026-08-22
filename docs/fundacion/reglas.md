@@ -71,6 +71,17 @@
   **no pierde** el aviso (queda in-app) ni aborta los avisos de otros usuarios (resiliencia
   por usuario, RN-01). Objetivo CE-2: 100 % de disparos con aviso registrado. Fuente:
   ADR-006; cierra R-4.
+- **RN-16** (Cotización sin refrescar): una cotización cuyo `updated_at` —el momento en que
+  el ciclo la **escribió**, no su `as_of` de mercado— supera el umbral de la cadencia
+  declarada (**36 h**: un ciclo perdido más medio día de holgura) está **sin refrescar**.
+  Se **sigue usando** para RN-06 y RN-11 —marcar no es borrar—, pero **no se presenta como
+  vigente**: toda pantalla que la muestre dice que no se está actualizando y, si se conoce,
+  por qué; y si no se conoce, **no se inventa la causa**. Se mide por `updated_at` y
+  **nunca** por `as_of`, porque un ciclo con éxito reescribe la fila aunque el precio no
+  cambie: así el fin de semana, el festivo y el **retraso desigual de publicación** del
+  proveedor **no** producen falsos positivos, y no hace falta calendario de sesiones. El
+  umbral **presupone ciclo diario sin saltos**: quien introduzca saltos lo revisa en la
+  misma entrega. Fuente: sdd-mercados; D-2; ADR-027; SPEC-043.
 
 ## Reglas de ingeniería (RI-xx)
 

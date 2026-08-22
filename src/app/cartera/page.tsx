@@ -4,6 +4,7 @@ import { db } from '@/db/client';
 import { portfolioSummary } from '@/lib/portfolio/service';
 import { getDiagnosticMap, getPriceMap, getQuoteViews } from '@/lib/market/quotes';
 import { failReasonText } from '@/lib/market/fail-reason-text';
+import { estaSinRefrescar, marcaSinRefrescar } from '@/lib/market/sin-refrescar';
 import { AppNav } from '../app-nav';
 import { BuyForm, SellForm } from './portfolio-forms';
 
@@ -27,6 +28,13 @@ export default async function CarteraPage() {
   // SPEC-016: el P/L actual sigue siendo "—" cuando no hay precio (RN-06: no se inventa),
   // pero deja de ser un guion MUDO — se acompaña del motivo si el símbolo no se puede cotizar.
   const diagnosticos = await getDiagnosticMap(db);
+  // SPEC-043 CA-9/CA-12: qué cotizaciones dejó de reescribir el ciclo (RN-16). Sale de
+  // `quotes` que la página YA tenía cargadas —ni una consulta más— y se decide con la
+  // MISMA función que usa `/vigiladas`: un solo umbral, un solo sitio.
+  const escritaHace: Record<string, Date> = {};
+  for (const q of quotes) {
+    if (estaSinRefrescar(q.updatedAt)) escritaHace[q.symbolId] = q.updatedAt;
+  }
 
   return (
     <>
@@ -87,6 +95,21 @@ export default async function CarteraPage() {
                           data-reason={diagnosticos[p.symbolId].reason}
                         >
                           ⚠ {failReasonText(diagnosticos[p.symbolId].reason)}
+                        </span>
+                      )}
+                      {/* SPEC-043 CA-9 — la otra mitad del defecto. El motivo estaba
+                          condicionado a `p.plActual === null`, y con una cotización que
+                          dejó de refrescarse el P/L actual TIENE número: se calcula
+                          igual (RN-06 no cambia, CA-13) sobre un precio de hace días.
+                          La marca no depende de que el P/L falte — depende de que el
+                          precio no se esté actualizando. */}
+                      {escritaHace[p.symbolId] && (
+                        <span
+                          className="quote-stale"
+                          data-testid="sin-refrescar"
+                          data-reason={diagnosticos[p.symbolId]?.reason}
+                        >
+                          {marcaSinRefrescar(escritaHace[p.symbolId], diagnosticos[p.symbolId]?.reason)}
                         </span>
                       )}
                     </td>

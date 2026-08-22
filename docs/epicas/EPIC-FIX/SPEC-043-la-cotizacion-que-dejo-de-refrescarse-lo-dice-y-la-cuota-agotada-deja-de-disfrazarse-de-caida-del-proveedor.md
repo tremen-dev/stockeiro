@@ -2,10 +2,14 @@
 id: SPEC-043
 tipo: spec
 epica: EPIC-FIX
-estado: borrador
-aprobada-por:
+estado: hecho
+aprobada-por: Alberto Fojo
 historial:
   - {estado: borrador, fecha: 2026-08-21, por: sdd-arquitecto}
+  - {estado: aprobada, fecha: 2026-08-21, por: Alberto Fojo}
+  - {estado: en-progreso, fecha: 2026-08-21, por: sdd-implementador}
+  - {estado: en-revision, fecha: 2026-08-21, por: sdd-implementador}
+  - {estado: hecho, fecha: 2026-08-21, por: sdd-verificador}
 ---
 # SPEC-043 — La cotizacion que dejo de refrescarse lo dice, y la cuota agotada deja de disfrazarse de caida del proveedor
 

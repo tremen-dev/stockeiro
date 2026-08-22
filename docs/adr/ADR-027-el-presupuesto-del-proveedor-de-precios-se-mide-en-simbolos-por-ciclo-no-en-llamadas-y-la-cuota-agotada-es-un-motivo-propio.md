@@ -1,9 +1,11 @@
 ---
 id: ADR-027
 tipo: adr
-estado: borrador
+estado: aprobada
 historial:
   - {estado: borrador, fecha: 2026-08-21, por: sdd-arquitecto}
+  - {estado: aprobada, fecha: 2026-08-21, por: humano (Alberto Fojo)}
+aprobada-por: humano (Alberto Fojo)
 ---
 # ADR-027: El presupuesto del proveedor de precios se mide en simbolos por ciclo, no en llamadas; y la cuota agotada es un motivo propio
 
@@ -11,8 +13,8 @@ historial:
   de dominio de sdd-mercados** verificado **contra la API real** (tres llamadas medidas con
   la misma clave) **y corroborado por la documentación del propio proveedor**. El humano
   (Alberto Fojo) respondió al gate el **2026-08-21** —umbral, vocabulario, `outcome` y las
-  dos exclusiones—, pero **la aprobación explícita todavía no ha llegado**: este ADR sigue
-  en `borrador` y no lo aprueba el arquitecto. **No decide el plan ni el proveedor**: eso es
+  dos exclusiones— y **lo aprobó ese mismo día**. A partir de aquí es **inmutable**: para
+  cambiarlo, otro ADR que lo supersede. **No decide el plan ni el proveedor**: eso es
   producto y coste, y es del humano (ver pto. 7).
 - Specs relacionadas: nace de **SPEC-043** (EPIC-FIX), que es su primera y única aplicación.
   **Enmienda una cláusula de ADR-002 pto. 4** y **corrige una cifra de ADR-012**, dejando

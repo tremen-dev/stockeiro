@@ -122,6 +122,36 @@
   width: 100%;
 }
 
+/* --- SPEC-044 — el panel de edición de zonas y los controles por fila ---------
+
+   Tres reglas y ninguna declara un ancho, a propósito (CA-20): la CAJA del formulario
+   —anchos, `min-width`, cómo encogen los campos— la fija SPEC-040 sobre `.auth-form`, y
+   este panel sólo decide CUÁNDO está en pantalla. Lo único que se dice aquí es que puede
+   encoger (`min-width: 0`, ADR-026 §5) y cuánto se separa de la tabla.
+
+   Los controles de la fila se envuelven en vez de crecer en una sola línea: con tres
+   acciones por fila (SPEC-045 traerá la tercera) y la pantalla de 360 px, la salida
+   legítima ante la estrechez es apilar, nunca esconder (ADR-026 §4, nota 5 del gate). */
+.fila-acciones {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  align-items: center;
+  min-width: 0;
+}
+.editar-vigilada {
+  display: grid;
+  gap: 12px;
+  margin-top: 18px;
+  min-width: 0;
+}
+.editar-cadencia {
+  margin-top: 18px;
+  color: var(--fg-dim);
+  font-size: var(--t-body-sm);
+  min-width: 0;
+}
+
 .auth-error {
   color: var(--error);
   font-size: var(--t-body-sm);
@@ -610,12 +640,18 @@
 }
 
 /* ── Diagnóstico del símbolo sin cotización (SPEC-016) ────────────────── */
-.quote-fail, .quote-pending {
+.quote-fail, .quote-pending, .quote-stale {
   display: block; margin: 4px 0 0; font-size: 12px; line-height: 1.35; max-width: 34ch;
 }
 .quote-fail { color: var(--ember); }
 .quote-pending { color: var(--fg-dim); }
-td.num .quote-fail { text-align: right; }
+/* SPEC-043 — la cotizacion que dejo de refrescarse. Hereda la caja acotada de
+   `.quote-fail` a proposito (SPEC-040 CA-4): esta tabla YA se rompio una vez por un
+   parrafo de motivo que se extendia en vez de envolverse, y la marca nueva entra en la
+   MISMA celda. Un tono propio, mas templado que el del fallo: no hay nada roto, hay un
+   dato que dejo de moverse. */
+.quote-stale { color: var(--ember); opacity: .85; }
+td.num .quote-fail, td.num .quote-stale { text-align: right; }
 
 /* ============================================================
    SPEC-035 — Páginas legales y pie compartido
@@ -1381,7 +1417,8 @@ td.num .quote-fail { text-align: right; }
   max-width: 170px;
 }
 .data-table .estado-caja .quote-fail,
-.data-table .estado-caja .quote-pending {
+.data-table .estado-caja .quote-pending,
+.data-table .estado-caja .quote-stale {
   max-width: 100%;
   margin: 0;
 }

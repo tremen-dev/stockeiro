@@ -81,6 +81,18 @@ export type QuoteFailureReason =
    * es exactamente el motivo mentiroso (CE-F2).
    */
   | 'simbolo_no_admitido'
+  /**
+   * El proveedor RESPONDIÓ y nos dijo que hemos consumido NUESTRO presupuesto: cuota
+   * mensual agotada (HTTP 429 `usage_limit_reached`). **ADR-027 pto. 4**.
+   *
+   * No es un problema del valor, ni del mercado, ni del símbolo, y **no lo arregla
+   * esperar al ciclo siguiente**: es terminal hasta que renueve el mes o se cambie de
+   * plan, y lo resuelve el OPERADOR reponiendo cuota. Por eso no puede compartir cajón
+   * con `proveedor_no_disponible`, cuyo contrato promete justo lo contrario — esa
+   * confusión es lo que dejó al producto tres días (2026-08-19/21) enseñando el mismo
+   * precio y diciendo que el proveedor se había caído.
+   */
+  | 'cuota_agotada'
   /** Caída/límite del proveedor: es transitorio, no un problema del símbolo. */
   | 'proveedor_no_disponible';
 

@@ -3,7 +3,12 @@
 import { revalidatePath } from 'next/cache';
 import { auth } from '@/lib/auth/config';
 import { db } from '@/db/client';
-import { watchSymbol, unwatch, type WatchInput } from '@/lib/watchlist/service';
+import {
+  watchSymbol,
+  unwatch,
+  updateWatchedZones,
+  type WatchInput,
+} from '@/lib/watchlist/service';
 import { readSymbolSelection } from '@/lib/market/symbol-selection';
 import { readDecimalField } from '@/lib/format/decimal-input';
 import { toFormError } from '@/lib/format/action-error';
@@ -57,6 +62,54 @@ export async function watchAction(_prev: FormState, formData: FormData): Promise
     );
   } catch (e) {
     return toFormError('vigilar', e);
+  }
+  revalidatePath('/vigiladas');
+  return { ok: true };
+}
+
+/**
+ * SPEC-044 / ADR-028 — **ajustar las zonas de una vigilada que ya existe**.
+ *
+ * La tercera server action de esta pantalla, junto a `watchAction` y `removeAction`, y la
+ * que cierra el hueco que obligaba a **quitar y volver a vigilar** para mover un rango.
+ * Ese rodeo no era equivalente: borraba el episodio por cascada (ADR-017), así que el
+ * ciclo siguiente leía el precio dentro de la zona como una *entrada* y mandaba otro
+ * correo por un gesto que no significa nada para el mercado.
+ *
+ * Tres cosas que esta action hace por construcción, no por vigilancia:
+ *
+ *  - **Valida por la misma puerta que el alta** (CA-15): el mismo `readZones` —o sea el
+ *    mismo `readDecimalField`, SPEC-030 CA-13— y la misma `validatePair` del servicio
+ *    (RN-10). No hay un normalizador de la edición ni una validación relajada para
+ *    editar; si un día alguien afloja la validación, la afloja para las dos y lo cazan
+ *    los tests de SPEC-030.
+ *  - **La normalización va FUERA del try del servicio**, como fijó SPEC-030: así el cajón
+ *    de sastre queda reducido a lo que de verdad es infraestructura y quien escribe
+ *    «12,5» lee un error que nombra su campo y su valor (CA-14).
+ *  - **No abre, no cierra y no notifica** (ADR-028 pto. 3). Valida, escribe y termina.
+ *    Quien reconcilia con la zona nueva es el ciclo siguiente. Añadir aquí una llamada al
+ *    motor «para que se vea al momento» reintroduce el aviso duplicado que esta spec vino
+ *    a eliminar.
+ *
+ * Viaja el `id` de la acción vigilada, nunca el símbolo: cambiar el símbolo sería otra
+ * vigilada (ADR-028 pto. 8). Un id ausente o manipulado no es una excepción — el servicio
+ * responde «no hay nada que editar», igual que la baja (CA-18).
+ */
+export async function editZonesAction(_prev: FormState, formData: FormData): Promise<FormState> {
+  const userId = await requireUserId();
+  const watchedId = String(formData.get('watchedId') ?? '').trim();
+
+  let zones: WatchInput;
+  try {
+    zones = readZones(formData);
+  } catch (e) {
+    return toFormError('editar zonas', e);
+  }
+
+  try {
+    await updateWatchedZones(db, userId, watchedId, zones);
+  } catch (e) {
+    return toFormError('editar zonas', e);
   }
   revalidatePath('/vigiladas');
   return { ok: true };
