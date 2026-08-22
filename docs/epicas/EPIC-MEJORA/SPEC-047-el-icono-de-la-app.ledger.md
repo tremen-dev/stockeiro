@@ -219,10 +219,22 @@ arbitraje del 2026-08-22 ya ejecutado bajo CA-19. Lo que hay:
 | las tres guardias ajenas | ampliadas bajo CA-19 y sólo esas tres: `tests/legal-rutas-publicas.test.ts`, `tests/cuenta-rutas.test.ts`, `tests/deploy-gate-workflow.test.ts`. |
 | `package.json` | `icon:build` y `0.3.0 → 0.3.1` (ADR-024: esto toca `src/`, así que el número sube; PATCH porque es presentación pura). |
 
-**Cifras reales de la última ejecución (2026-08-22):**
-- `npx playwright test` — **254 passed**, 0 failed. Incluye SPEC-035 CA-12 y CA-13 intactos.
-- `npm test` — **1483 passed, 3 failed**. Los tres son los de F-SPEC-047-2 y **no se han tocado**.
+**Cifras reales, tras ejecutar CA-19 (2026-08-22):**
+- `npx playwright test` — **255 passed, 0 failed** (12 de esta spec). `tests/e2e/legal.spec.ts`
+  no aparece en el diff, así que SPEC-035 CA-12 y CA-13 pasan por mérito propio.
+- `npm test` — **1505 passed, 0 failed**, 100 ficheros. Las tres guardias ampliadas incluidas:
+  antes de la enmienda eran 1483 pasadas y **3 falladas**; ahora no falla ninguna.
 - `npm run typecheck` y `npm run lint` — limpios.
+
+*Un aviso honesto sobre el número de arriba*: con el presupuesto por defecto de
+`vitest.config.ts` (`testTimeout: 20000`) esta máquina dio **timeouts intermitentes** en dos
+ficheros que no tienen nada que ver con esta spec —`tests/account-deletion.test.ts` y
+`tests/spec043-sin-refrescar.test.ts`—, y no siempre los mismos entre ejecuciones. No son
+aserciones falladas: son arranques de Postgres WASM que no caben en 20 s cuando la máquina
+viene de compilar y de correr Playwright. Se comprobó de dos formas: los dos ficheros pasan
+**48/48 en aislado**, y la batería entera pasa **1505/1505 con `--testTimeout=60000`**, sin
+tocar ni un fichero. Es ruido de máquina, preexistente y ajeno; si reaparece en CI, es
+EPIC-FIX y no de aquí.
 
 **Lo primero que hay que hacer al retomar**: nada pendiente por parte del implementador. Los
 19 CA están implementados con su test y las dos suites están enteras en verde. Lo que queda es
