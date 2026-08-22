@@ -463,8 +463,16 @@ function ficherosTocados(): string[] {
     .filter(Boolean);
 }
 
+// El título de este bloque decía «y el diff contra origin/main no toca lo que no debe»
+// cuando su mecanismo es, desde SPEC-034, la ventana fija `de3a6ee`…`0d389c8` de arriba.
+// Qué vigilaba antes: nada distinto — el comportamiento no cambia ni una línea. Qué vigila
+// ahora: exactamente lo mismo, dicho sin mentir. Era prosa engañosa en un fichero ajeno y
+// sano, y es lo primero que lee quien vaya a copiar el patrón; por eso SPEC-048 lo llevó
+// al gate en vez de tocarlo, y el humano (Alberto Fojo) lo autorizó el **2026-08-22** por
+// arbitraje, limitado a esta única línea (SPEC-048 §Notas para el gate humano, pto. 4, y
+// ADR-031 §Consecuencias, donde quedó aparcado).
 describe.skipIf(!baseDisponible())(
-  'SPEC-028 CA-9: y el diff contra origin/main no toca lo que no debe',
+  'SPEC-028 CA-9: y el diff de su propia entrega no toca lo que no debe',
   () => {
     it('9.3 — src/ no cambia ni una línea', () => {
       expect(ficherosTocados().filter((f) => f.startsWith('src/'))).toEqual([]);

@@ -111,3 +111,29 @@
   post-deploy (SPEC-028): sin los dos, la regla es incumplible —el despliegue no
   sabría de qué commit viene y respondería `unknown`—, que es exactamente por lo
   que estuvo aplazada desde el 2026-08-17.
+- **RI-03** (Un criterio de gate no se codifica como test permanente; y si se queda
+  en la suite, nace anclado): hay dos clases de afirmación y no se tratan igual. Un
+  **criterio de gate** —*«este cambio está bien acotado»*— es cierto sobre un **delta**
+  y sólo mientras el delta no se ha integrado; una **propiedad** —*«esta lista sigue
+  cerrada»*, *«este literal sigue siendo el que hay»*— es cierta sobre el **estado del
+  árbol**, en cualquier momento y para siempre. Un criterio de gate se reexpresa como
+  propiedad si se puede; si no, se verifica en el **gate** y su evidencia va al
+  **ledger** de la spec —quién lo comprobó, sobre qué rama y con qué salida—, o vive en
+  un script de `scripts/` invocado por un step propio de CI (molde:
+  `scripts/check-version-bump.mjs`, que compara contra `origin/main` y **debe** hacerlo).
+  Si por valor de auditoría se queda en la suite —razón legítima—, **nace anclado**, con
+  las cuatro condiciones desde el primer día y no como parche el día que se pone rojo:
+  **(1) ventana de dos sha fijos** declarada en una constante con nombre, sin que ningún
+  nombre móvil —`origin/main`, `main`, `HEAD`, `@`— sea revisión de un `git diff`, `show`
+  o `log`/`rev-list` que alimente una aserción; **(2) centinela de no-vacuidad**, un caso
+  del mismo bloque que afirma que la ventana contiene algo que la entrega sí trajo;
+  **(3) salto declarado** por disponibilidad (`describe.skipIf`) para que un clon
+  superficial no la convierta en rojo falso, salto que **no puede ocurrir en CI** y que un
+  caso siempre activo comprueba; y **(4) el porqué al lado**: qué vigilaba antes, qué
+  vigila ahora, en virtud de qué CA y con qué fecha. El incumplimiento se detecta
+  automáticamente (SPEC-048): una **meta-guardia** recorre `tests/` y falla si alguna
+  invocación de git que alimenta una aserción toma una revisión móvil; juzga código, no
+  prosa, y no prohíbe ni `git` ni `HEAD` fuera de las revisiones de comparación. Nada de
+  esto autoriza a aflojar: cuando una guardia caduca, las únicas salidas siguen siendo
+  las dos de `FOUNDATION.md` —re-encuadrar o borrar— y quien la toca no es quien se
+  beneficia. Fuente: ADR-031.
