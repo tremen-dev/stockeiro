@@ -2,10 +2,12 @@
 id: SPEC-047
 tipo: spec
 epica: EPIC-MEJORA
-estado: borrador
-aprobada-por:
+estado: en-progreso
+aprobada-por: humano (Alberto Fojo)
 historial:
   - {estado: borrador, fecha: 2026-08-22, por: sdd-arquitecto}
+  - {estado: aprobada, fecha: 2026-08-22, por: humano (Alberto Fojo)}
+  - {estado: en-progreso, fecha: 2026-08-22, por: sdd-implementador}
 ---
 # SPEC-047 — El icono de la app: la inicial y el punto de la marca, legibles a 16 px
 
