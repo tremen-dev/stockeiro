@@ -1,9 +1,11 @@
 ---
 id: ADR-030
 tipo: adr
-estado: borrador
+estado: aprobada
 historial:
   - {estado: borrador, fecha: 2026-08-22, por: sdd-arquitecto}
+  - {estado: aprobada, fecha: 2026-08-22, por: humano (Alberto Fojo)}
+aprobada-por: humano (Alberto Fojo)
 ---
 # ADR-030: Lo que abre una fila vive anclado a la ventana, y la geometría mide la respuesta al gesto
 
