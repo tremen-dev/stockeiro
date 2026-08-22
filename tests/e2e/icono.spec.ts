@@ -40,7 +40,10 @@ import {
 const rootDir = resolve(dirname(fileURLToPath(import.meta.url)), '..', '..');
 const icoPath = join(rootDir, 'src', 'app', 'favicon.ico');
 const cssPath = join(rootDir, 'design', 'tremen-ds', 'colors_and_type.css');
+/** Artefactos de trabajo: `.gitignore` los tapa, así que no pueden ensuciar el diff. */
 const CAPTURAS = join(rootDir, 'test-results', 'SPEC-047');
+/** Evidencia que SÍ se commitea. La única carpeta de `_qa/` que CA-16 admite. */
+const EVIDENCIA = join(rootDir, '_qa', 'SPEC-047');
 const PWD = 'clave-secreta-123';
 
 /** Los tres colores, desde su fuente (CA-5), no tecleados aquí. */
@@ -288,15 +291,18 @@ test.describe('CA-15: los dos formatos son el mismo icono', () => {
 });
 
 test.describe('lo que los números no cubren: el icono, para mirarlo', () => {
-  test('deja el icono a 16 y a 32 sobre cromo claro y oscuro', async ({ page }) => {
-    // §Notas para el gate, pto. 5: «pide la captura a 16 px y mírala». Va a
-    // `test-results/`, que está en .gitignore: CA-16 acota el diff a un conjunto
-    // cerrado de ficheros y `_qa/` no está en él (ver F-SPEC-047-1 del ledger).
+  // §Notas para el gate, pto. 5: «pide la captura a 16 px en el gate del verificador y
+  // mírala». El reparto lo fija CA-16 tras F-SPEC-047-1: los artefactos de trabajo van a
+  // `test-results/SPEC-047/` (en `.gitignore`) y la evidencia que se COMMITEA va a
+  // `_qa/SPEC-047/`, la única carpeta de `_qa/` que el diff admite.
+
+  test('la evidencia: el icono sobre cromo claro y sobre cromo oscuro', async ({ page }) => {
     await page.goto('/legal/aviso-legal');
     const href = elSvg(await enlacesDeIcono(page))[0].href;
     const svg = await page.evaluate((h) => fetch(h).then((r) => r.text()), href);
 
     mkdirSync(CAPTURAS, { recursive: true });
+    mkdirSync(EVIDENCIA, { recursive: true });
     writeFileSync(join(CAPTURAS, 'icon.svg'), svg);
     const fuente = `data:image/svg+xml;base64,${Buffer.from(svg, 'utf8').toString('base64')}`;
 
@@ -312,7 +318,46 @@ test.describe('lo que los números no cubren: el icono, para mirarlo', () => {
         )
         .join(''),
     );
-    await page.screenshot({ path: join(CAPTURAS, 'icono-claro-y-oscuro.png') });
+    await page.screenshot({ path: join(EVIDENCIA, 'icono-cromo-claro-y-oscuro.png') });
     expect(await page.locator('img').count()).toBe(6);
+  });
+
+  test('la evidencia: los 16 px de los dos formatos, ampliados píxel a píxel', async ({ page }) => {
+    // Lo que miden CA-12, CA-13 y CA-14, pero para un ojo humano: los mismos 256 píxeles
+    // que cuentan los tests, ampliados ×16 y sin suavizar, con el SVG a la izquierda y el
+    // `.ico` a la derecha — que es la comparación que hace CA-15.
+    await page.goto('/legal/aviso-legal');
+    const href = elSvg(await enlacesDeIcono(page))[0].href;
+    const delSvg = await rasterDelSvg(page, href, 16);
+    const delIco = imagenIcoDe(new Uint8Array(readFileSync(icoPath)), 16).raster;
+
+    mkdirSync(EVIDENCIA, { recursive: true });
+    await page.setContent(
+      '<div id="hoja" style="background:#222;padding:24px;display:flex;gap:24px;' +
+        'font:12px/1.6 system-ui;color:#F5F1EA"></div>',
+    );
+    await page.evaluate(
+      ({ svg, ico }) => {
+        const hoja = document.getElementById('hoja')!;
+        for (const [rotulo, pixeles] of [
+          ['icon.svg → 16×16', svg],
+          ['favicon.ico → 16×16', ico],
+        ] as const) {
+          const lienzo = document.createElement('canvas');
+          lienzo.width = 16;
+          lienzo.height = 16;
+          const datos = new ImageData(new Uint8ClampedArray(pixeles), 16, 16);
+          lienzo.getContext('2d')!.putImageData(datos, 0, 0);
+          lienzo.style.cssText =
+            'width:256px;height:256px;image-rendering:pixelated;display:block';
+          const caja = document.createElement('div');
+          caja.append(lienzo, Object.assign(document.createElement('div'), { textContent: rotulo }));
+          hoja.append(caja);
+        }
+      },
+      { svg: Array.from(delSvg.data), ico: Array.from(delIco.data) },
+    );
+    await page.locator('#hoja').screenshot({ path: join(EVIDENCIA, 'icono-16px-ampliado.png') });
+    expect(await page.locator('canvas').count()).toBe(2);
   });
 });

@@ -350,6 +350,24 @@ describe('SPEC-028 CA-9: nada más queda cableado', () => {
     // ADR-024 pto. 9— y entra por la puerta de delante, declarado en su spec y
     // discutido en su gate. La lista sigue cerrada: el siguiente que aparezca sin
     // CA detrás vuelve a poner esto en rojo.
+    //
+    // AMPLIADA POR SPEC-047 (CA-19), arbitraje del humano del 2026-08-22 — y por la
+    // puerta que este propio test dejó abierta arriba, que es la única que hay.
+    //
+    // Qué vigilaba antes: la lista cerrada de claves de `scripts` tal y como quedó al
+    // entrar `version:check`. Qué vigila ahora: exactamente lo mismo, con una clave
+    // más. Sigue siendo un `toEqual` contra un array literal —comparación EXACTA, no
+    // `arrayContaining` ni `toContain`—, así que una clave de más o de menos sigue
+    // poniendo esto en rojo. No se ha borrado ningún caso ni se ha marcado ninguno
+    // `.skip`.
+    //
+    // En virtud de qué entra `icon:build`: **CA-17 de SPEC-047**, que exige que el
+    // `.ico` se reproduzca «desde fuente comprometida» con «un script propio en
+    // `scripts/`, invocable por un `npm run`». Un binario comprometido sin forma de
+    // regenerarlo es un callejón sin salida, y una librería de imagen para dibujar tres
+    // formas era la alternativa que CE-M3 descarta. La clave, por tanto, tiene CA
+    // detrás, declarado en su spec y discutido en su gate: la misma puerta que
+    // `version:check`, y la regla de arriba no se afloja ni un milímetro.
     const { scripts } = JSON.parse(readFileSync(join(rootDir, 'package.json'), 'utf8')) as {
       scripts: Record<string, string>;
     };
@@ -360,6 +378,7 @@ describe('SPEC-028 CA-9: nada más queda cableado', () => {
         'db:migrate',
         'db:scan',
         'dev',
+        'icon:build',
         'lint',
         'start',
         'test',

@@ -6,8 +6,9 @@ epica: EPIC-MEJORA
 # Ledger — SPEC-047 El icono de la app: la inicial y el punto de la marca, legibles a 16 px
 
 ## Resumen
-- Fase: `en-revision` — implementado, **con un arbitraje pendiente del gate humano**
-  (F-SPEC-047-2: tres tests ajenos en rojo que CA-18 prohíbe tocar).
+- Fase: `en-revision` — implementado y **con el arbitraje ya ejecutado**. Los dos
+  follow-ups que levantó la implementación (F-SPEC-047-1 y F-SPEC-047-2) están resueltos
+  por el gate del 2026-08-22 y aplicados bajo CA-19.
 - Rama: `ft/SPEC-047-favicon`, en el worktree `D:/src/wt-47`, creada desde `origin/main` más el
   commit de producto que registra el caso en `docs/epicas/EPIC-MEJORA/_epica.md`.
 
@@ -49,10 +50,10 @@ epica: EPIC-MEJORA
 | CA-13 — a 16 px la S conserva sus dos ojos | `scripts/icon-geometry.mjs` — barrido 295° y ojo de 3,5 sobre la rejilla | `tests/icono-16px.test.ts` › CA-13 (16 y 32) + `tests/e2e/icono.spec.ts` › CA-13 | | ❌ |
 | CA-14 — a 16 px la tinta ocupa entre el 15 % y el 40 %, y el suelo es opaco | `scripts/icon-geometry.mjs` — teselá opaca a sangre (D-1) | `tests/icono-16px.test.ts` › CA-14 (3 casos) + `tests/e2e/icono.spec.ts` › CA-14 | | ❌ |
 | CA-15 — SVG y `.ico` son el mismo icono | los dos formatos salen de la MISMA polilínea en `scripts/icon-geometry.mjs` | `tests/e2e/icono.spec.ts` › CA-15 | | ❌ |
-| CA-16 — el diff está acotado (CE-M1) | nada bajo `src/db/`, `drizzle/` ni `src/lib/` | `tests/icono-frontera.test.ts` › CA-16 (3 casos, contra `git diff origin/main`) | | ❌ |
+| CA-16 — el diff está acotado (CE-M1) | nada bajo `src/db/`, `drizzle/` ni `src/lib/`; evidencia sólo en `_qa/SPEC-047/` | `tests/icono-frontera.test.ts` › CA-16 (4 casos, sobre **lo comiteado**: `origin/main...HEAD`. Incluye «ninguna otra `_qa/SPEC-NNN/` en el diff») | | ❌ |
 | CA-17 — el `.ico` se reproduce, y sin dependencia nueva | `scripts/build-icon.mjs` + `npm run icon:build` | `tests/icono-frontera.test.ts` › CA-17 (4 casos: bytes idénticos, script declarado, cero deps, sólo `node:*`) | | ❌ |
-| CA-18 — suites enteras verdes, y lo ajeno intacto salvo lo que CA-19 nombra | — | `tests/icono-frontera.test.ts` › CA-18 (el diff sobre `tests/` sólo añade ficheros) + ejecución completa de `npm test` y `npx playwright test` | | ❌ |
-| CA-19 — las tres guardias ajenas se amplían nombradas, y ninguna propiedad se debilita | | | | ❌ |
+| CA-18 — suites enteras verdes, y lo ajeno intacto salvo lo que CA-19 nombra | — | `tests/icono-frontera.test.ts` › CA-18 (2 casos: los modificados bajo `tests/` son EXACTAMENTE las tres guardias — un cuarto es RED —, y `tests/e2e/legal.spec.ts` no aparece en el diff) + ejecución completa de `npm test` y `npx playwright test` | | ❌ |
+| CA-19 — las tres guardias ajenas se amplían nombradas, y ninguna propiedad se debilita | `tests/legal-rutas-publicas.test.ts`, `tests/cuenta-rutas.test.ts` (literal del `matcher` + `|icon.svg`, por CA-6/CA-7) y `tests/deploy-gate-workflow.test.ts` (lista de `scripts` + `icon:build`, por CA-17); cada una con su porqué escrito al lado de la aserción | `tests/icono-guardias-ampliadas.test.ts` › CA-19.1 (4 casos), CA-19.2 (3), CA-19.3 (6, con **remutación**: la guardia se vuelve a ejecutar contra una entrada con un cuarto elemento inventado y tiene que rechazarla), CA-19.4 (4) | | ❌ |
 
 ## Veredicto del verificador
 <!-- GREEN/RED + fecha + resumen. Lo escribe SOLO sdd-verificador. -->
@@ -65,15 +66,26 @@ pestaña real, no el SVG ampliado) y otra a 32 px, para que el humano juzgue lo 
 no cubren. Añadir también una sobre cromo **claro** y otra sobre cromo **oscuro**, que es lo
 que demuestra D-1 (el icono trae su propio suelo).
 
-**Producidas ya, pero NO en `_qa/`** — ver F-SPEC-047-1. El último caso de
-`tests/e2e/icono.spec.ts` deja el icono a 16, 32 y 64 px sobre cromo claro y sobre cromo oscuro
-en `test-results/SPEC-047/icono-claro-y-oscuro.png`, junto con una copia del SVG servido. Ese
-directorio está en `.gitignore`, así que la captura se regenera con `npx playwright test
-tests/e2e/icono.spec.ts` y no ensucia el diff que acota CA-16.
+**Producidas y comiteadas** en `_qa/SPEC-047/`, que es el domicilio que le dio CA-16 al
+resolver F-SPEC-047-1. Las genera `tests/e2e/icono.spec.ts` (bloque *«lo que los números no
+cubren: el icono, para mirarlo»*), así que se regeneran con
+`npx playwright test tests/e2e/icono.spec.ts`:
 
-Lo que se ve en ella: la S llena el cuadro y el punto se lee como punto ya a 16 px; el suelo
-propio hace que el icono se vea igual sobre la barra clara y sobre la oscura, que es justo lo
-que D-1 prometía.
+| Fichero | Qué enseña | CA que ilustra |
+|---|---|---|
+| `_qa/SPEC-047/icono-cromo-claro-y-oscuro.png` | el icono a 16, 32 y 64 px sobre cromo **claro** y sobre cromo **oscuro** | D-1 y CA-14: el icono trae su propio suelo, y por eso se ve igual en los dos |
+| `_qa/SPEC-047/icono-16px-ampliado.png` | los 256 píxeles del SVG y los del `.ico`, ampliados ×16 y sin suavizar, uno al lado del otro | CA-12, CA-13, CA-14 y CA-15 — es exactamente lo que cuentan los tests, para un ojo humano |
+
+Y en `test-results/SPEC-047/` (ignorado) queda el artefacto de trabajo: `icon.svg`, tal y como
+lo sirvió la app.
+
+Lo que se ve: a 16 px la S llena el cuadro con los dos ojos abiertos y el punto se lee como
+punto, separado de la letra; los dos formatos son indistinguibles a simple vista; y el suelo
+propio hace que el icono se vea igual sobre la barra clara y sobre la oscura.
+
+Queda por hacer lo que ningún test puede hacer y §Notas pto. 5 pide expresamente: **que el
+humano mire la pestaña real** en el gate del verificador. Hay un salto entre «cumple los
+números» y «lo reconozco de un vistazo entre veinte pestañas».
 
 ## Salvedades / follow-ups
 <!-- IDs F-SPEC-047-1, F-SPEC-047-2… con destino (spec futura o EPIC-MEJORA). -->
@@ -121,6 +133,36 @@ Y los dos que ha levantado la implementación:
   propiedad, verdes y sin tocar. Un cuarto fichero ajeno modificado sigue siendo RED (CA-18).
   El planteamiento original del implementador se conserva abajo, tal cual lo escribió.
 
+  *Ejecutado el 2026-08-22*, bajo CA-19 y con su test propio
+  (`tests/icono-guardias-ampliadas.test.ts`, 17 casos). Las tres ampliaciones, una a una:
+
+  | Guardia | Qué crece | Por qué CA |
+  |---|---|---|
+  | `tests/legal-rutas-publicas.test.ts` (SPEC-035 CA-2) | el literal del `matcher` gana `|icon.svg` | CA-6 y CA-7 |
+  | `tests/cuenta-rutas.test.ts` (SPEC-036 CA-10) | el mismo literal, calcado | CA-6 y CA-7 |
+  | `tests/deploy-gate-workflow.test.ts` (SPEC-028 CA-9.3) | la lista de `scripts` gana `icon:build` (12 → 13 claves) | CA-17 |
+
+  Y así se comprobó cada condición, que es lo que hace que esto no sea una excepción de palabra:
+
+  - **19.1** — el diff sobre `tests/` modifica **exactamente** esos tres ficheros. Antes de
+    tocar nada se buscó por todo el árbol si había un cuarto: `_next/image` sólo aparece en
+    esos dos tests y en `src/proxy.ts`, y la única lista **cerrada** de `scripts` es la de
+    `deploy-gate` (la de `ci-workflow.test.ts:251` usa `arrayContaining`, así que no es
+    cerrada y no se toca). **No apareció ningún cuarto fichero.**
+  - **19.2** — cada aserción lleva encima su bloque de comentario con qué vigilaba, qué vigila,
+    en virtud de qué CA entra el elemento, la fecha y el arbitraje. El test lo exige por texto.
+  - **19.3, la de verdad** — no se dio por buena leyendo el diff. Se **mutó el árbol real**:
+    `|inventado.svg` metido en el `matcher` de `src/proxy.ts` y una clave `"inventado:x"`
+    metida en `package.json`; con esa mutación las tres guardias volvieron a **3 failed /
+    46 passed**, exactamente las mismas tres y por la misma razón que antes de ampliarlas. Se
+    revirtió la mutación acto seguido. Y para que no dependa de que alguien lo repita a mano,
+    CA-19.3 deja esa remutación **dentro del test**: vuelve a ejecutar la comparación de cada
+    guardia contra una entrada con un cuarto elemento inventado y exige que la rechace, además
+    de auditar que el operador sigue siendo exacto (`toContain` sobre cadena literal,
+    `toEqual` sobre array literal) y que no hay ningún `.skip`/`.only`.
+  - **19.4** — las tres hermanas se comparan **byte a byte** contra `git show origin/main:…`,
+    igual que el resto de casos de esos tres ficheros: el único que difiere es el ampliado.
+
   *Planteamiento original (bloqueante entonces):* Tres tests **ajenos** se ponen en rojo con este cambio, y ninguno de los
   tres se puede arreglar sin **modificar una aserción existente**, que es exactamente lo que
   CA-18 prohíbe. No se ha tocado ninguno.
@@ -160,7 +202,8 @@ Y los dos que ha levantado la implementación:
 ## Cómo retomar (handoff)
 <!-- Estado real del trabajo para la siguiente sesión: qué está hecho, qué falta, dónde seguir. -->
 
-**Implementado y committeado en `ft/SPEC-047-favicon`** (worktree `D:/src/wt-47`). Lo que hay:
+**Implementado y committeado en `ft/SPEC-047-favicon`** (worktree `D:/src/wt-47`), con el
+arbitraje del 2026-08-22 ya ejecutado bajo CA-19. Lo que hay:
 
 | Fichero | Qué es |
 |---|---|
@@ -169,7 +212,11 @@ Y los dos que ha levantado la implementación:
 | `src/app/icon.svg`, `src/app/favicon.ico` | generados, no escritos a mano. 5,2 KB y 14,7 KB. |
 | `src/proxy.ts` | **una línea de código**: `icon.svg` sumado a la exclusión del `matcher`. El resto del diff son comentarios con el porqué, en el estilo en prosa del propio fichero. |
 | `tests/icono-raster.ts` | herramientas de medida sobre píxeles + lector de `.ico` propio, compartidas por la suite unitaria y la e2e. |
-| `tests/icono-fichero.test.ts` · `icono-16px.test.ts` · `icono-frontera.test.ts` · `tests/e2e/icono.spec.ts` | 45 casos unitarios + 11 e2e. |
+| `tests/icono-fichero.test.ts` · `icono-16px.test.ts` · `icono-frontera.test.ts` | 46 casos unitarios: forma de los ficheros, píxeles del `.ico` y frontera del diff. |
+| `tests/icono-guardias-ampliadas.test.ts` | CA-19: 17 casos que vigilan la ampliación de las tres guardias ajenas, remutación incluida. |
+| `tests/e2e/icono.spec.ts` | 12 casos: los CA que piden servidor y rasterizador, más la evidencia visual. |
+| `_qa/SPEC-047/` | la evidencia comiteada (dos PNG). La genera la e2e; ninguna otra `_qa/SPEC-NNN/` entra en el diff. |
+| las tres guardias ajenas | ampliadas bajo CA-19 y sólo esas tres: `tests/legal-rutas-publicas.test.ts`, `tests/cuenta-rutas.test.ts`, `tests/deploy-gate-workflow.test.ts`. |
 | `package.json` | `icon:build` y `0.3.0 → 0.3.1` (ADR-024: esto toca `src/`, así que el número sube; PATCH porque es presentación pura). |
 
 **Cifras reales de la última ejecución (2026-08-22):**
@@ -177,14 +224,21 @@ Y los dos que ha levantado la implementación:
 - `npm test` — **1483 passed, 3 failed**. Los tres son los de F-SPEC-047-2 y **no se han tocado**.
 - `npm run typecheck` y `npm run lint` — limpios.
 
-**Lo primero que hay que hacer al retomar** es resolver F-SPEC-047-2 en el gate humano. Hasta
-entonces CA-18 no se puede firmar, y con él CA-6, CA-7 y CA-8 quedan sujetos a la decisión (si
-el gate elige la salida 2, hay que retirar `icon.svg` y revertir `src/proxy.ts`).
+**Lo primero que hay que hacer al retomar**: nada pendiente por parte del implementador. Los
+19 CA están implementados con su test y las dos suites están enteras en verde. Lo que queda es
+el gate del verificador, y en él la única cosa que ningún test cubre: **mirar la pestaña real**
+(§Notas pto. 5), con `_qa/SPEC-047/` delante.
 
-Si el gate elige la salida 1, el cambio es mecánico y son tres líneas:
-`tests/legal-rutas-publicas.test.ts:53`, `tests/cuenta-rutas.test.ts:69` (el literal del matcher
-pasa a `…|favicon.ico|icon.svg).*)`) y `tests/deploy-gate-workflow.test.ts:356` (añadir
-`'icon:build'` a la lista), cada uno con su comentario de por qué se amplía.
+**Dos trampas de este repositorio que conviene saber antes de correr nada:**
+
+1. **La suite e2e reescribe `_qa/` de specs viejas.** Media docena de specs guardan ahí sus
+   capturas y las regeneran al correr, así que tras un `npx playwright test` completo el árbol
+   sale sucio con ficheros que no son de esta spec. Es ruido preexistente: se descarta con
+   `git checkout -- _qa` y **no se commitea**. CA-16 lo contempla desde la enmienda —se evalúa
+   sobre lo comiteado— y tiene un caso propio que caza cualquier `_qa/SPEC-NNN/` ajena.
+2. **El e2e necesita `npm run build` antes.** `tests/e2e/server.mjs` arranca `next start`
+   sobre un Postgres efímero, pero no construye: sin `.next` no hay servidor. Y el build pide
+   `DATABASE_URL`, `DB_DRIVER=pg` y `AUTH_SECRET` en el entorno, aunque sean de juguete.
 
 **Cómo se regenera el binario**, que es lo que R-5 pedía dejar escrito: `npm run icon:build`.
 Lee los tres colores de `design/tremen-ds/colors_and_type.css`, rasteriza el vector a 16, 32 y 48

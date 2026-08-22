@@ -24,11 +24,25 @@ const BASE = 'origin/main';
 const git = (...args: string[]) =>
   execFileSync('git', args, { cwd: rootDir, encoding: 'utf8', stdio: ['ignore', 'pipe', 'pipe'] });
 
-/** Los ficheros que esta rama toca respecto de `origin/main`, ya committeados o no. */
+/**
+ * Los ficheros que esta rama toca respecto de `origin/main`, **committeados**.
+ *
+ * Enmienda de CA-16 tras F-SPEC-047-1: antes esto unía el diff con `git status`, es decir
+ * miraba el árbol de trabajo. No servía, y no por un descuido de esta spec: **varias
+ * suites e2e antiguas escriben dentro de `_qa/` al correr**, así que pasar la batería
+ * entera ensucia `_qa/SPEC-001/…` y compañía sin que nadie haya cambiado nada. Ese ruido
+ * es preexistente y la regla es descartarlo, no cometerlo — por eso lo que se juzga es lo
+ * comiteado, que es lo que se mergearía.
+ *
+ * Y se compara contra la BASE DE FUSIÓN (`origin/main...HEAD`), no árbol contra árbol: lo
+ * que CA-16 acota es lo que ESTA rama toca. Con dos puntos, cualquier fichero que `main`
+ * moviera por su cuenta aparecería aquí como si lo hubiera tocado esta spec.
+ */
 function tocados(): string[] {
-  const committeados = git('diff', '--name-only', BASE).split('\n');
-  const enElArbol = git('status', '--porcelain').split('\n').map((l) => l.slice(3));
-  return [...new Set([...committeados, ...enElArbol])].map((s) => s.trim()).filter(Boolean);
+  return git('diff', '--name-only', `${BASE}...HEAD`)
+    .split('\n')
+    .map((s) => s.trim())
+    .filter(Boolean);
 }
 
 /** El conjunto cerrado de CA-16. Nada de `src/db/`, nada de `drizzle/`, nada de `src/lib/`. */
@@ -39,6 +53,10 @@ const PERMITIDO = [
   /^scripts\//,
   /^tests\//,
   /^docs\//,
+  // La evidencia visual que se commitea vive aquí, y sólo aquí (CA-16, enmienda del
+  // 2026-08-22). Las capturas de trabajo van a `test-results/SPEC-047/`, que está en
+  // `.gitignore` y por tanto no puede ensuciar el diff.
+  /^_qa\/SPEC-047\//,
   /^package\.json$/,
 ];
 
@@ -53,8 +71,23 @@ describe('SPEC-047 CA-16: el diff está acotado — esto es presentación pura',
     expect(prohibidos).toEqual([]);
   });
 
+  it('la evidencia de otras specs es suya: ninguna otra _qa/SPEC-NNN/ en el diff', () => {
+    const ajenas = [
+      ...new Set(
+        tocados()
+          .filter((f) => f.startsWith('_qa/') && !f.startsWith('_qa/SPEC-047/'))
+          .map((f) => f.split('/').slice(0, 2).join('/')),
+      ),
+    ];
+    expect(
+      ajenas,
+      'la e2e reescribe capturas de specs viejas al correr: se descartan ' +
+        '(`git checkout -- _qa`), no se cometen',
+    ).toEqual([]);
+  });
+
   it('el guardián de sesión cambia en una sola línea de código: la del matcher', () => {
-    const diff = git('diff', '-U0', BASE, '--', 'src/proxy.ts');
+    const diff = git('diff', '-U0', `${BASE}...HEAD`, '--', 'src/proxy.ts');
     const lineas = (signo: '+' | '-') =>
       diff
         .split('\n')
@@ -129,16 +162,37 @@ describe('SPEC-047 CA-17: el .ico se reproduce, y sin dependencia nueva', () => 
   });
 });
 
-describe('SPEC-047 CA-18: los tests ajenos no se aflojan', () => {
-  it('el diff sobre tests/ sólo añade ficheros; ninguno existente se modifica', () => {
-    const estado = git('diff', '--name-status', BASE, '--', 'tests/')
+/** Las tres guardias que el arbitraje del humano del 2026-08-22 autoriza a ampliar. Ni una
+ *  más: la lista, su porqué y sus cuatro condiciones las ejecuta CA-19 en
+ *  `tests/icono-guardias-ampliadas.test.ts`. */
+const AMPLIABLES = [
+  'tests/cuenta-rutas.test.ts',
+  'tests/deploy-gate-workflow.test.ts',
+  'tests/legal-rutas-publicas.test.ts',
+];
+
+describe('SPEC-047 CA-18: lo ajeno no se toca salvo lo que CA-19 nombra', () => {
+  it('el diff sobre tests/ añade ficheros y casos, y sólo modifica las tres guardias', () => {
+    const estado = git('diff', '--name-status', `${BASE}...HEAD`, '--', 'tests/')
       .split('\n')
       .filter(Boolean)
       .map((l) => l.split('\t'));
-    const modificados = estado.filter(([tipo]) => tipo !== 'A').map(([, f]) => f);
+    const modificados = estado
+      .filter(([tipo]) => tipo !== 'A')
+      .map(([, f]) => f)
+      .sort();
     expect(
       modificados,
-      'tocar una aserción ajena para que este cambio pase es exactamente lo que CA-18 prohíbe',
-    ).toEqual([]);
+      'un CUARTO fichero ajeno modificado es RED: se escala al gate, no se toca',
+    ).toEqual(AMPLIABLES);
+  });
+
+  it('los dos verdes que CA-18 cita por su nombre siguen sin tocarse', () => {
+    // SPEC-035 CA-12 (ni un recurso de terceros en /legal) y CA-13 (ninguna cookie al
+    // recorrerla anónimamente) son los que este cambio pone a prueba de verdad, y los dos
+    // viven en `tests/e2e/legal.spec.ts`. Que ese fichero no aparezca en el diff es lo que
+    // hace creíble que sigan verdes por mérito propio y no porque se les haya bajado el
+    // listón.
+    expect(tocados()).not.toContain('tests/e2e/legal.spec.ts');
   });
 });
