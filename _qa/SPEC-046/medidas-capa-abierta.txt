@@ -1,0 +1,9 @@
+SPEC-046 CA-6/CA-7/CA-8 — geometría con la capa abierta, a los ocho anchos
+ancho 360 · M1: 0/58 (testigos 1) · M2: desborde 0 · capa: 360×396 (contenido 360×396, overflow auto/auto) · form 360
+ancho 390 · M1: 0/58 (testigos 1) · M2: desborde 0 · capa: 390×396 (contenido 390×396, overflow auto/auto) · form 390
+ancho 640 · M1: 0/58 (testigos 1) · M2: desborde 0 · capa: 520×396 (contenido 520×396, overflow auto/auto) · form 520
+ancho 700 · M1: 0/58 (testigos 1) · M2: desborde 0 · capa: 520×396 (contenido 520×396, overflow auto/auto) · form 520
+ancho 730 · M1: 0/58 (testigos 1) · M2: desborde 0 · capa: 520×396 (contenido 520×396, overflow auto/auto) · form 520
+ancho 760 · M1: 0/58 (testigos 1) · M2: desborde 0 · capa: 520×396 (contenido 520×396, overflow auto/auto) · form 520
+ancho 800 · M1: 0/58 (testigos 1) · M2: desborde 0 · capa: 520×396 (contenido 520×396, overflow auto/auto) · form 520
+ancho 1280 · M1: 0/591 (testigos 1) · M2: desborde 0 · capa: 520×396 (contenido 520×396, overflow auto/auto) · form 520

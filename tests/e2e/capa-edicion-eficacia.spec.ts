@@ -1,11 +1,13 @@
 import { mkdirSync, writeFileSync } from 'node:fs';
 import { test, expect } from '@playwright/test';
 import {
-  DEFECTOS,
   TOLERANCIA_PX,
+  defectoSuperficieTrasLaLista,
+  describirContencion,
   describirRespuestaAlGesto,
   describirViolaciones,
   inyectarDefecto,
+  medirContencionEnLaVentana,
   medirDesbordeDeDocumento,
   medirDesbordePorElemento,
   medirIntegridadDePalabra,
@@ -49,6 +51,22 @@ import {
  * El hecho 3 es el que importa de verdad. Es la razón por la que M4 tenía que existir: no
  * es que las tres medidas viejas estuvieran mal escritas —están bien—, es que **sólo ven
  * lo que preguntan**, y ninguna preguntaba por el eje vertical.
+ *
+ * ## Lo que se aprendió al reinyectar, y que conviene no olvidar
+ *
+ * Con la superficie devuelta detrás de la lista, **el navegador arrastra al usuario hasta
+ * ella**: `showModal()` mete el foco en el primer campo, y enfocar desplaza el documento.
+ * Medido a 360 px: la página salta de 0 a **2.584 px**. O sea que el defecto reinyectado
+ * no se manifiesta sólo como «la superficie está debajo del pliegue», sino además como
+ * «al usuario lo mandan al final de la lista» — que es **literalmente** la alternativa
+ * `scrollIntoView` que ADR-030 §3(c) rechazó.
+ *
+ * **M4 caza las dos**, y por eso tiene dos mitades. Este test afirma las dos con su cifra:
+ * la del desplazamiento, en la medida del gesto; y la de «cuántos píxeles por debajo del
+ * pliegue se pintó», devolviendo la página a donde estaba y midiendo la contención sola
+ * (`medirContencionEnLaVentana`). Sin esa segunda mirada, la cifra que CA-17 pide —la que
+ * convierte «se veía mal» en un número— no existiría, porque el propio navegador la
+ * habría tapado.
  */
 
 test('SPEC-046 CA-10: con la capa devuelta al flujo, M4 la caza con la cifra y M1/M2/M3 no ven nada', async ({
@@ -85,12 +103,26 @@ test('SPEC-046 CA-10: con la capa devuelta al flujo, M4 la caza con la cifra y M
 
     // ── (2) El defecto de SPEC-044, devuelto: la capa vuelve al flujo tras la tabla ──
     await subirDelTodo(page);
-    const quitar = await inyectarDefecto(page, DEFECTOS.capaDeEdicionEnElFlujo);
+    const quitar = await inyectarDefecto(
+      page,
+      // La colocación no se escribe: se mide. Es donde acaba la tabla AHORA MISMO.
+      defectoSuperficieTrasLaLista(precondicion.fondoEnElDocumento),
+    );
     const enfermo = await medirRespuestaAlGesto(page, {
       disparador: editarEnFila(page, 0),
       revelado: capa(page),
       etiqueta: `${ancho} px · defecto reinyectado`,
     });
+
+    /*
+      Devolver la página a donde estaba ANTES del gesto. No es maquillaje: es lo que hace
+      visible la cifra del defecto original. El navegador acaba de arrastrar al usuario
+      hasta la superficie —`showModal()` enfoca, y enfocar desplaza—, así que sin este
+      paso la superficie aparece «dentro de la ventana» y el número que CA-17 pide se
+      pierde. Puesta la página donde el usuario la tenía, se ve dónde se pintó de verdad.
+    */
+    await page.evaluate((y) => window.scrollTo(0, y), enfermo.scrollAntes.y);
+    const donde = await medirContencionEnLaVentana(page, capa(page));
 
     // ── (3) Y sobre LA MISMA PÁGINA, con el defecto puesto y la capa abierta, las tres
     //        medidas horizontales no ven absolutamente nada ─────────────────────────
@@ -110,7 +142,8 @@ test('SPEC-046 CA-10: con la capa devuelta al flujo, M4 la caza con la cifra y M
     await quitar();
 
     const linea =
-      `${describirRespuestaAlGesto(enfermo)} · M1 ${m1.violaciones.length} violaciones de ` +
+      `${describirRespuestaAlGesto(enfermo)} · en la posición del usuario: ` +
+      `${describirContencion(donde)} · M1 ${m1.violaciones.length} violaciones de ` +
       `${m1.medidos} medidos (testigos de la capa: ${m1.testigos.length}) · M2 desborde ` +
       `${m2.desborde} · M3 ${m3.filter((t) => t.lineas > Math.max(1, t.palabras)).length} ` +
       `rótulos partidos · precondición: ${precondicion.elementos} filas, fondo de la tabla ` +
@@ -126,13 +159,20 @@ test('SPEC-046 CA-10: con la capa devuelta al flujo, M4 la caza con la cifra y M
         describirRespuestaAlGesto(enfermo),
     ).toBe(true);
     expect(
-      Math.round(enfermo.porDebajoDelPliegue),
-      `M4 se queja pero no por lo que debe: la superficie tendría que quedar POR DEBAJO del ` +
-        `pliegue y no llega. ${describirRespuestaAlGesto(enfermo)}`,
+      enfermo.desplazoElDocumento,
+      `con el defecto puesto, el documento NO se movió, así que M4 se está quejando por ` +
+        `otra cosa: ${describirRespuestaAlGesto(enfermo)}`,
+    ).toBe(true);
+    // Y la cifra del defecto original, en la posición en la que estaba el usuario.
+    expect(
+      Math.round(donde.porDebajoDelPliegue),
+      `puesta la página donde el usuario la tenía, la superficie NO queda por debajo del ` +
+        `pliegue: ${describirContencion(donde)}. Entonces el defecto de SPEC-044 no se ha ` +
+        `reproducido y este test no demuestra nada`,
     ).toBeGreaterThan(0);
     expect(
-      describirRespuestaAlGesto(enfermo),
-      'el mensaje de M4 no lleva la cifra medida. «Se veía mal» sin número es lo que no ' +
+      describirContencion(donde),
+      'el mensaje no lleva la cifra medida. «Se veía mal» sin número es lo que no ' +
         'convence a nadie de arreglarlo (CA-17)',
     ).toContain('POR DEBAJO DEL PLIEGUE');
 
