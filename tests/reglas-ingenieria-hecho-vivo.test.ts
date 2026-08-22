@@ -77,10 +77,30 @@ describe('SPEC-028 CA-14.1: RI-02 existe, dentro de la sección que ya había', 
   it('va después de RI-01, en la misma serie', () => {
     const seccion = seccionDeIngenieria();
     expect(seccion.indexOf('**RI-01**')).toBeLessThan(seccion.indexOf('**RI-02**'));
-    expect([...seccion.matchAll(/\*\*(RI-\d+)\*\*/g)].map((m) => m[1])).toEqual([
-      'RI-01',
-      'RI-02',
-    ]);
+
+    // La forma vieja de decir esto era `toEqual(['RI-01', 'RI-02'])`, y fue cierta
+    // mientras dos fueron dos. **Re-encuadrado el 2026-08-22 por SPEC-048 CA-11**, que
+    // escribe RI-03 (fuente: ADR-031) en esta misma sección. Es el mismo caso y el mismo
+    // remedio que SPEC-043 aplicó a RN-16 en `tests/reglas-ingenieria.test.ts`.
+    //
+    // Qué vigilaba antes: que la serie de ingeniería fuera exactamente RI-01 y RI-02 —una
+    // FOTO del árbol, que caduca en cuanto se escribe la regla siguiente—. Qué vigila
+    // ahora: la propiedad que no caduca —la serie empieza en RI-01, va en orden, no salta
+    // números ni se repite, y RI-02 sigue dentro de ella—. Lo que SPEC-028 CA-14.1 afirma
+    // sigue entero: RI-02 existe, en esta sección y después de RI-01. Dos era el número
+    // que había, no el tope.
+    //
+    // **Salvedad declarada (`F-SPEC-048-1`): este fichero es de SPEC-028 y quien lo toca
+    // es quien se beneficia de que pase.** SPEC-048 no había previsto esta guardia —su
+    // barrido buscaba comparaciones contra revisiones de git, y ésta es una lista cerrada
+    // por estado—, así que el arbitraje del humano NO precede al cambio, como pide
+    // `FOUNDATION.md` § *Cómo se trabaja aquí*. Va al gate para ratificarlo.
+    const serie = [...seccion.matchAll(/\*\*RI-(\d+)\*\*/g)].map((m) => Number(m[1]));
+    expect(serie.length, 'la serie de ingeniería no puede quedarse vacía').toBeGreaterThan(0);
+    expect(serie, 'la serie RI ni salta números, ni se repite, ni se desordena').toEqual(
+      serie.map((_, i) => i + 1),
+    );
+    expect(serie, 'RI-02 tiene que seguir dentro de la serie').toContain(2);
   });
 });
 
