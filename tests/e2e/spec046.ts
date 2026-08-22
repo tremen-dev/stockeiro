@@ -49,7 +49,7 @@ const FILAS_MAXIMAS = 192;
 export const ANCHO_DE_DERIVACION = 1280;
 
 /**
- * El **mismo ticker en dos mercados** (ADR-007 / ADR-012), sembrado en mitad de la lista.
+ * El **mismo ticker en dos mercados** (ADR-007 / ADR-012).
  *
  * Es lo que hace que CA-3 pruebe algo: si la capa nombrara «el ticker» y no «esta fila»,
  * con dos vigiladas de `Z6DUAL` no habría forma de saber cuál se está editando — y ése es
@@ -64,7 +64,12 @@ export const ZONAS_DUAL = {
 } as const;
 
 /**
- * `n` vigiladas ordenadas por ticker, con el par dual justo en el medio.
+ * `n` vigiladas, con el par dual entre ellas.
+ *
+ * La tabla ordena por ticker de serie, así que `Z6DUAL` acaba **al principio** de la
+ * lista, no donde se siembra: da igual, lo que CA-3 necesita es que las dos filas existan
+ * y se distingan sólo por su mercado — y el test las busca por (ticker, mercado), nunca
+ * por posición.
  *
  * El relleno lleva nombre, tipo, mercado, precio y las cuatro zonas para que cada fila
  * mida lo que mide una fila real: una lista de filas mínimas sería más corta que la de
