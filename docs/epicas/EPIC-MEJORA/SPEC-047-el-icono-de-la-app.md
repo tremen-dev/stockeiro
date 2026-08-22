@@ -74,6 +74,52 @@ wordmark, ni la tipografía, ni la paleta.
    justamente lo que estampaba `authjs.csrf-token` y `authjs.callback-url` y lo que esa spec
    arregló. La reachability del icono no es un detalle de despliegue: es un CA (CA-6, CA-7).
 
+### El arbitraje de las tres guardias ajenas (decidido por el humano, Alberto Fojo, 2026-08-22)
+
+Lo anticipado en el punto 3 de arriba ocurrió, y con un detalle que la primera redacción de
+esta spec no vio: excluir `icon.svg` del `matcher` **no sólo** desbloquea el icono — también
+**mueve un literal que tres tests ajenos tenían copiado carácter a carácter**. Al implementar,
+Playwright quedó en 254/254, las unitarias en 1483 pasadas y **tres falladas**. El implementador
+**no tocó ninguna aserción ajena** y escaló, que es exactamente lo que CA-18 le mandaba hacer.
+
+Las tres son las mismas dos clases de problema:
+
+1. `tests/legal-rutas-publicas.test.ts:53` (**SPEC-035 CA-2**) — afirma el literal completo
+   `matcher: ['/((?!api|_next/static|_next/image|favicon.ico).*)']`.
+2. `tests/cuenta-rutas.test.ts:69` (**SPEC-036 CA-10**) — la misma aserción, calcada.
+3. `tests/deploy-gate-workflow.test.ts:356` (**SPEC-028 CA-9.3**) — lista cerrada de claves de
+   `scripts` en `package.json`; falla porque **CA-17** exige que el generador del `.ico` sea
+   invocable por `npm run`, y aparece `icon:build`.
+
+**Decisión del humano: se amplían las tres, y no se retira `icon.svg`.** El razonamiento, que
+importa más que la decisión, es el de la tercera convención de `FOUNDATION.md`: **las tres son
+fotos del árbol, no propiedades** —congelan cómo estaba el repositorio el día de su entrega—,
+y **cada una tiene una hermana en su mismo fichero que sí mide la propiedad, y las tres
+hermanas pasan sin tocarlas**:
+
+- La hermana de (1) es *«ninguna ruta concreta se cuela como excepción DENTRO del matcher»*, y
+  lleva escrito en el propio fichero cuál es la propiedad: *«el matcher no conoce rutas de
+  producto»*. `icon.svg` **no es una ruta de producto: es un activo**, de la misma familia que
+  `_next/static`, `_next/image` y `favicon.ico`, que ya estaban en esa misma línea y por la
+  misma razón. La propiedad sigue siendo cierta.
+- La hermana de (2) comprueba que `cuenta` y `cuenta-borrada` no aparecen en el literal. Sigue
+  cierta: esta spec **no toca `PUBLIC_PREFIXES`** (CA-8).
+- (3) **ya se escribió su propia regla** la vez anterior que se amplió: *«`version:check` lo
+  trae SPEC-038 CA-13 […] entra por la puerta de delante, declarado en su spec y discutido en
+  su gate. La lista sigue cerrada: el siguiente que aparezca sin CA detrás vuelve a poner esto
+  en rojo»*. `icon:build` **tiene CA-17 detrás**, declarado en esta spec y discutido en este
+  gate: entra por la misma puerta, y la regla no se afloja ni un milímetro.
+
+**Se descartó la alternativa** que ofrecía §Notas pto. 3 —entregar sólo el `.ico`, que ya
+estaba excluido del `matcher` y no habría movido ningún literal—: dejaba sin objeto CA-1, CA-2,
+CA-5, CA-9, CA-10 y CA-15, y perdía la nitidez en pantallas densas, que es medio motivo de que
+el SVG esté aquí.
+
+La autorización **no es una excepción vaga**: se escribe como CA propio y nominal (**CA-19**),
+con las tres guardias nombradas, la exigencia de que cada ampliación lleve su porqué escrito al
+lado de la aserción, y la prohibición explícita de que nada se afloje. **Un cuarto fichero
+ajeno modificado sigue siendo RED** (CA-18).
+
 Esta spec se somete a **CE-M1** (no cambia ni un dato, ni un cálculo, ni una regla: el diff
 fuera del icono y su ruta está acotado por CA-16), a **CE-M2** (el roce está observado, y las
 piezas no observadas se aparcan en §Fuera de alcance) y a **CE-M3** (**sin migración, sin
@@ -308,12 +354,26 @@ RGB al literal correspondiente es ≤ 24 (tolerancia para el antialiasing del bo
 ### Cero regresión y cero peso nuevo (CE-M1, CE-M3)
 
 - **CA-16 (El diff está acotado: esto es presentación pura).**
-  Dado `git diff --name-only origin/main`,
+  Dado `git diff --name-only origin/main` **sobre `HEAD` y con el árbol limpio** —lo
+  **comiteado**, no el árbol de trabajo, por el motivo del párrafo de abajo—,
   entonces los ficheros tocados están **únicamente** dentro de este conjunto:
   `src/app/icon.svg`, `src/app/favicon.ico`, `src/proxy.ts`, `scripts/`, `tests/`,
-  `docs/`, `package.json`. En particular **no** hay ni un fichero bajo `src/db/`, ni bajo
-  `drizzle/`, ni bajo `src/lib/` — ni un dato, ni un cálculo, ni una regla de negocio (CE-M1).
-  El cambio en `src/proxy.ts` afecta a **una sola línea**: la del `matcher`.
+  `docs/`, `_qa/SPEC-047/`, `package.json`. En particular **no** hay ni un fichero bajo
+  `src/db/`, ni bajo `drizzle/`, ni bajo `src/lib/` — ni un dato, ni un cálculo, ni una regla
+  de negocio (CE-M1). El cambio en `src/proxy.ts` afecta a **una sola línea**: la del
+  `matcher`. Y **ninguna otra carpeta `_qa/SPEC-NNN/` aparece en el diff**: la evidencia de
+  otras specs es suya y no se reescribe desde aquí.
+
+  *Por qué «lo comiteado» y no «el árbol» (resuelve **F-SPEC-047-1**).* Las capturas de este
+  proyecto **sí se cometen** (`_qa/` lleva 269 ficheros en `main`), pero varias suites e2e
+  antiguas **escriben dentro de `_qa/` al correr**: pasar la batería entera ensucia
+  `_qa/SPEC-001/…` y compañía sin que nadie haya cambiado nada. Eso es ruido **preexistente**
+  de la suite, no trabajo de esta spec, y la regla es: **se descarta, no se commitea**. Para
+  no depender de esa disciplina, el reparto queda escrito:
+  - **capturas de trabajo → `test-results/SPEC-047/`**, que está en `.gitignore` y por tanto
+    no puede ensuciar el diff. Es donde el implementador ya las dejó y se bendice.
+  - **evidencia que se commitea → `_qa/SPEC-047/`**, y sólo esa carpeta. Es el domicilio que
+    §Evidencia visual del ledger pide, y por eso entra en el conjunto de arriba.
 
 - **CA-17 (El `.ico` se reproduce desde fuente comprometida, y no entra ninguna dependencia).**
   Dado el generador que produce el `.ico` (script propio en `scripts/`, invocable por un
@@ -325,13 +385,54 @@ RGB al literal correspondiente es ≤ 24 (tolerancia para el antialiasing del bo
   sin salida en cuanto haya que retocar el trazado, y una dependencia nueva para dibujar tres
   formas es exactamente lo que CE-M3 llama «no es una mejora».
 
-- **CA-18 (Las suites enteras siguen verdes, sin aflojar nada ajeno).**
+- **CA-18 (Las suites enteras siguen verdes, y lo ajeno no se toca salvo lo que CA-19 nombra).**
   Dadas `npm test` y `npx playwright test` completas,
-  entonces pasan; y `git diff origin/main -- tests/` no **modifica** ninguna aserción existente
-  (sólo añade ficheros o casos nuevos). Con dos verdes citados por su nombre, porque son los
-  que este cambio pone a prueba de verdad: **SPEC-035 CA-12** (ni un recurso de terceros en
-  `/legal` — que ahora también cubre el icono) y **SPEC-035 CA-13** (ninguna cookie al
-  recorrer `/legal` anónimamente — el que cazaría el fallo del `matcher`).
+  entonces pasan; y `git diff origin/main -- tests/` **añade** ficheros y casos nuevos y **no
+  modifica ninguna aserción existente**, con la **única** excepción de los **tres** ficheros
+  que CA-19 nombra uno a uno. Cualquier cuarto fichero ajeno modificado es **RED**: se escala
+  al gate, no se toca. Con dos verdes citados por su nombre, porque son los que este cambio
+  pone a prueba de verdad: **SPEC-035 CA-12** (ni un recurso de terceros en `/legal` — que
+  ahora también cubre el icono) y **SPEC-035 CA-13** (ninguna cookie al recorrer `/legal`
+  anónimamente — el que cazaría el fallo del `matcher`).
+
+- **CA-19 (Las tres guardias ajenas se amplían nombradas, y ninguna propiedad se debilita).**
+  Dadas las tres guardias que el arbitraje del 2026-08-22 autoriza a ampliar —y **sólo** esas
+  tres—,
+  cuando se mira el diff de cada una contra `origin/main`,
+  entonces se cumplen las **cuatro** condiciones siguientes, y las cuatro son verificables:
+
+  1. **Están nombradas, una a una, y son exactamente éstas**:
+     `tests/legal-rutas-publicas.test.ts` (SPEC-035 CA-2, *«sigue siendo el de siempre»*),
+     `tests/cuenta-rutas.test.ts` (SPEC-036 CA-10, la misma aserción calcada) y
+     `tests/deploy-gate-workflow.test.ts` (SPEC-028 CA-9.3, la lista cerrada de claves de
+     `scripts`).
+  2. **Cada una lleva su porqué escrito al lado de la aserción**, en el propio fichero de
+     test y no sólo en el ledger: qué vigilaba antes, qué vigila ahora y en virtud de qué CA
+     entra el elemento nuevo (`icon.svg` por CA-6/CA-7, `icon:build` por CA-17), con la fecha
+     y el arbitraje del humano. Es la condición literal que `FOUNDATION.md` exige a una
+     guardia re-encuadrada.
+  3. **Es una ampliación, no una aflojada.** La lista o el literal **crecen exactamente en el
+     elemento declarado y siguen cerrados**: no se sustituye una comparación exacta por una
+     laxa (`toEqual` → `toContain`, literal → expresión regular permisiva), no se borra ningún
+     caso, no se marca ninguno `.skip`, no se relaja ningún umbral. Verificable a ojo sobre el
+     diff, y comprobable pidiéndole al test que siga fallando con un cuarto elemento inventado.
+  4. **Ninguna propiedad protegida se debilita.** Cada una de las tres tiene una **hermana**
+     que mide la propiedad de verdad, y las tres hermanas siguen **verdes y sin tocar**:
+     *«ninguna ruta concreta se cuela como excepción DENTRO del matcher»* (la propiedad es
+     «el matcher no conoce **rutas de producto**», y `icon.svg` es un **activo**, de la misma
+     familia que `_next/static`, `_next/image` y `favicon.ico`, que ya estaban);
+     *«ni `cuenta` ni `cuenta-borrada` aparecen dentro del literal del matcher»*; y, en el caso
+     de la lista de `scripts`, la regla que ese mismo fichero ya se escribió al ser ampliado
+     una vez: *«la lista sigue cerrada: el siguiente que aparezca sin CA detrás vuelve a poner
+     esto en rojo»* — `icon:build` **tiene CA-17 detrás**, así que entra por la misma puerta
+     que `version:check` y la regla no se toca.
+
+  *Y la condición de proceso, que no es decorativa*: `FOUNDATION.md` exige que **quien toca
+  una guardia no sea quien se beneficia de que pase**. Se ha cumplido en ese orden y consta
+  en §El arbitraje…: el implementador **no tocó nada** y escaló; lo decidió el humano; y la
+  autorización queda escrita **aquí, en la spec**, antes de que se ejecute. Una ampliación que
+  aparezca en el diff **sin estar en esta lista** no está autorizada por haberla razonado en
+  el ledger a posteriori.
 
 ## Entidades y reglas afectadas
 
@@ -437,6 +538,9 @@ propósito, con su razón y con qué lo reabriría.
    absoluto, hay una salida: **entregar sólo el `.ico`**, que ya está excluido. No la
    recomiendo (se pierde la nitidez en pantallas densas y el formato que mejor envejece), pero
    es una decisión tuya de una frase.
+   **Resuelto en el gate del 2026-08-22**: se toca el `matcher` y **no** se retira el SVG. Esa
+   línea movida es la que arrastró tres guardias ajenas; el arbitraje entero, con su porqué,
+   está en §El arbitraje de las tres guardias ajenas y se ejecuta bajo **CA-19**.
 4. **Un hecho de navegador sobre el que no tengo certeza total.** El `.ico` lo justifico en
    parte con que el soporte de favicon SVG no es universal (el caso conocido es Safari). No lo
    he verificado en un Safari real desde aquí. **No cambia la decisión** —el segundo motivo, la
@@ -448,10 +552,20 @@ propósito, con su razón y con qué lo reabriría.
    verificador y mírala**: hay un salto entre «cumple los números» y «lo reconozco de un
    vistazo entre veinte pestañas», y ese salto sólo lo cierra un ojo humano. Si no te gusta,
    el sitio de decirlo es ahí y no después.
-6. **La versión.** `package.json` está en `0.3.0` y ADR-024 lo hace fuente de verdad del
-   número. Esta spec no decide si un icono merece bump; lo dejo apuntado para que no se pierda
-   en el merge.
+   **Dónde buscarlas** (resuelve `F-SPEC-047-1`): las capturas de trabajo están en
+   `test-results/SPEC-047/`, que está en `.gitignore`; la evidencia que se **commitea** va a
+   `_qa/SPEC-047/`, la única carpeta de `_qa/` que CA-16 admite en el diff. El reparto y su
+   motivo, en el párrafo de CA-16.
+6. **La versión: `0.3.0` → `0.3.1`, y es PATCH a propósito.** El borrador dejaba esto sin
+   decidir; queda decidido. El gate de ADR-024 obliga a subir el número al tocar `src/`, y el
+   implementador eligió **PATCH** porque esto es **presentación pura**: no añade capacidad ni
+   cambia un dato (CE-M1, acotado por CA-16). Lo ratifico aquí para que el verificador no lo
+   trate como sorpresa. `package.json` ya estaba en el conjunto de ficheros de CA-16, y ahora
+   lleva dos cosas: el bump y la clave `icon:build` que **CA-17** pide.
 7. **Sin ADR, sin migración, sin dependencia nueva** (CE-M3), y **sin tocar dato, cálculo ni
    regla** (CE-M1, acotado por CA-16). Si en el gate se incorpora el manifiesto o el Open
    Graph, ese encaje cambia y habría que revisarlo.
-8. **Queda en `borrador`.** El paso a `aprobada` lo firmas tú.
+8. **Estado.** Aprobada por ti el 2026-08-22 y hoy en `en-revision`. Esta enmienda **no cambia
+   el estado**: reescribe CA-16 y CA-18 y añade CA-19 para dejar por escrito lo que arbitraste
+   el 2026-08-22, y para que la autorización no quede como una excepción vaga que legitime
+   tocar tests ajenos en el futuro. Lo que queda por firmar es el veredicto del verificador.

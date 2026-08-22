@@ -51,7 +51,8 @@ epica: EPIC-MEJORA
 | CA-15 — SVG y `.ico` son el mismo icono | los dos formatos salen de la MISMA polilínea en `scripts/icon-geometry.mjs` | `tests/e2e/icono.spec.ts` › CA-15 | | ❌ |
 | CA-16 — el diff está acotado (CE-M1) | nada bajo `src/db/`, `drizzle/` ni `src/lib/` | `tests/icono-frontera.test.ts` › CA-16 (3 casos, contra `git diff origin/main`) | | ❌ |
 | CA-17 — el `.ico` se reproduce, y sin dependencia nueva | `scripts/build-icon.mjs` + `npm run icon:build` | `tests/icono-frontera.test.ts` › CA-17 (4 casos: bytes idénticos, script declarado, cero deps, sólo `node:*`) | | ❌ |
-| CA-18 — suites enteras verdes, sin aflojar nada ajeno | — | `tests/icono-frontera.test.ts` › CA-18 (el diff sobre `tests/` sólo añade ficheros) + ejecución completa de `npm test` y `npx playwright test` | | ❌ |
+| CA-18 — suites enteras verdes, y lo ajeno intacto salvo lo que CA-19 nombra | — | `tests/icono-frontera.test.ts` › CA-18 (el diff sobre `tests/` sólo añade ficheros) + ejecución completa de `npm test` y `npx playwright test` | | ❌ |
+| CA-19 — las tres guardias ajenas se amplían nombradas, y ninguna propiedad se debilita | | | | ❌ |
 
 ## Veredicto del verificador
 <!-- GREEN/RED + fecha + resumen. Lo escribe SOLO sdd-verificador. -->
@@ -87,7 +88,17 @@ Candidatos ya identificados al escribir la spec, **abiertos sólo si el gate los
 
 Y los dos que ha levantado la implementación:
 
-- **F-SPEC-047-1 — CA-16 no deja sitio para la evidencia visual.** El conjunto cerrado de
+- **F-SPEC-047-1 — CA-16 no deja sitio para la evidencia visual. RESUELTO por el arquitecto,
+  2026-08-22, enmendando CA-16.** El reparto queda escrito y es el que el implementador ya
+  eligió, ahora con respaldo en la spec: **capturas de trabajo → `test-results/SPEC-047/`**
+  (ignorado, no puede ensuciar el diff) y **evidencia que se commitea → `_qa/SPEC-047/`**, que
+  entra en el conjunto de CA-16 como **única** carpeta de `_qa/` admitida — ninguna otra
+  `_qa/SPEC-NNN/` puede aparecer en el diff. Y CA-16 pasa a evaluarse sobre **lo comiteado**
+  (`HEAD`, árbol limpio) y no sobre el árbol de trabajo, precisamente porque la suite e2e
+  reescribe `_qa/` de specs viejas: ese ruido es **preexistente**, se descarta y no se commitea.
+  El texto de abajo es el planteamiento original del implementador y se conserva.
+
+  El conjunto cerrado de
   ficheros que CA-16 permite (`src/app/icon.svg`, `src/app/favicon.ico`, `src/proxy.ts`,
   `scripts/`, `tests/`, `docs/`, `package.json`) **no incluye `_qa/`**, que en este repositorio
   no está en `.gitignore` y sí se comete. Es decir: la §Evidencia visual de este mismo ledger
@@ -100,8 +111,17 @@ Y los dos que ha levantado la implementación:
   esta spec. *Destino*: decidirlo en el gate (ampliar CA-16 con `_qa/` es una frase), o dejarlo
   escrito como convención para las mejoras siguientes.
 
-- **F-SPEC-047-2 — CA-18 y CA-6/7/8/16/17 no se pueden cumplir a la vez. BLOQUEANTE, es para
-  el gate humano.** Tres tests **ajenos** se ponen en rojo con este cambio, y ninguno de los
+- **F-SPEC-047-2 — CA-18 y CA-6/7/8/16/17 no se pueden cumplir a la vez. RESUELTO por el
+  humano (Alberto Fojo) en el gate del 2026-08-22: se amplían las tres guardias y NO se retira
+  `icon.svg`.** La autorización es nominal y vive en la spec —§El arbitraje de las tres
+  guardias ajenas y **CA-19**—, no aquí: un ledger no autoriza a tocar un test ajeno. Lo que
+  CA-19 exige de quien lo ejecute: las tres nombradas y sólo esas tres; el porqué escrito **al
+  lado de la aserción**, en el propio fichero de test; ampliación y nunca aflojada (la lista
+  sigue cerrada, nada de `.skip` ni de regex permisiva); y las tres hermanas que miden la
+  propiedad, verdes y sin tocar. Un cuarto fichero ajeno modificado sigue siendo RED (CA-18).
+  El planteamiento original del implementador se conserva abajo, tal cual lo escribió.
+
+  *Planteamiento original (bloqueante entonces):* Tres tests **ajenos** se ponen en rojo con este cambio, y ninguno de los
   tres se puede arreglar sin **modificar una aserción existente**, que es exactamente lo que
   CA-18 prohíbe. No se ha tocado ninguno.
 
