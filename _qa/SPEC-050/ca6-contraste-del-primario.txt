@@ -1,0 +1,2 @@
+SPEC-050 CA-6 — contraste del botón primario
+rgb(17, 10, 4) sobre rgb(255, 107, 0) = 6.88:1 (umbral 4,5:1)

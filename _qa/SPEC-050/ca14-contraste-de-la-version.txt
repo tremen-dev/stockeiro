@@ -1,0 +1,2 @@
+SPEC-050 CA-14 — la versión sigue legible en la primera pantalla
+rgba(245, 241, 234, 0.42) compuesto sobre rgb(17, 17, 16) = 3.77:1 (umbral 3:1)

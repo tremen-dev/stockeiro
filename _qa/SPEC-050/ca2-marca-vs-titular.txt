@@ -1,0 +1,9 @@
+SPEC-050 CA-2 — tamaño de la marca frente al titular
+ancho 360: marca=28px titular=32px
+ancho 390: marca=28px titular=32px
+ancho 640: marca=28px titular=38.4px
+ancho 700: marca=28px titular=42px
+ancho 730: marca=28px titular=43.8px
+ancho 760: marca=28px titular=45.6px
+ancho 800: marca=28px titular=48px
+ancho 1280: marca=28px titular=52px

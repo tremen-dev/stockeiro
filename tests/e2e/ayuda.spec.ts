@@ -357,13 +357,52 @@ test.describe('los estados vacíos señalan el paso siguiente', () => {
 // ---------------------------------------------------------------------------
 
 test.describe('CA-12: hay un camino visible para mandar feedback', () => {
+  /**
+   * ⚠️ **Guardia ESTRECHADA el 2026-08-23 por SPEC-050 D-5, bajo su CA-22.**
+   *
+   * Este bucle iteraba `['/ayuda', '/', '/login', '/register']`. **Se le ha quitado `/`
+   * y nada más.**
+   *
+   * - **Qué vigilaba antes**: que el canal de feedback estuviera visible también en la
+   *   primera pantalla.
+   * - **Qué vigila ahora**: que esté visible en `/ayuda` y en las dos públicas de cuenta
+   *   (`/login`, `/register`). Lo demás no se afloja: sigue exigiendo `toBeVisible()` y
+   *   sigue comprobando que el `href` empieza por `mailto:`.
+   * - **En virtud de qué entra**: **SPEC-050 D-5**. El criterio literal de SPEC-039
+   *   CA-12 es *«cualquier pantalla **autenticada** y también `/ayuda`»* — **`/` nunca
+   *   estuvo en él**: era esta prueba la que afirmaba MÁS que su criterio. Quitarla de
+   *   la landing no hace falso ningún CA. Lo **arbitró el humano (Alberto Fojo) el
+   *   2026-08-23** tras verificar él mismo los literales, y la autorización quedó
+   *   escrita en la spec ANTES de implementarse (SPEC-050 CA-22), no razonada después.
+   * - **Qué lo compensa**: **SPEC-050 CA-21** recorre `/` → «Cómo funciona, con detalle»
+   *   → `/ayuda` → el canal, navegando de verdad, para que «quitarlo de la landing» no
+   *   pueda degenerar nunca en «el visitante anónimo pierde el camino».
+   * - **Y el fichero no pierde cobertura sobre `/`**: el caso siguiente afirma lo
+   *   contrario —que ahí el canal NO se muestra—, así que la landing sigue fijada por un
+   *   test, solo que al revés.
+   *
+   * La mitad autenticada de este mismo CA (`'y desde cualquier pantalla autenticada'`)
+   * sigue verde y **sin tocar**: es la que el criterio sí pedía.
+   */
   test('desde /ayuda y desde las páginas públicas, sin sesión', async ({ page }) => {
-    for (const ruta of ['/ayuda', '/', '/login', '/register']) {
+    for (const ruta of ['/ayuda', '/login', '/register']) {
       await page.goto(ruta);
       const enlace = pie(page).getByTestId('feedback-enlace');
       await expect(enlace, `${ruta} sin camino al feedback`).toBeVisible();
       expect(await enlace.getAttribute('href')).toMatch(/^mailto:/);
     }
+  });
+
+  /** El inverso del caso que SPEC-050 D-5 retiró de la lista de arriba (CA-22 cond. 3). */
+  test('y en la primera pantalla NO se muestra: es la única ruta que el CA no pedía', async ({
+    page,
+  }) => {
+    await page.goto('/');
+    await expect(
+      pie(page).getByTestId('feedback-enlace'),
+      'el canal de feedback no puede verse en `/`: ahí quien mira todavía no ha usado la ' +
+        'app y no tiene nada sobre lo que opinar (SPEC-050 D-5)',
+    ).not.toBeVisible();
   });
 
   test('y desde cualquier pantalla autenticada', async ({ page }) => {
