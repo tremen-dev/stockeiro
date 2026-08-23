@@ -1,4 +1,4 @@
-﻿---
+---
 id: SPEC-053
 tipo: ledger
 epica: EPIC-INFRA
@@ -15,11 +15,17 @@ epica: EPIC-INFRA
   `package.json` se queda en **`0.3.4`** y el lock se sincroniza **a ese mismo número**.
   La sincronización es una **reparación**, no un bump (`npm run version:check` → **0**,
   *«El diff no toca codigo de aplicacion»*; salida pegada abajo).
-- **Hay una parada para el gate humano**: `F-SPEC-053-4`. Una guardia **ajena** —
+- **Hubo una parada para el gate humano**: `F-SPEC-053-4`. Una guardia **ajena** —
   `tests/primera-pantalla-fuente.test.ts`, SPEC-050 CA-20— se pone **roja** por la mera
-  existencia de `ADR-033`. No la toco: no es mía, la cierra CA-11/CA-12, y quien la toca
-  no puede ser quien se beneficia (`FOUNDATION.md`, ADR-031 pto. 5). **Detalle y las tres
-  salidas posibles en §Salvedades.**
+  existencia de `ADR-033`. El implementador **no la tocó**: no es suya, y quien la toca no
+  puede ser quien se beneficia (`FOUNDATION.md`, ADR-031 pto. 5). **Escaló, que es lo que
+  había que hacer.**
+- **RESUELTA el 2026-08-24.** El humano (Alberto Fojo) autorizó el arreglo y pidió que lo
+  redactara el **arquitecto**. Salida elegida: **(b) retirar el caso**, no re-encuadrarlo —el
+  re-encuadre esbozado seguiría en rojo, porque la línea `Specs relacionadas` de ADR-033
+  también contiene `SPEC-050`—. Gobernado por **CA-13** y **CA-14** de la spec, con el
+  argumento entero en §*La guardia ajena que se rompió*. **Sigue pendiente de implementar**:
+  las dos filas nuevas de la matriz están en ❌.
 
 ## Matriz de criterios de aceptación
 <!-- Escritores: sdd-implementador rellena Implementado y Test; sdd-verificador rellena Verif. y Estado. Nunca al revés. -->
@@ -32,6 +38,12 @@ epica: EPIC-INFRA
 > evidencia en §Evidencia de los criterios de gate. Convertirlos en un test que mire
 > `git diff origin/main` es exactamente lo que ADR-031 prohíbe y lo que SPEC-048 tuvo que
 > desmontar: **si aparecen como test, es RED**.
+
+> **Añadido el 2026-08-24 (CA-13 y CA-14).** **CA-13 es PROPIEDAD**, no gate: sus cuatro
+> condiciones son ciertas sobre `tests/primera-pantalla-fuente.test.ts` **tal y como queda en
+> el árbol** —qué casos tiene, qué comentario lleva, que no hay `.skip` ni exclusión por
+> nombre—, no sobre el diff. **CA-14 es mixto**: el «cero rojos» es propiedad; los dos
+> recuentos antes/después son evidencia de gate y van abajo.
 
 | CA | Implementado (fichero) | Test (fichero/caso) | Verif. | Estado |
 |---|---|---|---|---|
@@ -47,6 +59,8 @@ epica: EPIC-INFRA
 | CA-10 — no queda en el repositorio ninguna afirmación de «un solo fichero» | `scripts/check-version-bump.mjs` (el texto nuevo no reintroduce la frase); **ADR-024 NO se edita** | `tests/version-bump-gate.test.ts` — 3 casos con **centinela**: el detector *sí* se dispara sobre `docs/adr/ADR-024-*.md` (prueba a la vez que el detector funciona **y** que el ADR sigue intacto: si alguien «arreglara» la frase borrándola, este caso se pondría rojo), **no** se dispara sobre ningún `.mjs` de `scripts/`, y ADR-033 está `aprobada`, dice «enmienda», cita `ADR-024` y `pto. 8` y dice «no lo supersede» | | ❌ |
 | CA-11 — sobre `tests/` solo el fichero nuevo y adiciones a `version-bump-gate.test.ts` | `tests/version-bump-gate.test.ts`: **173 insertions, 0 deletions** contra `3b6fc8b` | **n-a (gate)** — criterio sobre el delta; evidencia abajo | | ❌ |
 | CA-12 — conjunto cerrado de ficheros de la rama | 7 ficheros, ninguno bajo `src/` | **n-a (gate)** — criterio sobre el delta; evidencia abajo | | ❌ |
+| CA-13 — la guardia ajena que se retira: nombrada, con el porqué en el sitio, sin aflojar y sin exclusión por nombre | | | | ❌ |
+| CA-14 — la suite vuelve a verde entera; 21 → 20 casos en ese fichero y ningún otro cambia de recuento | | **parte gate** — los dos recuentos, antes y después, abajo | | ❌ |
 
 ## Evidencia de los criterios de gate
 <!-- CA-2, CA-3, CA-11, CA-12. Salida de comandos pegada, no parafraseada (RI-03 opción 2). -->
@@ -198,6 +212,16 @@ y editarlo a mano está prohibido (`CLAUDE.md`).
 **Fuera de esta lista y fuera de esta rama**: `docs/epicas/EPIC-FIX/SPEC-052-*` aparece
 como *untracked* en este worktree. Es de **SPEC-052**, que va por otra rama en paralelo.
 **No se ha añadido a ningún commit** — se ha dejado exactamente como estaba.
+
+### CA-13 y CA-14 — la guardia ajena retirada (PENDIENTE, añadido el 2026-08-24)
+
+- **CA-13** — pegar el diff completo de `tests/primera-pantalla-fuente.test.ts`. Tiene que
+  ser **una supresión** (el caso de `:310-318`) **más una adición** (el comentario del
+  porqué, en su sitio) y **nada más**: ninguna otra línea del fichero, ningún `.skip`,
+  ninguna exclusión por nombre.
+- **CA-14** — pegar el recuento **antes** (`21 casos: 20 verdes + 1 rojo`, ya capturado en
+  `F-SPEC-053-4`) y **después** (`20 casos, 20 verdes`), más el total de `npx vitest run`
+  entero en los dos momentos. La diferencia global tiene que ser **exactamente un caso**.
 
 ### CA-7 — las meta-guardias de SPEC-048, con el fichero nuevo dentro
 
@@ -372,6 +396,44 @@ matriz. Un `_qa/SPEC-053/` con capturas sería teatro.
 
   **Efecto práctico**: hasta que se resuelva, `npx vitest run` sale con **1 rojo** y la CI
   de esta rama estará roja en el step `Unit tests`. Todo lo de SPEC-053 está verde.
+
+  ---
+
+  **RESUELTO POR EL GATE — 2026-08-24.** El humano (**Alberto Fojo**) autorizó el arreglo y
+  pidió que lo redactara el **arquitecto**, no el implementador. Está en la spec como
+  **CA-13** y **CA-14**, con el argumento entero en §*La guardia ajena que se rompió*.
+
+  - **Salida elegida: (b) retirar el caso.** No (a) re-encuadrar, y la razón que lo decide es
+    verificable: la línea `Specs relacionadas` de `ADR-033` **contiene** `SPEC-050` (ahí cita
+    `F-SPEC-050-4`), así que el re-encuadre esbozado en (a) **seguiría en rojo** sobre el mismo
+    ADR que lo disparó. A eso se suma que **SPEC-050 está en `hecho` y ADR-025 no la deja
+    reabrirse**: la proposición que el caso negaba no puede volver a ser falsa.
+  - **Qué vigilaba antes**: *ningún fichero de `docs/adr/` contiene la cadena `SPEC-050`*,
+    como prueba de que SPEC-050 no registró ninguna decisión (CE-M3).
+  - **Qué vigila ahora**: **nada en la suite**. Vuelve al gate, donde ya se consumó: el ledger
+    de SPEC-050 lleva el **GREEN 22/22 del 2026-08-23**. Es la salida «borrar» de
+    `FOUNDATION.md`, molde `F-SPEC-042-9`.
+  - **Cobertura perdida**: cazar automáticamente un ADR futuro que se retro-ajuste a SPEC-050.
+    Aceptada; el porqué está en la spec.
+  - **Cobertura conservada**: la otra mitad de SPEC-050 CA-20 —listas exactas de
+    `dependencies`, `devDependencies`, `scripts` y el semver—, que **sí** es propiedad, más
+    los otros **20 casos** del fichero, verdes y sin tocar.
+  - **CA-11 y CA-12 quedan enmendados** para admitir `tests/primera-pantalla-fuente.test.ts`
+    en el conjunto cerrado, **solo** con el alcance de CA-13.
+  - **Prohibido**: excluir `ADR-033` por nombre (condición 3 de CA-13).
+  - **Y sigue en pie quién hace qué**: el implementador **no tocó el fichero** y escaló, que
+    es lo que había que hacer. Ahora sí puede tocarlo, y **solo** eso.
+
+- **`F-SPEC-053-6` (menor, encontrado y resuelto por el arquitecto el 2026-08-24)** — **este
+  ledger se commiteó con un BOM UTF-8 delante del frontmatter, y eso rompía
+  `valida.mjs`.** Los tres primeros bytes del fichero eran `EF BB BF` ya en `e25078e`, así
+  que `node core/scripts/valida.mjs` daba *«sin frontmatter o sin 'id'»* sobre SPEC-053 —el
+  parser no reconoce el `---` precedido de BOM—. **Barrido**: se han comprobado los **siete**
+  ficheros de la rama y era **el único**; ni los `.ts`, ni el `.mjs`, ni el `package-lock.json`,
+  ni la spec, ni ADR-033 lo tienen. Retirado (`utf-8-sig` al leer, `utf-8` al escribir); sin un
+  solo carácter de contenido cambiado. `valida.mjs` vuelve a decir **OK**. Se anota porque es
+  invisible en un diff de texto y el siguiente que edite este fichero desde una consola de
+  Windows lo va a reintroducir.
 
 - **`F-SPEC-053-5` (menor, resuelto en el sitio; se anota porque el verificador lo verá)** —
   **`tests/tarjeta-guardias-ampliadas.test.ts` (SPEC-051 CA-17.1) también se puso roja, y

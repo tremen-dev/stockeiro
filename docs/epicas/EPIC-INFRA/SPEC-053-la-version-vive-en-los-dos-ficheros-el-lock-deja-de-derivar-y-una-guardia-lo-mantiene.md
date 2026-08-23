@@ -2,13 +2,14 @@
 id: SPEC-053
 tipo: spec
 epica: EPIC-INFRA
-estado: en-revision
+estado: en-progreso
 aprobada-por: humano (Alberto Fojo)
 historial:
   - {estado: borrador, fecha: 2026-08-23, por: sdd-arquitecto}
   - {estado: aprobada, fecha: 2026-08-23, por: humano (Alberto Fojo)}
   - {estado: en-progreso, fecha: 2026-08-23, por: sdd-implementador}
   - {estado: en-revision, fecha: 2026-08-23, por: sdd-implementador}
+  - {estado: en-progreso, fecha: 2026-08-24, por: sdd-arquitecto (CA-13 y CA-14 anadidos; enmienda de CA-11 y CA-12 autorizada por humano (Alberto Fojo) el 2026-08-24 para cerrar F-SPEC-053-4)}
 ---
 # SPEC-053 — La versión vive en los dos ficheros: el lock deja de derivar y una guardia lo mantiene
 
@@ -279,9 +280,10 @@ bastaría para descartarla. Lo que la descarta es el punto 1.
 ### Que las expectativas existentes no se aflojen por el camino
 
 - **CA-11** *(gate)*: **Dado** el diff de la rama sobre `tests/`, **cuando** se listan los
-  ficheros de test tocados, **entonces** los únicos son el **fichero nuevo** de CA-4 y
+  ficheros de test tocados, **entonces** los únicos son el **fichero nuevo** de CA-4,
   `tests/version-bump-gate.test.ts` —este último **solo** para añadir los casos de CA-8 y
-  CA-9—. En particular **no se toca** ni una línea de sus bloques *SPEC-038 CA-12* y
+  CA-9— y `tests/primera-pantalla-fuente.test.ts`, **solo** para lo que **CA-13** autoriza
+  nominalmente. En particular **no se toca** ni una línea de sus bloques *SPEC-038 CA-12* y
   *SPEC-038 CA-13* (el que congela el step de CI, `npm run version:check`, el job `Checks`
   y `fetch-depth: 0`), ni de los cinco motivos de `evaluar`, ni del contrato de códigos de
   salida de SPEC-049. Añadir sí; aflojar no. Si algo de ahí **tiene** que cambiar,
@@ -291,10 +293,18 @@ bastaría para descartarla. Lo que la descarta es el punto 1.
 
 - **CA-12** *(gate)*: **Dado** el diff completo de la rama, **cuando** se listan sus
   ficheros, **entonces** son **únicamente**: `package-lock.json`; `scripts/check-version-bump.mjs`;
-  `tests/version-bump-gate.test.ts`; el fichero de test nuevo de CA-4; esta spec y su
+  `tests/version-bump-gate.test.ts`; el fichero de test nuevo de CA-4;
+  `tests/primera-pantalla-fuente.test.ts` (**solo** lo que autoriza CA-13); esta spec y su
   ledger; `docs/adr/ADR-033-*.md`; y `docs/tablero.md`. **Ningún fichero de `src/`, ninguna
   migración, ni `.github/workflows/ci.yml`, ni `.sdd.json`, ni `package.json`.**
   **`n-a` en la columna Test.**
+
+  > **Enmienda del 2026-08-24, autorizada por el humano (Alberto Fojo).** `tests/primera-pantalla-fuente.test.ts`
+  > **no estaba** en esta lista ni en la de CA-11 cuando el humano aprobó la spec el
+  > 2026-08-23: se añade al abrirse `F-SPEC-053-4`, y **solo** con el alcance que CA-13
+  > acota. El implementador **no lo tocó** y escaló, que es lo que había que hacer; esta
+  > ampliación la escribe el **arquitecto**, no él. Cualquier otra línea de ese fichero
+  > sigue siendo **RED**.
 
   > **Y aquí se estrena la regla nueva**, que es medio punto de esta spec: si esta entrega
   > **tuviera** que subir la versión, `package.json` **y** `package-lock.json` entrarían
@@ -302,6 +312,137 @@ bastaría para descartarla. Lo que la descarta es el punto 1.
   > "app/"]` y esta rama no toca ninguna de las dos, así que `npm run version:check` dirá
   > *«El diff no toca codigo de aplicacion»* y saldrá **0**. La sincronización del lock a
   > `0.3.4` es una **reparación**, no una subida.
+
+### La guardia ajena que se rompió, y por qué se retira en vez de re-encuadrarse
+
+> **Esto se añade el 2026-08-24, después de aprobada la spec**, porque la implementación se
+> topó con una guardia **ajena** en rojo y **escaló en vez de tocarla** (`F-SPEC-053-4`). Hizo
+> lo correcto. El humano (**Alberto Fojo**) autorizó el arreglo ese mismo día y pidió que lo
+> redactara el **arquitecto**, no el implementador, por la razón de `FOUNDATION.md`: **quien se
+> beneficia de que una guardia calle no escribe cómo callarla.**
+
+#### El hecho
+
+`tests/primera-pantalla-fuente.test.ts:310-318` (**SPEC-050 CA-20**, ya mergeada) barre
+`docs/adr/` y exige que **ningún** fichero contenga la cadena `SPEC-050`:
+
+```ts
+const citantes = adrs.filter((f) => fuente(`docs/adr/${f}`).includes('SPEC-050'));
+expect(citantes, 'esta spec no toma ninguna decisión que constriña trabajo futuro (CE-M3)…').toEqual([]);
+```
+
+Verificado por mí: `npx vitest run tests/primera-pantalla-fuente.test.ts` → **1 rojo de 21**, y
+el rojo lo dispara `ADR-033`. Se puso roja con **`e24c578`** —el commit que deposita el ADR,
+mío— y **no con ningún commit del implementador**.
+
+**Por qué se dispara.** Lo que la guardia **quiere** afirmar es razonable: *SPEC-050 no registró
+ningún ADR porque no tomó ninguna decisión que constriña futuro* (CE-M3). Lo que **afirma de
+hecho** es mucho más ancho: *ningún fichero de `docs/adr/` contiene jamás la cadena `SPEC-050`*.
+Confunde **«SPEC-050 tomó una decisión»** con **«alguien menciona a SPEC-050»**. ADR-033 la
+menciona porque cita **`F-SPEC-050-4`**, el hallazgo que origina esta spec — que es exactamente
+el comportamiento sano de este proyecto: unas specs levantan hallazgos y otras los recogen.
+
+#### La salida elegida: **(b) retirar el caso**. Cuatro razones, en orden de peso
+
+**1. (a) re-encuadrar no funciona, y no lo digo por intuición: lo he comprobado.** La
+formulación que el implementador anotó —*«mirar la línea `Specs relacionadas` del ADR y exigir
+que ninguna declare a SPEC-050 como la spec que lo origina»*— **seguiría en rojo**. La línea
+`Specs relacionadas` de ADR-033 (`docs/adr/ADR-033-…md:19-23`) **contiene** `SPEC-050`, porque
+es ahí donde cita `F-SPEC-050-4`. Para que (a) pasara habría que distinguir, **en prosa libre**,
+*«la origina SPEC-053»* de *«la levanta `F-SPEC-050-4` (ledger de SPEC-050)»* — un analizador de
+texto sobre una viñeta que cada ADR redacta a su manera, y que se rompería con el primero que la
+escriba distinto. Cambiaríamos un rojo sin defecto detrás por otro rojo sin defecto detrás, más
+caro de mantener.
+
+**2. La proposición ya no puede volver a ser falsa, así que no queda nada que vigilar.** Lo que
+el caso niega es *«SPEC-050 registró un ADR»*. **SPEC-050 está en `hecho`, y una spec en `hecho`
+no se reabre** (**ADR-025**): no puede registrar nada nunca más. Una guardia sobre una pregunta
+ya zanjada no protege de nada; solo puede dar falsos rojos, que es lo que ha hecho. Es
+literalmente la **segunda salida legítima** de `FOUNDATION.md`: *borrar, si lo que vigilaba era
+del momento de la entrega y ya no puede volver a ser cierto*.
+
+**3. Y es criterio de gate, no propiedad** — **ADR-031** pto. 1.2, **RI-03**. *«Esta entrega no
+metió un ADR de tapadillo»* es cierto sobre un **delta**, y su verificador natural es el gate.
+Lo fue: el ledger de SPEC-050 lleva el **GREEN 22/22 del 2026-08-23**. El caso es el molde que
+SPEC-048 tuvo que desmontar, colado **una spec más tarde**, y con un agravante que conviene
+nombrar: los tres casos de SPEC-047 caducaron a **verde vacío** (diff vacío ⇒ aserción
+trivialmente cierta); éste caduca a **rojo falso**, porque el conjunto que barre (`docs/adr/`)
+solo crece. El verde vacío engaña en silencio; el rojo falso **para la CI de un tercero**, que
+es exactamente lo que le acaba de pasar a esta rama.
+
+**4. (c) —spec propia— sería ceremonia.** Es la retirada de un caso, en un fichero que esta rama
+ya tiene que poder tocar (CA-11 y CA-12 enmendadas), con la autorización nominal ya dada. Una
+spec entera para eso cuesta más que el defecto y deja la CI roja mientras tanto.
+
+**Y el parche que NO se acepta, escrito para que no vuelva**: excluir `ADR-033` **por nombre**
+del filtro. Dejaría el molde intacto y volvería a romperse con el siguiente ADR que mencione a
+SPEC-050 —y habrá más, porque `F-SPEC-050-4` es un hallazgo vivo—. Lo descartó el humano el
+**2026-08-24** y **no tengo argumento que oponerle: coincido**; la condición 3 de CA-13 lo
+prohíbe explícitamente.
+
+#### Qué cobertura se pierde, y por qué es aceptable
+
+**Se pierde**: cazar automáticamente que alguien, en el futuro, **retro-ajuste un ADR a
+SPEC-050** presentándola como la spec que lo origina. Aceptable por tres motivos: (i) sería una
+afirmación falsa sobre una spec `hecho`, que **ADR-025** ya prohíbe; (ii) todo ADR pasa por el
+gate humano, que es donde ese criterio de gate debe verificarse; y (iii) el precio de
+conservarla es el analizador de prosa del punto 1, que ya sabemos que da rojos sin defecto.
+
+**No se pierde**: la **otra mitad de CA-20** —las listas **exactas** de `dependencies`,
+`devDependencies` y `scripts` de `package.json`, y que `version` siga siendo semver— que **sí**
+es una propiedad del árbol, no depende de git, y **se queda intacta**. Los otros 20 casos del
+fichero, también.
+
+**Y por qué aquí no hay «inverso» que poner, a diferencia de SPEC-050 CA-22.** Aquel precedente
+pudo sustituir el caso retirado por su contrario —*«en `/` el canal NO se muestra»*— porque lo
+retirado era una afirmación sobre un **comportamiento vivo**, que seguía teniendo dos valores
+posibles. Aquí no: la proposición está zanjada, y su contrario —*«SPEC-050 sí registró un
+ADR»*— es falso **y** tan incomprobable a futuro como el original. Un test en su lugar sería el
+verde vacío que ADR-031 prohíbe. Lo que sustituye al caso es **prosa en el sitio** (condición 2
+de CA-13), que es el molde que `FOUNDATION.md` sanciona para la salida «borrar» y que
+**`F-SPEC-042-9`** ya usó.
+
+### Los criterios que gobiernan el arreglo
+
+- **CA-13** *(propiedad)* **— la única guardia ajena que se retira, nombrada, y sin perder
+  fuerza.** **Dado** el único caso ajeno que esta entrega toca —y **solo** ése—, **cuando** se
+  lee `tests/primera-pantalla-fuente.test.ts` **tal y como queda en el árbol**, **entonces** se
+  cumplen las **cuatro** condiciones, que son las mismas que **SPEC-047 CA-19** impuso a las
+  suyas y **SPEC-050 CA-22** a la suya:
+
+  1. **Está nombrado, y es exactamente éste**: `tests/primera-pantalla-fuente.test.ts:310-318`,
+     el caso *«`docs/adr/` no gana ningún fichero por esta spec: no hay decisión que
+     registrar»*, del bloque **SPEC-050 CA-20**. Se **retira entero**. Ninguna otra línea de ese
+     fichero, y ningún otro fichero ajeno.
+  2. **Lleva su porqué escrito en el sitio** —en el propio fichero, donde estaba el caso, y no
+     solo en el ledger—: **qué vigilaba antes**, **qué vigila ahora** (nada en la suite: la
+     afirmación vuelve al gate, donde ya se consumó), **en virtud de qué CA** (`SPEC-053 CA-13`),
+     con la **fecha** y la **autorización nominal del humano (Alberto Fojo) del 2026-08-24**, y
+     dejando constancia de que **quien lo escribe no es quien se beneficia**: lo escaló el
+     implementador como `F-SPEC-053-4` y lo redacta el **arquitecto**. Molde: `F-SPEC-042-9` y
+     SPEC-048 CA-8.
+  3. **No es una aflojada y no se toca nada más.** Los otros **20 casos** del fichero siguen
+     **verdes y sin una línea tocada** —en particular la otra mitad del propio CA-20—. No se
+     marca nada `.skip`, no se borra ningún otro caso, no se cambia ninguna comparación exacta
+     por una laxa, y —**explícitamente prohibido**— **no se añade ninguna exclusión por nombre**
+     de `ADR-033` ni de ningún otro fichero: eso dejaría el molde vivo para el siguiente.
+  4. **Ninguna propiedad protegida se debilita.** Lo retirado no era una propiedad: era un
+     criterio de gate ya verificado (GREEN 22/22 de SPEC-050, 2026-08-23) sobre una pregunta que
+     **ADR-025** deja cerrada para siempre. Lo que sí era propiedad en CA-20 se queda.
+
+  *Y la condición de proceso, que no es decorativa*: el implementador **no tocó el fichero** y
+  escaló; el humano lo autorizó el **2026-08-24**; y la autorización queda escrita **aquí, en la
+  spec, antes de que se implemente**. Un cambio en ese fichero que no esté en esta lista **no
+  está autorizado** por haberse razonado en el ledger a posteriori.
+
+- **CA-14** *(propiedad + gate)* **— la suite vuelve a verde entera, y no por haber aflojado
+  otra cosa.** **Dado** el árbol entregado, **cuando** se ejecuta `npx vitest run`, **entonces**
+  hay **cero rojos**; y el recuento lo demuestra caso a caso: `tests/primera-pantalla-fuente.test.ts`
+  pasa de **21 casos (20 verdes + 1 rojo)** a **20 casos, los 20 verdes** —la diferencia es
+  **exactamente uno**, y es el retirado—, y **ningún otro fichero de `tests/` cambia su número
+  de casos**. Los dos recuentos, antes y después, van al ledger. Un verde global obtenido
+  retirando dos casos en vez de uno es **RED**.
+
 
 ## Entidades y reglas afectadas
 
@@ -415,6 +556,18 @@ que el job de e2e se acerque a su `timeout-minutes: 25`.
 - **No se toca `check-alive.mjs` ni `/api/version`.** El semver que sirven sale de
   `package.json` y seguirá saliendo de ahí. Esta spec no cambia ni un byte de lo que ve el
   usuario.
+- **No se escribe una meta-guardia contra este molde.** La forma rota es concreta y
+  nombrable: *una aserción que enumera `docs/adr/` y espera que el resultado sea vacío*. Ese
+  directorio **solo crece**, así que cualquier afirmación negativa cerrada sobre él nace
+  caducada. Y hay que distinguirla de la forma **sana**, que este mismo proyecto usa y que
+  esta spec usa en CA-10: afirmar una propiedad de un ADR **nombrado** (*«`ADR-024` sigue
+  conteniendo esta frase»*) es permanente y legítimo. Una meta-guardia que no supiera separar
+  las dos mataría el centinela de CA-10. Y aunque supiera: **es una sola aparición**, no un
+  patrón — `grep` sobre `tests/` da dos ficheros que leen `docs/adr/`, y el otro es el de
+  CA-10, que es de la forma sana. `FOUNDATION.md` creó su convención tras **cuatro**
+  incidentes y ADR-031 su meta-guardia tras **cinco**. *Destino*: **EPIC-FIX**. *Lo que lo
+  dispara*: la **segunda** aparición del molde. Queda escrito para que quien la vea sepa que
+  ya es la segunda.
 - **No se revisan las versiones históricas.** El lock dijo `0.3.2` durante dos subidas y
   eso queda como está: reescribir el histórico para que un campo derivado cuadre
   retroactivamente no vale lo que cuesta, y `git filter-repo` invalidaría todas las
@@ -466,6 +619,26 @@ Si en la verificación ves alguno de esos cuatro convertido en un test que mira
 que `npm run version:check` saldrá `0` diciendo *«El diff no toca codigo de aplicacion»*.
 La sincronización del lock a `0.3.4` es una reparación, no un bump. Si al verificar ves el
 número movido a `0.3.5`, pregunta por qué.
+
+**9. Lo añadido el 2026-08-24: la guardia ajena, y la salida que elegí.** Me pediste que lo
+redactara yo y no el implementador; lo he hecho, y **elijo (b) retirar el caso**, no (a)
+re-encuadrarlo. El argumento que lo decide **no** es el tuyo —que «acotado» es criterio de gate,
+que lo es y lo digo como razón 3—, sino uno que he comprobado y que nadie tenía: **(a) no
+funciona**. La línea `Specs relacionadas` de ADR-033 contiene `SPEC-050`, así que el
+re-encuadre que el implementador esbozó **seguiría en rojo** sobre el mismísimo ADR que lo
+disparó; para pasar tendría que ser un analizador de prosa libre. Y hay una razón 2 que estaba
+antes que todas: **SPEC-050 está en `hecho` y ADR-025 no la deja reabrirse**, así que la
+proposición que el caso negaba no puede volver a ser falsa — no hay nada que vigilar. **Lo que
+se pierde está escrito sin adornos** en §Qué cobertura se pierde. **El parche de excluir
+`ADR-033` por nombre lo prohíbe la condición 3 de CA-13**: coincido contigo y no tengo
+argumento que oponerte.
+
+**10. Dos CA nuevos y dos enmendados; míralo con lupa porque toca acotación.** CA-13 y CA-14
+son nuevos. **CA-11 y CA-12 los he enmendado** para admitir `tests/primera-pantalla-fuente.test.ts`
+en el conjunto cerrado —sin eso, el arreglo sería RED por mi propia spec—, y la enmienda va
+marcada con su fecha y tu autorización dentro de CA-12. **Cualquier otra línea de ese fichero
+sigue siendo RED**, y el fichero entero seguía fuera del conjunto cuando aprobaste el
+2026-08-23.
 
 **8. La guardia tiene que nacer roja, y quiero ese rojo en el ledger.** El defecto está
 vivo sobre `3b6fc8b`: escribir el test **antes** de tocar el lock lo pone rojo por un
