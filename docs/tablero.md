@@ -69,6 +69,7 @@ Actualizado: 2026-08-22
 | SPEC-033 — la-puerta-post-deploy-deja-de-perder-la-carrera-con-commit-unknown-es-transitorio | hecho | 2026-08-21 (sdd-verificador) |
 | SPEC-040 — el-movil-completa-el-alta-de-una-vigilada-y-la-guardia-de-geometria-deja-de-ser-ciega | hecho | 2026-08-20 (sdd-verificador) |
 | SPEC-043 — la-cotizacion-que-dejo-de-refrescarse-lo-dice-y-la-cuota-agotada-deja-de-disfrazarse-de-caida-del-proveedor | hecho | 2026-08-21 (sdd-verificador) |
+| SPEC-046 — el-panel-de-edicion-se-abre-donde-el-usuario-mira-y-la-guardia-lo-mide | hecho | 2026-08-22 (sdd-verificador) |
 
 ## EPIC-INFRA (aprobada)
 
@@ -122,6 +123,7 @@ Actualizado: 2026-08-22
 | ADR-027 | aprobada | el-presupuesto-del-proveedor-de-precios-se-mide-en-simbolos-por-ciclo-no-en-llamadas-y-la-cuota-agotada-es-un-motivo-propio | 2026-08-21 (humano (Alberto Fojo)) |
 | ADR-028 | aprobada | el-episodio-de-zona-sobrevive-al-cambio-de-opinion-editar-una-zona-es-una-actualizacion-y-la-reconciliacion-es-del-ciclo-siguiente | 2026-08-21 (humano (Alberto Fojo)) |
 | ADR-029 | aprobada | el-silencio-se-aplica-al-aviso-no-a-la-deteccion-la-vigilada-silenciada-sigue-ingiriendo-evaluando-y-abriendo-episodios-y-su-aviso-de-entrada-queda-pendiente | 2026-08-21 (humano (Alberto Fojo)) |
+| ADR-030 | aprobada | lo-que-abre-una-fila-vive-anclado-a-la-ventana-y-la-geometria-mide-la-respuesta-al-gesto | 2026-08-22 (humano (Alberto Fojo)) |
 
 ## Resumen
 

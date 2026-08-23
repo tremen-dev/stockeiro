@@ -139,17 +139,75 @@
   align-items: center;
   min-width: 0;
 }
-.editar-vigilada {
-  display: grid;
-  gap: 12px;
-  margin-top: 18px;
+/* --- SPEC-046 / ADR-030 — la capa de edición, anclada al BORDE INFERIOR ---------
+
+   Lo que esta regla compra, y es toda la decisión: **la caja se define respecto al
+   viewport**, así que la distancia entre el gesto y su respuesta deja de depender de la
+   longitud de la lista, de la fila pulsada y del desplazamiento de la página. Con la
+   superficie en el flujo detrás de la tabla —donde la dejó SPEC-044— esa distancia crecía
+   con la lista, y con cuarenta filas el usuario no veía nada suceder.
+
+   Sigue sin declarar un ancho distinto del que ya cabe (CA-8): la CAJA del formulario
+   —anchos, `min-width`, cómo encogen los campos— la fija SPEC-040 sobre `.auth-form`, y
+   por eso la capa va **sin relleno, sin borde y sin fondo**: lo que se ve es la tarjeta de
+   siempre, y la capa y el formulario miden lo mismo.
+
+   Si el contenido no cabe a lo alto —caso legítimo a 360 px— el desplazamiento es
+   **vertical, propio y declarado** (ADR-026 §4, segunda salida). Nunca `overflow: hidden`,
+   y nunca una capa que sobresalga por abajo confiando en que el usuario lo descubra. */
+dialog.editar-vigilada {
+  position: fixed;
+  inset: auto 0 0 0;
+  width: min(520px, 100%);
+  max-width: 100%;
+  margin: 0 auto;
+  padding: 0;
+  border: 0;
+  background: transparent;
+  color: inherit;
   min-width: 0;
+  max-height: 92dvh;
+  overflow-y: auto;
+  /* El desplazamiento de la capa no se propaga a la página que hay detrás. */
+  overscroll-behavior: contain;
+}
+/* El velo **atenúa, no oculta**: la lista se sigue leyendo detrás, que es la devolución
+   parcial —y honesta— del contexto que se le debe a la fila desplegable, la opción que el
+   humano prefería (ADR-030 §1). Recupera la VISTA de la lista, no la interacción con ella,
+   que el modo modal suspende a propósito. Lo que mide CA-6(f) no es este número: es el
+   contraste EFECTIVO del texto de la tabla con este velo puesto. */
+dialog.editar-vigilada::backdrop {
+  background: rgba(10, 9, 8, 0.45);
+}
+/* La tarjeta llega al borde inferior: es una hoja, no una tarjeta flotante. */
+dialog.editar-vigilada .auth-form {
+  border-bottom-left-radius: 0;
+  border-bottom-right-radius: 0;
+}
+/* `.card:hover` del sistema levanta la tarjeta 3 px. Dentro de una hoja anclada eso es una
+   capa que se mueve al pasar el ratón, y además ruido en cualquier medida de su caja. */
+dialog.editar-vigilada .card:hover {
+  transform: none;
+}
+.editar-confirmacion {
+  gap: 12px;
 }
 .editar-cadencia {
-  margin-top: 18px;
+  margin: 0;
   color: var(--fg-dim);
   font-size: var(--t-body-sm);
   min-width: 0;
+}
+/* SPEC-046 CA-3 — la fila en edición se distingue DETRÁS del velo, y deja de distinguirse
+   al cerrar. El realce no ocupa caja —`outline` y `box-shadow` no participan en la
+   maquetación— así que el color de fondo de la fila sigue siendo el estado de zona
+   (SPEC-007) y ninguna medida de geometría cambia por esto. */
+.data-table tbody tr.fila-editando {
+  outline: 2px solid var(--ember);
+  outline-offset: -2px;
+}
+.data-table tbody tr.fila-editando > td:first-child {
+  box-shadow: inset 3px 0 0 0 var(--ember);
 }
 
 .auth-error {

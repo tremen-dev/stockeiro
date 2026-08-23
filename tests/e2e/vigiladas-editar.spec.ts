@@ -91,6 +91,20 @@ async function abrirEdicion(page: Page, ticker: string): Promise<void> {
   await expect(formEdicion(page)).toBeVisible();
 }
 
+/**
+ * Cierra la superficie de edición.
+ *
+ * **Ajuste mecánico de SPEC-046, no re-encuadre de una aserción**: hasta SPEC-044 el
+ * control «Editar» ALTERNABA, así que cerrar era volver a pulsarlo. Desde ADR-030 §2 la
+ * superficie es un `<dialog>` modal y **el fondo queda inerte**: volver a pulsar «Editar»
+ * ya no es un gesto que un usuario pueda hacer, y un test que lo hiciera estaría probando
+ * algo que la pantalla no ofrece. Se cierra por donde se cierra de verdad.
+ */
+async function cerrarEdicion(page: Page): Promise<void> {
+  await page.getByTestId('editar-cancelar').click();
+  await expect(panel(page)).toHaveCount(0);
+}
+
 /* ────────────────────────────────────────────────────────────────────────────
    CA-19 / CA-20 — el panel, y de qué está hecho
    ──────────────────────────────────────────────────────────────────────────── */
@@ -122,7 +136,7 @@ test('SPEC-044 CA-19: el control por fila abre un formulario con los valores act
   ).toHaveCount(0);
 
   // (d) Una zona SIN definir aparece vacía, no con `0`.
-  await editarDe(page, 'Z5EDIT').click(); // cerrar
+  await cerrarEdicion(page);
   await abrirEdicion(page, 'Z5TESTIGO');
   await expect(formEdicion(page).locator('input[name="sellMin"]')).toHaveValue('');
   await expect(formEdicion(page).locator('input[name="sellMax"]')).toHaveValue('');
@@ -145,7 +159,31 @@ test('SPEC-044 CA-20: el panel reutiliza la caja del alta, sin buscador y sin an
     'el panel de edición vive DENTRO de `.table-scroll`: ahí M1 deja de medirlo',
   ).toBe(false);
 
-  // El panel no impone ancho: el que manda es el de `.auth-form` (SPEC-040).
+  /*
+    RE-ENCUADRE DE SPEC-046 CA-14 ─────────────────────────────────────────────────
+
+    Estas dos aserciones codificaban DÓNDE estaba el panel, no qué caja tenía, y por eso
+    hay que re-encuadrarlas —nunca aflojarlas— al anclar la superficie a la ventana
+    (ADR-030 §1). Queda escrito qué vigilaba cada una y qué vigila ahora; el detalle
+    largo, en el ledger de SPEC-046.
+
+    (1) `maxWidth === 'none'`.
+        Vigilaba: «el panel no declara caja propia: la fija `.auth-form` (SPEC-040)». Se
+        expresaba como la AUSENCIA de un `max-width`, que sólo es posible mientras la
+        superficie va en flujo y hereda el ancho de la columna.
+        Vigila ahora: **la caja visible sigue siendo la del formulario**. La capa no pinta
+        nada propio —sin relleno, sin borde y sin fondo—, así que lo que se ve es la misma
+        tarjeta del alta; y su ancho no supera lo que cabe en la ventana. Es la misma
+        propiedad (SPEC-044 CA-20 y SPEC-046 CA-8), medida por lo que de verdad la
+        sostiene.
+
+    (2) `ancho del panel ≈ ancho del formulario`.
+        Vigilaba: «el panel es transparente al ancho: el que manda es `.auth-form`».
+        Vigila ahora: lo mismo, y por eso la comparación NO se toca. Lo que cambia es su
+        motivo: antes probaba que el panel no imponía ancho al ir en flujo; ahora prueba
+        que la capa no añade caja alrededor del formulario aunque su anchura la fije ella.
+        Se le añade el techo que antes daba el flujo: nunca más ancha que la ventana.
+  */
   const cajas = await page.evaluate(() => {
     const p = document.querySelector('[data-testid="editar-panel"]')!;
     const f = document.querySelector('[data-testid="editar-form"]')!;
@@ -153,11 +191,25 @@ test('SPEC-044 CA-20: el panel reutiliza la caja del alta, sin buscador y sin an
     return {
       panel: p.getBoundingClientRect().width,
       form: f.getBoundingClientRect().width,
-      maxWidth: estilo.maxWidth,
+      ventana: document.documentElement.clientWidth,
+      relleno: estilo.padding,
+      borde: estilo.borderTopWidth,
+      fondo: estilo.backgroundColor,
     };
   });
-  expect(cajas.maxWidth, 'el panel declara un `max-width` propio').toBe('none');
+  expect(
+    { relleno: cajas.relleno, borde: cajas.borde },
+    'la capa pinta caja propia (relleno o borde) alrededor del formulario: la caja que se ' +
+      've dejó de ser la de `.auth-form` que fijó SPEC-040',
+  ).toEqual({ relleno: '0px', borde: '0px' });
+  expect(cajas.fondo, 'la capa pinta fondo propio bajo la tarjeta del formulario').toBe(
+    'rgba(0, 0, 0, 0)',
+  );
   expect(Math.abs(cajas.panel - cajas.form)).toBeLessThanOrEqual(1);
+  expect(
+    cajas.panel,
+    `la capa mide ${Math.round(cajas.panel)} en una ventana de ${cajas.ventana}`,
+  ).toBeLessThanOrEqual(cajas.ventana + 1);
 });
 
 /* ────────────────────────────────────────────────────────────────────────────
@@ -178,7 +230,23 @@ test('SPEC-044 CA-21: guardar cierra el panel y la tabla enseña los valores nue
   await formEdicion(page).locator('input[name="buyMax"]').fill('40');
   await formEdicion(page).locator('button[type="submit"]').click();
 
-  await expect(panel(page)).toHaveCount(0); // el panel se cierra
+  /*
+    RE-ENCUADRE DE SPEC-046 CA-14 ─────────────────────────────────────────────────
+
+    (3) `panel().toHaveCount(0)` tras guardar.
+        Vigilaba: «guardar cierra la superficie de edición y no deja un formulario
+        editable colgando». Se expresaba como la desaparición del panel porque, con la
+        confirmación pintada al final del documento, cerrar era lo único que ocurría.
+        Vigila ahora: lo mismo, en sus dos mitades y sin perder ninguna. El **formulario**
+        sí desaparece al guardar —ésa era la mitad viva— y la **superficie** deja de estar
+        a la vista **cuando el usuario la cierra**, que es lo que decidió el humano en el
+        gate del 2026-08-22 (SPEC-046 CA-13). Dejarlo en «sigue abierta» a secas habría
+        sido aflojarla; lo que se hace es exigir las dos cosas.
+  */
+  await expect(formEdicion(page)).toHaveCount(0);
+  await expect(page.getByTestId('editar-confirmacion')).toBeVisible();
+  await page.getByTestId('editar-cerrar').click();
+  await expect(panel(page)).toHaveCount(0);
   await expect(async () => {
     expect((await zonasDe(page, 'Z5EDIT'))[0]).toBe('30 – 40');
   }).toPass();
@@ -221,6 +289,13 @@ test('SPEC-044 CA-22: al guardar, la pantalla dice que el aviso llega con el pr�
 
   const aviso = page.getByTestId('edicion-cadencia');
   await expect(aviso).toBeVisible();
+  // SPEC-046 CA-13: la MISMA frase, ahora donde se hizo el gesto y no al final del
+  // documento. El selector cambia de sitio; lo que se afirma, no.
+  expect(
+    await aviso.evaluate((el) => el.closest('[data-testid="editar-panel"]') !== null),
+    'la confirmación se volvió a pintar fuera de la capa: con una lista larga eso es ' +
+      'invisible (ADR-030 §6)',
+  ).toBe(true);
   // La MISMA frase que la primera pantalla, `/ayuda` y el estado vacío (SPEC-039 CA-3).
   await expect(aviso).toHaveText(CADENCIA_LINEA);
   // Y no se promete inmediatez por otro lado.
@@ -247,6 +322,7 @@ test('SPEC-044 CA-24: reordenar y editar edita LA FILA PULSADA, y la tabla sigue
   await formEdicion(page).locator('input[name="buyMin"]').fill('11');
   await formEdicion(page).locator('input[name="buyMax"]').fill('13');
   await formEdicion(page).locator('button[type="submit"]').click();
+  await page.getByTestId('editar-cerrar').click();
 
   await expect(async () => {
     expect((await zonasDe(page, 'Z5EDIT'))[0]).toBe('11 – 13');
@@ -293,10 +369,7 @@ test('SPEC-044 CA-23: M1, M2, M3 y alcance de los controles a los ocho anchos', 
 
       const abierto = (await panel(page).count()) > 0;
       if (estado === 'abierto' && !abierto) await abrirEdicion(page, 'Z5EDIT');
-      if (estado === 'cerrado' && abierto) {
-        await editarDe(page, 'Z5EDIT').click();
-        await expect(panel(page)).toHaveCount(0);
-      }
+      if (estado === 'cerrado' && abierto) await cerrarEdicion(page);
 
       // (a) M1 — desborde por elemento. La medida principal: `overflow: hidden` no la
       //     puede enmascarar, que es justo lo que dejó a SPEC-040 en verde con el botón

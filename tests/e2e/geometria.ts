@@ -1,4 +1,4 @@
-import type { Page } from '@playwright/test';
+import type { Locator, Page } from '@playwright/test';
 
 /**
  * ADR-026 — La geometría de la interfaz se mide elemento a elemento, en ESTE módulo.
@@ -178,6 +178,22 @@ export interface MedidaM1 {
   violaciones: Desbordado[];
   /** Cuántos elementos se llegaron a medir. Si es 0, la medida no midió nada. */
   medidos: number;
+  /**
+   * De qué elementos se tomó medida, entre los que casan el selector `testigos`
+   * (SPEC-046 CA-7b, ADR-030 §5).
+   *
+   * M1 devuelve por defecto **cuántos** elementos midió, y eso basta para saber que la
+   * medida no se quedó a cero. No basta para saber que midió **el elemento que a esta
+   * guardia le importa**: una capa que se cuela por la puerta de atrás de
+   * `EXCLUSIONES_M1`, o que queda bajo la exención de contenedor desplazable, deja la
+   * cifra global intacta y desaparece del conjunto sin que nada se ponga rojo.
+   *
+   * Por eso quien mide puede pedir **testigos**: los nombres de los elementos medidos
+   * que casan un selector suyo. Si la lista vuelve vacía, la medida no midió lo que se
+   * creía y su «cero violaciones» no aprueba nada. Se pide por selector —no se devuelve
+   * el conjunto entero— porque son miles de elementos por ejecución.
+   */
+  testigos: string[];
 }
 
 /**
@@ -211,13 +227,14 @@ export interface MedidaM1 {
  */
 export async function medirDesbordePorElemento(
   page: Page,
-  opciones: { raices?: string; exclusiones?: readonly Exclusion[] } = {},
+  opciones: { raices?: string; exclusiones?: readonly Exclusion[]; testigos?: string } = {},
 ): Promise<MedidaM1> {
   const raices = opciones.raices ?? RAICES;
   const exclusiones = selectorDeExclusiones(opciones.exclusiones ?? EXCLUSIONES_M1);
+  const testigos = opciones.testigos ?? null;
 
   return page.evaluate(
-    ({ raices, exclusiones, tolerancia }) => {
+    ({ raices, exclusiones, testigos, tolerancia }) => {
       const ventana = document.documentElement.clientWidth;
       const violaciones: {
         selector: string;
@@ -226,6 +243,7 @@ export async function medirDesbordePorElemento(
         ancho: number;
       }[] = [];
       let medidos = 0;
+      const vistosTestigo: string[] = [];
 
       const nombrar = (el: Element) => {
         const clases = [...el.classList].slice(0, 2).join('.');
@@ -277,6 +295,8 @@ export async function medirDesbordePorElemento(
           // Invisible: ni ocupa ni se ve. No es maquetación.
           if (r.width === 0 && r.height === 0) continue;
           medidos += 1;
+          // SPEC-046 CA-7b: constancia de que ESTE elemento entró en la medida.
+          if (testigos && el.matches(testigos)) vistosTestigo.push(nombrar(el));
 
           if (r.right > ventana + tolerancia || r.left < -tolerancia) {
             violaciones.push({
@@ -290,9 +310,15 @@ export async function medirDesbordePorElemento(
       }
 
       violaciones.sort((a, b) => b.derecha - a.derecha);
-      return { ventana, peor: violaciones[0] ?? null, violaciones, medidos };
+      return {
+        ventana,
+        peor: violaciones[0] ?? null,
+        violaciones,
+        medidos,
+        testigos: vistosTestigo,
+      };
     },
-    { raices, exclusiones, tolerancia: TOLERANCIA_PX },
+    { raices, exclusiones, testigos, tolerancia: TOLERANCIA_PX },
   );
 }
 
@@ -416,6 +442,247 @@ export async function medirIntegridadDePalabra(
     { selector, contenedor },
   );
 }
+
+/* ────────────────────────────────────────────────────────────────────────────
+   M4 — la respuesta al gesto cae dentro de la ventana (ADR-030 §3)
+   ──────────────────────────────────────────────────────────────────────────── */
+
+export interface Contencion {
+  /** `tag.clase[data-testid]` de la superficie medida. */
+  selector: string;
+  top: number;
+  bottom: number;
+  alto: number;
+  ventanaAlto: number;
+  /** Cuántos px de la superficie quedan POR DEBAJO del pliegue. **La cifra del defecto.** */
+  porDebajoDelPliegue: number;
+  /** Cuántos px quedan por encima del borde superior de la ventana. */
+  porEncimaDelBorde: number;
+  /** `true` si la superficie entera cabe entre el borde superior y el pliegue. */
+  dentroDeLaVentana: boolean;
+}
+
+/**
+ * **La mitad de M4 que no depende del gesto**: ¿esta superficie cabe entre el borde
+ * superior de la ventana y el pliegue, tal y como está la página ahora mismo?
+ *
+ * Se expone aparte porque hay un caso en el que hace falta sola: cuando el gesto **sí**
+ * desplazó el documento, M4 ya reporta violación por esa mitad, pero la **cifra que hay
+ * que enseñar** —a cuántos píxeles por debajo del pliegue se pintó la superficie— sólo
+ * aparece si se devuelve la página a donde estaba y se vuelve a mirar. Es exactamente lo
+ * que necesita la prueba de eficacia de SPEC-046 CA-10.
+ *
+ * No sustituye a M4 y no se usa en su lugar: sin la otra mitad, «llevar al usuario a la
+ * superficie» pasaría la medida (ADR-030 §3).
+ */
+export async function medirContencionEnLaVentana(
+  page: Page,
+  revelado: Locator,
+): Promise<Contencion> {
+  return revelado.evaluate((el, tolerancia) => {
+    const r = el.getBoundingClientRect();
+    const alto = document.documentElement.clientHeight;
+    const clases = [...el.classList].slice(0, 2).join('.');
+    const testid = el.getAttribute('data-testid');
+    return {
+      selector:
+        el.tagName.toLowerCase() +
+        (clases ? `.${clases}` : '') +
+        (testid ? `[data-testid="${testid}"]` : ''),
+      top: r.top,
+      bottom: r.bottom,
+      alto: r.height,
+      ventanaAlto: alto,
+      porDebajoDelPliegue: Math.max(0, r.bottom - alto),
+      porEncimaDelBorde: Math.max(0, -r.top),
+      dentroDeLaVentana: r.top >= -tolerancia && r.bottom <= alto + tolerancia,
+    };
+  }, TOLERANCIA_PX);
+}
+
+/** El relato de una contención, **con la cifra**. */
+export const describirContencion = (c: Contencion): string =>
+  `${c.selector}: top=${Math.round(c.top)} bottom=${Math.round(c.bottom)} ` +
+  `(alto ${Math.round(c.alto)}) sobre una ventana de ${c.ventanaAlto} px · ` +
+  (c.porDebajoDelPliegue > 0
+    ? `${Math.round(c.porDebajoDelPliegue)} px POR DEBAJO DEL PLIEGUE`
+    : c.porEncimaDelBorde > 0
+      ? `${Math.round(c.porEncimaDelBorde)} px por encima del borde superior`
+      : 'dentro de la ventana');
+
+export interface MedidaM4 extends Contencion {
+  /** Rótulo del gesto, para el mensaje de fallo. */
+  etiqueta: string;
+  /** Posición de desplazamiento del documento **antes** del gesto (F-ADR-030-1). */
+  scrollAntes: { x: number; y: number };
+  /** Y después. Si no coinciden, al usuario lo han movido de sitio. */
+  scrollDespues: { x: number; y: number };
+  /** `true` si el gesto desplazó el documento. Es media violación por sí solo. */
+  desplazoElDocumento: boolean;
+  /** `dentroDeLaVentana === false || desplazoElDocumento === true`. */
+  viola: boolean;
+}
+
+/**
+ * **M4 — la respuesta al gesto cae dentro de la ventana.** La cuarta medida de la
+ * geometría del proyecto, y la primera que pregunta por el **eje vertical**.
+ *
+ * ## Por qué existe (ADR-026 §2, ejercido por primera vez)
+ *
+ * M1, M2 y M3 son horizontales: preguntan *«¿cabe a lo ancho?»*. Un elemento a 2.400 px
+ * por debajo del pliegue **cabe perfectamente**, así que las tres lo aprueban. La familia
+ * entera de *«el gesto no produce nada visible»* estaba fuera de su alcance, y por ahí se
+ * coló el defecto de SPEC-044: pulsar *Editar* en la primera fila de una lista larga
+ * abría el panel al final de la lista, con la suite en verde.
+ *
+ * La lección de SPEC-040 no era «mide elemento a elemento»: era **«una medida sólo ve lo
+ * que pregunta, así que la pregunta hay que escribirla»**. Ésta es la pregunta que
+ * faltaba, y vive **aquí** para que la herede quien venga detrás sin copiar nada.
+ *
+ * ## La forma, tal y como la fija ADR-030 §3
+ *
+ * > Dado un control y el elemento que su activación revela, tras el gesto y **sin ningún
+ * > desplazamiento programático**, el elemento revelado tiene `top >= -tolerancia` y
+ * > `bottom <= innerHeight + tolerancia`, y la posición de desplazamiento del documento
+ * > es **la misma que antes del gesto**.
+ *
+ * **Las dos mitades son necesarias.** Sin la segunda, «llevar al usuario a la superficie»
+ * a base de `scrollIntoView` pasaría la medida, y eso no es lo mismo: mueve al usuario de
+ * sitio, le quita de la vista la lista sobre la que estaba trabajando y hay que devolverlo
+ * después. M4 dice *«la respuesta va donde está el usuario»*, no *«el usuario va donde
+ * está la respuesta»*.
+ *
+ * ## F-ADR-030-1 — el desplazamiento que hace el motor de pruebas
+ *
+ * Playwright **desplaza por su cuenta** antes de interactuar con un elemento que no está
+ * a la vista. Si se dejara correr, ese desplazamiento contaminaría la medida de dos
+ * formas opuestas y las dos malas: metería la superficie dentro de la ventana por arte
+ * del motor, y ensuciaría la comparación de posiciones con un movimiento que la app no
+ * hizo.
+ *
+ * Por eso esta función **separa las dos cosas**: primero lleva el disparador a la vista
+ * —que es el usuario alcanzando su control, no la app respondiendo—, **después** registra
+ * la posición de desplazamiento, y sólo entonces da el gesto. Cualquier desplazamiento
+ * posterior es de la app y cuenta como violación. Quien quiera medir el caso «el
+ * disparador ya está a la vista» pasa `alcanzarDisparador: false` y se asegura él mismo.
+ *
+ * Es la sutileza más fácil de perder en la siguiente copia, y por eso está escrita aquí y
+ * no en la guardia de una spec.
+ *
+ * ## La forma DÉBIL no se implementa (F-ADR-030-3)
+ *
+ * ADR-030 §3 define también una forma de **proximidad** —«el borde superior de la
+ * respuesta cae dentro de la ventana y a menos de una fila del disparador»— para
+ * superficies **en flujo**, que no pueden cumplir la contención. No se escribe aquí
+ * porque nada la usa. Si una spec futura elige una forma en flujo, la aporta al módulo
+ * **con ese nombre**, en vez de inventar una medida desde cero.
+ *
+ * @param disparador el control que se pulsa.
+ * @param revelado   la superficie que el gesto revela.
+ * @param gesto      qué hacer con el disparador; por defecto, pulsarlo.
+ */
+export async function medirRespuestaAlGesto(
+  page: Page,
+  opciones: {
+    disparador: Locator;
+    revelado: Locator;
+    etiqueta?: string;
+    gesto?: (disparador: Locator) => Promise<void>;
+    alcanzarDisparador?: boolean;
+  },
+): Promise<MedidaM4> {
+  const { disparador, revelado } = opciones;
+  const etiqueta = opciones.etiqueta ?? 'gesto';
+
+  // (1) El usuario alcanza su control. NO es la app respondiendo (F-ADR-030-1).
+  if (opciones.alcanzarDisparador !== false) await disparador.scrollIntoViewIfNeeded();
+
+  // (2) La posición se registra AQUÍ: antes del gesto y después de alcanzar el control.
+  const scrollAntes = await page.evaluate(() => ({ x: window.scrollX, y: window.scrollY }));
+
+  // (3) El gesto.
+  await (opciones.gesto ? opciones.gesto(disparador) : disparador.click());
+  await revelado.waitFor({ state: 'visible' });
+
+  // (4) Y la medida, sin desplazar nada por el camino.
+  const contencion = await medirContencionEnLaVentana(page, revelado);
+  const scrollDespues = await page.evaluate(() => ({ x: window.scrollX, y: window.scrollY }));
+
+  const desplazoElDocumento =
+    Math.abs(scrollDespues.x - scrollAntes.x) > TOLERANCIA_PX ||
+    Math.abs(scrollDespues.y - scrollAntes.y) > TOLERANCIA_PX;
+
+  return {
+    ...contencion,
+    etiqueta,
+    scrollAntes,
+    scrollDespues,
+    desplazoElDocumento,
+    viola: !contencion.dentroDeLaVentana || desplazoElDocumento,
+  };
+}
+
+export interface MedidaFondoDeLista {
+  selector: string;
+  /** Dónde acaba la lista, respecto al borde superior de la ventana. */
+  fondo: number;
+  ventanaAlto: number;
+  /** `fondo - ventanaAlto`. Positivo = la lista NO cabe entera: es larga de verdad. */
+  porDebajoDelPliegue: number;
+  /**
+   * Dónde acaba la lista en coordenadas del DOCUMENTO, no de la ventana.
+   *
+   * Es lo que necesita quien quiera reinyectar «la superficie se pinta detrás de la
+   * lista» (`defectoSuperficieTrasLaLista`): la capa superior del navegador no tiene
+   * flujo, así que la posición que el flujo le habría dado hay que medirla.
+   */
+  fondoEnElDocumento: number;
+  /** Cuántos elementos tiene la lista. Informativo: la propiedad es el fondo, no éste. */
+  elementos: number;
+}
+
+/**
+ * **La precondición de una guardia de lista** (ADR-030 §4), aquí porque es del proyecto
+ * y no de una spec.
+ *
+ * Una guardia que mide el comportamiento de una **lista** y se ejecuta con dos filas no
+ * prueba nada sobre listas: mide el caso en el que el defecto **no puede existir**. Le
+ * pasó a SPEC-044, cuyo escenario de dos filas dejaba el panel de edición dentro de la
+ * ventana por accidente del tamaño de la muestra.
+ *
+ * Lo que se afirma **no es un número de filas** —eso es un estado del árbol, y caduca en
+ * silencio cuando cambie el alto de una fila— sino la propiedad: **el fondo de la lista
+ * cae por debajo del pliegue**. Quien la use, la afirma antes de medir y falla si dejó de
+ * cumplirse (FOUNDATION, 2026-08-20).
+ */
+export async function medirFondoDeLista(
+  page: Page,
+  opciones: { lista: string; elementos?: string },
+): Promise<MedidaFondoDeLista> {
+  return page.evaluate(
+    ({ lista, elementos }) => {
+      const el = document.querySelector(lista);
+      if (!el) throw new Error(`no hay ninguna lista que case "${lista}" en la pantalla`);
+      const r = el.getBoundingClientRect();
+      const alto = document.documentElement.clientHeight;
+      return {
+        selector: lista,
+        fondo: r.bottom,
+        ventanaAlto: alto,
+        porDebajoDelPliegue: r.bottom - alto,
+        fondoEnElDocumento: r.bottom + window.scrollY,
+        elementos: elementos ? el.querySelectorAll(elementos).length : el.children.length,
+      };
+    },
+    { lista: opciones.lista, elementos: opciones.elementos ?? null },
+  );
+}
+
+/** El relato de una medida de M4, **con la cifra**: lo que se pega en un fallo o en `_qa/`. */
+export const describirRespuestaAlGesto = (m: MedidaM4): string =>
+  `${m.etiqueta} → ${describirContencion(m)} · desplazamiento del documento ` +
+  `${Math.round(m.scrollAntes.y)} → ${Math.round(m.scrollDespues.y)}` +
+  (m.desplazoElDocumento ? ' (SE MOVIÓ)' : '');
 
 /* ────────────────────────────────────────────────────────────────────────────
    Hueco muerto y eje declarado — las medidas que el proyecto ya usaba
@@ -588,6 +855,50 @@ export const DEFECTOS = {
     }
   `,
 } as const;
+
+/**
+ * **(d) SPEC-046 — la superficie vuelve a pintarse detrás de la lista**, que es la
+ * colocación de SPEC-044 y la causa real del defecto que reportó el humano el 2026-08-22.
+ *
+ * SPEC-044 renderizaba un solo panel **después de la tabla entera**, así que la distancia
+ * entre el gesto y su respuesta **crecía con la lista**. Con cuarenta filas, pulsar
+ * *Editar* en la primera abría el formulario muy por debajo del pliegue y, para el
+ * usuario, **el botón no hacía nada**. Sigue cabiendo a lo ancho, sigue sin partir
+ * palabras y sigue sin desplazar el documento: **M1, M2 y M3 no ven nada**. Sólo M4 lo
+ * caza (SPEC-046 CA-10).
+ *
+ * ## Por qué recibe una coordenada, y por qué eso NO es un número mágico
+ *
+ * Porque **una capa modal vive en la capa superior del navegador, y la capa superior no
+ * tiene flujo**. Medido en Chromium mientras se escribía SPEC-046: sobre un
+ * `<dialog>` abierto con `showModal()`, tanto `position: static` como
+ * `position: absolute` con los cuatro desplazamientos en `auto` dejan la caja **arriba
+ * del todo** (`top = 18` con 18 px de margen, sobre una tabla de 2.170 px por debajo del
+ * pliegue). Es decir: **la posición estática no se puede recuperar con CSS**, así que
+ * «devolver la superficie al flujo» hay que decirlo con la coordenada donde el flujo la
+ * habría dejado.
+ *
+ * Y esa coordenada **no se escribe**: se **mide** —dónde acaba la lista ahora mismo, en
+ * coordenadas del documento (`medirFondoDeLista().fondoEnElDocumento`)—. Si mañana la
+ * tabla mide otra cosa, el defecto se reinyecta donde toque sin tocar este fichero. Es la
+ * misma regla que gobierna el escenario de CA-11: se deriva, no se declara.
+ *
+ * El velo se apaga a la vez porque, tapando la pantalla entera, escondería que la
+ * superficie se fue al final de la lista — y lo que se reinyecta es el defecto, no su
+ * disfraz.
+ */
+export const defectoSuperficieTrasLaLista = (topEnElDocumento: number): string => `
+  dialog.editar-vigilada[open] {
+    position: absolute !important;
+    top: ${Math.round(topEnElDocumento)}px !important;
+    bottom: auto !important;
+    left: 0 !important;
+    right: 0 !important;
+    margin: 18px auto 0 !important;
+    max-height: none !important;
+  }
+  dialog.editar-vigilada[open]::backdrop { background: transparent !important; }
+`;
 
 /* ────────────────────────────────────────────────────────────────────────────
    Los dos puntos ciegos de M1, escritos como escenario reinyectable

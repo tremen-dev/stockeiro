@@ -1,0 +1,51 @@
+SPEC-046 — GATE ADVERSARIAL (sdd-verificador, 2026-08-22)
+Rama ft/SPEC-046-panel-edicion-fuera-de-pantalla · worktree D:/src/wt-46
+Todo lo de aquí lo midió el verificador con su propio instrumento, no la guardia.
+
+## Puertas automáticas (pasada limpia, máquina para ella sola)
+- `npx vitest run`      → 1446/1446 en 97 ficheros (165,9 s). Sin caducidades de pglite.
+- `npx playwright test` → 254/254 (3,9 min, un solo worker).
+- `npx tsc --noEmit`    → sin una queja.
+- `npx eslint . --max-warnings=0` → sin una queja.
+- `node scripts/check-version-bump.mjs` → 0.3.0 → 0.3.1 (ADR-024).
+
+## CA-10 — reinyección hecha por el verificador, con SU PROPIO CSS
+La coordenada no se escribe: se pide a `medirFondoDeLista().fondoEnElDocumento`.
+
+360 px  · M4 viola=true · el gesto MOVIÓ el documento 0 → 2584
+        · puesta la página donde el usuario la tenía: top=2988 bottom=3384 sobre 800
+        · 2584 px POR DEBAJO DEL PLIEGUE
+        · M1 0 violaciones de 58 medidos (testigos de la capa: 1) · M2 0 · M3 0
+1280 px · M4 viola=true · el gesto MOVIÓ el documento 0 → 1536
+        · puesta la página donde el usuario la tenía: top=2040 bottom=2436 sobre 900
+        · 1536 px POR DEBAJO DEL PLIEGUE
+        · M1 0 violaciones de 591 medidos (testigos de la capa: 1) · M2 0 · M3 0
+Retirado el defecto, M4 vuelve a callar en los dos anchos. Sin el defecto, M4 no reporta
+nada (caso de control). Los cuatro hechos, reproducidos fuera de la guardia del proyecto.
+
+## CA-1/CA-4/CA-6/CA-7 — la capa, medida a los ocho anchos por el verificador
+ancho | capa (w×h) | position | overflow-y | form | fuera de .table-scroll | bottom/ventana | M1 viol/medidos/testigos
+  360 | 360×396 | fixed | auto | 360 | sí |  800/800 | 0/58/1
+  390 | 390×396 | fixed | auto | 390 | sí |  844/844 | 0/58/1
+  640 | 520×396 | fixed | auto | 520 | sí |  900/900 | 0/58/1
+  700 | 520×396 | fixed | auto | 520 | sí |  900/900 | 0/58/1
+  730 | 520×396 | fixed | auto | 520 | sí |  900/900 | 0/58/1
+  760 | 520×396 | fixed | auto | 520 | sí |  900/900 | 0/58/1
+  800 | 520×396 | fixed | auto | 520 | sí |  900/900 | 0/58/1
+ 1280 | 520×396 | fixed | auto | 520 | sí |  900/900 | 0/591/1
+M4 en los ocho: dentro de la ventana = sí, desplazó el documento = no.
+Precondición de CA-11 afirmada en los ocho (fondo de la tabla entre 1122 y 2170 px por
+debajo del pliegue, con 26 filas DERIVADAS, no escritas).
+
+## CA-5 — recorrido real del foco, con teclado
+Abierta con Enter sobre el control «Editar»: `<dialog>`, `:modal` = true, foco en
+`INPUT[buyMin]`, nombre accesible «Editar zonas de Z6DUAL · NYSE».
+20 tabulaciones seguidas:
+  buyMax → sellMin → sellMax → BUTTON(guardar) → BUTTON{editar-cancelar} → BODY →
+  buyMin → … (el ciclo se repite tres veces, idéntico)
+El único punto fuera de la capa es `BODY`, que es donde Chromium hace la vuelta del ciclo:
+el foco NUNCA llega a un control del fondo. Añadido a la inercia que ya comprueba la
+guardia (`.focus()` sobre `orden-criterio` no prende; un clic sobre `orden-direccion` no
+lo activa), la trampa de foco del `<dialog>` nativo es real.
+Escape cierra y el foco vuelve al «Editar» de su fila; cancelar, igual; guardar →
+«Entendido» → cierra, foco de vuelta y `tr[data-editando]` a 0.
