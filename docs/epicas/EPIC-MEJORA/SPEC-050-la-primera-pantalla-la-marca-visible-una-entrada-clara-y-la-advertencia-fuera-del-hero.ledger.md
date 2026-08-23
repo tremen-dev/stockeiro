@@ -25,34 +25,194 @@ epica: EPIC-MEJORA
 
 | CA | Implementado (fichero) | Test (fichero/caso) | Verif. | Estado |
 |---|---|---|---|---|
-| CA-1 (wordmark en `/`) | `src/app/page.tsx` (`.landing-marca brand`, `<p>` no enlace) · `src/app/globals.css` (`.brand`, `.landing-marca`; fuera `.landing-eyebrow`) | `tests/e2e/primera-pantalla.spec.ts` › CA-1 ×3 (primer elemento y texto `Stockeiro.`; punto `--accent` y palabra `--fg` **derivados por sonda**; `.landing-eyebrow` a cero) | | ❌ |
-| CA-2 (es marca, no microcrédito) | `src/app/globals.css` (`.landing-marca { --brand-size: 28px }`) | `tests/e2e/primera-pantalla.spec.ts` › CA-2 (8 anchos: sans, 900, `text-transform: none`, 24–32 px y **siempre < `.landing-title`**). Medido: **marca 28 px, titular 32 px a 360 y 52 px a 1280** — `_qa/SPEC-050/ca2-marca-vs-titular.txt` | | ❌ |
-| CA-3 (la barra no se entera) | `src/app/globals.css` (`.app-nav .brand` conserva solo `text-decoration`) | `tests/e2e/primera-pantalla.spec.ts` › CA-3 (`/dashboard` con sesión; familia/colores por sonda del tema, 20 px, −0,9 px de tracking, sin subrayado) | | ❌ |
-| CA-4 (una sola definición) | `src/app/globals.css` (`.brand` + `.brand .dot` de primer nivel) · `src/app/page.tsx` | `tests/primera-pantalla-fuente.test.ts` › CA-4 ×5 (una sola regla define la tipografía; `var(--brand-size, 20px)`; un solo `.brand .dot`; `.app-nav` sin `font`/`color`; **mismo par de nodos** que `app-nav.tsx`) | | ❌ |
-| CA-5 (orden de la pantalla) | `src/app/page.tsx` (nueve nodos en el orden de la tabla) | `tests/e2e/primera-pantalla.spec.ts` › CA-5 (secuencia exacta + `QUE_HACE` y acciones **antes** de cadencia y límites) | | ❌ |
-| CA-6 (jerarquía de los botones) | `src/app/page.tsx` (ayuda fuera de la fila) · `src/app/globals.css` (`.landing-acciones .btn.primary`) | `tests/e2e/primera-pantalla.spec.ts` › CA-6 ×3 (único `.primary`; razón de áreas ≥ 1,3 → **2,07 a los ocho anchos** (165×55 frente a 90×49), cifras en `_qa/SPEC-050/ca6-jerarquia-de-botones.txt`; contraste del primario en `_qa/SPEC-050/ca6-contraste-del-primario.txt`) | | ❌ |
-| CA-7 («gratis y sin publicidad» sube) | `src/app/page.tsx` (`.landing-gratis`) · `src/app/globals.css` | `tests/e2e/primera-pantalla.spec.ts` › CA-7 (literal declarado; **ni «ilimitado» ni «para siempre» ni «sin coste»**; color ≠ `--fg-dim`; tamaño ≥ el de la línea legal; antes que la cadencia) | | ❌ |
-| CA-8 (cuatro caminos, uno de cada) | `src/app/page.tsx` | `tests/e2e/primera-pantalla.spec.ts` › CA-8 (uno de cada + **cero `a[href="/"]`**: el wordmark no es enlace) · `tests/e2e/ayuda.spec.ts` › CA-2 «ofrece los cuatro caminos» **sin tocar** | | ❌ |
-| CA-9 (`CADENCIA_LINEA` entera) | `src/app/page.tsx` (`{CADENCIA_LINEA}`) | `tests/e2e/primera-pantalla.spec.ts` › CA-9 · `tests/e2e/ayuda.spec.ts` › CA-3 (las tres pantallas) **sin tocar ninguna aserción** | | ❌ |
-| CA-10 (sin cromo de alarma) | `src/app/globals.css` (`.landing-cadencia` agrupada con `.landing-limites`) | `tests/e2e/primera-pantalla.spec.ts` › CA-10 (4 bordes a 0; `--amber` y `--bg-step` **derivados por sonda** y descartados; radio 0; color idéntico al de `.landing-limites` y a `--fg-muted`) | | ❌ |
-| CA-11 (ni una palabra nueva de cadencia) | `src/app/page.tsx` (`description: QUE_HACE`) | `tests/primera-pantalla-fuente.test.ts` › CA-11 ×3 (importa y renderiza la constante; **cero** `/cierre\|refresc\|una vez al día\|tiempo real\|diferid/i` fuera de comentarios; la constante sigue con sus 40 palabras) | | ❌ |
-| CA-12 (descargo, legal y marca intactos) | — (no se toca nada) | `tests/e2e/primera-pantalla.spec.ts` › CA-12 (`color` y `font-size` de los tres bloques **idénticos** a los de `/legal/terminos`) · `tests/e2e/pie-legal.spec.ts` **sin tocar** | | ❌ |
-| CA-13 (feedback oculto en `/`, versión subordinada) | `src/app/globals.css` (`.landing ~ .app-footer .app-footer-feedback { display: none }`) | `tests/e2e/primera-pantalla.spec.ts` › CA-13 (`display: none` y **alto 0**, no `visibility`/`opacity`; versión visible en `--fg-dim`; en `/legal/terminos` las dos visibles con `--fg-muted`/`--fg-dim`) | | ❌ |
-| CA-14 (la versión sigue visible y copiable) | — (no se toca) | `tests/e2e/primera-pantalla.spec.ts` › CA-14 (semver primero, los cuatro atajos prohibidos comprobados, contraste sobre el fondo ≥ 3:1 con la cifra en `_qa/SPEC-050/ca14-contraste-de-la-version.txt`, y el rango de selección devuelve el texto) · `tests/e2e/version-en-el-pie.spec.ts` **sin tocar** | | ❌ |
-| CA-15 (el pie no sabe en qué ruta está) | `src/app/app-footer.tsx` **sin un solo byte de cambio** | `tests/primera-pantalla-fuente.test.ts` › CA-15 ×4 (sin `usePathname`/`headers`/`landing`; `AppFooter()` sin argumentos; sus cinco bloques; la subordinación **vive en el CSS** y es `display: none`) · `tests/legal-import-graph.test.ts` y `tests/ayuda-import-graph.test.ts` verdes | | ❌ |
-| CA-16 (con sesión, `/` lleva al panel) | — (no se toca) | `tests/e2e/primera-pantalla.spec.ts` › CA-16 · `tests/e2e/ayuda.spec.ts` › «con sesión, la raíz sigue llevando al panel» **sin tocar** | | ❌ |
-| CA-17 (geometría a los ocho anchos) | `src/app/globals.css` | `tests/e2e/primera-pantalla.spec.ts` › CA-17 ×3 (M1+M2 a los 8 anchos **con testigos** ADR-030 §5, cifras en `_qa/SPEC-050/ca17-geometria.txt`; hueco muerto de los bloques **nuevos** medido por cajas de línea; `.landing-acciones` sigue siendo grid **con ese nombre**) · `tests/e2e/ayuda-responsive.spec.ts` y `tests/e2e/geometria-rutas.spec.ts` **sin tocar** | | ❌ |
-| CA-18 (suites verdes; acotación al gate) | — | `npm test` → **1607 passed (106 ficheros)** · `npx playwright test` **completa** → **289 passed (4,0 min)**, con las cinco citadas dentro: `ayuda.spec.ts`, `version-en-el-pie.spec.ts`, `pie-legal.spec.ts`, `ayuda-responsive.spec.ts` y `pie-responsive.spec.ts`. La mitad de acotación la comprueba el verificador en el gate | | ❌ |
-| CA-19 (alcance acotado — **criterio de gate, no de suite**) | n-a | n-a — **y la nota es el punto**: *«este cambio está bien acotado»* es criterio de gate (**ADR-031 pto. 1.2**) y escribirlo como `git diff … origin/main` reproduciría el molde que **SPEC-048** desmontó, que se pone verde por vacuidad al mergear. No se ha inventado ningún test: la evidencia del árbol limpio la pega sdd-verificador aquí | | ❌ |
-| CA-20 (sin dependencia y sin ADR) | `package.json` (solo `version`) | `tests/primera-pantalla-fuente.test.ts` › CA-20 ×5 (deps, devDeps y scripts **declarados en el test**, sin git; semver; **ningún ADR cita SPEC-050**) | | ❌ |
-| CA-21 (el camino anónimo al feedback sobrevive) | `src/app/page.tsx` (el enlace a `/ayuda`, fuera de la fila pero presente) | `tests/e2e/primera-pantalla.spec.ts` › CA-21 — **navega de verdad**: `/` → clic «Cómo funciona, con detalle» → `/ayuda` → canal visible con `href` `mailto:`. Captura en `_qa/SPEC-050/ca21-camino-al-feedback.png` | | ❌ |
-| CA-22 (la guardia ajena que se estrecha) | `tests/e2e/ayuda.spec.ts` (bucle sin `/`, porqué al lado, caso inverso nuevo) | `tests/primera-pantalla-fuente.test.ts` › CA-22 ×4 (una por condición) · el caso inverso vive en `tests/e2e/ayuda.spec.ts` › «y en la primera pantalla NO se muestra» | | ❌ |
+| CA-1 (wordmark en `/`) | `src/app/page.tsx` (`.landing-marca brand`, `<p>` no enlace) · `src/app/globals.css` (`.brand`, `.landing-marca`; fuera `.landing-eyebrow`) | `tests/e2e/primera-pantalla.spec.ts` › CA-1 ×3 (primer elemento y texto `Stockeiro.`; punto `--accent` y palabra `--fg` **derivados por sonda**; `.landing-eyebrow` a cero) | Navegador (mío, `next start` 3300): primer hijo de `main.landing` es `p.landing-marca.brand[data-testid=landing-marca]` con texto `Stockeiro.`; punto `--accent`, palabra `--fg` por sonda; `.landing-eyebrow` a 0. `_qa/SPEC-050/ca1-wordmark.png` mirado | ✅ |
+| CA-2 (es marca, no microcrédito) | `src/app/globals.css` (`.landing-marca { --brand-size: 28px }`) | `tests/e2e/primera-pantalla.spec.ts` › CA-2 (8 anchos: sans, 900, `text-transform: none`, 24–32 px y **siempre < `.landing-title`**). Medido: **marca 28 px, titular 32 px a 360 y 52 px a 1280** — `_qa/SPEC-050/ca2-marca-vs-titular.txt` | `ca2-marca-vs-titular.txt` releído y remedido por mi cuenta a 360/390/768/1280: marca **28 px** constante, titular 32 → 46,08 → 52 px. Sans, 900, `none`. Siempre < titular. **Y mirado**: a 360 y a 1280 se lee como marca, no como microcrédito | ✅ |
+| CA-3 (la barra no se entera) | `src/app/globals.css` (`.app-nav .brand` conserva solo `text-decoration`) | `tests/e2e/primera-pantalla.spec.ts` › CA-3 (`/dashboard` con sesión; familia/colores por sonda del tema, 20 px, −0,9 px de tracking, sin subrayado) | `_qa/SPEC-050/ca3-barra-intacta.png` mirada: la barra se pinta igual, sin subrayado y con el punto en acento. El caso e2e pasa en mi ejecución completa (20 px, −0,9 px, colores por sonda) | ✅ |
+| CA-4 (una sola definición) | `src/app/globals.css` (`.brand` + `.brand .dot` de primer nivel) · `src/app/page.tsx` | `tests/primera-pantalla-fuente.test.ts` › CA-4 ×5 (una sola regla define la tipografía; `var(--brand-size, 20px)`; un solo `.brand .dot`; `.app-nav` sin `font`/`color`; **mismo par de nodos** que `app-nav.tsx`) | Comprobado sobre el **CSS compilado** (`.next/static/chunks/*.css`), no solo sobre `globals.css`: `.brand` aparece **una sola vez** en todo el bundle —incluido `design/tremen-ds/components/index.css`, que `globals.css` importa—, más `.brand .dot` y `.app-nav .brand{text-decoration:none}`. Ninguna segunda definición se cuela por el design system | ✅ |
+| CA-5 (orden de la pantalla) | `src/app/page.tsx` (nueve nodos en el orden de la tabla) | `tests/e2e/primera-pantalla.spec.ts` › CA-5 (secuencia exacta + `QUE_HACE` y acciones **antes** de cadencia y límites) | Orden leído por mí en el navegador: `landing-marca → landing-title → landing-que-hace → landing-acciones → landing-gratis → landing-cadencia → landing-que-no-hace → landing-mas → landing-legal`. Nueve nodos, el de la tabla | ✅ |
+| CA-6 (jerarquía de los botones) | `src/app/page.tsx` (ayuda fuera de la fila) · `src/app/globals.css` (`.landing-acciones .btn.primary`) | `tests/e2e/primera-pantalla.spec.ts` › CA-6 ×3 (único `.primary`; razón de áreas ≥ 1,3 → **2,07 a los ocho anchos** (165×55 frente a 90×49), cifras en `_qa/SPEC-050/ca6-jerarquia-de-botones.txt`; contraste del primario en `_qa/SPEC-050/ca6-contraste-del-primario.txt`) | Remedido por mi cuenta: `crear=165×55`, `entrar=90×49`, razón **2,06** a 360/390/768/1280. Único `.primary` de la fila; `a[href="/ayuda"]` fuera de `.landing-acciones`. Contraste 6,88:1. **Con el ojo (R-5)**: el primario domina por caja y color sin que «Entrar» desaparezca; a ≤720 px apilan por el `@media` de SPEC-039, y apilados la jerarquía se lee aún mejor | ✅ |
+| CA-7 («gratis y sin publicidad» sube) | `src/app/page.tsx` (`.landing-gratis`) · `src/app/globals.css` | `tests/e2e/primera-pantalla.spec.ts` › CA-7 (literal declarado; **ni «ilimitado» ni «para siempre» ni «sin coste»**; color ≠ `--fg-dim`; tamaño ≥ el de la línea legal; antes que la cadencia) | Literal exacto y color medido por mí: `rgb(245,241,234)` = `--fg` opaco, **no** `--fg-dim`. Antes de la cadencia en orden de documento. Sin «ilimitado/para siempre/sin coste» | ✅ |
+| CA-8 (cuatro caminos, uno de cada) | `src/app/page.tsx` | `tests/e2e/primera-pantalla.spec.ts` › CA-8 (uno de cada + **cero `a[href="/"]`**: el wordmark no es enlace) · `tests/e2e/ayuda.spec.ts` › CA-2 «ofrece los cuatro caminos» **sin tocar** | Enumeré **todos** los `<a>` de `/`: uno a `/register`, uno a `/login`, uno a `/ayuda`, cuatro que empiezan por `/legal`, cero `a[href="/"]` dentro de `main.landing`. El wordmark no es enlace | ✅ |
+| CA-9 (`CADENCIA_LINEA` entera) | `src/app/page.tsx` (`{CADENCIA_LINEA}`) | `tests/e2e/primera-pantalla.spec.ts` › CA-9 · `tests/e2e/ayuda.spec.ts` › CA-3 (las tres pantallas) **sin tocar ninguna aserción** | `src/lib/help/content.ts` **no aparece en el diff**: `CADENCIA_LINEA` está intacta, 40 palabras, misma constante. Renderizada entera en `/` (leída del DOM). `tests/e2e/ayuda.spec.ts` › CA-3 verde y sin una aserción tocada. **D-2 locked, respetado** | ✅ |
+| CA-10 (sin cromo de alarma) | `src/app/globals.css` (`.landing-cadencia` agrupada con `.landing-limites`) | `tests/e2e/primera-pantalla.spec.ts` › CA-10 (4 bordes a 0; `--amber` y `--bg-step` **derivados por sonda** y descartados; radio 0; color idéntico al de `.landing-limites` y a `--fg-muted`) | Medido por mí a los cuatro anchos: `border-left-width: 0px`, fondo `rgba(0,0,0,0)`, radio 0, color = `--fg-muted` = el de `.landing-limites`. **Y mirado**: es prosa, ya no una tarjeta de alarma | ✅ |
+| CA-11 (ni una palabra nueva de cadencia) | `src/app/page.tsx` (`description: QUE_HACE`) | `tests/primera-pantalla-fuente.test.ts` › CA-11 ×3 (importa y renderiza la constante; **cero** `/cierre\|refresc\|una vez al día\|tiempo real\|diferid/i` fuera de comentarios; la constante sigue con sus 40 palabras) | El regex de la cadencia no casa nada en `src/app/page.tsx` fuera de comentarios; `CADENCIA_LINEA` se importa y se renderiza. **Con residual**: obligó a cambiar `metadata.description` — ver `F-SPEC-050-1` y mi juicio en el veredicto. El CA se cumple | ✅ |
+| CA-12 (descargo, legal y marca intactos) | — (no se toca nada) | `tests/e2e/primera-pantalla.spec.ts` › CA-12 (`color` y `font-size` de los tres bloques **idénticos** a los de `/legal/terminos`) · `tests/e2e/pie-legal.spec.ts` **sin tocar** | `src/app/app-footer.tsx` **no aparece en el diff: cero bytes**. Descargo, tres enlaces legales y `tremen.dev` presentes en `/` con `color`/`font-size` idénticos a los de `/legal/terminos`. `pie-legal.spec.ts` verde sin tocar | ✅ |
+| CA-13 (feedback oculto en `/`, versión subordinada) | `src/app/globals.css` (`.landing ~ .app-footer .app-footer-feedback { display: none }`) | `tests/e2e/primera-pantalla.spec.ts` › CA-13 (`display: none` y **alto 0**, no `visibility`/`opacity`; versión visible en `--fg-dim`; en `/legal/terminos` las dos visibles con `--fg-muted`/`--fg-dim`) | Medido por mí en `/`: feedback `display:none`, `visibility:visible`, `opacity:1`, **alto 0 px**; versión `display:block`, `rgba(245,241,234,0.42)` = `--fg-dim`. En `/legal/terminos` las dos visibles. El selector `.landing ~ .app-footer` solo puede alcanzar a `page.tsx`: es el único `className="landing"` del árbol | ✅ |
+| CA-14 (la versión sigue visible y copiable) | — (no se toca) | `tests/e2e/primera-pantalla.spec.ts` › CA-14 (semver primero, los cuatro atajos prohibidos comprobados, contraste sobre el fondo ≥ 3:1 con la cifra en `_qa/SPEC-050/ca14-contraste-de-la-version.txt`, y el rango de selección devuelve el texto) · `tests/e2e/version-en-el-pie.spec.ts` **sin tocar** | Verificado por mí: `v0.3.3 · entorno desconocido · cf146bf · 2026-08-23 18:46 UTC`, semver primero, después commit y fecha. `display` ≠ none, `visibility` ≠ hidden, `font-size` 13 px, `user-select: text`. Contraste 3,77:1 (umbral 3). El rango de selección devuelve el texto | ✅ |
+| CA-15 (el pie no sabe en qué ruta está) | `src/app/app-footer.tsx` **sin un solo byte de cambio** | `tests/primera-pantalla-fuente.test.ts` › CA-15 ×4 (sin `usePathname`/`headers`/`landing`; `AppFooter()` sin argumentos; sus cinco bloques; la subordinación **vive en el CSS** y es `display: none`) · `tests/legal-import-graph.test.ts` y `tests/ayuda-import-graph.test.ts` verdes | `app-footer.tsx` sin tocar (diff vacío). Sin `usePathname`/`headers`/`landing`, `AppFooter()` sin argumentos, cinco bloques intactos. La subordinación vive entera en `globals.css`. Los dos import-graph verdes en mi ejecución | ✅ |
+| CA-16 (con sesión, `/` lleva al panel) | — (no se toca) | `tests/e2e/primera-pantalla.spec.ts` › CA-16 · `tests/e2e/ayuda.spec.ts` › «con sesión, la raíz sigue llevando al panel» **sin tocar** | Caso e2e verde en mi ejecución completa; `ayuda.spec.ts` › «con sesión, la raíz sigue llevando al panel» sin tocar | ✅ |
+| CA-17 (geometría a los ocho anchos) | `src/app/globals.css` | `tests/e2e/primera-pantalla.spec.ts` › CA-17 ×3 (M1+M2 a los 8 anchos **con testigos** ADR-030 §5, cifras en `_qa/SPEC-050/ca17-geometria.txt`; hueco muerto de los bloques **nuevos** medido por cajas de línea; `.landing-acciones` sigue siendo grid **con ese nombre**) · `tests/e2e/ayuda-responsive.spec.ts` y `tests/e2e/geometria-rutas.spec.ts` **sin tocar** | `ca17-geometria.txt`: 33 elementos medidos, **0 violaciones** y **2 testigos presentes** a los ocho anchos (ADR-030 §5 — sin testigos el cero no aprueba nada). Documento sin desborde también en mi medida a 360/390/768/1280. `.landing-acciones` **conserva el nombre** y sigue siendo `grid`, así que `ayuda-responsive.spec.ts` sigue casando con ≥2 elementos en `/`. Las dos guardias ajenas, sin tocar | ✅ |
+| CA-18 (suites verdes; acotación al gate) | — | `npm test` → **1607 passed (106 ficheros)** · `npx playwright test` **completa** → **289 passed (4,0 min)**, con las cinco citadas dentro: `ayuda.spec.ts`, `version-en-el-pie.spec.ts`, `pie-legal.spec.ts`, `ayuda-responsive.spec.ts` y `pie-responsive.spec.ts`. La mitad de acotación la comprueba el verificador en el gate | Ejecutadas **por mí, enteras**: `npm test` → **1607 passed (106 ficheros)**; `npx playwright test` → **289 passed (4,5 min)**; `npm run lint` y `npm run typecheck` limpios. Las cinco citadas, dentro. Y la mitad de acotación: **un solo fichero de test ajeno modificado** (`tests/e2e/ayuda.spec.ts`, el que CA-22 autoriza) | ✅ |
+| CA-19 (alcance acotado — **criterio de gate, no de suite**) | n-a | n-a — **y la nota es el punto**: *«este cambio está bien acotado»* es criterio de gate (**ADR-031 pto. 1.2**) y escribirlo como `git diff … origin/main` reproduciría el molde que **SPEC-048** desmontó, que se pone verde por vacuidad al mergear. No se ha inventado ningún test: la evidencia del árbol limpio la pega sdd-verificador aquí | **Verificado por mí con el árbol limpio** (`git status --porcelain` vacío) sobre `9387681..HEAD`. Salida pegada bajo el veredicto. Dentro del conjunto permitido; **fuera** `src/db/`, `drizzle/`, `src/lib/`, `app-footer.tsx`, `app-nav.tsx`, `layout.tsx`, `proxy.ts` y cualquier otra `_qa/SPEC-NNN/`. La excepción declarada para `app-nav.tsx` **no se usó**. Fila `n-a` de test: correcta, ADR-031 pto. 1.2, y **no se inventó ningún test para rellenarla** | ✅ |
+| CA-20 (sin dependencia y sin ADR) | `package.json` (solo `version`) | `tests/primera-pantalla-fuente.test.ts` › CA-20 ×5 (deps, devDeps y scripts **declarados en el test**, sin git; semver; **ningún ADR cita SPEC-050**) | **FALLA.** `npm run version:check` con el árbol limpio y después de commitear: **exit 1**. `origin/main` ya **no** es `9387681`: es `93971e5` (merge de PR #58, SPEC-051) y **su `package.json` ya dice `0.3.3`**. Esta rama deja `0.3.3`, la misma que la base, y ADR-024 pto. 10 exige **estrictamente mayor**. Lo demás del CA sí pasa (deps, devDeps y scripts idénticos; `docs/adr/` sin fichero nuevo). Ver F-1 del veredicto | ❌ |
+| CA-21 (el camino anónimo al feedback sobrevive) | `src/app/page.tsx` (el enlace a `/ayuda`, fuera de la fila pero presente) | `tests/e2e/primera-pantalla.spec.ts` › CA-21 — **navega de verdad**: `/` → clic «Cómo funciona, con detalle» → `/ayuda` → canal visible con `href` `mailto:`. Captura en `_qa/SPEC-050/ca21-camino-al-feedback.png` | **Recorrido por mí, navegando de verdad**: `/` → un único `a[href="/ayuda"]` con texto «Cómo funciona, con detalle» → clic → `/ayuda` → `[data-testid=feedback-enlace]` **visible** con `href` `mailto:hola@tremen.dev?subject=[Stockeiro v0.3.3 …]`. Comprobado además que la fila vuelve a `display:block` en `/ayuda`, que es lo que la navegación **de cliente** de Next podía romper. El test rompe en cada eslabón (`toHaveCount(1)`, `click()`, `waitForURL`, `toBeVisible`): **no puede pasar por vacuidad** | ✅ |
+| CA-22 (la guardia ajena que se estrecha) | `tests/e2e/ayuda.spec.ts` (bucle sin `/`, porqué al lado, caso inverso nuevo) | `tests/primera-pantalla-fuente.test.ts` › CA-22 ×4 (una por condición) · el caso inverso vive en `tests/e2e/ayuda.spec.ts` › «y en la primera pantalla NO se muestra» | Las **cuatro** condiciones verificadas sobre el diff y sobre el fichero: (1) solo el bucle de la línea 361 pierde `/`, y **ningún otro fichero ajeno** se toca —lo confirma el diff de CA-19—; (2) el porqué está escrito al lado, con SPEC-050, D-5, CA-21 y la fecha del arbitraje; (3) **el inverso existe y es real**: «y en la primera pantalla NO se muestra» pasa en mi ejecución, y el bucle conserva `toBeVisible()` y `^mailto:`; (4) `'y desde cualquier pantalla autenticada'` con `['/dashboard', '/vigiladas', '/avisos', '/cuenta']` intacto | ✅ |
 
 > **CA-19 no lleva fila de test a propósito.** Es criterio de acotación y **ADR-031 pto. 1.2**
 > lo saca de la suite: lo verifica sdd-verificador en el gate y **pega aquí la salida**.
 
 ## Veredicto del verificador
 <!-- GREEN/RED + fecha + resumen. Lo escribe SOLO sdd-verificador. -->
+
+### 🔴 RED — 2026-08-23, sdd-verificador
+
+**21 de 22 CA verificados en verde con evidencia ejecutada. Uno falla, y no es de
+presentación: `npm run version:check` está en rojo porque `origin/main` se movió debajo de
+esta rama.** No hay ningún defecto en la pantalla: la implementación es correcta, acotada y
+está bien probada. Lo que falla es la identidad del artefacto, y falla ahora mismo, no en
+teoría.
+
+#### Cómo se ha juzgado
+
+Con el árbol **limpio** y **después** de commitear (SPEC-049): `git status --porcelain`
+vacío antes y después de cada gate. Ejecutado por mí, entero, en este worktree:
+
+| Gate | Resultado |
+|---|---|
+| `npm run typecheck` | limpio |
+| `npm run lint` (`--max-warnings=0`) | limpio |
+| `npm test` | **1607 passed · 106 ficheros** |
+| `npx playwright test` (completa) | **289 passed · 4,5 min** |
+| `npm run version:check` | **exit 1 — 🔴** |
+
+Y además, **fuera de la suite del proyecto**, una sonda de navegador propia contra
+`next start`: orden del DOM, geometría a 360×800, 390×844, 768×1024 y 1280×900, colores
+calculados, inventario completo de enlaces, el pie en `/` y en `/legal/terminos`, y el
+recorrido de CA-21 navegando. Las capturas commiteadas se han **mirado**, no solo contado.
+
+> **Nota de entorno.** `npx playwright test` completa reescribió las capturas de
+> `_qa/SPEC-001…046/`. Restauradas con `git checkout -- _qa/` y **no** commiteadas; solo
+> `_qa/SPEC-050/` queda en la rama. El árbol se dejó limpio.
+
+#### F-1 (bloqueante) — la versión ya no sube: `origin/main` se llevó el `0.3.3`
+
+```
+$ npm run version:check          # árbol limpio, después de commitear
+[check-version-bump] Base: origin/main.
+
+Esta rama toca codigo de aplicacion y deja la version en 0.3.3, la misma
+que la base.
+Ficheros que lo disparan:
+  · src/app/globals.css
+  · src/app/page.tsx
+exit 1
+```
+
+Cuando el implementador lo ejecutó, `origin/main` era `9387681` con `0.3.2` y el gate daba
+verde. **Ya no.** `origin/main` es ahora `93971e5` —el merge del **PR #58, SPEC-051**— y su
+`package.json` dice **`0.3.3`**: SPEC-051 se llevó ese número primero.
+
+- **Qué rompe**: `ADR-024` pto. 9 y 10 (*el gate falla la PR*; *estrictamente mayor que
+  `origin/main`*). Está cableado en `.github/workflows/ci.yml:132`, así que el PR sale rojo.
+- **Por qué no es ceremonia**: dos artefactos distintos —dos `globals.css` y dos `page.tsx`
+  distintos— publicados ambos como `v0.3.3`. Es literalmente el fallo que ADR-024 nombra,
+  *«afirma una identidad estable sobre artefactos distintos»*, y con testers reportando
+  desde un foro **por número de versión** deja de ser un detalle.
+- **Arreglo**: `npm version patch --no-git-tag-version` → **`0.3.4`**, commitear, y volver a
+  correr `npm run version:check` **con el árbol limpio**. Nada más. No toca ningún CA de
+  presentación; `tests/primera-pantalla-fuente.test.ts` solo exige formato semver, así que
+  sigue verde.
+- **Lo que NO hay que hacer**: rebasar sobre `origin/main` para «arreglarlo» sin mirar. Los
+  dos diffs no comparten ni un fichero (SPEC-051 toca `layout.tsx`, `proxy.ts`, `scripts/`,
+  `opengraph-image.png`; ésta ninguno), pero el número sí colisiona y hay que subirlo a mano.
+
+#### La acotación (CA-19), con el árbol limpio
+
+`git diff --name-only 9387681..HEAD` (`9387681` es la base de la rama; sigue siendo el
+`merge-base` con el `origin/main` de hoy):
+
+```
+_qa/SPEC-050/ancho-{360,390,640,700,730,760,768,800,1280}-primera-pantalla.png
+_qa/SPEC-050/ca1-wordmark.png
+_qa/SPEC-050/ca14-contraste-de-la-version.txt
+_qa/SPEC-050/ca17-geometria.txt
+_qa/SPEC-050/ca2-marca-vs-titular.txt
+_qa/SPEC-050/ca21-camino-al-feedback.png
+_qa/SPEC-050/ca3-barra-intacta.png
+_qa/SPEC-050/ca6-contraste-del-primario.txt
+_qa/SPEC-050/ca6-jerarquia-de-botones.txt
+docs/epicas/EPIC-MEJORA/SPEC-050-…-fuera-del-hero.ledger.md
+docs/epicas/EPIC-MEJORA/SPEC-050-…-fuera-del-hero.md
+package.json
+src/app/globals.css
+src/app/page.tsx
+tests/e2e/ayuda.spec.ts
+tests/e2e/primera-pantalla.spec.ts
+tests/primera-pantalla-fuente.test.ts
+```
+
+Verificado uno a uno: ni `src/db/`, ni `drizzle/`, ni `src/lib/`, ni `app-footer.tsx`, ni
+`app-nav.tsx`, ni `layout.tsx`, ni `proxy.ts`, ni ninguna otra carpeta `_qa/SPEC-NNN/`. La
+excepción que la spec declaró para `app-nav.tsx` **no se usó**. `package.json` cambia
+**solo** `version`.
+
+#### Las tres restricciones duras del gate: las tres, respetadas
+
+- **`CADENCIA_LINEA` íntegra y única.** `src/lib/help/content.ts` **no aparece en el diff**.
+  40 palabras, la misma constante en `/`, `/ayuda` y el vacío de `/vigiladas`. Ninguna
+  aserción de `ayuda.spec.ts` › CA-3 tocada. **D-2 locked, intacto.**
+- **`/` no consulta nada.** Sonda de red propia sobre `/`: **cero peticiones a cualquier
+  origen distinto de la app**. `page.tsx` sigue llamando solo a `tieneSesion()`. SPEC-039
+  CA-14, respetado.
+- **`src/app/app-footer.tsx`: cero bytes.** La subordinación entera es
+  `.landing ~ .app-footer .app-footer-feedback { display: none }`.
+
+Y lo que **sigue** en `/`: descargo, tres enlaces legales, `tremen.dev` y **la versión del
+despliegue** (SPEC-035 CA-9/CA-10/CA-11, SPEC-038 CA-1). Lo único retirado es el canal de
+feedback.
+
+#### CA-21 y CA-22: los dos que no podían pasar por vacuidad, y no pasan por vacuidad
+
+- **CA-21** lo recorrí yo, navegando: `/` → único `a[href="/ayuda"]` («Cómo funciona, con
+  detalle») → clic → `/ayuda` → canal **visible** con `href` `mailto:`. Comprobé además que
+  la fila vuelve a `display:block` al llegar por navegación **de cliente** de Next, que es el
+  modo de fallo real de un selector de hermano cuando React intercambia el `<main>`. Cada
+  eslabón del test rompe si se corta: `toHaveCount(1)`, `click()`, `waitForURL`,
+  `toBeVisible()`.
+- **CA-22**: una sola aserción ajena estrechada, la autorizada, con su porqué al lado; y el
+  **caso inverso existe y pasa** («y en la primera pantalla NO se muestra»). El fichero no
+  pierde cobertura sobre `/`. Ningún segundo fichero ajeno tocado.
+
+#### Sobre la columna `Estado`
+
+La encontré **vacía en `Verif.` y en `❌` en las 22 filas**, y la sección de veredicto sin
+escribir. El implementador no se auto-adjudicó nada: la reversión que declaró está hecha
+(`cf146bf`). Lo que hay ahora en esas dos columnas es **mío**.
+
+#### Juicio sobre `F-SPEC-050-1` (lo pidió el gate humano)
+
+**Es consecuencia legítima del CA, no un CA mal redactado.** CA-11 nombra el fichero
+(`src/app/page.tsx`) y prohíbe en él cualquier literal que empareje
+`/cierre|refresc|una vez al día|tiempo real|diferid/i`. La `description` vieja decía
+*«Precios de cierre, una vez al día»*: **casaba, y casaba por el motivo exacto que el CA
+declara** —era un segundo literal de la cadencia envejeciendo al lado de la constante, que
+es `F-SPEC-039-3` otra vez—. No fue daño colateral de un regex ancho: dio en su blanco.
+Escalar en vez de cambiarla habría sido peor: dejarla hacía CA-11 inalcanzable, y
+parafrasearla para esquivar el regex habría creado un **tercer** literal.
+
+**Pero hay una decisión de producto que el implementador no tenía autoridad para cerrar
+solo, y que ahora es más grande que cuando la anotó.** Elegir `QUE_HACE` como reemplazo es
+lo más defendible que cabía dentro del CA (misma constante, no puede desincronizarse), y sin
+embargo el efecto es que **el fragmento compartido de `/` ya no menciona la cadencia**. Con
+**SPEC-051 mergeada**, eso deja de ser abstracto: su CA-3 decide **a propósito** no declarar
+`openGraph.description` en el layout para que cada página aporte la suya, así que
+`metadata.description` de `page.tsx` **es literalmente el texto de la tarjeta que el foro
+enseña antes de entrar**. Y **R-4** dice que si la cadencia no se dice alto, el feedback que
+vuelva del foro será «no actualiza» y se habrá gastado la publicación.
+
+Ningún criterio aprobado se vuelve falso —SPEC-039 CA-3 habla de las **tres pantallas**, no
+de la etiqueta, y la frase sigue entera en `/`— y las guardias de SPEC-051 siguen verdes
+(`tarjeta.spec.ts` compara `og:description` **con** la `description` de la página, no con un
+literal). **No bloquea esta entrega.** Lo que pido es que **el humano decida** si la tarjeta
+del foro debe volver a decir la cadencia; y si dice que sí, la forma honesta es la que ya
+escribieron el arquitecto y el implementador: componerla **desde `CADENCIA_LINEA`**, nunca un
+segundo literal. Dueño natural: la sucesora de **SPEC-051**.
+
+#### Qué hace falta para el GREEN
+
+Una sola cosa, mecánica: **subir la versión a `0.3.4`**, commitear y volver a pasar
+`version:check` con el árbol limpio. Vuelve entonces al gate y solo hay que re-verificar F-1
+—lo demás está medido y no lo toca.
 
 ## Evidencia visual
 <!-- Capturas de trabajo: test-results/SPEC-050/ (ignorado por git). Evidencia que se commitea: _qa/SPEC-050/ -->
@@ -72,6 +232,27 @@ En `_qa/SPEC-050/`, todo generado por `tests/e2e/primera-pantalla.spec.ts`:
   **6,88:1** (umbral 4,5); versión en `/` **3,77:1** (umbral 3); M1/M2 con **33 elementos
   medidos y 0 violaciones** a cada ancho, y los **testigos** de `.landing-acciones` y del
   wordmark presentes en los ocho (sin ellos, «cero violaciones» no aprobaría nada).
+
+### Lo que vio el verificador (2026-08-23)
+
+Miradas una a una las capturas commiteadas de **360, 390 y 1280**, y generadas y miradas las
+mías propias a **360×800, 390×844, 768×1024 y 1280×900** contra `next start`. Lo que se ve:
+
+- La marca **se lee como marca** a los cuatro anchos: 28 px, negra, con el punto naranja. No
+  es un microcrédito ni compite con el titular (32 px a 360, 52 px a 1280).
+- **«Crear cuenta» domina sin borrar a «Entrar»**: 165×55 frente a 90×49 (2,06×), naranja
+  pleno contra contorno. Por debajo de 720 px apilan —`@media` heredado de SPEC-039— y
+  apiladas la jerarquía se lee todavía más clara.
+- **«gratis y sin publicidad» ya no es la línea más apagada**: sube pegada a los botones, en
+  `--fg` opaco, y se lee antes que cualquier negación.
+- La **cadencia se lee como prosa, entera**, sin borde ámbar, sin fondo elevado y sin radio.
+- El pie de `/` conserva **descargo, legales, versión y marca**; **falta solo** la fila de
+  feedback, con alto 0 y sin hueco muerto detrás.
+- A **360×800** la llamada a la acción cae en `y=316…371`: **por encima del pliegue y sin
+  desplazar**, que es lo que exige `tests/e2e/movil-alta.spec.ts` (SPEC-040 CA-2), verde y
+  sin tocarse.
+
+Medida propia, no del implementador: `/` hace **cero peticiones a cualquier origen externo**.
 
 **Mirado a ojo, no solo en el DOM** (2026-08-23, capturas de 360 y 1280): la marca se lee como
 marca; «Crear cuenta» domina sin que «Entrar» desaparezca; «gratis y sin publicidad» queda
