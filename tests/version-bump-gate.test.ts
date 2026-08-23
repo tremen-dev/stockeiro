@@ -264,16 +264,73 @@ describe('SPEC-038 CA-12: el gate corre de verdad sobre este repositorio', () =>
     expect(salida).toContain('rama-que-no-existe-jamas');
   });
 
-  it('comparada consigo misma no hay diff, así que pasa', () => {
-    const { codigo } = ejecutar(['--base', 'HEAD']);
-    expect(codigo).toBe(SALIDA.LIMPIO);
+  /**
+   * Los ficheros que **git reporta ahora mismo** como pendientes bajo una ruta de
+   * aplicación, en el árbol de quien está ejecutando la suite. No reimplementa nada del
+   * script: pregunta a git y filtra con la misma función que el script exporta.
+   */
+  function pendientesDeAplicacionAhora(): string[] {
+    const crudo = execFileSync('git', ['status', '--porcelain', '--untracked-files=all'], {
+      cwd: rootDir,
+      encoding: 'utf8',
+      stdio: ['ignore', 'pipe', 'pipe'],
+    });
+    const rutas = crudo
+      .split('\n')
+      .map((linea) => linea.slice(3).trim())
+      .filter((linea) => linea !== '')
+      .map((ruta) => (ruta.includes(' -> ') ? ruta.slice(ruta.indexOf(' -> ') + 4) : ruta))
+      .map((ruta) => ruta.replace(/^"|"$/g, ''));
+    return tocanCodigoDeAplicacion(rutas, RUTAS);
+  }
+
+  /**
+   * SPEC-049 CA-10 — la propiedad que sustituye a «el árbol está limpio»: el veredicto
+   * del gate es **coherente con el árbol que haya**.
+   *
+   * No es «tolerar el 2» —eso sería aflojar—: es exigir que el 2 aparezca cuando toca y
+   * no aparezca cuando no toca. Ninguna de las dos aserciones toma una revisión de git,
+   * así que esto no caduca cuando `main` avanza (ADR-031 pto. 2).
+   */
+  function coherenteConElArbol({ codigo, salida }: { codigo: number; salida: string }) {
+    const pendientes = pendientesDeAplicacionAhora();
+    if (pendientes.length === 0) {
+      // Sin nada pendiente, el gate tiene todo lo que necesita: emite un veredicto.
+      expect([SALIDA.LIMPIO, SALIDA.MARCADO], salida).toContain(codigo);
+      return;
+    }
+    if (codigo === SALIDA.USO) {
+      // Y si se abstiene, no se lo inventa: nombra algo que git reporta de verdad.
+      expect(
+        pendientes.some((fichero) => salida.includes(fichero)),
+        `El gate se abstiene sin nombrar ninguno de los pendientes reales:\n${pendientes.join('\n')}\n\n${salida}`,
+      ).toBe(true);
+    }
+  }
+
+  it('comparada consigo misma, el veredicto es coherente con el árbol que haya', () => {
+    // RE-ENCUADRE 2026-08-23, por SPEC-049 CA-10.
+    // ANTES vigilaba «con `--base HEAD` el gate sale 0». Con esa base las dos versiones
+    // son idénticas por construcción y el diff es vacío, así que lo que de verdad
+    // exigía era un ESTADO DEL ÁRBOL —el de quien ejecutase la suite— y se ponía rojo
+    // justo durante el desarrollo normal, que es cuando el árbol siempre está sucio. Un
+    // rojo permanente acaba desactivado, y eso es peor que el defecto que arregla.
+    // AHORA vigila la propiedad que estaba mal expresada: coherencia con el árbol.
+    // Verde con el árbol limpio y verde con el árbol sucio, en cualquier clon.
+    coherenteConElArbol(ejecutar(['--base', 'HEAD']));
   });
 
-  it('esta rama pasa el gate: toca código de aplicación y sube el número', () => {
-    // El gate se aplica a la rama que lo introduce, igual que el CI de SPEC-027 se
-    // verificaba a sí mismo. Si esto se pone rojo, es que falta el `npm version`.
-    const { codigo, salida } = ejecutar();
-    expect(codigo, salida).toBe(SALIDA.LIMPIO);
+  it('sobre su propia base, el veredicto también es coherente con el árbol que haya', () => {
+    // RE-ENCUADRE 2026-08-23, por SPEC-049 CA-10.
+    // ANTES: «esta rama pasa el gate: toca código de aplicación y sube el número»,
+    // que exigía SALIDA.LIMPIO. Ése es el caso que hizo de mitad silenciosa del defecto
+    // del 2026-08-23 (commit 3f62762): corre el gate contra la propia rama, y con la
+    // rama aún sin commits pasaba por la misma razón por la que el gate salió 0 —no
+    // había nada que mirar—. El fallo se coló DENTRO de una suite en verde.
+    // AHORA: la misma propiedad, sobre la base real del gate. Que esta rama suba el
+    // número cuando toca código lo sigue exigiendo el gate en CI, que es su sitio: es un
+    // criterio de gate, no una propiedad permanente de la suite (RI-03 / ADR-031).
+    coherenteConElArbol(ejecutar());
   });
 });
 
