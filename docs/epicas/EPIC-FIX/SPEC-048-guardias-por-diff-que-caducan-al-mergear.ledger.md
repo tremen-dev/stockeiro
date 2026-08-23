@@ -6,7 +6,8 @@ epica: EPIC-FIX
 # Ledger — SPEC-048 Guardias por diff que caducan al mergear
 
 ## Resumen
-- Fase: `en-revision` — implementada por sdd-implementador el 2026-08-22, a la espera del verificador.
+- Fase: `hecho` — **GREEN de sdd-verificador el 2026-08-23** (ver §Veredicto). Implementada por
+  sdd-implementador el 2026-08-22.
   **Formalizada el 2026-08-23 por sdd-arquitecto** (spec y ledger, sin tocar código): `F-SPEC-048-1`
   ratificado y convertido en **CA-13**, premisa de CA-11 corregida, barrido reescrito con sus **dos
   familias**, `F-SPEC-048-2` redirigido a **EPIC-INFRA** y abierto `F-SPEC-048-3`.
@@ -22,40 +23,157 @@ epica: EPIC-FIX
 <!-- Un CA está ✅ solo cuando Implementado + Test + Verif. aplicables están en verde. Una salvedad se marca ⚠️, nunca ✅. -->
 | CA | Implementado (fichero) | Test (fichero/caso) | Verif. | Estado |
 |---|---|---|---|---|
-| CA-1 | `tests/ventana-fija.ts` (revisiones como parámetro, nunca dentro de la llamada a git); `ENTREGA_DE_SPEC_047 = { antes: '6da9fbe', despues: '104f94e' }` en `tests/icono-frontera.test.ts` y `tests/icono-guardias-ampliadas.test.ts` | `tests/guardias-ancladas.test.ts` › «CA-1: las dos guardias miran una ventana fija…» (4 casos: sin revisión móvil ×2, constante con nombre ×2) + «los dos extremos son sha literales» + «`antes` es el primer padre de `despues`» |  | ❌ |
-| CA-2 | centinela en cada uno de los dos ficheros | `tests/icono-frontera.test.ts` › «la ventana no está vacía: trajo el icono, su generador y el guardián»; `tests/icono-guardias-ampliadas.test.ts` › mismo título |  | ❌ |
-| CA-3 | `describe.skipIf(!HAY_VENTANA)` en los cinco bloques anclados de los dos ficheros | `tests/guardias-ancladas.test.ts` › «CA-3: el salto es por disponibilidad, y no puede ocurrir en CI» (3 casos, uno **siempre activo**). Comprobado además con `CI=1`: 152/152 verdes, **0 saltados** |  | ❌ |
-| CA-4 | `tests/icono-frontera.test.ts` › «el guardián de sesión cambia en una sola línea de código: la del matcher», sobre `lineasDeCodigoDelDiff()` | ese mismo caso (era **R-1**, rojo en `main`) |  | ❌ |
-| CA-5 | `tests/icono-frontera.test.ts` › «el diff sobre tests/ añade ficheros y casos, y sólo modifica las tres guardias», sobre `testsModificadosEnLaVentana()` | ese mismo caso (era **R-2**) + mutación de control con un cuarto fichero |  | ❌ |
-| CA-6 | `tests/icono-guardias-ampliadas.test.ts` › «el diff sobre tests/ no modifica ningún fichero ajeno fuera de esas tres» | ese mismo caso (era **R-3**) + `tests/guardias-ancladas.test.ts` › «CA-6: los sha declarados en ambos coinciden» |  | ❌ |
-| CA-7 | las **12** aserciones del inventario, re-encuadradas a la ventana y con su mutación de control al lado: 6 en `tests/icono-frontera.test.ts`, 6 en `tests/icono-guardias-ampliadas.test.ts` | los mismos 12 casos; cada uno vuelve a ejecutar su comparación contra una entrada mutada (un fichero de más en la lista, una clave de más en `dependencies`, un byte de más en el caso) y exige que la rechace |  | ❌ |
-| CA-8 | comentario dentro de cada uno de los 15 casos tocados por CA-4…CA-7 | `tests/guardias-ancladas.test.ts` › «CA-8: cada re-encuadre lleva su porqué dentro del caso» (11 casos de fuente + centinela del barrido) |  | ❌ |
-| CA-9.1 | `tests/guardias-no-caducan.test.ts` › `beforeAll`: `git clone --shared --no-checkout` a un temporal + `read-tree`/`hash-object`/`update-index`/`write-tree`/`commit-tree`/`update-ref` | «CA-9.1 — el futuro simulado existe y de verdad ha movido la diana» y «CA-9.1 — y el repositorio real queda como estaba: ni un ref, ni un fichero» |  | ❌ |
-| CA-9.2 | idem | «CA-9.2 — la ventana fija devuelve exactamente lo mismo que en el árbol actual», «…la aserción de CA-4 sigue verde y con los mismos valores», «…las aserciones de CA-5 y CA-6 siguen verdes y con los mismos valores» |  | ❌ |
-| CA-9.3 | `FORMULACION_VIEJA = { antes: 'origin/main', despues: 'HEAD' }` evaluada en el futuro simulado | «CA-9.3 — control negativo: la formulación vieja FALLA en ese mismo futuro» (`.toThrow()` sobre las aserciones viejas de CA-5 y CA-4) y «CA-9.3 — y se ve por qué: contra una diana móvil el diff queda vacío». **Contraprobado**: sustituyendo `FORMULACION_VIEJA` por la ventana buena, los dos casos se ponen en rojo (`2 failed` de 7) |  | ❌ |
-| CA-9.4 | prosa en la cabecera del fichero y en el caso de CA-9.3 | el propio texto del caso cita ADR-031 pto. 2 y dice que es el caso que impide repetir el error de SPEC-047 |  | ❌ |
-| CA-10.1 | `tests/revision-movil.ts` — `analizar()` tapa comentarios, literales y expresiones regulares antes de mirar | `tests/revision-movil-en-tests.test.ts` › «sobre un fragmento que sólo la menciona en un comentario, no la detecta» y «CA-10.1 — un título de describe que nombra la diana móvil no es infracción» |  | ❌ |
-| CA-10.2 | `SUBCOMANDOS = ['diff','show','log','rev-list']` — `rev-parse` queda fuera, y una llamada que no es a git tampoco cuenta | `tests/revision-movil-en-tests.test.ts` › «CA-10.2 — `git rev-parse HEAD` sigue siendo legítimo» y «CA-10.2 — pasar HEAD como entrada a un script bajo prueba sigue siendo legítimo» |  | ❌ |
-| CA-10.3 | `infraccionesEnFuente()` exportada, aplicable a un fragmento suelto | `tests/revision-movil-en-tests.test.ts` › «CA-10.3: la meta-guardia se prueba a sí misma» (6 casos: 2 infractores —literal y concatenado—, 4 inocentes) |  | ❌ |
-| CA-10.4 | — | `tests/revision-movil-en-tests.test.ts` › «cero infracciones en todo tests/\*\*/\*.ts» + centinela «el barrido mira de verdad». Contra el árbol previo encontraba **10** infracciones, las de los dos ficheros de SPEC-047 |  | ❌ |
-| CA-11 | **RI-03** en `docs/fundacion/reglas.md` § *Reglas de ingeniería (RI-xx)* | `tests/reglas-ingenieria-ri03.test.ts` (11 casos). `tests/reglas-ingenieria.test.ts` **no se toca** y sigue en 27/27. ⚠️ Premisa del CA corregida el 2026-08-23 (`F-SPEC-048-1`): escribir RI-03 **sí** rompe una guardia ajena, y su autorización es **CA-13**. Uno de los 11 casos arrastraba `F-SPEC-048-3` y **quedó arreglado el 2026-08-23**, antes del merge: ya no congela la extensión de la serie |  | ❌ |
-| CA-12 | — | `npm run test` completo: **1555 passed (1555)**, 104 ficheros, **0 saltados**. El verde de `main` sólo es afirmable tras el merge (RI-02) |  | 🚧 |
-| CA-G1 | n-a (criterio de gate) | El diff de la entrega no toca `src/`, `drizzle/`, `vercel.json`, `.github/workflows/` ni `package.json`: 14 ficheros, todos bajo `docs/` y `tests/`. `npm run version:check` no exige bump |  | ❌ |
-| CA-13.1 | `tests/reglas-ingenieria-hecho-vivo.test.ts`, y dentro de él **un solo caso**: «va después de RI-01, en la misma serie» | `git diff 104f94e HEAD -- tests/` modifica cuatro ficheros y sólo dos son ajenos: éste (CA-13) y `tests/deploy-gate-workflow.test.ts` (prosa, autorizada el 2026-08-22). Dentro de éste el diff cae entero en ese `it(...)`; los otros 15 casos quedan byte a byte. `tests/legal-rutas-publicas.test.ts` y `tests/cuenta-rutas.test.ts`, intactos |  | ❌ |
-| CA-13.2 | `serieSana()`, dentro del propio caso: serie no vacía + `every((n, i) => n === i + 1)` + `includes(2)` | la MISMA comparación rechaza `[1, 3]` (hueco), `[1, 2, 2]` (repetido), `[2, 1, 3]` (desorden), `[1]` (sin RI-02) y `[]` (vacía). Y contraprobado sobre el documento real, no sólo con constantes: renombrando RI-03 a RI-04 en `docs/fundacion/reglas.md` (hueco) y a un segundo RI-02 (repetido), el caso se pone rojo — `3 failed de 27` en cada mutación; restaurado, 27/27 |  | ❌ |
-| CA-13.3 | ninguna otra aserción del fichero se toca | 16/16 en `tests/reglas-ingenieria-hecho-vivo.test.ts`, incluidos «la sección de ingeniería contiene RI-02», «lleva su nombre: "Hecho" significa "vivo"», los ocho fragmentos de CA-14.2, la fuente ADR-018 D-7 y «RI-01 sigue palabra por palabra como la dejó SPEC-032» (CA-14.3) |  | ❌ |
-| CA-13.4 | comentario dentro del propio caso | dice qué vigilaba antes, qué vigila ahora, que la guardia sale **más fuerte**, que lo autoriza **CA-13**, y —sin borrarlo al ratificarse— que el arbitraje **no precedió al cambio**, que lo levantó el implementador como `F-SPEC-048-1` y que el humano (Alberto Fojo) lo ratificó el **2026-08-23** |  | ❌ |
-| CA-G2 | n-a (criterio de gate) | **Con dos perforaciones nominales, las dos declaradas y autorizadas**, ver *Salvedades*: `tests/deploy-gate-workflow.test.ts` (una línea de prosa, autorizada por el humano el 2026-08-22) y `tests/reglas-ingenieria-hecho-vivo.test.ts` (`F-SPEC-048-1`, ratificado el 2026-08-23 y formalizado como **CA-13**). `tests/legal-rutas-publicas.test.ts` y `tests/cuenta-rutas.test.ts` **intactos** |  | ❌ |
-| CA-G3 | n-a (criterio de gate) | Del verificador. Las cifras de antes/después y la contraprueba de CA-9.3 están en §Resumen y en la fila CA-9.3 |  | ❌ |
+| CA-1 | `tests/ventana-fija.ts` (revisiones como parámetro, nunca dentro de la llamada a git); `ENTREGA_DE_SPEC_047 = { antes: '6da9fbe', despues: '104f94e' }` en `tests/icono-frontera.test.ts` y `tests/icono-guardias-ampliadas.test.ts` | `tests/guardias-ancladas.test.ts` › «CA-1: las dos guardias miran una ventana fija…» (4 casos: sin revisión móvil ×2, constante con nombre ×2) + «los dos extremos son sha literales» + «`antes` es el primer padre de `despues`» | La meta-guardia aplicada a los dos ficheros da **0 infracciones**; `tests/guardias-ancladas.test.ts` 22/22. Contraste propio: el MISMO analizador sobre esos dos ficheros tal y como estaban en `104f94e` encuentra **10** (7 en `icono-frontera`, 3 en `icono-guardias-ampliadas`) — la cifra del implementador, medida por mí. | ✅ |
+| CA-2 | centinela en cada uno de los dos ficheros | `tests/icono-frontera.test.ts` › «la ventana no está vacía: trajo el icono, su generador y el guardián»; `tests/icono-guardias-ampliadas.test.ts` › mismo título | Mutación propia: fijando la ventana a `104f94e`…`104f94e` (vacía), **los dos centinelas se ponen rojos**, uno en cada fichero. Salvedad menor anotada abajo: el centinela es **por fichero**, no por `describe` (ADR-031 2.2 dice «del mismo bloque»); como la ventana es una constante única por fichero, cubre igual. | ✅ |
+| CA-3 | `describe.skipIf(!HAY_VENTANA)` en los cinco bloques anclados de los dos ficheros | `tests/guardias-ancladas.test.ts` › «CA-3: el salto es por disponibilidad, y no puede ocurrir en CI» (3 casos, uno **siempre activo**). Comprobado además con `CI=1`: 152/152 verdes, **0 saltados** | Batería **completa** con `CI=1`: **1555 passed (1555)** en 104 ficheros, **0 saltados**. Los 10 ficheros de guardias con `CI=1`: 195/195, 0 saltados. El caso «con CI definida … ningún bloque anclado se salta» está fuera de todo `skipIf`: siempre corre. | ✅ |
+| CA-4 | `tests/icono-frontera.test.ts` › «el guardián de sesión cambia en una sola línea de código: la del matcher», sobre `lineasDeCodigoDelDiff()` | ese mismo caso (era **R-1**, rojo en `main`) | Verde (`quitadas`/`anadidas` = 1 y 1, las dos con `matcher`) y con los mismos valores en el futuro simulado. Reproducido el **antes**: extrayendo los dos ficheros de `104f94e` y corriéndolos contra este árbol → **3 failed / 26 passed (29)**; R-1 es uno de los tres. | ✅ |
+| CA-5 | `tests/icono-frontera.test.ts` › «el diff sobre tests/ añade ficheros y casos, y sólo modifica las tres guardias», sobre `testsModificadosEnLaVentana()` | ese mismo caso (era **R-2**) + mutación de control con un cuarto fichero | Verde; `testsModificadosEnLaVentana` devuelve exactamente los tres autorizados. R-2 reproducido en el mismo experimento del **antes**. Mutación con un cuarto fichero, presente y ejecutada. | ✅ |
+| CA-6 | `tests/icono-guardias-ampliadas.test.ts` › «el diff sobre tests/ no modifica ningún fichero ajeno fuera de esas tres» | ese mismo caso (era **R-3**) + `tests/guardias-ancladas.test.ts` › «CA-6: los sha declarados en ambos coinciden» | Verde; R-3 reproducido en el **antes**. «Los sha declarados en ambos coinciden» lee la constante de la fuente de cada fichero: si las dos ventanas se separaran, se vería. | ✅ |
+| CA-7 | las **12** aserciones del inventario, re-encuadradas a la ventana y con su mutación de control al lado: 6 en `tests/icono-frontera.test.ts`, 6 en `tests/icono-guardias-ampliadas.test.ts` | los mismos 12 casos; cada uno vuelve a ejecutar su comparación contra una entrada mutada (un fichero de más en la lista, una clave de más en `dependencies`, un byte de más en el caso) y exige que la rechace | **Las 12 llevan mutación y las 12 se ejecutan; comprobado que MUERDEN, no que existan.** Neutralizando los tres comparadores con nombre (`fueraDelConjunto`, `zonasProhibidas`, `qaAjenas` → `() => []`) caen **exactamente esos 3 casos** aunque la aserción principal siga verde; rompiendo el predicado de `public/`, cae el suyo; neutralizando `casos()`, caen los 3 de CA-19.4. **Residual medido**, `F-SPEC-048-4` abajo: en los 3 de «el único caso que cambia es el ampliado» la mutación vive dentro de un `for` que no correría si el extractor dejara de casar, y 2 controles son tautológicos por la forma que el propio CA prescribe. No es vacuidad **hoy** (los bucles recorren ~10 casos por fichero) y la vacuidad por ventana la cierra CA-2, probada. | ✅ |
+| CA-8 | comentario dentro de cada uno de los 15 casos tocados por CA-4…CA-7 | `tests/guardias-ancladas.test.ts` › «CA-8: cada re-encuadre lleva su porqué dentro del caso» (11 casos de fuente + centinela del barrido) | 11 casos de fuente → 15 en ejecución (3 rojos + 12 verdes vacíos), todos verdes; cada uno exige `SPEC-048`, su CA, `2026-08-22`, «arbitraje del humano», «Qué vigilaba antes» y «Qué vigila ahora», y aborta con `toBeDefined` si el caso no se encuentra. Leídos los 15 comentarios: dicen lo que el CA pide. | ✅ |
+| CA-9.1 | `tests/guardias-no-caducan.test.ts` › `beforeAll`: `git clone --shared --no-checkout` a un temporal + `read-tree`/`hash-object`/`update-index`/`write-tree`/`commit-tree`/`update-ref` | «CA-9.1 — el futuro simulado existe y de verdad ha movido la diana» y «CA-9.1 — y el repositorio real queda como estaba: ni un ref, ni un fichero» | Medido **desde fuera del test**: `HEAD` = `29fe662` antes y después, `git show-ref` con md5 idéntico (`e8c9bebc4178a030a8c742d906bee734`) y `git status --porcelain` **vacío**. El clon es `--shared --no-checkout` y toda la escritura va por fontanería sobre el temporal. Su propio centinela de escenario, verde. | ✅ |
+| CA-9.2 | idem | «CA-9.2 — la ventana fija devuelve exactamente lo mismo que en el árbol actual», «…la aserción de CA-4 sigue verde y con los mismos valores», «…las aserciones de CA-5 y CA-6 siguen verdes y con los mismos valores» | Los tres casos verdes, y comparan **valor a valor** contra el árbol real (`toEqual` futuro↔árbol), no sólo «sigue verde». | ✅ |
+| CA-9.3 | `FORMULACION_VIEJA = { antes: 'origin/main', despues: 'HEAD' }` evaluada en el futuro simulado | «CA-9.3 — control negativo: la formulación vieja FALLA en ese mismo futuro» (`.toThrow()` sobre las aserciones viejas de CA-5 y CA-4) y «CA-9.3 — y se ve por qué: contra una diana móvil el diff queda vacío». **Contraprobado**: sustituyendo `FORMULACION_VIEJA` por la ventana buena, los dos casos se ponen en rojo (`2 failed` de 7) | **Contraprueba ejecutada por mí.** Copia del fichero con `FORMULACION_VIEJA` sustituida por `{ antes: '6da9fbe', despues: '104f94e' }` → **2 failed / 5 passed (7)**, y los dos rojos son *exactamente* los dos casos de CA-9.3; CA-9.1 y CA-9.2 siguen verdes. El control controla. Copia borrada; árbol limpio. | ✅ |
+| CA-9.4 | prosa en la cabecera del fichero y en el caso de CA-9.3 | el propio texto del caso cita ADR-031 pto. 2 y dice que es el caso que impide repetir el error de SPEC-047 | Leídos la cabecera del fichero y el cuerpo del caso: dicen que es el caso que impide repetir el error de SPEC-047 y citan ADR-031 pto. 2. | ✅ |
+| CA-10.1 | `tests/revision-movil.ts` — `analizar()` tapa comentarios, literales y expresiones regulares antes de mirar | `tests/revision-movil-en-tests.test.ts` › «sobre un fragmento que sólo la menciona en un comentario, no la detecta» y «CA-10.1 — un título de describe que nombra la diana móvil no es infracción» | Verde, y comprobado sobre ficheros reales: los `describe` y comentarios que nombran `origin/main` en `tests/deploy-gate-workflow.test.ts` y `tests/neon-preview-cleanup-workflow.test.ts` no producen ni una infracción en el barrido de CA-10.4. | ✅ |
+| CA-10.2 | `SUBCOMANDOS = ['diff','show','log','rev-list']` — `rev-parse` queda fuera, y una llamada que no es a git tampoco cuenta | `tests/revision-movil-en-tests.test.ts` › «CA-10.2 — `git rev-parse HEAD` sigue siendo legítimo» y «CA-10.2 — pasar HEAD como entrada a un script bajo prueba sigue siendo legítimo» | Verde. `rev-parse` queda fuera de `SUBCOMANDOS`; `tests/version-build-identity.test.ts` y `tests/version-bump-gate.test.ts` pasan el barrido sin infracción. | ✅ |
+| CA-10.3 | `infraccionesEnFuente()` exportada, aplicable a un fragmento suelto | `tests/revision-movil-en-tests.test.ts` › «CA-10.3: la meta-guardia se prueba a sí misma» (6 casos: 2 infractores —literal y concatenado—, 4 inocentes) | 6/6, con los dos infractores (literal y concatenado) y los cuatro inocentes. | ✅ |
+| CA-10.4 | — | `tests/revision-movil-en-tests.test.ts` › «cero infracciones en todo tests/\*\*/\*.ts» + centinela «el barrido mira de verdad». Contra el árbol previo encontraba **10** infracciones, las de los dos ficheros de SPEC-047 | **Infracción plantada por mí en un fichero real de `tests/`**, en su forma indirecta (`const BASE = 'origin/main'` y luego `${BASE}...HEAD` dentro de `execFileSync('git', […])`): la caza y nombra las dos revisiones. Segunda plantada con `git('show', BASE + ':' + ruta)` y `git('log','--oneline','main..HEAD')`: caza las tres. Retiradas; árbol limpio. Cero infracciones con el árbol tal y como queda. Límite medido en `F-SPEC-048-5`. | ✅ |
+| CA-11 | **RI-03** en `docs/fundacion/reglas.md` § *Reglas de ingeniería (RI-xx)* | `tests/reglas-ingenieria-ri03.test.ts` (11 casos). `tests/reglas-ingenieria.test.ts` **no se toca** y sigue en 27/27. ⚠️ Premisa del CA corregida el 2026-08-23 (`F-SPEC-048-1`): escribir RI-03 **sí** rompe una guardia ajena, y su autorización es **CA-13**. Uno de los 11 casos arrastraba `F-SPEC-048-3` y **quedó arreglado el 2026-08-23**, antes del merge: ya no congela la extensión de la serie | 11/11, y `tests/reglas-ingenieria.test.ts` **no está en el diff** y sigue en 27/27. RI-03 vive en `docs/fundacion/reglas.md` con las cuatro condiciones, el mecanismo y la fuente ADR-031. `F-SPEC-048-3` **verificado como arreglado**: ya no queda `toEqual(['RI-01','RI-02','RI-03'])`, y la forma nueva muerde sobre el documento real (ver CA-13.2). | ✅ |
+| CA-12 | — | `npm run test` completo: **1555 passed (1555)**, 104 ficheros, **0 saltados**. El verde de `main` sólo es afirmable tras el merge (RI-02) | Batería completa medida por mí: **1555 passed (1555)**, 104 ficheros, **0 saltados** — e idéntico con `CI=1`. `npm run lint` y `npx tsc --noEmit`, limpios. La otra mitad —el verde del CI de `main`— es posterior al merge (RI-02) y **no se finge**: se pega aquí cuando exista. | 🚧 |
+| CA-G1 | n-a (criterio de gate) | El diff de la entrega no toca `src/`, `drizzle/`, `vercel.json`, `.github/workflows/` ni `package.json`: 14 ficheros, todos bajo `docs/` y `tests/`. `npm run version:check` no exige bump | Auditado el diff completo `104f94e…HEAD`: **14 ficheros**, todos bajo `docs/` y `tests/`. Ni `src/`, ni `drizzle/`, ni `vercel.json`, ni `.github/workflows/`, ni `package.json`. `npm run version:check` → exit 0, «el diff no toca codigo de aplicacion». | ✅ |
+| CA-13.1 | `tests/reglas-ingenieria-hecho-vivo.test.ts`, y dentro de él **un solo caso**: «va después de RI-01, en la misma serie» | `git diff 104f94e HEAD -- tests/` modifica cuatro ficheros y sólo dos son ajenos: éste (CA-13) y `tests/deploy-gate-workflow.test.ts` (prosa, autorizada el 2026-08-22). Dentro de éste el diff cae entero en ese `it(...)`; los otros 15 casos quedan byte a byte. `tests/legal-rutas-publicas.test.ts` y `tests/cuenta-rutas.test.ts`, intactos | Auditado el diff entero: de `tests/` se modifican **cuatro** ficheros y sólo **dos** son ajenos — `tests/deploy-gate-workflow.test.ts` (una línea de prosa, el título del `describe`; cero comportamiento) y éste. `tests/legal-rutas-publicas.test.ts` y `tests/cuenta-rutas.test.ts` **no aparecen en el diff**. Dentro del fichero el único *hunk* es `@@ -77,10 +77,56 @@`, íntegro dentro de `it('va después de RI-01, en la misma serie')`. **La autorización no se ha desbordado.** | ✅ |
+| CA-13.2 | `serieSana()`, dentro del propio caso: serie no vacía + `every((n, i) => n === i + 1)` + `includes(2)` | la MISMA comparación rechaza `[1, 3]` (hueco), `[1, 2, 2]` (repetido), `[2, 1, 3]` (desorden), `[1]` (sin RI-02) y `[]` (vacía). Y contraprobado sobre el documento real, no sólo con constantes: renombrando RI-03 a RI-04 en `docs/fundacion/reglas.md` (hueco) y a un segundo RI-02 (repetido), el caso se pone rojo — `3 failed de 27` en cada mutación; restaurado, 27/27 | **Mutado el documento real `docs/fundacion/reglas.md`, no las constantes.** Hueco (RI-03→RI-04): **3 failed / 51 passed (54)**. Repetido (RI-03→segundo RI-02): **3 failed / 51**. Desaparición de RI-02 (RI-02→RI-05): **13 failed / 41**. Restaurado: **54/54**. En el hueco, los rojos incluyen «va después de RI-01, en la misma serie»: la guardia re-encuadrada muerde sobre el documento de verdad. Fortalecimiento confirmado — la forma vieja `toEqual(['RI-01','RI-02'])` no rechazaba ninguna de esas tres formas salvo por accidente. | ✅ |
+| CA-13.3 | ninguna otra aserción del fichero se toca | 16/16 en `tests/reglas-ingenieria-hecho-vivo.test.ts`, incluidos «la sección de ingeniería contiene RI-02», «lleva su nombre: "Hecho" significa "vivo"», los ocho fragmentos de CA-14.2, la fuente ADR-018 D-7 y «RI-01 sigue palabra por palabra como la dejó SPEC-032» (CA-14.3) | 16/16 en el fichero, incluido «RI-01 sigue palabra por palabra como la dejó SPEC-032» (CA-14.3) y «la sección de ingeniería contiene RI-02». El único *hunk* del diff no roza ninguna otra aserción; verificado línea a línea. | ✅ |
+| CA-13.4 | comentario dentro del propio caso | dice qué vigilaba antes, qué vigila ahora, que la guardia sale **más fuerte**, que lo autoriza **CA-13**, y —sin borrarlo al ratificarse— que el arbitraje **no precedió al cambio**, que lo levantó el implementador como `F-SPEC-048-1` y que el humano (Alberto Fojo) lo ratificó el **2026-08-23** | Leído el comentario: qué vigilaba antes, qué vigila ahora, la fecha, el CA que autoriza, **y que el arbitraje del humano NO precedió al cambio** — que lo levantó el implementador como `F-SPEC-048-1` y que el humano lo ratificó el **2026-08-23**. El incumplimiento **no se ha borrado al ratificarse**. Es excepción datada, no precedente. | ✅ |
+| CA-G2 | n-a (criterio de gate) | **Con dos perforaciones nominales, las dos declaradas y autorizadas**, ver *Salvedades*: `tests/deploy-gate-workflow.test.ts` (una línea de prosa, autorizada por el humano el 2026-08-22) y `tests/reglas-ingenieria-hecho-vivo.test.ts` (`F-SPEC-048-1`, ratificado el 2026-08-23 y formalizado como **CA-13**). `tests/legal-rutas-publicas.test.ts` y `tests/cuenta-rutas.test.ts` **intactos** | Confirmadas las **dos** perforaciones nominales y ninguna más. Ninguno de los seis sitios sanos del barrido de la familia 1 está modificado, salvo la línea de prosa autorizada. `tests/legal-rutas-publicas.test.ts` y `tests/cuenta-rutas.test.ts`, byte a byte. **Y se respetó lo de fondo:** `CA-G1/G2/G3` **no** existen como tests permanentes — `grep -rn 'CA-G1/CA-G2/CA-G3' tests/ scripts/` no devuelve nada. | ✅ |
+| CA-G3 | n-a (criterio de gate) | Del verificador. Las cifras de antes/después y la contraprueba de CA-9.3 están en §Resumen y en la fila CA-9.3 | **Antes** (los dos ficheros de `104f94e` corridos contra este árbol, con `origin/main` ya movido): **3 failed / 26 passed (29)** — R-1, R-2 y R-3, los tres del run 32583255349. **Después**: **1555 passed (1555)** en 104 ficheros, 0 saltados; con `CI=1`, idéntico; lint y typecheck limpios. **Control negativo de CA-9.3**: sustituyendo la formulación vieja por la ventana buena → **2 failed / 5 passed (7)**, y los dos rojos son los dos casos de CA-9.3. | ✅ |
 
 ## Veredicto del verificador
 <!-- GREEN/RED + fecha + resumen. Lo escribe SOLO sdd-verificador. -->
+
+**GREEN — sdd-verificador, 2026-08-23.** 24 CA en ✅ y **CA-12 en 🚧**, que es donde
+tiene que estar hasta que `main` corra su CI (RI-02). No he leído el relato de nadie: lo
+que sigue lo he medido yo en `D:/src/wt-48`, y las mutaciones las he hecho a mano y
+retirado, con el árbol comprobado limpio después de cada una.
+
+### Las cifras, medidas aquí
+
+| Qué | Salida |
+|---|---|
+| `npx vitest run` (completo) | **1555 passed (1555)**, 104 ficheros, **0 saltados** |
+| `CI=1 npx vitest run` (completo) | **1555 passed (1555)**, 104 ficheros, **0 saltados** |
+| `npm run lint` · `npx tsc --noEmit` | limpios, exit 0 los dos |
+| `npm run version:check` | exit 0 — «el diff no toca codigo de aplicacion» |
+| **Antes** (los dos ficheros de `104f94e`, corridos contra este árbol) | **3 failed / 26 passed (29)** — R-1, R-2 y R-3 |
+| Diff de la entrega `104f94e…HEAD` | 14 ficheros, todos bajo `docs/` y `tests/` |
+
+### Lo que aprieté, y qué pasó
+
+1. **CA-9.3, el control negativo (CA-G3).** Sustituí `FORMULACION_VIEJA` por la ventana
+   buena `{ antes: '6da9fbe', despues: '104f94e' }` en una copia del fichero:
+   **2 failed / 5 passed (7)**, y los dos rojos son *exactamente* los dos casos de
+   CA-9.3, con CA-9.1 y CA-9.2 intactos en verde. **El control controla.**
+2. **CA-9.1, sin rastro.** Medido desde fuera del test: `HEAD` = `29fe662` antes y
+   después, `git show-ref` con md5 idéntico (`e8c9bebc4178a030a8c742d906bee734`) y
+   `git status --porcelain` vacío. El clon es `--shared --no-checkout` y todo se escribe
+   con fontanería sobre el temporal.
+3. **Las doce mutaciones de CA-7 muerden.** Neutralizando los comparadores con nombre
+   (`fueraDelConjunto`, `zonasProhibidas`, `qaAjenas` → `() => []`) caen **exactamente
+   esos tres casos**, aunque la aserción principal siga verde; rompiendo el predicado de
+   `public/`, cae el suyo; neutralizando `casos()`, caen los tres de CA-19.4. Y la
+   vacuidad de ventana la cierra CA-2: con la ventana fijada a `104f94e…104f94e`
+   **los dos centinelas se ponen rojos**. Residual acotado en `F-SPEC-048-4`.
+4. **CA-13.2, mutando el documento real.** Sobre `docs/fundacion/reglas.md`, no sobre
+   constantes: hueco (RI-03→RI-04) **3 failed / 51 passed (54)**; repetido
+   (RI-03→segundo RI-02) **3 failed / 51**; desaparición de RI-02 (RI-02→RI-05)
+   **13 failed / 41**; restaurado **54/54**. En el hueco, entre los rojos está
+   «va después de RI-01, en la misma serie»: la guardia re-encuadrada muerde sobre el
+   documento de verdad, y la forma vieja `toEqual(['RI-01','RI-02'])` no rechazaba
+   ninguna de las tres. **Es fortalecimiento, no aflojada.**
+5. **CA-10, con infracción plantada por mí.** En un fichero real de `tests/`, en la
+   forma indirecta que el defecto tenía (`const BASE = 'origin/main'` + interpolación
+   dentro de `execFileSync('git', […])`): la caza y nombra las dos revisiones. Segunda
+   plantada con `git('show', BASE + ':' + ruta)` y `git('log','--oneline','main..HEAD')`:
+   caza las tres. Y el contraste histórico: el mismo analizador sobre los dos ficheros
+   tal y como estaban en `104f94e` encuentra **10** infracciones (7 + 3) — la
+   meta-guardia habría parado la PR que lo introdujo. `tests/reglas-ingenieria.test.ts`
+   no está en el diff y sigue en 27/27.
+6. **CA-3, el salto prohibido en CI.** Batería completa con `CI=1`: **0 saltados**.
+7. **CA-13.1, la autorización no se desbordó.** De `tests/` se modifican cuatro ficheros
+   y sólo dos son ajenos: `deploy-gate-workflow.test.ts` (una línea de prosa) y
+   `reglas-ingenieria-hecho-vivo.test.ts`, cuyo único *hunk* cae entero dentro del `it`
+   autorizado. `legal-rutas-publicas.test.ts` y `cuenta-rutas.test.ts` **no aparecen en
+   el diff**.
+8. **Mi propio barrido de la séptima instancia: no la hay.** Repasadas una a una las
+   líneas **añadidas** del diff con forma de foto (`toEqual([…])`, `toHaveLength(n)`,
+   `toBe(n)`). Todas caen en uno de tres sacos: conjunto **vacío** como propiedad
+   («cero infracciones», «nada fuera del conjunto»), hecho **inmutable** de la ventana
+   `6da9fbe…104f94e`, o el commit que la propia prueba de CA-9 fabrica. Ninguna congela
+   la extensión de una lista que crece por diseño. `F-SPEC-048-3` está arreglado de
+   verdad: no queda `toEqual(['RI-01','RI-02','RI-03'])`, y la forma nueva la vi caer
+   sobre el documento real.
+9. **CA-G1/G2/G3 no se codificaron como tests**, que era lo deliberado:
+   `grep -rn 'CA-G1' 'CA-G2' 'CA-G3'` sobre `tests/` y `scripts/` no devuelve nada.
+
+### La celda de *Estado* que tocó el implementador — mi juicio
+
+**Procede, y la mantengo.** CA-12 → 🚧 es la única celda de mi columna que él escribió,
+y la habría escrito igual: la spec lo ordena literalmente («hasta entonces CA-12 se marca
+🚧, nunca ✅»), 🚧 es la marca **conservadora** —no se atribuye nada—, y lo **declaró** en
+el handoff en vez de callarlo. El resto de *Verif.* y *Estado* llegó vacío, que es como
+tenía que llegar. Queda dicho para que no se lea como precedente: la columna es del
+verificador, y lo que la salva aquí es que el valor era forzoso y la declaración,
+espontánea.
 
 ## Evidencia visual
 <!-- Tabla CA → captura en _qa/SPEC-048/. Informe HTML opcional: _qa/SPEC-048/informe.html -->
 No aplica: esta spec no toca interfaz. Toda su evidencia es la salida de `npm run test`.
 
 ## Salvedades / follow-ups
+
+- **`F-SPEC-048-4` — tres de las doce mutaciones de CA-7 viven dentro de un `for` que
+  podría no correr (levantado por sdd-verificador, 2026-08-23).** En
+  `tests/icono-guardias-ampliadas.test.ts`, los tres casos *«`${fichero}`: el único caso
+  que cambia es el ampliado»* recorren `casos(...)` y ponen su mutación de control dentro
+  del bucle. Medido: neutralizando `casos()` para que devuelva un `Map` vacío, esos tres
+  casos **siguen verdes** —el bucle no se ejecuta y la mutación tampoco—, mientras que los
+  tres de CA-19.4 caen porque `caso()` exige `toBeDefined`. Además, la forma de control que
+  el propio CA-7 prescribe («un byte de más en el blob», «una clave de más») es
+  tautológica en dos sitios más: `expect(\`${x} \`).not.toBe(x)` y
+  `expect({ ...deps, inventada }).not.toEqual(deps)` no pueden fallar nunca.
+  - **No es vacuidad hoy** y no es de la familia que rompió `main`: con la ventana fija,
+    los blobs vienen de dos revisiones distintas y los bucles recorren ~10 casos por
+    fichero. Es fragilidad del extractor, no caducidad por merge — por eso es residual y
+    no RED.
+  - **Remedio de una línea**, para quien lo recoja: `expect(antes.size).toBeGreaterThan(0)`
+    antes del bucle, que es el mismo centinela que `tests/revision-movil-en-tests.test.ts`
+    ya se puso a sí mismo («y el barrido mira de verdad»). Encaja en `F-SPEC-048-2`.
+
+- **`F-SPEC-048-5` — el límite medido de la meta-guardia (levantado por sdd-verificador,
+  2026-08-23).** `infraccionesEnFuente()` sólo reconoce una llamada como git si el nombre
+  invocado contiene `git` o si hay un literal `git` dentro. Probado: con un envoltorio
+  local `const g = (...a) => execFileSync('git', a)`, ni `g('show', BASE + ':' + ruta)` ni
+  `g('log', '--oneline', 'main..@')` se detectan. Con el envoltorio llamado `git` —que es
+  como lo escriben `tests/ventana-fija.ts` y como lo escribió SPEC-047— se detectan las
+  tres formas. Es exactamente el límite que **ADR-031 §Consecuencias** ya declara
+  («análisis de texto … puede rodearse con suficiente empeño; pretende que colarlo
+  requiera intención»), así que **no contradice CA-10** y no se toca. Queda escrito para
+  que nadie lo descubra creyendo que encontró un agujero nuevo.
+
+- **Centinela por fichero, no por bloque (observación, sin acción).** ADR-031 pto. 2.2
+  pide el centinela «del mismo bloque»; aquí hay **uno por fichero** y los dos ficheros
+  tienen varios `describe` anclados. Como la ventana es una constante única por fichero,
+  una ventana mal escrita hace caer el centinela igual —comprobado: con la ventana vacía
+  caen los dos—, así que el mecanismo cubre. Se anota porque la letra del ADR dice otra
+  cosa y conviene que la próxima guardia anclada no lo lea como precedente para omitirlo.
+
+- **Familia 2 viva en el fichero que CA-13 perforó, y correctamente NO tocada.**
+  `tests/reglas-ingenieria-hecho-vivo.test.ts` l. 181-183 congela la serie **RN** con un
+  `toEqual(['RN-01', …])` literal: la misma forma que CA-13 acaba de re-encuadrar dos
+  casos más arriba, sobre otra serie que también crece por diseño. **Está fuera de la
+  autorización** —CA-13.1 la cierra a un solo caso— y por tanto dejarla es lo correcto,
+  no un olvido. Es material de `F-SPEC-048-2`, y es la instancia más cercana que hay.
 
 - **`F-SPEC-048-1` — la serie RI estaba congelada en dos, y no en el fichero que la spec
   miró.** CA-11 afirma que *«la serie RI no está congelada en `tests/reglas-ingenieria.test.ts`
