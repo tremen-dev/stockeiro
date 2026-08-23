@@ -199,13 +199,64 @@ acotada—, y el humano decidió el 2026-08-22 conservarla.
   esa sección, con: qué distingue un criterio de gate de una propiedad, las cuatro
   condiciones de la guardia anclada, el mecanismo que la hace cumplible (CA-10) y
   su fuente (**ADR-031**). Un caso lo comprueba, al estilo de lo que
-  `tests/reglas-ingenieria.test.ts` hace con RI-01, **sin tocar ese fichero**: la
-  serie RI no está congelada en él y RI-03 entra sin romper nada (verificado en el
-  árbol).
+  `tests/reglas-ingenieria.test.ts` hace con RI-01, **sin tocar ese fichero**.
+  - **Premisa corregida el 2026-08-23 (`F-SPEC-048-1`).** La redacción original
+    decía *«la serie RI no está congelada y RI-03 entra sin romper nada
+    (verificado en el árbol)»*. **Era incompleta, y por eso engañaba.** Lo
+    verificado fue `tests/reglas-ingenieria.test.ts`, donde en efecto la serie RI
+    no está congelada. Pero **`tests/reglas-ingenieria-hecho-vivo.test.ts`**
+    (SPEC-028 CA-14.1) **sí la congelaba**, con `toEqual(['RI-01', 'RI-02'])`, y
+    escribir RI-03 lo puso en rojo. La premisa correcta es: *escribir RI-03
+    **rompe exactamente una** guardia ajena, `tests/reglas-ingenieria-hecho-vivo.test.ts`,
+    y esa rotura está autorizada y acotada por **CA-13***.
 - **CA-12** — Dado que el defecto se detectó en `main` y no en la PR, cuando esta
   rama se mergee, entonces **el CI de `main` queda verde**: `npm run test`
   completo sin fallos y sin ningún bloque saltado (CA-3). Es el criterio que
   cierra el problema tal y como se enunció.
+  - **Este CA no se puede cerrar antes del merge, y no debe fingirse cerrado.**
+    Sobre el árbol de trabajo sólo se puede afirmar la mitad —que la suite pasa
+    aquí—; la otra mitad es un hecho sobre la CI de `main` y ocurre **después**.
+    Es la misma frontera que fija **RI-02** (*"hecho" significa "vivo"*): la
+    evidencia final llega con el run de `main` y se pega en el ledger. Hasta
+    entonces CA-12 se marca **🚧**, nunca ✅.
+
+### La única guardia ajena que RI-03 rompe, y su autorización
+
+- **CA-13** — Dado que escribir RI-03 (CA-11) añade un elemento legítimo a una
+  serie que **crece por diseño**, y que
+  **`tests/reglas-ingenieria-hecho-vivo.test.ts`** (SPEC-028 CA-14.1) congelaba
+  esa serie en su extensión de aquel día —`toEqual(['RI-01', 'RI-02'])`—, cuando
+  se escribe RI-03, entonces esa guardia **se re-encuadra a la propiedad que no
+  caduca**, y **sólo esa**. Cuatro condiciones, todas obligatorias:
+  - **CA-13.1 — La autorización es nominal y cerrada a un fichero.**
+    `tests/reglas-ingenieria-hecho-vivo.test.ts`. **Ni uno más.** Un segundo
+    fichero ajeno modificado por esta causa es RED: se escala al gate, no se
+    toca. **CA-G2 sigue entero para todo lo demás**, y esta autorización no lo
+    afloja: lo perfora en un punto con nombre propio, igual que CA-19 perforaba
+    a CA-18 en SPEC-047. Y no alcanza al resto del fichero: dentro de él, el
+    único caso que cambia es *«va después de RI-01, en la misma serie»*.
+  - **CA-13.2 — Es un re-encuadre a propiedad, no una aflojada.** Qué vigilaba
+    antes: que la serie de ingeniería fuera **exactamente** RI-01 y RI-02 —una
+    foto del árbol—. Qué vigila ahora: que la serie **empieza en RI-01, va en
+    orden, no salta números ni se repite, y RI-02 sigue dentro de ella**. La
+    guardia sale **más fuerte**, no más laxa: la forma vieja aceptaba cualquier
+    par de reglas mientras se llamaran así; la nueva rechaza un hueco, un número
+    repetido, un desorden y la desaparición de RI-02. Se comprueba con mutación,
+    como CA-7: una serie con hueco, una con repetido y una sin RI-02 deben ser
+    rechazadas.
+  - **CA-13.3 — Lo que SPEC-028 CA-14.1 afirma queda entero.** RI-02 existe,
+    lleva su nombre, vive en la sección de ingeniería y va **después** de RI-01.
+    Y **CA-14.3 sigue intacto**: `RI-01` sigue palabra por palabra como la dejó
+    SPEC-032. Ninguna otra aserción del fichero se toca.
+  - **CA-13.4 — El porqué, al lado, y con el proceso declarado.** Junto a la
+    aserción queda escrito qué vigilaba antes, qué vigila ahora, la fecha, el CA
+    que lo autoriza (**este**) y —porque es la verdad y no debe borrarse al
+    ratificarse— que **el arbitraje del humano no precedió al cambio**: lo
+    levantó el implementador como `F-SPEC-048-1` y el humano lo **ratificó el
+    2026-08-23**, encargando la formalización a sdd-arquitecto **precisamente
+    porque no se beneficia de que ese test pase**. Es la excepción, está datada
+    y no sienta precedente: la regla de `FOUNDATION.md` —la conversación ocurre
+    **antes**— sigue en pie.
 
 ### Criterios de **gate**, no de suite
 
@@ -223,7 +274,10 @@ acotada—, y el humano decidió el 2026-08-22 conservarla.
   (`tests/legal-rutas-publicas.test.ts`, `tests/cuenta-rutas.test.ts`,
   `tests/deploy-gate-workflow.test.ts`) ni ninguno de los seis sitios que el
   barrido declaró sanos (§Entidades). Los únicos ficheros de `tests/`
-  **modificados** son los dos de SPEC-047; lo demás son altas.
+  **modificados** son los dos de SPEC-047, más las dos perforaciones nominales
+  que la spec declara: la línea de prosa de `tests/deploy-gate-workflow.test.ts`
+  (autorizada en §Notas, pto. 4) y `tests/reglas-ingenieria-hecho-vivo.test.ts`
+  (**CA-13**). Lo demás son altas.
 - **CA-G3** — El verificador deja en el ledger la salida de `npm run test`
   **antes y después**, y la del control negativo de CA-9.3, para que el gate vea
   con sus ojos que el escenario simulado sí reproduce la caducidad.
@@ -232,10 +286,18 @@ acotada—, y el humano decidió el 2026-08-22 conservarla.
 
 ### Reglas y decisiones
 
-- **ADR-031** (nuevo, en `borrador`, se aprueba en este mismo gate) — *«Un
-  criterio sobre un cambio se verifica en el gate; si se queda en la suite, nace
-  anclado a una ventana de dos sha fijos»*. Es la fuente de RI-03 y el origen de
-  CA-1…CA-10.
+- **ADR-031** (`aprobada` el 2026-08-22) — *«Un criterio sobre un cambio se
+  verifica en el gate; si se queda en la suite, nace anclado a una ventana de dos
+  sha fijos»*. Es la fuente de RI-03 y el origen de CA-1…CA-10.
+  - **Límite conocido, y no se toca porque un ADR aceptado es inmutable.** Su
+    taxonomía cita *«esta lista sigue cerrada»* como ejemplo de **propiedad
+    permanente**. Eso vale para la **familia 1** y para las listas **cerradas por
+    diseño**, pero **no cubre la familia 2**: una lista que crece por diseño,
+    congelada en su extensión, es una foto y caduca — `F-SPEC-048-1` lo demostró
+    en carne propia el mismo día. El eje que falta queda escrito abajo, en §El
+    barrido; la decisión formal sale de **`F-SPEC-048-2`**, previsiblemente como
+    un ADR que **precise** ADR-031 (estilo ADR-014 sobre ADR-012), nunca editando
+    éste.
 - **RI-03** (nuevo, CA-11) en `docs/fundacion/reglas.md`. Fuente: ADR-031.
 - **RI-02** (*"hecho" significa "vivo"*, fuente ADR-018 D-7) — no cambia, pero es
   la damnificada: se apoya en el verde de `main`.
@@ -281,11 +343,72 @@ acotada—, y el humano decidió el 2026-08-22 conservarla.
 Los bloques **CA-19.2** y **CA-19.3** de ese fichero leen **sólo el árbol actual**
 y son sanos: no se tocan.
 
+**`tests/reglas-ingenieria-hecho-vivo.test.ts`** (SPEC-028 CA-14.1) — **guardia
+ajena, perforación nominal autorizada por CA-13**. Un solo caso cambia, *«va
+después de RI-01, en la misma serie»*: deja de congelar la serie RI en su
+extensión de aquel día y pasa a medir su forma. `RI-01` sigue palabra por palabra
+(CA-14.3) y ninguna otra aserción se toca.
+
+**`tests/deploy-gate-workflow.test.ts`** (SPEC-028 CA-9) — **guardia ajena y sana,
+perforación nominal autorizada por el humano el 2026-08-22**: una línea de prosa,
+el título del `describe` de la l. 467. Cero cambio de comportamiento.
+
 **Altas**: el test de la meta-guardia y de la no-caducidad (CA-9, CA-10) —nombre a
 elección del implementador, en `tests/`—; **RI-03** en `docs/fundacion/reglas.md`;
 **ADR-031** en `docs/adr/`.
 
-### El barrido: todo lo que en este árbol compara contra una revisión de git
+### El barrido: dos familias, y este barrido sólo cubre una
+
+> **Corrección del 2026-08-23 (`F-SPEC-048-1`).** La primera redacción de esta
+> sección presentaba su barrido como completo —*«no hay más guardias caducadas ni
+> caducables en el árbol»*— y **no lo era**. Lo que barrió fue *«todo lo que
+> compara contra una revisión de git»*, y eso es **una** de las dos formas que
+> tiene una guardia de caducar. La otra la destapó la implementación, en carne
+> propia y en rojo. Queda escrito para que el que venga detrás no repita el
+> barrido a medias.
+
+**El mismo defecto —una foto del árbol que caduca— entra por dos puertas
+distintas:**
+
+- **Familia 1 — la diana móvil.** La aserción compara contra una **revisión de
+  git que se mueve** (`origin/main`, `main`, `HEAD`). Caduca **al mergear**, y de
+  golpe: el diff se vacía. Es la que rompió `main` el 2026-08-22 y la que esta
+  spec ataca de raíz. Se detecta buscando invocaciones de git; la vigila para
+  siempre la meta-guardia de **CA-10**.
+- **Familia 2 — la lista cerrada que crece por diseño.** No hay git de por medio:
+  la aserción congela **la extensión que una lista tenía el día de la entrega**
+  (`toEqual([...])`, `toHaveLength(n)`) sobre una lista a la que **está previsto
+  que entren elementos legítimos**. Caduca **cuando la spec siguiente añade el
+  elemento número N+1**, que puede ser meses después y sin relación con quien la
+  escribió. Es la que rompió `tests/reglas-ingenieria-hecho-vivo.test.ts` al
+  escribir RI-03. **No la detecta ninguna guardia automática hoy**, y este barrido
+  no la cubre.
+
+**La frontera entre las dos formas de la familia 2 —y es la que hay que saber
+mirar—** es si la lista **crece por diseño** o está **cerrada por diseño**:
+
+- Una lista **cerrada por diseño** —los `scripts` de `package.json`, el literal
+  del `matcher`, el contenido de `vercel.json`— congelada al milímetro es una
+  guardia **correcta y durable**: su rojo significa *«alguien añadió algo sin un
+  CA que lo pidiera»*, que es exactamente lo que se quiere oír.
+- Una lista que **crece por diseño** —las series `RI-xx` y `RN-xx`, las
+  migraciones de `drizzle/`, los workflows— congelada al milímetro es una
+  **foto**: su rojo significa *«el proyecto avanzó»*, que no es información. Su
+  forma durable es **estructural**: la serie empieza donde debe, va en orden, sin
+  huecos ni repetidos, y el elemento que aquella spec puso sigue dentro.
+  Precedentes de este mismo remedio: **SPEC-043** con `RN-16`, **SPEC-032**
+  (`drizzle/` pasó de *«tiene nueve `.sql`»* a *«estas nueve siguen ahí, con su
+  nombre y en su orden»*) y ahora **CA-13**.
+
+**Qué queda por barrer, y dónde va:** la familia 2 entera. Sin barrer: las series
+`RI/RN`, los `scripts` de `package.json`, los ficheros de `drizzle/` y los
+workflows. Va a **`F-SPEC-048-2` → EPIC-INFRA** (no a EPIC-MEJORA: **CE-M1**
+excluye defectos explícitamente, y una guardia que puede quedarse vacía no es
+fricción de uso, es **salud técnica**). No entra en SPEC-048 porque no forma parte
+de ninguno de sus CA y porque barrer a ciegas para llegar a tiempo es cómo se
+escribió el barrido que se quedó corto.
+
+#### Familia 1 — el barrido que sí está hecho
 
 Recorridos `tests/`, `scripts/`, `src/` y `.github/workflows/`. **Ocho** sitios
 tocan `origin/main` o una revisión de git; **dos** tienen el defecto y son los de
@@ -302,10 +425,24 @@ arriba. Los seis restantes se **aparcan a propósito**, con su motivo:
 | `scripts/check-version-bump.mjs` (`BASE_POR_DEFECTO = 'origin/main'`) | **sano — y es el ejemplo positivo** | Es un **criterio de gate puro** y **debe** comparar contra `origin/main`: lo que juzga es el delta de la rama. Que tras el merge su diff quede vacío y salga 0 es **correcto** — ya no hay nada que exigir. Vive en `scripts/`, lo invoca un step propio de CI, no la suite. ADR-031 pto. 1.3 lo cita como molde. |
 | `.github/workflows/ci.yml` | **sano** | La mención está en el comentario que justifica `fetch-depth: 0`. **No se toca.** |
 
-**Conclusión del barrido:** no hay más guardias caducadas ni caducables en el
-árbol. Las dos defectuosas son las de SPEC-047 y entran enteras en esta spec; lo
-demás está bien por construcción, y el único residuo es un título engañoso que se
-aparca con nombre y apellidos.
+**Conclusión, acotada a la familia 1:** de esta familia no queda ninguna guardia
+caducada ni caducable en el árbol. Las dos defectuosas son las de SPEC-047, entran
+enteras en esta spec, y a partir de CA-10 la familia queda cerrada para siempre —
+una infracción nueva se cae en la PR que la introduce. El único residuo es un
+título engañoso que se aparca con nombre y apellidos.
+
+**De la familia 2 no se afirma nada parecido.** Lo único que esta spec toca de
+ella es el caso que RI-03 rompió (**CA-13**), porque romperlo fue consecuencia
+directa de un CA suyo. El resto está sin mirar y así se declara.
+
+#### Familia 2 — lo que sí se ha visto al pasar, sin barrer
+
+| Sitio | Veredicto | Motivo |
+|---|---|---|
+| `tests/reglas-ingenieria-hecho-vivo.test.ts` (SPEC-028 CA-14.1) | **defectuoso — en alcance** | `toEqual(['RI-01', 'RI-02'])` sobre una serie que crece por diseño. Rojo al escribir RI-03. Re-encuadrado bajo **CA-13**. |
+| `tests/reglas-ingenieria-ri03.test.ts` (SPEC-048 CA-11) | **defecto latente — `F-SPEC-048-3`** | El test **nuevo** de esta misma entrega repite la forma exacta: `toEqual(['RI-01', 'RI-02', 'RI-03'])` (l. 47). Se pondrá rojo el día que se escriba RI-04, y su remedio es el que CA-13 acaba de aplicar una carpeta más allá. Es guardia **propia**, no ajena: no hay arbitraje que pedir ni beneficiario que apartar, sólo hay que arreglarla. → §Notas para el gate humano, pto. 8. |
+| `tests/reglas-ingenieria.test.ts` (SPEC-032 CA-15) | **sano** | Congela la serie `RN`, que también crece, **pero ya fue re-encuadrado** por SPEC-043 al escribir RN-16: hoy afirma que ninguna RI se cuela entre las RN y viceversa, no un recuento. Es el precedente del remedio. |
+| Series `RI/RN`, `scripts` de `package.json`, `drizzle/`, workflows | **sin barrer** | `F-SPEC-048-2` → **EPIC-INFRA**. |
 
 ## Fuera de alcance
 
@@ -328,10 +465,22 @@ aparca con nombre y apellidos.
   de CA-10 mira `tests/`, que es donde el defecto hace daño. Extenderla a
   `scripts/` sería falso: ahí la comparación contra `origin/main` es lo correcto.
 - **Añadir ventanas ancladas a specs pasadas que hoy no las tienen.** No hay
-  ninguna que las necesite (barrido), y hacerlo por gusto es inventar alcance.
+  ninguna que las necesite (barrido de la familia 1), y hacerlo por gusto es
+  inventar alcance.
+- **Barrer la familia 2** —las listas cerradas que crecen por diseño—. Sólo se
+  toca el caso que RI-03 rompió (**CA-13**), porque romperlo fue consecuencia
+  directa de un CA de esta spec. El resto va a **`F-SPEC-048-2` → EPIC-INFRA**,
+  con su razón escrita en §Entidades.
+- **Ampliar la meta-guardia de CA-10 a la familia 2.** Detectar *«esta lista
+  cerrada, ¿crece por diseño?»* no es análisis de texto: exige saber la intención
+  de cada lista. Es lo que `F-SPEC-048-2` tiene que decidir, y decidirlo aquí sin
+  el barrido delante sería inventar.
 - **Regenerar el tablero.** Es de `sdd-documentalista` al cierre, no de aquí.
 
 ## Notas para el gate humano
+
+> **Actualizada el 2026-08-23**, tras el gate en que ratificaste `F-SPEC-048-1`.
+> Los ptos. 8, 9 y 10 son nuevos; el 3 y el 4 están corregidos.
 
 1. **La decisión de fondo ya la tomaste** (2026-08-22): re-encuadrar con el patrón
    de SPEC-042, no borrar, para conservar el valor de auditoría. Todo lo demás
@@ -343,19 +492,21 @@ aparca con nombre y apellidos.
    por auditoría, nace con ventana fija, centinela, salto declarado y su porqué al
    lado*. Es una carga real sobre cada spec que escriba una guardia de frontera —
    míralo con lupa, porque es la parte que no se deshace fácil.
-3. **El barrido dice que no hay más defecto latente que el de SPEC-047.** Los otros
-   seis sitios están bien por construcción y quedan aparcados con su motivo
-   escrito. Si eso te parece optimista, el sitio para apretar es **CA-10.4**: hoy
-   afirma cero infracciones tras la spec, y esa afirmación pasa a ser automática y
-   permanente.
-4. **La pregunta que te traigo, y que no toco sin tu palabra:** el título del
-   bloque de `tests/deploy-gate-workflow.test.ts:467` dice *«SPEC-028 CA-9: y el
+3. **El barrido estaba a medias, y ahora lo dice.** La primera redacción afirmaba
+   que no quedaba defecto latente en el árbol. Era cierto de la **familia 1** —la
+   que compara contra revisiones de git— y falso de la **familia 2** —las listas
+   cerradas que crecen por diseño—, que ni siquiera estaba nombrada. La destapó la
+   implementación en rojo. §Entidades queda reescrita con las dos familias, la
+   frontera entre *crece por diseño* y *cerrada por diseño*, y lo que falta por
+   barrer. De la familia 1 la afirmación sigue en pie y además es automática y
+   permanente (**CA-10.4**).
+4. **~~La pregunta que te traigo~~ — resuelta el 2026-08-22.** El título del
+   bloque de `tests/deploy-gate-workflow.test.ts:467` decía *«SPEC-028 CA-9: y el
    diff contra origin/main no toca lo que no debe»* cuando su mecanismo es, desde
-   SPEC-034, una ventana fija. El título miente sobre lo que el test hace, y es lo
-   primero que lee quien vaya a copiar el patrón. **¿Autorizas cambiar esa única
-   línea de prosa** —fichero ajeno, cero cambios de comportamiento, con el porqué
-   escrito al lado según CA-8—, o se queda como está y sólo se documenta en
-   ADR-031?
+   SPEC-034, una ventana fija. **Autorizaste cambiar esa única línea de prosa**;
+   está hecho, con el porqué escrito encima del bloque y 34/34 casos verdes antes
+   y después. Se deja escrito aquí porque es la primera de las **dos**
+   perforaciones nominales de CA-G2, y la segunda es CA-13.
 5. **CA-9 es el corazón y también lo más caro.** Construir un futuro simulado en un
    repositorio temporal es la única forma honesta de probar que el arreglo no
    caduca; el atajo —*«confía, la ventana es fija»*— es exactamente el
@@ -366,6 +517,36 @@ aparca con nombre y apellidos.
    histórico de git. Un squash o una migración de repositorio invalidarían todas
    las ventanas a la vez. El `skipIf` lo convierte en salto y CA-3 lo hace visible
    en CI, pero conviene que lo sepas antes de firmar.
-7. **Esta spec no exige subir la versión** (no toca `rutasVigiladas`) y **no exige
+8. **Lo que encontré al ampliar el barrido, y es de la casa: `F-SPEC-048-3`.**
+   `tests/reglas-ingenieria-ri03.test.ts:47` —test **nuevo**, escrito en esta
+   entrega para CA-11— hace `toEqual(['RI-01', 'RI-02', 'RI-03'])`. Es la forma
+   exacta que CA-13 acaba de re-encuadrar una carpeta más allá, cometida otra vez
+   en el mismo commit range. Se pondrá roja el día que se escriba RI-04. **Es
+   guardia propia de SPEC-048**, no ajena: no hay arbitraje que pedir ni
+   beneficiario que apartar, y el remedio ya está escrito y probado en el fichero
+   de al lado. **Mi recomendación es arreglarla antes del merge**: mergear esto es
+   embarcar a sabiendas la sexta instancia del defecto que la spec existe para
+   eliminar, y el argumento *«ya lo cogerá `F-SPEC-048-2`»* es exactamente el que
+   dejó `main` en rojo. Es cosa del implementador, no mía, y por eso llega como
+   recomendación y no como hecho consumado.
+9. **ADR-031 se queda como está, y conviene que sepas por qué y con qué límite.**
+   Está en `aprobada` y un ADR aceptado es inmutable: para cambiarlo se escribe
+   otro que lo supersede o lo precisa. Y **hay algo que precisar**: su taxonomía
+   pone *«esta lista sigue cerrada»* como ejemplo de **propiedad permanente**, y
+   eso es cierto **sólo si la lista está cerrada por diseño**. Cuando la lista
+   crece por diseño —la serie RI—, congelar su extensión es una foto y caduca.
+   `F-SPEC-048-1` es la prueba en carne propia. El eje que falta —*crece por
+   diseño* vs. *cerrada por diseño*— queda escrito en §Entidades de esta spec, que
+   es artefacto vivo, y **la decisión formal debería salir de `F-SPEC-048-2`**,
+   con el barrido delante, como un ADR que **precise** ADR-031 en el estilo en que
+   ADR-014 precisó a ADR-012. Escribirlo hoy, sin el barrido, sería inventar.
+10. **`F-SPEC-048-1` queda formalizado como CA-13** y con su ratificación datada
+   (2026-08-23). Dos cosas que quiero que veas con lupa: que la autorización es
+   **nominal y cerrada a un fichero** —no legitima tocar ninguna otra guardia
+   ajena, y CA-G2 sigue entero para el resto—, y que **el incumplimiento de
+   proceso no se borra al ratificarse**: queda escrito en el propio caso que el
+   arbitraje no precedió al cambio. Es la excepción datada, no el precedente
+   nuevo.
+11. **Esta spec no exige subir la versión** (no toca `rutasVigiladas`) y **no exige
    despliegue** para verificarse. Cierra cuando `main` esté verde (CA-12); **RI-02**
    se aplica igual, con la puerta post-deploy del merge.

@@ -7,6 +7,9 @@ epica: EPIC-FIX
 
 ## Resumen
 - Fase: `en-revision` — implementada por sdd-implementador el 2026-08-22, a la espera del verificador.
+  **Formalizada el 2026-08-23 por sdd-arquitecto** (spec y ledger, sin tocar código): `F-SPEC-048-1`
+  ratificado y convertido en **CA-13**, premisa de CA-11 corregida, barrido reescrito con sus **dos
+  familias**, `F-SPEC-048-2` redirigido a **EPIC-INFRA** y abierto `F-SPEC-048-3`.
 - Rama: `ft/SPEC-048-guardias-de-diff-caducadas` (worktree `D:/src/wt-48`, desde `origin/main` = `104f94e`)
 - Batería de unidad: **antes** `3 failed | 1502 passed (1505)` en 100 ficheros ·
   **después** `1555 passed (1555)` en 104 ficheros, **0 saltados**. `npm run lint` y
@@ -34,10 +37,14 @@ epica: EPIC-FIX
 | CA-10.2 | `SUBCOMANDOS = ['diff','show','log','rev-list']` — `rev-parse` queda fuera, y una llamada que no es a git tampoco cuenta | `tests/revision-movil-en-tests.test.ts` › «CA-10.2 — `git rev-parse HEAD` sigue siendo legítimo» y «CA-10.2 — pasar HEAD como entrada a un script bajo prueba sigue siendo legítimo» |  | ❌ |
 | CA-10.3 | `infraccionesEnFuente()` exportada, aplicable a un fragmento suelto | `tests/revision-movil-en-tests.test.ts` › «CA-10.3: la meta-guardia se prueba a sí misma» (6 casos: 2 infractores —literal y concatenado—, 4 inocentes) |  | ❌ |
 | CA-10.4 | — | `tests/revision-movil-en-tests.test.ts` › «cero infracciones en todo tests/\*\*/\*.ts» + centinela «el barrido mira de verdad». Contra el árbol previo encontraba **10** infracciones, las de los dos ficheros de SPEC-047 |  | ❌ |
-| CA-11 | **RI-03** en `docs/fundacion/reglas.md` § *Reglas de ingeniería (RI-xx)* | `tests/reglas-ingenieria-ri03.test.ts` (11 casos). `tests/reglas-ingenieria.test.ts` **no se toca** y sigue en 27/27 |  | ❌ |
+| CA-11 | **RI-03** en `docs/fundacion/reglas.md` § *Reglas de ingeniería (RI-xx)* | `tests/reglas-ingenieria-ri03.test.ts` (11 casos). `tests/reglas-ingenieria.test.ts` **no se toca** y sigue en 27/27. ⚠️ Premisa del CA corregida el 2026-08-23 (`F-SPEC-048-1`): escribir RI-03 **sí** rompe una guardia ajena, y su autorización es **CA-13**. ⚠️ Uno de los 11 casos arrastra `F-SPEC-048-3` |  | ❌ |
 | CA-12 | — | `npm run test` completo: **1555 passed (1555)**, 104 ficheros, **0 saltados**. El verde de `main` sólo es afirmable tras el merge (RI-02) |  | ❌ |
 | CA-G1 | n-a (criterio de gate) | El diff de la entrega no toca `src/`, `drizzle/`, `vercel.json`, `.github/workflows/` ni `package.json`: 14 ficheros, todos bajo `docs/` y `tests/`. `npm run version:check` no exige bump |  | ❌ |
-| CA-G2 | n-a (criterio de gate) | **Con dos desviaciones declaradas**, ver *Salvedades*: `tests/deploy-gate-workflow.test.ts` (una línea de prosa, autorizada por el humano el 2026-08-22) y `tests/reglas-ingenieria-hecho-vivo.test.ts` (`F-SPEC-048-1`, sin arbitraje previo). `tests/legal-rutas-publicas.test.ts` y `tests/cuenta-rutas.test.ts` **intactos** |  | ❌ |
+| CA-13.1 | | | | ❌ |
+| CA-13.2 | | | | ❌ |
+| CA-13.3 | | | | ❌ |
+| CA-13.4 | | | | ❌ |
+| CA-G2 | n-a (criterio de gate) | **Con dos perforaciones nominales, las dos declaradas y autorizadas**, ver *Salvedades*: `tests/deploy-gate-workflow.test.ts` (una línea de prosa, autorizada por el humano el 2026-08-22) y `tests/reglas-ingenieria-hecho-vivo.test.ts` (`F-SPEC-048-1`, ratificado el 2026-08-23 y formalizado como **CA-13**). `tests/legal-rutas-publicas.test.ts` y `tests/cuenta-rutas.test.ts` **intactos** |  | ❌ |
 | CA-G3 | n-a (criterio de gate) | Del verificador. Las cifras de antes/después y la contraprueba de CA-9.3 están en §Resumen y en la fila CA-9.3 |  | ❌ |
 
 ## Veredicto del verificador
@@ -60,20 +67,56 @@ No aplica: esta spec no toca interfaz. Toda su evidencia es la salida de `npm ru
     va en orden, no salta números ni se repite, y RI-02 sigue dentro—, con qué vigilaba antes
     y qué vigila ahora escritos en el caso. Es el mismo remedio que SPEC-043 aplicó a RN-16.
     Lo que SPEC-028 CA-14.1 afirma queda entero, y `RI-01 sigue palabra por palabra` sin tocar.
-  - **Por qué es una salvedad y no un cierre limpio:** `FOUNDATION.md` § *Cómo se trabaja
+  - **Por qué fue una salvedad y no un cierre limpio:** `FOUNDATION.md` § *Cómo se trabaja
     aquí* exige que la conversación ocurra **antes** de tocar una guardia ajena, y que quien
-    la toca no sea quien se beneficia. Aquí el arbitraje **no** precede al cambio. Va al gate
-    para ratificarlo. Si el humano prefiere otra salida, la alternativa es re-encuadrar el
-    caso de otra forma; borrarlo no, porque lo que afirma sigue siendo útil.
-  - **Destino:** ratificación en el gate de SPEC-048. Si se ratifica, se cierra aquí.
+    la toca no sea quien se beneficia. Aquí el arbitraje **no** precedió al cambio. Lo
+    levantó el propio implementador en vez de dejarlo correr, que es la mitad del proceso
+    que sí se cumplió.
+  - **RATIFICADO — humano (Alberto Fojo), 2026-08-23.** El cambio se queda: es un
+    **fortalecimiento** —de foto a propiedad estructural—, no una aflojada. El código **no
+    se rehace**; lo que se arregla es el **registro**. La formalización se encarga a
+    **sdd-arquitecto**, precisamente porque no se beneficia de que ese test pase.
+  - **Cerrado el 2026-08-23.** Formalizado como **CA-13** de la spec, con la autorización
+    **nominal y cerrada** a `tests/reglas-ingenieria-hecho-vivo.test.ts` y sus cuatro
+    condiciones (13.1 alcance de un fichero; 13.2 re-encuadre a propiedad, probado con
+    mutación; 13.3 lo que SPEC-028 CA-14.1 y CA-14.3 afirman queda entero; 13.4 el porqué al
+    lado, **incluido el incumplimiento de proceso, que no se borra al ratificarse**).
+    Corregida además la premisa de **CA-11**, que daba la serie RI por no congelada: era
+    cierto de `tests/reglas-ingenieria.test.ts` y falso de éste.
 
-- **`F-SPEC-048-2` — hay más guardias congeladas por estado que nadie ha barrido.**
-  `F-SPEC-048-1` es una muestra de una: listas cerradas escritas como *«esto es exactamente
-  lo que hay»* que caducan cuando la spec siguiente añade el elemento legítimo número N+1.
-  RI-03 y su meta-guardia cubren el diff contra revisiones móviles, no esto. Un barrido de
-  `toEqual([...])` sobre listas que crecen por diseño (series RI/RN, `scripts` de
-  `package.json`, ficheros de `drizzle/`, workflows) diría cuántas quedan. **Destino:**
-  EPIC-MEJORA — no entra en SPEC-048 porque no forma parte de ninguno de sus CA.
+- **`F-SPEC-048-2` — la familia 2 entera está sin barrer.** `F-SPEC-048-1` y
+  `F-SPEC-048-3` son dos muestras de ella: listas cerradas escritas como *«esto es
+  exactamente lo que hay»* que caducan cuando la spec siguiente añade el elemento legítimo
+  número N+1. RI-03 y la meta-guardia de CA-10 cubren la **familia 1** —el diff contra
+  revisiones móviles—, no ésta. Falta un barrido de `toEqual([...])` / `toHaveLength(n)`
+  sobre listas que **crecen por diseño**: series `RI/RN`, `scripts` de `package.json`,
+  ficheros de `drizzle/`, workflows. La frontera que hay que saber mirar —*crece por diseño*
+  vs. *cerrada por diseño*— queda escrita en §Entidades de la spec.
+  - **Destino: EPIC-INFRA**, corregido por el orquestador el 2026-08-23. El implementador lo
+    había mandado a EPIC-MEJORA y no es su sitio: **CE-M1 excluye defectos explícitamente**,
+    y una guardia que puede quedarse vacía no es fricción de uso — es **salud técnica**, que
+    es exactamente el eje de EPIC-INFRA.
+  - **Producto esperado**, además del barrido: previsiblemente un **ADR que precise
+    ADR-031** (estilo ADR-014 sobre ADR-012), porque la taxonomía de ADR-031 cita *«esta
+    lista sigue cerrada»* como propiedad permanente sin distinguir si la lista crece. No se
+    escribe hoy: sin el barrido delante sería inventar, y ADR-031 está `aprobada` y es
+    inmutable.
+  - No entra en SPEC-048 porque no forma parte de ninguno de sus CA.
+
+- **`F-SPEC-048-3` — el test nuevo de esta entrega repite el defecto de la familia 2.**
+  `tests/reglas-ingenieria-ri03.test.ts:47` (SPEC-048 CA-11) hace
+  `toEqual(['RI-01', 'RI-02', 'RI-03'])` sobre la misma serie que crece por diseño. Es la
+  forma exacta que **CA-13** acaba de re-encuadrar en `tests/reglas-ingenieria-hecho-vivo.test.ts`,
+  cometida otra vez en el mismo rango de commits. Hoy está verde; se pondrá roja el día que
+  se escriba RI-04.
+  - **Diferencia con `F-SPEC-048-1`, y es la que importa:** ésta es guardia **propia** de
+    SPEC-048, no ajena. No hay arbitraje que pedir ni beneficiario que apartar — sólo hay
+    que arreglarla, y el remedio ya está escrito y probado en el fichero de al lado.
+  - **Destino: arreglarla ANTES del merge**, recomendación de sdd-arquitecto al gate
+    (§Notas para el gate humano, pto. 8). Mergear tal cual es embarcar a sabiendas la sexta
+    instancia del defecto que esta spec existe para eliminar, y el argumento *«ya lo cogerá
+    `F-SPEC-048-2`»* es el mismo que dejó `main` en rojo. Si el gate decide lo contrario,
+    hereda `F-SPEC-048-2` con este caso nombrado dentro.
 
 - **Desviación de CA-G2, autorizada:** `tests/deploy-gate-workflow.test.ts` **sí** aparece en
   el diff. Es la única línea de prosa que el gate humano autorizó el 2026-08-22 (§Notas para
@@ -114,11 +157,24 @@ y `refs/remotes/origin/main`. No hace checkout —en Windows el árbol completo 
 `%TEMP%` sin pasarse del límite de ruta— y no hace falta. Para ver el control negativo morder,
 cambia `FORMULACION_VIEJA` por `ENTREGA_DE_SPEC_047`: los dos casos de CA-9.3 se ponen rojos.
 
+**Pendiente tras la formalización del 2026-08-23 (sdd-arquitecto).** La spec gana **CA-13**
+(la autorización nominal de `F-SPEC-048-1`, ya ratificada) y sus cuatro subcriterios entran en
+la matriz **sin rellenar**: el trabajo existe y está verde desde `47b4af0`, lo que falta es el
+registro, y las columnas *Implementado* y *Test* son del implementador, no del arquitecto.
+Quien las rellene: CA-13.1 y CA-13.3 se sostienen sobre el diff y sobre los 16/16 de
+`tests/reglas-ingenieria-hecho-vivo.test.ts`; **CA-13.2 pide una mutación de control que hoy
+no existe** —serie con hueco, con repetido y sin RI-02 deben ser rechazadas—, así que
+probablemente sea el único CA que necesita código nuevo. Y está `F-SPEC-048-3`, que es de la
+casa y se recomienda arreglar antes del merge.
+
 **Lo que el verificador tiene que mirar con lupa**, por orden:
 
-1. **`F-SPEC-048-1`**: es una guardia ajena tocada sin arbitraje previo. Es lo único de esta
-   entrega que no cumple el proceso de `FOUNDATION.md` al pie de la letra, y está declarado
-   a propósito arriba y dentro del propio caso.
+1. **`F-SPEC-048-1`**: era una guardia ajena tocada sin arbitraje previo. **Ratificado por el
+   humano el 2026-08-23** y formalizado como **CA-13**, con la autorización nominal y cerrada
+   a un fichero. Lo que hay que comprobar ya no es si se podía tocar, sino que la
+   autorización **no se ha desbordado**: ningún otro fichero ajeno modificado por esta causa,
+   y dentro de él ningún otro caso tocado. El incumplimiento de proceso **sigue escrito** en
+   el caso y no debe borrarse: es la excepción datada, no el precedente nuevo.
 2. **Que las mutaciones de control de CA-7 muerdan de verdad.** Son doce; la forma de
    comprobarlo es invertir una a mano y ver el caso caer.
 3. **CA-12 sólo se cierra tras el merge** (RI-02): la afirmación es sobre el CI de `main`, y
