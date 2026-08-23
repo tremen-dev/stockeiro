@@ -387,6 +387,52 @@ function versionEn(ref) {
   }
 }
 
+/**
+ * Lo que el arbol de trabajo tiene a medias: modificado, en el indice o sin
+ * seguimiento. Es la ÚNICA lectura del árbol que entra en la decisión (SPEC-049), y
+ * entra sólo para saber si el veredicto dependería de ella — nunca para juzgarla.
+ *
+ * `--porcelain` deja fuera lo que `.gitignore` ya excluye (CA-3): un `node_modules/`
+ * o un artefacto de build no son trabajo a medias, y abstenerse por ellos dejaría el
+ * gate en rojo permanente, que es como se desactiva un gate.
+ *
+ * @returns {string[]}
+ */
+function ficherosPendientes() {
+  const entradas = git(['status', '--porcelain', '--untracked-files=all', '-z']).split('\0');
+  const pendientes = [];
+  for (let i = 0; i < entradas.length; i += 1) {
+    const entrada = entradas[i];
+    if (entrada.length < 4) continue;
+    pendientes.push(entrada.slice(3));
+    // Un renombrado o una copia traen la ruta de ORIGEN en la entrada siguiente.
+    const estado = entrada.slice(0, 2);
+    if ((estado.includes('R') || estado.includes('C')) && entradas[i + 1]) {
+      pendientes.push(entradas[i + 1]);
+      i += 1;
+    }
+  }
+  return pendientes;
+}
+
+/**
+ * La línea de CA-9: cuando el gate SÍ emite y hay pendientes, decir cuántos son y que
+ * no han entrado. Es lo que impide leer un «el diff no toca codigo de aplicacion» como
+ * «no hay codigo tocado» cuando lo hay, esperando en el árbol.
+ *
+ * @param {string[]} pendientes
+ * @returns {string}
+ */
+function notaDePendientes(pendientes) {
+  if (pendientes.length === 0) return '';
+  const uno = pendientes.length === 1;
+  return (
+    `\n[check-version-bump] Ojo: ${pendientes.length} fichero${uno ? '' : 's'} de codigo de ` +
+    `aplicacion ${uno ? 'sigue pendiente' : 'siguen pendientes'} en el arbol de trabajo y ` +
+    `NO ${uno ? 'ha' : 'han'} entrado en este veredicto.\n`
+  );
+}
+
 /** Los ficheros que cambian entre la base y HEAD, desde su ancestro comun. */
 function ficherosCambiados(base) {
   return git(['diff', '--name-only', `${base}...HEAD`])
@@ -438,8 +484,9 @@ function main(args) {
     git(['rev-parse', '--verify', `${opciones.base}^{commit}`]);
     base = opciones.base;
     versionDeHead = versionEn('HEAD');
-    veredicto = evaluar({
+    veredicto = evaluarConPendientes({
       ficheros: ficherosCambiados(base),
+      pendientes: ficherosPendientes(),
       versionBase: versionEn(base),
       versionRama: versionDeHead,
       rutas: rutasDeAplicacion(),
@@ -455,14 +502,26 @@ function main(args) {
     throw error;
   }
 
+  // SPEC-049 CA-1: el veredicto dependia de lo que todavia no es un commit, asi que no
+  // hay veredicto que emitir. Ni el de ahora ni el de despues: sale con 2 y lo explica.
+  if (veredicto.motivo === 'pendiente-sin-commitear') {
+    stderr.write(`[check-version-bump] Base: ${base}.\n\n`);
+    stderr.write(`${veredicto.mensaje}\n`);
+    return SALIDA.USO;
+  }
+
+  const nota = notaDePendientes(veredicto.pendientes);
+
   if (veredicto.salida === SALIDA.LIMPIO) {
     stdout.write(`[check-version-bump] Base: ${base}.\n`);
     stdout.write(`[check-version-bump] ${veredicto.mensaje}\n`);
+    stdout.write(nota);
     return SALIDA.LIMPIO;
   }
 
   stderr.write(`[check-version-bump] Base: ${base}.\n\n`);
   stderr.write(`${veredicto.mensaje}\n`);
+  stderr.write(nota);
 
   // El malentendido barato: has hecho el `npm version` y no lo has commiteado.
   // Este gate juzga commits, asi que todavia ve el anterior. Decirlo cuesta tres

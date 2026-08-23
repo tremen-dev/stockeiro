@@ -1,6 +1,7 @@
-import { describe, it, expect } from 'vitest';
+import { describe, it, expect, afterAll } from 'vitest';
 import { execFileSync } from 'node:child_process';
-import { readFileSync } from 'node:fs';
+import { copyFileSync, mkdirSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from 'node:fs';
+import { tmpdir } from 'node:os';
 import { dirname, join, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { parse } from 'yaml';
@@ -297,9 +298,21 @@ describe('SPEC-038 CA-12: el script no hace nada que no le toque', () => {
   });
 
   it('nunca invoca `git` para escribir', () => {
+    // SPEC-049 CA-12, 2026-08-23 — la lista crece de tres a CUATRO, y sólo eso.
+    // ANTES: `['diff', 'show', 'rev-parse']`. AHORA entra `status`, porque para saber si
+    // su veredicto depende de lo que todavía no está commiteado el gate tiene que
+    // preguntar por el estado del árbol. Es de sólo lectura, como los otros tres, así
+    // que la propiedad vigilada —**este script no escribe en la rama por la espalda**,
+    // que es la alternativa que ADR-024 rechaza— sigue intacta.
+    //
+    // El ensanchamiento lo autoriza la spec en el gate humano y no quien se encontró el
+    // rojo (FOUNDATION.md: quien toca la guardia no es quien se beneficia). El tope es
+    // parte de la autorización: si hiciera falta un quinto, es RED y se escala.
+    const PERMITIDOS = ['diff', 'show', 'rev-parse', 'status'];
+    expect(PERMITIDOS).toHaveLength(4);
     const subcomandos = [...fuente().matchAll(/git\(\[\s*'([a-z-]+)'/g)].map((m) => m[1]);
     expect(subcomandos.length).toBeGreaterThan(0);
-    for (const sub of subcomandos) expect(['diff', 'show', 'rev-parse']).toContain(sub);
+    for (const sub of subcomandos) expect(PERMITIDOS).toContain(sub);
   });
 });
 
@@ -518,5 +531,221 @@ describe('SPEC-049 CA-1: el contraste con lo pendiente, como función pura', () 
     //    uno, y sugerir aquí el remedio del `1` sería inventarse el veredicto que falta.
     expect(mensaje).not.toContain('npm version');
     expect(mensaje).not.toMatch(/\bsub[ei]\w*/i);
+  });
+});
+
+/**
+ * SPEC-049 CA-11 — **el centinela de no-vacuidad**.
+ *
+ * La rama de abstención sólo se ejercita cuando el árbol de quien ejecuta la suite está
+ * sucio, y en CI nunca lo está: sin esto, el verde de esta parte de la batería sería
+ * vacío en el único sitio donde se mira siempre — exactamente el tipo de verde hueco que
+ * originó esta spec. Por eso la escena se construye aquí, en un repositorio temporal
+ * fuera del árbol del proyecto: **este bloque no depende del estado del árbol de nadie**,
+ * no se salta nunca y se pone rojo si la abstención se revierte.
+ *
+ * Molde: `tests/guardias-no-caducan.test.ts` (SPEC-048 CA-9), que ya construye un
+ * repositorio temporal para simular un futuro.
+ */
+const ENTORNO = {
+  ...process.env,
+  GIT_AUTHOR_NAME: 'SPEC-049',
+  GIT_AUTHOR_EMAIL: 'spec049@stockeiro.invalid',
+  GIT_COMMITTER_NAME: 'SPEC-049',
+  GIT_COMMITTER_EMAIL: 'spec049@stockeiro.invalid',
+  GIT_CONFIG_GLOBAL: '',
+  GIT_CONFIG_SYSTEM: '',
+};
+
+const gitEn = (repo: string, args: string[]) =>
+  execFileSync('git', ['-C', repo, ...args], {
+    encoding: 'utf8',
+    env: ENTORNO,
+    stdio: ['ignore', 'pipe', 'pipe'],
+  });
+
+/** Los temporales que hay que borrar al terminar, pase lo que pase. */
+const temporales: string[] = [];
+
+type Escena = {
+  /** Escribe un fichero en el árbol de trabajo, creando los directorios que falten. */
+  escribir(ruta: string, contenido: string): void;
+  /** Lo mete todo en un commit. */
+  commitear(mensaje: string): void;
+  /** Lo mete en el índice y NO lo commitea. */
+  indexar(ruta: string): void;
+  /** Corre el gate contra la base de la escena, como lo corre la CI. */
+  ejecutar(): { codigo: number; salida: string };
+};
+
+/**
+ * Un repositorio con la escena de CA-2: base alcanzable, `package.json` con la misma
+ * versión y una copia del script bajo prueba —la de este árbol, no una reimplementación—.
+ * Lo que cada caso añada encima es lo que se está midiendo.
+ */
+function montarEscena(nombre: string): Escena {
+  const dir = mkdtempSync(join(tmpdir(), `spec049-${nombre}-`));
+  temporales.push(dir);
+
+  const escribir = (ruta: string, contenido: string) => {
+    const destino = join(dir, ruta);
+    mkdirSync(dirname(destino), { recursive: true });
+    writeFileSync(destino, contenido);
+  };
+
+  gitEn(dir, ['init', '--quiet']);
+  escribir('package.json', `${JSON.stringify({ name: 'escena', version: '0.1.0' }, null, 2)}\n`);
+  escribir('.sdd.json', `${JSON.stringify({ rutasVigiladas: ['src/'] }, null, 2)}\n`);
+  escribir('.gitignore', 'src/generado/\n');
+  escribir('src/ya-commiteado.ts', 'export const yaEstaba = 1;\n');
+  mkdirSync(join(dir, 'scripts'), { recursive: true });
+  copyFileSync(scriptPath, join(dir, 'scripts', 'check-version-bump.mjs'));
+
+  const commitear = (mensaje: string) => {
+    gitEn(dir, ['add', '--all']);
+    gitEn(dir, ['commit', '--quiet', '--message', mensaje]);
+  };
+
+  commitear('la base');
+  const base = gitEn(dir, ['rev-parse', 'HEAD']).trim();
+
+  return {
+    escribir,
+    commitear,
+    indexar: (ruta: string) => gitEn(dir, ['add', '--', ruta]),
+    ejecutar() {
+      try {
+        const stdout = execFileSync(
+          process.execPath,
+          [join(dir, 'scripts', 'check-version-bump.mjs'), '--base', base],
+          { cwd: dir, encoding: 'utf8', env: ENTORNO, stdio: ['ignore', 'pipe', 'pipe'] },
+        );
+        return { codigo: 0, salida: stdout };
+      } catch (error) {
+        const e = error as { status?: number; stdout?: string; stderr?: string };
+        return { codigo: e.status ?? -1, salida: `${e.stdout ?? ''}${e.stderr ?? ''}` };
+      }
+    },
+  };
+}
+
+/** El mensaje del falso verde del 2026-08-23, byte a byte. */
+const EL_FALSO_VERDE = 'El diff no toca codigo de aplicacion: no hay nada que subir.';
+
+describe('SPEC-049 CA-2 y CA-11: la abstención, sobre un repositorio que construye el test', () => {
+  afterAll(() => {
+    for (const dir of temporales) {
+      try {
+        rmSync(dir, { recursive: true, force: true, maxRetries: 5, retryDelay: 100 });
+      } catch {
+        // Un temporal que no se deja borrar en Windows no es motivo para tumbar la suite.
+      }
+    }
+  });
+
+  /** La escena completa: base alcanzable, diff sin código de aplicación, misma versión. */
+  function escenaDeCA2(nombre: string): Escena {
+    const escena = montarEscena(nombre);
+    escena.escribir('docs/nota.md', '# Solo documentacion\n');
+    escena.commitear('docs: una nota');
+    return escena;
+  }
+
+  it('CA-7 — control: con el árbol limpio, el veredicto es el de hoy, byte a byte', () => {
+    // Sin esto, los tres casos de abajo podrían estar saliendo con 2 por cualquier otro
+    // motivo y el bloque entero probaría algo distinto de lo que dice probar.
+    const { codigo, salida } = escenaDeCA2('limpio').ejecutar();
+    expect(codigo, salida).toBe(SALIDA.LIMPIO);
+    expect(salida).toContain(EL_FALSO_VERDE);
+  });
+
+  for (const [forma, preparar] of [
+    ['sin seguimiento', (e: Escena) => e.escribir('src/a-medio-escribir.ts', 'export const x = 1;\n')],
+    ['modificado', (e: Escena) => e.escribir('src/ya-commiteado.ts', 'export const yaEstaba = 2;\n')],
+    [
+      'en el indice',
+      (e: Escena) => {
+        e.escribir('src/en-el-indice.ts', 'export const x = 1;\n');
+        e.indexar('src/en-el-indice.ts');
+      },
+    ],
+  ] as const) {
+    it(`CA-2 — con un fichero de aplicación ${forma}, el gate sale con 2 y no dice el falso verde`, () => {
+      const escena = escenaDeCA2(forma.replace(/ /g, '-'));
+      preparar(escena);
+      const { codigo, salida } = escena.ejecutar();
+      expect(codigo, salida).toBe(SALIDA.USO);
+      expect(salida).not.toContain(EL_FALSO_VERDE);
+      expect(salida).toContain('pendiente sin commitear');
+    });
+  }
+
+  it('CA-8 — la abstención se distingue de los otros dos motivos del 2 y no habla de la versión', () => {
+    const escena = escenaDeCA2('mensaje');
+    escena.escribir('src/a-medio-escribir.ts', 'export const x = 1;\n');
+    const { salida } = escena.ejecutar();
+    // 1. Frase propia: ni la bandera desconocida ni la base inalcanzable.
+    expect(salida).toContain('pendiente sin commitear');
+    expect(salida).not.toContain('No hay con que comparar');
+    expect(salida).not.toContain('Bandera desconocida');
+    // 2. Nombra el fichero que la dispara.
+    expect(salida).toContain('src/a-medio-escribir.ts');
+    // 3. Dice la salida.
+    expect(salida).toMatch(/commitea/i);
+    // 4. Y no pide subir el número por ningún sitio: ni en el mensaje ni en la ayuda,
+    //    que aquí no se imprime porque esto no es un error de uso del operador.
+    expect(salida).not.toContain('npm version');
+  });
+
+  it('CA-3 — lo que `.gitignore` ya excluye no cuenta como pendiente', () => {
+    const escena = escenaDeCA2('ignorado');
+    escena.escribir('src/generado/build.js', '// artefacto de build\n');
+    const { codigo, salida } = escena.ejecutar();
+    expect(codigo, salida).toBe(SALIDA.LIMPIO);
+    expect(salida).toContain(EL_FALSO_VERDE);
+    expect(salida).not.toMatch(/pendiente/i);
+  });
+
+  it('CA-6 — editar docs, tests o el `package.json` del bump no dispara nada', () => {
+    const escena = escenaDeCA2('fuera-de-rutas');
+    escena.escribir('docs/roadmap.md', '# Editando el roadmap\n');
+    escena.escribir('tests/algo.test.ts', '// a medio escribir\n');
+    // El `npm version` sin commitear: la versión del árbol NUNCA entra en el veredicto.
+    escena.escribir('package.json', `${JSON.stringify({ name: 'escena', version: '0.9.0' }, null, 2)}\n`);
+    const { codigo, salida } = escena.ejecutar();
+    expect(codigo, salida).toBe(SALIDA.LIMPIO);
+    expect(salida).toContain(EL_FALSO_VERDE);
+    expect(salida).not.toMatch(/pendiente/i);
+  });
+
+  it('CA-4 y CA-9 — si el número ya subió, emite el 0 y dice cuántos pendientes se ha dejado fuera', () => {
+    const escena = montarEscena('ya-subido');
+    escena.escribir('package.json', `${JSON.stringify({ name: 'escena', version: '0.2.0' }, null, 2)}\n`);
+    escena.commitear('chore(version): 0.1.0 -> 0.2.0');
+    escena.escribir('src/a-medio-escribir.ts', 'export const x = 1;\n');
+    const { codigo, salida } = escena.ejecutar();
+    // Commitear ese fichero no puede convertir este verde en rojo, así que abstenerse
+    // aquí sería bloquear a quien ya hizo lo que ADR-024 pide.
+    expect(codigo, salida).toBe(SALIDA.LIMPIO);
+    expect(salida).toMatch(/1 fichero/);
+    expect(salida).toMatch(/NO (ha|han) entrado en este veredicto/);
+  });
+
+  it('CA-5 y CA-9 — un `sin-subir` se emite entero, con su lista y con la pista del bump sin commitear', () => {
+    const escena = montarEscena('sin-subir');
+    escena.escribir('src/tocado.ts', 'export const x = 1;\n');
+    escena.commitear('feat: toca codigo y no sube el numero');
+    escena.escribir('src/otro-a-medio-escribir.ts', 'export const y = 2;\n');
+    // El bump hecho pero sin commitear: la pista de `:405-419` se conserva sin tocar.
+    escena.escribir('package.json', `${JSON.stringify({ name: 'escena', version: '0.2.0' }, null, 2)}\n`);
+    const { codigo, salida } = escena.ejecutar();
+    expect(codigo, salida).toBe(SALIDA.MARCADO);
+    // El mensaje completo del 1: el mejor diagnóstico que el script sabe dar no se
+    // degrada a una negativa por haber suciedad al lado.
+    expect(salida).toContain('src/tocado.ts');
+    expect(salida).toContain('npm version');
+    expect(salida).toContain('en el arbol de trabajo ya pone 0.2.0');
+    // Y la nota de CA-9, para que nadie lea la lista como si fuera todo lo que hay.
+    expect(salida).toMatch(/NO (ha|han) entrado en este veredicto/);
   });
 });
