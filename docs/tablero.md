@@ -71,6 +71,7 @@ Actualizado: 2026-08-23
 | SPEC-043 — la-cotizacion-que-dejo-de-refrescarse-lo-dice-y-la-cuota-agotada-deja-de-disfrazarse-de-caida-del-proveedor | hecho | 2026-08-21 (sdd-verificador) |
 | SPEC-046 — el-panel-de-edicion-se-abre-donde-el-usuario-mira-y-la-guardia-lo-mide | hecho | 2026-08-22 (sdd-verificador) |
 | SPEC-048 — guardias-por-diff-que-caducan-al-mergear | hecho | 2026-08-23 (sdd-verificador) |
+| SPEC-049 — el-gate-de-version-no-dice-verde-sobre-un-arbol-sucio-si-lo-que-juzga-no-esta-commiteado-se-abstiene | hecho | 2026-08-23 (sdd-verificador) |
 
 ## EPIC-INFRA (aprobada)
 
@@ -130,5 +131,5 @@ Actualizado: 2026-08-23
 
 ## Resumen
 
-- hecho: 43
+- hecho: 44
 - aprobada: 1

@@ -36,19 +36,32 @@
  * QUÉ SE JUZGA: lo que se MERGEARÍA. Las dos versiones y la lista de ficheros
  * salen de git (`git show <ref>:package.json`, `git diff base...HEAD`), no del
  * árbol de trabajo, porque lo que se despliega son commits. En CI eso es
- * exactamente el checkout; en local significa que el bump tiene que estar
- * commiteado para que el gate lo vea, y si no lo está el mensaje lo dice en vez
- * de dejarte mirando un rojo sin causa.
+ * exactamente el checkout; en local significa que **el bump y el código tienen que
+ * estar commiteados** para que el gate los vea. Las dos mitades, no una:
+ *   - si te adelantaste con el NÚMERO, el gate ve el anterior y te lo dice (`:405`);
+ *   - si te adelantaste con el CÓDIGO, el rango `base...HEAD` no lo contiene, y ahí
+ *     el gate **se abstiene con 2 en vez de decir 0** (SPEC-049).
+ *
+ * La segunda mitad faltaba y se pagó el 2026-08-23 (PR #56): ejecutado antes de
+ * commitear, el gate respondió *«el diff no toca codigo de aplicacion»* y salió 0
+ * sobre un `src/` que sí estaba tocado. Ese 0 se citó como evidencia en un mensaje
+ * de commit y en el cuerpo de una PR, y la CI lo desmintió después. La abstención no
+ * cae ante cualquier árbol sucio —eso dejaría en rojo permanente a quien está a
+ * mitad de una spec—, sino sólo cuando el veredicto DEPENDE de lo pendiente:
+ * `evaluarConPendientes` lo forma dos veces y compara el código de salida.
  *
  * CÓDIGOS DE SALIDA — son el contrato:
  *   0  no hace falta subir nada, o ya se subió.
  *   1  hay que subir el número y no se ha subido (o se ha bajado, o no es semver).
- *   2  uso incorrecto, o no hay con qué comparar (base inalcanzable, git ausente).
+ *   2  uso incorrecto; no hay con qué comparar (base inalcanzable, git ausente); o
+ *      hay código de aplicación pendiente sin commitear cuyo commit cambiaría el
+ *      veredicto, y entonces el gate se abstiene en vez de emitirlo.
  *
  * El 2 es deliberado y no se degrada a 0: **un gate que no puede comparar no dice
- * verde**. En CI eso se ve como rojo con un mensaje que explica que falta el
- * histórico (`fetch-depth: 0`), que es información; un verde silencioso sería un
- * gate vacío.
+ * verde**, y tampoco lo dice cuando el sujeto todavía no existe como commit. En CI
+ * eso se ve como rojo con un mensaje que explica cuál de los tres motivos es —falta
+ * el histórico (`fetch-depth: 0`), la bandera no existe, o hay trabajo sin
+ * commitear—, que es información; un verde silencioso sería un gate vacío.
  *
  * PROPIEDADES QUE HAY QUE CONSERVAR (las prueba tests/version-bump-gate.test.ts):
  *   - Solo importa de `node:*`, igual que `scan-destructive-sql.mjs` y `check-alive.mjs`.
@@ -95,8 +108,10 @@ const USO = `check-version-bump.mjs — si tocas código, el número sube (SPEC-
                  referencia no existe y el gate sale con 2 en vez de comparar.
   --help         Esto.
 
-Juzga COMMITS, no el arbol de trabajo: si acabas de subir el numero y aun no lo
-has commiteado, el gate todavia ve el anterior (y te lo dice).
+Juzga COMMITS, no el arbol de trabajo, y eso vale para las dos mitades: si acabas
+de subir el numero y aun no lo has commiteado, el gate todavia ve el anterior (y
+te lo dice); y si el codigo pendiente cambiaria el veredicto, el gate SE ABSTIENE
+con 2 en vez de decir 0. Un 0 que no ha mirado nada acaba citado como evidencia.
 
 Falla si el diff contra la base toca codigo de aplicacion y \`version\` de
 package.json no ha AUMENTADO, y falla tambien si ha bajado. Una PR solo de
@@ -111,7 +126,8 @@ despliegue sigue siendo el commit.
 Codigos de salida:
   0  no hace falta subir nada, o ya se subio
   1  hay que subirlo y no se ha subido (o se ha bajado, o no es semver)
-  2  uso incorrecto, o no hay con que comparar`;
+  2  uso incorrecto; no hay con que comparar; o hay codigo de aplicacion
+     pendiente sin commitear que cambiaria el veredicto (abstencion)`;
 
 /**
  * Los tres segmentos de un semver de producto, o `null` si no lo es.
@@ -207,6 +223,20 @@ export function tocanCodigoDeAplicacion(ficheros, rutas) {
 }
 
 /**
+ * Hasta diez ficheros, uno por línea. Vive fuera de los mensajes para que la lista de
+ * la abstención (SPEC-049 CA-8.2) tenga literalmente el mismo recorte y el mismo
+ * formato que la de `sin-subir`, en vez de una copia que se les separe.
+ *
+ * @param {string[]} ficheros
+ * @returns {string}
+ */
+function listar(ficheros) {
+  const muestra = ficheros.slice(0, 10).map((f) => `  · ${normalizar(f)}`).join('\n');
+  const resto = ficheros.length > 10 ? `\n  … y ${ficheros.length - 10} mas.` : '';
+  return `${muestra}${resto}`;
+}
+
+/**
  * El veredicto, puro: qué pasa con este diff y estas dos versiones.
  *
  * @param {{ ficheros: string[], versionBase: string, versionRama: string, rutas: string[] }} entrada
@@ -254,8 +284,6 @@ export function evaluar({ ficheros, versionBase, versionRama, rutas }) {
   }
 
   if (comparacion === 0) {
-    const muestra = tocados.slice(0, 10).map((f) => `  · ${normalizar(f)}`).join('\n');
-    const resto = tocados.length > 10 ? `\n  … y ${tocados.length - 10} mas.` : '';
     return {
       salida: SALIDA.MARCADO,
       motivo: 'sin-subir',
@@ -265,7 +293,7 @@ export function evaluar({ ficheros, versionBase, versionRama, rutas }) {
         'que la base. Un numero que no se mueve afirma una identidad estable sobre\n' +
         'artefactos distintos, y con testers fuera eso convierte cada reporte en una ida\n' +
         'y vuelta.\n\n' +
-        `Ficheros que lo disparan:\n${muestra}${resto}\n\n` +
+        `Ficheros que lo disparan:\n${listar(tocados)}\n\n` +
         'Subelo y vuelve a intentarlo:\n' +
         '  npm version patch --no-git-tag-version   # corregiste un defecto\n' +
         '  npm version minor --no-git-tag-version   # entregaste una spec\n\n' +
@@ -279,6 +307,59 @@ export function evaluar({ ficheros, versionBase, versionRama, rutas }) {
     motivo: 'subida',
     tocados,
     mensaje: `La version sube de ${versionBase} a ${versionRama}.`,
+  };
+}
+
+/**
+ * El contraste de SPEC-049 CA-1, también puro: **¿depende este veredicto de lo que
+ * todavía no está commiteado?**
+ *
+ * El gate juzga commits, así que con el trabajo aún en el árbol el rango `base...HEAD`
+ * está vacío y `evaluar` responde `sin-codigo` → 0. Ese 0 no significa "todo en orden":
+ * significa que no ha mirado nada, y el 2026-08-23 (PR #56) se citó como evidencia en
+ * un mensaje de commit y en el cuerpo de una PR antes de que la CI dijera lo contrario
+ * sobre los mismos ficheros.
+ *
+ * La regla no es "si el árbol está sucio, plántate" —eso dejaría en rojo permanente a
+ * quien está a mitad de una spec, y un rojo permanente acaba desactivado—. Es: forma el
+ * veredicto DOS veces, con la misma base y las mismas dos versiones **commiteadas**,
+ * cambiando únicamente la lista de ficheros por *diff ∪ pendientes*. Si el código de
+ * salida coincide, lo pendiente no puede cambiar la respuesta y se emite el primero tal
+ * cual. Si difiere, no se emite ninguno: `USO` (2).
+ *
+ * Se compara el **código de salida** y no el motivo a propósito: lo que se consume
+ * aguas arriba es el código, y un `sin-codigo` que al commitear pasara a `subida` sigue
+ * siendo un 0 honesto. Por eso una rama que ya subió el número no se bloquea por su
+ * propio `src/` sucio, y un `sin-subir` legítimo se emite entero en vez de degradarse a
+ * una negativa: el 1 es el mejor diagnóstico que este script sabe dar.
+ *
+ * @param {{ ficheros: string[], pendientes: string[], versionBase: string, versionRama: string, rutas: string[] }} entrada
+ * @returns {{ salida: number, motivo: string, tocados: string[], pendientes: string[], mensaje: string }}
+ */
+export function evaluarConPendientes({ ficheros, pendientes, versionBase, versionRama, rutas }) {
+  const veredicto = evaluar({ ficheros, versionBase, versionRama, rutas });
+  const pendientesDeAplicacion = tocanCodigoDeAplicacion(pendientes, rutas);
+  const emitir = () => ({ ...veredicto, pendientes: pendientesDeAplicacion });
+
+  if (pendientes.length === 0) return emitir();
+
+  const union = [...new Set([...ficheros, ...pendientes])];
+  const conPendientes = evaluar({ ficheros: union, versionBase, versionRama, rutas });
+  if (conPendientes.salida === veredicto.salida) return emitir();
+
+  return {
+    salida: SALIDA.USO,
+    motivo: 'pendiente-sin-commitear',
+    tocados: veredicto.tocados,
+    pendientes: pendientesDeAplicacion,
+    mensaje:
+      'No puedo emitir un veredicto: hay codigo de aplicacion pendiente sin commitear.\n\n' +
+      'Este gate juzga COMMITS —es lo que se mergea—, y con estos ficheros dentro el\n' +
+      'veredicto cambiaria. Contestar ahora seria afirmar por escrito algo que el commit\n' +
+      'siguiente desmiente, y esa afirmacion viaja: acaba citada en un mensaje de commit\n' +
+      'o en el cuerpo de una PR.\n\n' +
+      `Pendientes en el arbol de trabajo:\n${listar(pendientesDeAplicacion)}\n\n` +
+      'Commitealos —o guardalos aparte con `git stash`— y vuelve a pasar el gate.',
   };
 }
 
@@ -320,6 +401,52 @@ function versionEn(ref) {
       `El package.json de "${ref}" no es JSON valido: ${error instanceof Error ? error.message : String(error)}`,
     );
   }
+}
+
+/**
+ * Lo que el arbol de trabajo tiene a medias: modificado, en el indice o sin
+ * seguimiento. Es la ÚNICA lectura del árbol que entra en la decisión (SPEC-049), y
+ * entra sólo para saber si el veredicto dependería de ella — nunca para juzgarla.
+ *
+ * `--porcelain` deja fuera lo que `.gitignore` ya excluye (CA-3): un `node_modules/`
+ * o un artefacto de build no son trabajo a medias, y abstenerse por ellos dejaría el
+ * gate en rojo permanente, que es como se desactiva un gate.
+ *
+ * @returns {string[]}
+ */
+function ficherosPendientes() {
+  const entradas = git(['status', '--porcelain', '--untracked-files=all', '-z']).split('\0');
+  const pendientes = [];
+  for (let i = 0; i < entradas.length; i += 1) {
+    const entrada = entradas[i];
+    if (entrada.length < 4) continue;
+    pendientes.push(entrada.slice(3));
+    // Un renombrado o una copia traen la ruta de ORIGEN en la entrada siguiente.
+    const estado = entrada.slice(0, 2);
+    if ((estado.includes('R') || estado.includes('C')) && entradas[i + 1]) {
+      pendientes.push(entradas[i + 1]);
+      i += 1;
+    }
+  }
+  return pendientes;
+}
+
+/**
+ * La línea de CA-9: cuando el gate SÍ emite y hay pendientes, decir cuántos son y que
+ * no han entrado. Es lo que impide leer un «el diff no toca codigo de aplicacion» como
+ * «no hay codigo tocado» cuando lo hay, esperando en el árbol.
+ *
+ * @param {string[]} pendientes
+ * @returns {string}
+ */
+function notaDePendientes(pendientes) {
+  if (pendientes.length === 0) return '';
+  const uno = pendientes.length === 1;
+  return (
+    `\n[check-version-bump] Ojo: ${pendientes.length} fichero${uno ? '' : 's'} de codigo de ` +
+    `aplicacion ${uno ? 'sigue pendiente' : 'siguen pendientes'} en el arbol de trabajo y ` +
+    `NO ${uno ? 'ha' : 'han'} entrado en este veredicto.\n`
+  );
 }
 
 /** Los ficheros que cambian entre la base y HEAD, desde su ancestro comun. */
@@ -373,8 +500,9 @@ function main(args) {
     git(['rev-parse', '--verify', `${opciones.base}^{commit}`]);
     base = opciones.base;
     versionDeHead = versionEn('HEAD');
-    veredicto = evaluar({
+    veredicto = evaluarConPendientes({
       ficheros: ficherosCambiados(base),
+      pendientes: ficherosPendientes(),
       versionBase: versionEn(base),
       versionRama: versionDeHead,
       rutas: rutasDeAplicacion(),
@@ -390,14 +518,26 @@ function main(args) {
     throw error;
   }
 
+  // SPEC-049 CA-1: el veredicto dependia de lo que todavia no es un commit, asi que no
+  // hay veredicto que emitir. Ni el de ahora ni el de despues: sale con 2 y lo explica.
+  if (veredicto.motivo === 'pendiente-sin-commitear') {
+    stderr.write(`[check-version-bump] Base: ${base}.\n\n`);
+    stderr.write(`${veredicto.mensaje}\n`);
+    return SALIDA.USO;
+  }
+
+  const nota = notaDePendientes(veredicto.pendientes);
+
   if (veredicto.salida === SALIDA.LIMPIO) {
     stdout.write(`[check-version-bump] Base: ${base}.\n`);
     stdout.write(`[check-version-bump] ${veredicto.mensaje}\n`);
+    stdout.write(nota);
     return SALIDA.LIMPIO;
   }
 
   stderr.write(`[check-version-bump] Base: ${base}.\n\n`);
   stderr.write(`${veredicto.mensaje}\n`);
+  stderr.write(nota);
 
   // El malentendido barato: has hecho el `npm version` y no lo has commiteado.
   // Este gate juzga commits, asi que todavia ve el anterior. Decirlo cuesta tres
