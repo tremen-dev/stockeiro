@@ -147,6 +147,33 @@ estar verdes antes y después. Con la implementación puesta: **22/22**.
   `package.json` (solo `version`). **Nada más**: ni `src/app/app-footer.tsx`, ni
   `src/app/app-nav.tsx`, ni `src/app/layout.tsx`, ni `src/proxy.ts`, ni `src/db/`, ni `drizzle/`,
   ni `src/lib/`, ni ninguna otra carpeta `_qa/SPEC-NNN/`.
+  Salida de `git diff --name-only origin/main...HEAD` **con el árbol limpio**, tras commitear
+  (la deja aquí el implementador como insumo; **el veredicto de CA-19 es del verificador**):
+
+  ```
+  _qa/SPEC-050/ancho-{360,390,640,700,730,760,768,800,1280}-primera-pantalla.png
+  _qa/SPEC-050/ca1-wordmark.png
+  _qa/SPEC-050/ca2-marca-vs-titular.txt
+  _qa/SPEC-050/ca3-barra-intacta.png
+  _qa/SPEC-050/ca6-contraste-del-primario.txt
+  _qa/SPEC-050/ca6-jerarquia-de-botones.txt
+  _qa/SPEC-050/ca14-contraste-de-la-version.txt
+  _qa/SPEC-050/ca17-geometria.txt
+  _qa/SPEC-050/ca21-camino-al-feedback.png
+  docs/epicas/EPIC-MEJORA/SPEC-050-…-fuera-del-hero.ledger.md
+  docs/epicas/EPIC-MEJORA/SPEC-050-…-fuera-del-hero.md
+  package.json
+  src/app/globals.css
+  src/app/page.tsx
+  tests/e2e/ayuda.spec.ts
+  tests/e2e/primera-pantalla.spec.ts
+  tests/primera-pantalla-fuente.test.ts
+  ```
+
+  `npm run version:check` con el árbol limpio: **exit 0**, *«La version sube de 0.3.2 a 0.3.3»*.
+  (Ejecutado **después** de commitear, no antes: sobre un árbol sucio SPEC-049 hace que el gate
+  se abstenga con **2**, y una abstención citada como verde es lo que costó el PR #56.)
+
 - **La excepción que la spec declaró para `app-nav.tsx` no se ha usado**: el fichero no se ha
   tocado en absoluto. El desacoplo salió entero del CSS.
 - **CA-6 con el ojo, no solo con el número** (R-5): la razón de áreas es 2,07 a los ocho anchos,
