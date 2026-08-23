@@ -320,13 +320,29 @@ dialog.editar-vigilada .card:hover {
   border-bottom: 1px solid var(--line);
   flex-wrap: wrap;
 }
-.app-nav .brand {
-  font: 900 20px/1 var(--font-sans);
+/* --- El wordmark, desacoplado del menú (SPEC-050 D-1) ---
+
+   La tipografía de la marca vivía dentro de `.app-nav .brand`, es decir: **la marca
+   solo existía si había menú**. La primera pantalla no monta `AppNav` —es pública y
+   `AppNav` pregunta quién eres para contar tus avisos—, así que se quedaba sin marca
+   aunque se escribiera el marcado, y lo único que había arriba era `.landing-eyebrow`:
+   mono de 11 px en mayúsculas, un microcrédito tipográfico.
+
+   Ahora la definición es de primer nivel y sigue habiendo **una sola** (CA-4). El
+   tamaño sale del atajo `font` y pasa a `--brand-size`, con su valor por defecto en el
+   propio `var()`: así la superficie que quiera otro tamaño lo declara sobre el elemento
+   (`.landing-marca`) y `.brand` no tiene que saber quién la usa ni ganar una batalla de
+   especificidad con nadie.
+
+   `.app-nav` conserva SOLO lo suyo: que el enlace no lleve subrayado. Desacoplar no
+   puede ser reestilar — la barra tiene que pintarse idéntica (CA-3, R-2). */
+.brand {
+  font: 900 var(--brand-size, 20px)/1 var(--font-sans);
   letter-spacing: -0.045em;
   color: var(--fg);
-  text-decoration: none;
 }
-.app-nav .brand .dot { color: var(--accent); }
+.brand .dot { color: var(--accent); }
+.app-nav .brand { text-decoration: none; }
 .app-nav-links { display: flex; align-items: center; gap: 22px; }
 .app-nav-links a {
   position: relative;
@@ -1238,12 +1254,19 @@ td.num .quote-fail, td.num .quote-stale { text-align: right; }
   gap: 20px;
   align-content: start;
 }
-.landing-eyebrow {
+/* SPEC-050 CA-1, CA-2 — la marca, con tamaño de marca, donde estaba `.landing-eyebrow`.
+
+   Reutiliza `.brand` (D-1): lo único propio de esta superficie es el tamaño, y no es
+   un enlace (D-2) porque la landing ES el destino al que llevaría — un enlace a `/`
+   desde `/` es ruido para el lector de pantalla y el undécimo enlace de una pantalla
+   cuyo problema era tener diez.
+
+   28 px es deliberado y tiene techo: `.landing-title` arranca en 32 px (el suelo de su
+   `clamp`), así que la marca queda por encima del texto corrido y **por debajo del
+   titular a todos los anchos**. Quien manda en la jerarquía es el titular. */
+.landing-marca {
+  --brand-size: 28px;
   margin: 0;
-  font: 600 11px/1 var(--font-mono);
-  letter-spacing: .16em;
-  text-transform: uppercase;
-  color: var(--accent);
 }
 .landing-title {
   margin: 0;
@@ -1257,15 +1280,31 @@ td.num .quote-fail, td.num .quote-stale { text-align: right; }
   line-height: 1.55;
   color: var(--fg);
 }
-.landing-cadencia {
+/* SPEC-050 CA-7 — «gratis y sin publicidad» sube junto a las acciones.
+
+   Vivía en `.landing-pie`: `--t-body-sm` y `--fg-dim`, el color más tenue del sistema,
+   en la ÚLTIMA línea de la página. Para un público escéptico de foro eso es una palanca
+   de conversión de primer orden enterrada bajo la advertencia. Aquí sube al lado de los
+   botones, con el color de texto principal y el tamaño de cuerpo. No promete nada nuevo:
+   son las mismas palabras que ya estaban abajo (el test declara el literal). */
+.landing-gratis {
   margin: 0;
-  padding: 16px 18px;
-  border-left: 3px solid var(--amber);
-  background: var(--bg-step);
-  border-radius: var(--radius-card);
   line-height: 1.6;
-  color: var(--fg-muted);
+  color: var(--fg);
 }
+
+/* SPEC-050 D-3 — la advertencia pierde el cromo de alarma, NO las palabras.
+
+   Tenía borde ámbar de 3 px, fondo `--bg-step` y radio de tarjeta: después del titular
+   era lo que más gritaba de la pantalla, con 40 palabras que —sumadas a `QUE_NO_HACE`—
+   dejaban 63 de negaciones frente a 21 de propuesta de valor. El ámbar es el color con
+   el que este sistema pinta *aviso*, y aquí no hay nada que avisar: hay algo que
+   explicar. La jerarquía la da el ORDEN, no el ruido.
+
+   `CADENCIA_LINEA` sigue entera, sigue siendo la MISMA constante y sigue en esta
+   pantalla (CA-9, CA-11). **D-2 es locked** y esta regla no lo negocia: solo deja de
+   pintar como alarma lo que es prosa. */
+.landing-cadencia,
 .landing-limites,
 .landing-pie {
   margin: 0;
@@ -1273,6 +1312,7 @@ td.num .quote-fail, td.num .quote-stale { text-align: right; }
   color: var(--fg-muted);
 }
 .landing-pie { font-size: var(--t-body-sm); color: var(--fg-dim); }
+.landing-mas { margin: 0; }
 .landing-pie a,
 .landing-ayuda {
   color: var(--fg);
@@ -1292,6 +1332,51 @@ td.num .quote-fail, td.num .quote-stale { text-align: right; }
   gap: 12px 18px;
   margin-top: 4px;
 }
+/* SPEC-050 CA-6 — jerarquía real entre las dos entradas.
+
+   Eran tres controles en la misma rejilla —«Crear cuenta», «Entrar» y un enlace a la
+   ayuda— y la única diferencia entre los dos primeros era la clase `primary`. Desde un
+   foro casi todo el tráfico es nuevo: la primaria tiene que dominar. Se consigue con lo
+   que el sistema de diseño YA tiene (más caja y un punto más de tipografía sobre el
+   `.btn` de siempre); no se inventa un botón, que es lo que la épica excluye. Y la
+   ayuda sale de esta fila: un enlace no compite con dos botones de cuenta.
+
+   La clase `.landing-acciones` se conserva con ese nombre a propósito: la mide
+   `tests/e2e/ayuda-responsive.spec.ts` (SPEC-039 CA-17) y renombrarla dejaría su lista
+   `CONTENEDORES` casando con un solo elemento en `/`. */
+.landing-acciones .btn.primary {
+  padding: 18px 30px;
+  font-size: 17px;
+}
+
+/* SPEC-050 D-4/D-5 — la primera pantalla subordina el pie SIN que el pie lo sepa.
+
+   `AppFooter` no lee la sesión, no lee la ruta y no lee la base de datos: esa carencia
+   es su propiedad principal (SPEC-035 CA-10, SPEC-039 CA-14) y es lo que le permite
+   vivir en el layout raíz y alcanzar a `/legal` y a `(auth)`. Pasarle una `prop` de ruta
+   se la quitaría. El pie es hermano siguiente del `<main>` de la página dentro de
+   `.frame`, así que este selector lo alcanza SOLO cuando la página es la landing: cero
+   JavaScript, cero prop, cero conocimiento de ruta dentro del componente (CA-15).
+
+   Qué se retira y qué no lo arbitró el humano el 2026-08-23:
+
+   - **El canal de feedback, fuera de `/`.** SPEC-039 CA-12 pide el canal en «cualquier
+     pantalla autenticada y también `/ayuda`»: `/` no está en ese criterio. Y a quien
+     acaba de llegar de un hilo no le sirve de nada «cuéntanos qué falla» —todavía no ha
+     usado la app—, mientras le resta atención de los dos botones que sí. El camino no se
+     pierde: sobrevive en toda pantalla autenticada y en `/ayuda`, que se alcanza desde
+     esta misma pantalla, y lo ata **CA-21** recorriéndolo entero.
+   - **La versión, se queda.** SPEC-038 CA-1 dice «cualquier página». Quitarla de `/` no
+     pondría rojo ningún test —el suyo recorre otras cuatro rutas— y por eso es peor:
+     haría falso un criterio aprobado en silencio. Sigue visible y copiable (CA-14).
+
+   `display: none` y no `visibility: hidden` ni `opacity: 0`: esas dos dejan la caja
+   ocupando alto, que es exactamente el hueco muerto que miden
+   `tests/e2e/pie-responsive.spec.ts` y `tests/e2e/ayuda-responsive.spec.ts`. Y se dice
+   en voz alta lo que esto NO hace: el `mailto:` sigue en el HTML servido de `/`, oculto.
+   Es el precio de que el pie no sepa dónde está, y es el precio correcto — el roce que
+   se contó era visual. */
+.landing ~ .app-footer .app-footer-feedback { display: none; }
 
 /* --- La ayuda (CA-3 a CA-8) --- */
 .ayuda {

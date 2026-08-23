@@ -1,0 +1,9 @@
+SPEC-050 CA-6 — área del primario frente a la del secundario
+ancho 360: crear=165×55 entrar=90×49 razón=2.07
+ancho 390: crear=165×55 entrar=90×49 razón=2.07
+ancho 640: crear=165×55 entrar=90×49 razón=2.07
+ancho 700: crear=165×55 entrar=90×49 razón=2.07
+ancho 730: crear=165×55 entrar=90×49 razón=2.07
+ancho 760: crear=165×55 entrar=90×49 razón=2.07
+ancho 800: crear=165×55 entrar=90×49 razón=2.07
+ancho 1280: crear=165×55 entrar=90×49 razón=2.07
