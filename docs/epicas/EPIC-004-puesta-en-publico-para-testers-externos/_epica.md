@@ -135,6 +135,23 @@ tester que no recibe avisos evalúa media función.
   licencia que no se tiene — declaran la fuente de los precios y su carácter
   informativo, sin afirmar derechos de redistribución. Seguimiento: `F-EPIC-004-1`
   en el roadmap, §Ops y despliegue.
+  ↳ **CERRADO el 2026-08-23 (Alberto Fojo): contratado el plan Basic (10.000
+  peticiones/mes, ~$9.99/mes)** sobre cuenta propia. El riesgo **se extingue**, no se
+  mitiga: el plan de pago **sí concede uso comercial**, así que el escenario que R-1
+  temía —publicar en un foro abierto sin derechos— deja de existir. La mitigación se
+  ejecutó exactamente como estaba escrita: **misma key, cero código, cero despliegue**.
+  ↳ **Y sin embargo las páginas legales no cambian**, por decisión explícita del humano
+  el mismo día. Siguen declarando la fuente y el carácter meramente informativo del
+  dato **sin afirmar derechos** sobre las cotizaciones. Lo que cambia es **el motivo**:
+  antes era una restricción de licencia, ahora es **prudencia elegida** —correcta pague
+  lo que pague el proyecto—. Es importante no perder este matiz: quien lea el texto
+  legal y lo encuentre "conservador de más" debe saber que es a propósito. El motivo
+  actualizado vive en `docs/fundacion/dominio.md` y en **ADR-032**.
+  ↳ Nota de honestidad sobre por qué se aceleró: no fue la licencia, fue la **cuota**.
+  El incidente del 2026-08-19/20 —tres días de precios congelados sin que nadie se
+  enterase— midió el consumo real en **~400 unidades/mes** contra las 100 del free tier
+  (**ADR-027**). R-1 se cierra de rebote, y conviene recordarlo: el riesgo que tumbó el
+  free tier **no fue el que esta épica tenía anotado**.
 - **R-2 — La búsqueda de símbolos comparte cuota entre todos.** Va con el free tier de
   Twelve Data, con límite por minuto **global, no por usuario**. Varios testers buscando
   a la vez podrían ver errores. **Hipótesis a validar**, no medida: no se ha reproducido.

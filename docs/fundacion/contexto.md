@@ -84,7 +84,14 @@ Lo realmente montado (decisión en **ADR-001**; ingesta en **ADR-002**):
 Riesgos vigentes de EPIC-001 (`_epica.md`):
 
 - **R-1** Fuente de datos: sin API oficial gratuita fiable en Yahoo/Google;
-  mitigado por ADR-002 (Twelve Data tras puerto, proveedor intercambiable).
+  mitigado por ADR-002 (**proveedor tras puerto**, intercambiable). El adaptador
+  de precios ya no es Twelve Data sino **Marketstack** (ADR-012; Twelve Data se
+  queda solo para la búsqueda), y desde el **2026-08-23** corre sobre el **plan de
+  pago Basic (10.000/mes)** en cuenta propia (**ADR-032**): la premisa de "capa
+  gratuita" **ya no rige** para las cotizaciones. El presupuesto se mide en
+  `símbolos distintos × ciclos`, no en llamadas (**ADR-027** pto. 1): hoy ~400
+  unidades/mes de 10.000, margen ~25×. Que el puerto hiciera ese cambio de plan
+  **sin tocar código** es la prueba de que la mitigación estaba bien puesta.
 - **R-2** Definición formal de **"zona"** (rango [min,max] vs. umbral con
   dirección; tocar vs. cerrar dentro): abierta, debe cerrarse en la spec de zonas.
 - **R-3** Latencia de aviso vs. cadencia del refresco: el ciclo elegido decide si

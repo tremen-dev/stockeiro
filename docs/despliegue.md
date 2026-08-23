@@ -6,6 +6,27 @@
 > de las specs (F-SPEC-001-2, F-SPEC-004-1, F-SPEC-006-1, F-SPEC-011-1, F-SPEC-012-1,
 > F-ADR-012-2) se cierran aquí.
 
+> 💳 **Planes contratados de los proveedores externos (el runbook los da por hechos).**
+> - **Marketstack** — plan **Basic: 10.000 peticiones/mes** (~$9,99/mes), contratado el
+>   **2026-08-23** sobre **cuenta propia del titular** (antes era una cuenta de prueba con
+>   un correo que nadie administraba). **`MARKETSTACK_API_KEY` NO cambió**: el plan se
+>   contrató sobre la misma clave, así que **no hay ningún paso de rotación** ni nada que
+>   tocar en Vercel. Decisión y aritmética en **ADR-032**. La unidad en la que se mide el
+>   cupo es `símbolos distintos × ciclos`, **no llamadas** (**ADR-027** pto. 1): hoy 13
+>   símbolos × ~31 días ≈ **400 unidades/mes de 10.000**, margen **~25×**, y techo de
+>   **~322 símbolos distintos** con ciclo diario. Si alguna vez se plantea cambiar de plan
+>   o de proveedor, **la cuenta se rehace en esa unidad y se deja escrita**.
+>   Los avisos del proveedor al **75/90/100 %** de consumo llegan ahora al correo del
+>   titular: son un **canal del operador, fuera de la app** — la app **no** alerta
+>   (ADR-023 pto. 15), solo registra y muestra.
+>   ↳ **F-ADR-012-2 queda CERRADO**: la variable está en `.env.example`, en esta guía
+>   (§0 y §3.2) y **aprovisionada en Producción** desde el despliegue del 2026-08-18, y
+>   desde el 2026-08-23 se sabe además **qué plan la sostiene y de quién es la cuenta**.
+> - **Twelve Data** — sigue en **free tier**, y solo para la **búsqueda** de símbolos
+>   (ADR-012 pto. 2). No cotiza nada.
+> - **Resend** — free tier, 3.000/mes · 100/día (§7).
+> - **Neon** y **Vercel** — free/Hobby (el cron de Hobby es diario, §3.3).
+
 > **Estado (2026-08-18):** desplegado y **vivo** en <https://stockeiro.tremen.dev> (dominio
 > principal desde 2026-08-17) y en <https://stockeiro-lemon.vercel.app>, con **Neon +
 > Marketstack + cron** activos. El esquema se migra **automáticamente en el build** (§1.1).
@@ -73,7 +94,7 @@
 | `DB_DRIVER` | — | `neon` en producción (por defecto) | ADR-001 |
 | `AUTH_SECRET` | — | Firma de sesión (Auth.js) | SPEC-001 / F-SPEC-001-2 |
 | `AUTH_TRUST_HOST` | — | `true` tras el proxy de Vercel | SPEC-001 |
-| `MARKETSTACK_API_KEY` | Marketstack | **Cotizaciones** (proveedor de precios) | ADR-012 / F-ADR-012-2 |
+| `MARKETSTACK_API_KEY` | Marketstack | **Cotizaciones** (proveedor de precios). Plan **Basic, 10.000/mes**, **cuenta propia del titular** desde el 2026-08-23. **La clave NO cambió al contratar el plan: no hay rotación.** | ADR-012 / **ADR-032** / F-ADR-012-2 |
 | `TWELVE_DATA_API_KEY` | Twelve Data | **Búsqueda** de símbolos (ya no cotiza) | ADR-007 / ADR-012 |
 | `CRON_SECRET` | — | Protege `/api/cron/refresh` | ADR-004 / F-SPEC-004-1 |
 | `RESEND_API_KEY` | Resend | Envío de avisos por email **y del enlace de reset** | ADR-006 / F-SPEC-006-1 |
@@ -188,7 +209,8 @@ Preview si quieres previews funcionales):
 ```bash
 vercel env add AUTH_SECRET production          # pega el valor generado
 vercel env add AUTH_TRUST_HOST production      # true
-vercel env add TWELVE_DATA_API_KEY production   # key de Twelve Data
+vercel env add MARKETSTACK_API_KEY production   # key de Marketstack (plan Basic, 10.000/mes)
+vercel env add TWELVE_DATA_API_KEY production   # key de Twelve Data (free, solo búsqueda)
 vercel env add CRON_SECRET production           # el generado
 vercel env add RESEND_API_KEY production        # key de Resend
 vercel env add RESEND_FROM production           # Stockeiro <avisos@tu-dominio>
@@ -270,7 +292,9 @@ tras mergear es el **check de la puerta**, y el pipeline entero está documentad
 - [ ] Entorno *Preview* con **BD Neon aparte** (o sin `DATABASE_URL` de producción) — si no, una
   PR migraría producción (§6).
 - [ ] `AUTH_SECRET`, `AUTH_TRUST_HOST` puestos.
-- [ ] Twelve Data: `TWELVE_DATA_API_KEY`; `CRON_SECRET` generado y puesto.
+- [ ] Marketstack: `MARKETSTACK_API_KEY` puesta, y **la cuenta detrás es la del titular con
+  plan Basic (10.000/mes)** — no una cuenta de prueba (ADR-032). Twelve Data:
+  `TWELVE_DATA_API_KEY` (free, solo búsqueda); `CRON_SECRET` generado y puesto.
 - [ ] Resend: dominio verificado, `RESEND_API_KEY`, `RESEND_FROM` — **bloqueante desde SPEC-023**
   (ver **§7** y **§8**). Para los *avisos* era opcional (fallback in-app, RN-15); para la
   *recuperación de contraseña* no hay fallback y sin Resend no funciona.

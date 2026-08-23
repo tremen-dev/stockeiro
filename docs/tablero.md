@@ -126,6 +126,7 @@ Actualizado: 2026-08-23
 | ADR-029 | aprobada | el-silencio-se-aplica-al-aviso-no-a-la-deteccion-la-vigilada-silenciada-sigue-ingiriendo-evaluando-y-abriendo-episodios-y-su-aviso-de-entrada-queda-pendiente | 2026-08-21 (humano (Alberto Fojo)) |
 | ADR-030 | aprobada | lo-que-abre-una-fila-vive-anclado-a-la-ventana-y-la-geometria-mide-la-respuesta-al-gesto | 2026-08-22 (humano (Alberto Fojo)) |
 | ADR-031 | aprobada | la-guardia-por-diff-nace-anclada-a-una-ventana-fija | 2026-08-22 (humano (Alberto Fojo)) |
+| ADR-032 | aprobada | el-proveedor-de-precios-pasa-a-plan-de-pago-basic-10-000-mes-con-cuenta-propia-y-la-misma-clave | 2026-08-23 (humano (Alberto Fojo)) |
 
 ## Resumen
 

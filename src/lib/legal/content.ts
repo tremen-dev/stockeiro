@@ -80,9 +80,15 @@ export const DESCARGO_COMPLETO: string[] = [
 
 /**
  * Qué son los precios que enseña la app (CA-7) y —tan importante— qué NO se dice de
- * ellos (CA-8). El gate de EPIC-004 decidió publicar con el free tier de Marketstack
- * asumiendo R-1: ese plan no concede derechos de uso comercial ni de redistribución,
- * así que aquí se declara la fuente y el carácter informativo del dato, y se para.
+ * ellos (CA-8): se declara la fuente y el carácter informativo del dato, y se para.
+ *
+ * El porqué de ese "y se para" cambió, aunque el texto no. Nació de R-1: el gate de
+ * EPIC-004 decidió publicar con el free tier de Marketstack, que no concedía derechos
+ * de uso comercial ni de redistribución. Desde el **2026-08-23 el plan es de pago**
+ * —Basic, 10.000/mes— y **sí** los concede (**ADR-032**), así que R-1 quedó disuelto
+ * y aun así **aquí no se toca una palabra**. Deliberado: un plan de pago compra
+ * **cupo, no exactitud**. Estas tres frases eran correctas cuando el motivo era la
+ * licencia y siguen siéndolo ahora que el motivo es la prudencia.
  *
  * El compromiso se escribe en negativo —"sin compromiso de exactitud, continuidad ni
  * disponibilidad"— y no con la palabra que todo el mundo usaría: el motivo está en
