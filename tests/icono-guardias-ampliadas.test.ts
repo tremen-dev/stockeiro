@@ -1,8 +1,8 @@
 import { describe, it, expect } from 'vitest';
-import { execFileSync } from 'node:child_process';
 import { readFileSync } from 'node:fs';
 import { dirname, join, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
+import { blob, hayVentana, testsModificadosEnLaVentana, type Ventana } from './ventana-fija';
 
 /**
  * SPEC-047 CA-19 — **las tres guardias ajenas se amplían nombradas, y ninguna propiedad
@@ -23,16 +23,37 @@ import { fileURLToPath } from 'node:url';
  * las cuatro condiciones de CA-19, y la tercera —«ampliación, no aflojada»— no la da por
  * buena leyendo el diff: **vuelve a ejecutar la comparación de cada guardia contra una
  * entrada con un cuarto elemento inventado y exige que la rechace**.
+ *
+ * **Re-encuadrado por SPEC-048 el 2026-08-22.** Lo que aquí miraba `origin/main` mira
+ * ahora la ventana fija de la entrega de SPEC-047 (CA-1, ADR-031 pto. 2.1). Los bloques
+ * CA-19.2 y CA-19.3 no se han tocado: leen sólo el árbol actual y son sanos.
  */
 
 const rootDir = resolve(dirname(fileURLToPath(import.meta.url)), '..');
-const BASE = 'origin/main';
 
-const git = (...args: string[]) =>
-  execFileSync('git', args, { cwd: rootDir, encoding: 'utf8', stdio: ['ignore', 'pipe', 'pipe'] });
+/**
+ * **La ventana de la entrega de SPEC-047** — SPEC-048 CA-1. Los mismos dos sha que
+ * declara `tests/icono-frontera.test.ts`, y `tests/guardias-ancladas.test.ts` comprueba
+ * que los dos ficheros no se separen (CA-6).
+ *
+ * `6da9fbe` es `main` justo antes del merge (`104f94e^1`); `104f94e` es el merge de la
+ * PR #52. Antes esto era `const BASE = 'origin/main'`, y al mergear esa base se tragó el
+ * propio cambio: el diff quedó vacío, un caso se puso rojo para siempre y otros seis
+ * pasaron a estar verdes sin comparar nada. ADR-031 lo prohíbe desde entonces.
+ */
+const ENTREGA_DE_SPEC_047: Ventana = { antes: '6da9fbe', despues: '104f94e' };
+
+const HAY_VENTANA = hayVentana(rootDir, ENTREGA_DE_SPEC_047);
 
 const fuente = (ruta: string) => readFileSync(join(rootDir, ruta), 'utf8');
-const fuenteEnMain = (ruta: string) => git('show', BASE + ':' + ruta);
+
+/** El fichero tal y como estaba justo ANTES de la entrega de SPEC-047. */
+const fuenteAntesDeLaEntrega = (ruta: string) =>
+  blob(rootDir, ENTREGA_DE_SPEC_047.antes, ruta);
+
+/** Y tal y como quedó al mergearla. */
+const fuenteAlCerrarLaEntrega = (ruta: string) =>
+  blob(rootDir, ENTREGA_DE_SPEC_047.despues, ruta);
 
 /** Las tres, nombradas una a una — CA-19.1. Ni una más. */
 const GUARDIAS = [
@@ -62,8 +83,8 @@ const GUARDIAS = [
 /**
  * Los casos de un fichero de test, por título: un `it(` con dos espacios de sangría y
  * todo lo suyo hasta el `});` que lo cierra a esa misma sangría — que es el estilo de los
- * tres ficheros. Sirve para comparar caso a caso contra `origin/main` sin que un salto de
- * línea en otro sitio del fichero cuente como «tocado».
+ * tres ficheros. Sirve para comparar caso a caso los dos extremos de la ventana sin que
+ * un salto de línea en otro sitio del fichero cuente como «tocado».
  */
 function casos(src: string): Map<string, string> {
   const out = new Map<string, string>();
@@ -88,33 +109,59 @@ function caso(src: string, titulo: string): string {
   return encontrado!;
 }
 
-describe('SPEC-047 CA-19.1: sólo se amplían las tres guardias nombradas', () => {
+describe.skipIf(!HAY_VENTANA)('SPEC-047 CA-19.1: sólo se amplían las tres guardias', () => {
+  it('la ventana no está vacía: trajo el icono, su generador y el guardián', () => {
+    // SPEC-048 CA-2 — centinela de no-vacuidad (ADR-031 pto. 2.2). Este fichero tiene su
+    // propia ventana declarada y por tanto necesita su propio centinela: si el rango
+    // estuviera mal escrito, todo lo de abajo quedaría verde sin haber comparado nada.
+    const modificados = testsModificadosEnLaVentana(rootDir, ENTREGA_DE_SPEC_047);
+    expect(modificados.length, 'la ventana de SPEC-047 no modificó ningún test: está vacía')
+      .toBeGreaterThan(0);
+    expect(fuenteAlCerrarLaEntrega('src/proxy.ts')).not.toBe(fuenteAntesDeLaEntrega('src/proxy.ts'));
+  });
+
   it('el diff sobre tests/ no modifica ningún fichero ajeno fuera de esas tres', () => {
-    const modificados = git('diff', '--name-status', `${BASE}...HEAD`, '--', 'tests/')
-      .split('\n')
-      .filter(Boolean)
-      .map((l) => l.split('\t'))
-      .filter(([tipo]) => tipo !== 'A')
-      .map(([, f]) => f)
-      .sort();
+    // Re-encuadrado por SPEC-048 CA-6 el 2026-08-22, por arbitraje del humano (Alberto
+    // Fojo). Qué vigilaba antes: `--name-status` sobre `tests/` contra `origin/main`, que
+    // al mergear la PR #52 devolvió lista vacía y puso este caso en ROJO permanente — es el
+    // R-3 del run 32583255349. Qué vigila ahora: el mismo `--name-status` sobre la ventana
+    // fija de la entrega. Se conserva y no se funde con el caso gemelo de
+    // `tests/icono-frontera.test.ts`: son dos CA distintos de SPEC-047 (CA-18 y CA-19.1) y
+    // cada uno responde en su fichero.
+    const modificados = testsModificadosEnLaVentana(rootDir, ENTREGA_DE_SPEC_047);
+    const esperados = GUARDIAS.map((g) => g.fichero).sort();
 
     expect(
       modificados,
       'un CUARTO fichero ajeno modificado es RED (CA-18): se escala al gate, no se toca',
-    ).toEqual(GUARDIAS.map((g) => g.fichero).sort());
+    ).toEqual(esperados);
+    expect(
+      [...modificados, 'tests/ci-workflow.test.ts'].sort(),
+      'la comparación no distingue un cuarto fichero: habría dejado de ser una lista cerrada',
+    ).not.toEqual(esperados);
   });
 
   for (const { fichero, ampliada } of GUARDIAS) {
     it(`${fichero}: el único caso que cambia es el ampliado`, () => {
-      const ahora = casos(fuente(fichero));
-      const antes = casos(fuenteEnMain(fichero));
+      // Re-encuadrado por SPEC-048 CA-7 el 2026-08-22, por arbitraje del humano (Alberto
+      // Fojo). Qué vigilaba antes: el fichero del árbol contra su blob en `origin/main`
+      // —que desde el merge de la PR #52 es el mismo blob, así que la comparación pasaba
+      // por definición sin comparar nada—. Qué vigila ahora: los dos extremos de la
+      // ventana de la entrega, uno contra otro; y la mutación de control demuestra que la
+      // comparación sí distingue un byte de más.
+      const antes = casos(fuenteAntesDeLaEntrega(fichero));
+      const despues = casos(fuenteAlCerrarLaEntrega(fichero));
 
-      expect([...ahora.keys()].sort(), 'no nace ni muere ningún caso').toEqual(
+      expect([...despues.keys()].sort(), 'no nace ni muere ningún caso').toEqual(
         [...antes.keys()].sort(),
       );
       for (const [titulo, cuerpo] of antes) {
         if (titulo === ampliada) continue;
-        expect(ahora.get(titulo), `"${titulo}" no es de esta spec y no se toca`).toBe(cuerpo);
+        expect(despues.get(titulo), `"${titulo}" no es de esta spec y no se toca`).toBe(cuerpo);
+        expect(
+          `${despues.get(titulo)} `,
+          'la comparación no distingue un byte de más: estaría pasando por vacuidad',
+        ).not.toBe(cuerpo);
       }
     });
   }
@@ -194,10 +241,23 @@ describe('SPEC-047 CA-19.3: es una ampliación, no una aflojada', () => {
   });
 });
 
-describe('SPEC-047 CA-19.4: ninguna propiedad protegida se debilita', () => {
+describe.skipIf(!HAY_VENTANA)('SPEC-047 CA-19.4: ninguna propiedad protegida se debilita', () => {
   for (const { fichero, hermana } of GUARDIAS) {
     it(`${fichero}: la hermana que mide la propiedad sigue byte a byte como estaba`, () => {
-      expect(caso(fuente(fichero), hermana)).toBe(caso(fuenteEnMain(fichero), hermana));
+      // Re-encuadrado por SPEC-048 CA-7 el 2026-08-22, por arbitraje del humano (Alberto
+      // Fojo). Qué vigilaba antes: el caso hermano del árbol contra su blob en
+      // `origin/main` —desde el merge de la PR #52, el mismo blob: verde por definición—.
+      // Qué vigila ahora: el caso hermano en los dos extremos de la ventana de la entrega,
+      // que es donde de verdad se puede afirmar que aquella entrega no lo tocó. La
+      // mutación de control demuestra que un solo byte de diferencia lo rompería.
+      const antes = caso(fuenteAntesDeLaEntrega(fichero), hermana);
+      const despues = caso(fuenteAlCerrarLaEntrega(fichero), hermana);
+
+      expect(despues).toBe(antes);
+      expect(
+        `${despues} `,
+        'la comparación no distingue un byte de más: estaría pasando por vacuidad',
+      ).not.toBe(antes);
     });
   }
 

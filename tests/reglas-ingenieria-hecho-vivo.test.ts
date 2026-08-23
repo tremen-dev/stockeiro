@@ -77,10 +77,56 @@ describe('SPEC-028 CA-14.1: RI-02 existe, dentro de la sección que ya había', 
   it('va después de RI-01, en la misma serie', () => {
     const seccion = seccionDeIngenieria();
     expect(seccion.indexOf('**RI-01**')).toBeLessThan(seccion.indexOf('**RI-02**'));
-    expect([...seccion.matchAll(/\*\*(RI-\d+)\*\*/g)].map((m) => m[1])).toEqual([
-      'RI-01',
-      'RI-02',
-    ]);
+
+    // La forma vieja de decir esto era `toEqual(['RI-01', 'RI-02'])`, y fue cierta
+    // mientras dos fueron dos. **Re-encuadrado el 2026-08-22, autorizado por SPEC-048
+    // CA-13** —nominal y cerrado a este fichero y a este caso— al escribir RI-03 (CA-11,
+    // fuente ADR-031) en esta misma sección. Es el mismo caso y el mismo remedio que
+    // SPEC-043 aplicó a RN-16 en `tests/reglas-ingenieria.test.ts`.
+    //
+    // Qué vigilaba antes: que la serie de ingeniería fuera exactamente RI-01 y RI-02 —una
+    // FOTO de su extensión de aquel día, que caduca en cuanto se escribe la regla
+    // siguiente—. Qué vigila ahora: la propiedad que no caduca —la serie empieza en
+    // RI-01, va en orden, no salta números ni se repite, y RI-02 sigue dentro de ella—.
+    // La guardia sale MÁS FUERTE, no más laxa: la forma vieja aceptaba cualquier par de
+    // reglas mientras se llamaran así; ésta rechaza un hueco, un repetido, un desorden y
+    // la desaparición de RI-02, y las mutaciones de control de abajo lo demuestran en vez
+    // de afirmarlo (CA-13.2, la disciplina de CA-7). Lo que SPEC-028 CA-14.1 afirma sigue
+    // entero: RI-02 existe, en esta sección y después de RI-01. Dos era el número que
+    // había, no el tope.
+    //
+    // **Y el proceso, dicho como fue, porque ratificar no es borrar (CA-13.4):** el
+    // arbitraje del humano **NO precedió al cambio**. El barrido de SPEC-048 buscaba
+    // comparaciones contra revisiones de git y no vio esta guardia, que es una lista
+    // cerrada por estado; lo levantó el implementador como `F-SPEC-048-1` en vez de
+    // dejarlo correr, y el humano (Alberto Fojo) lo **ratificó el 2026-08-23**,
+    // encargando la formalización a sdd-arquitecto precisamente porque no se beneficia de
+    // que este test pase. Es la excepción, está datada y no sienta precedente: la regla de
+    // `FOUNDATION.md` § *Cómo se trabaja aquí* —la conversación ocurre ANTES— sigue en pie.
+    const numeros = (fuente: string) =>
+      [...fuente.matchAll(/\*\*RI-(\d+)\*\*/g)].map((m) => Number(m[1]));
+
+    /** La propiedad entera, aislada para poder volver a ejecutarla contra una serie mutada. */
+    const serieSana = (serie: number[]) =>
+      serie.length > 0 && serie.every((n, i) => n === i + 1) && serie.includes(2);
+
+    const serie = numeros(seccion);
+    expect(serie.length, 'la serie de ingeniería no puede quedarse vacía').toBeGreaterThan(0);
+    expect(serie, 'la serie RI ni salta números, ni se repite, ni se desordena').toEqual(
+      serie.map((_, i) => i + 1),
+    );
+    expect(serie, 'RI-02 tiene que seguir dentro de la serie').toContain(2);
+    expect(serieSana(serie), 'la serie de ingeniería del árbol real no cumple la propiedad')
+      .toBe(true);
+
+    // …y la MISMA comparación rechaza las cuatro formas de romperla, más la serie vacía.
+    // Sin esto, «la serie está bien formada» sería una afirmación sin probar — que es
+    // justo el pecado que SPEC-048 vino a corregir (CA-13.2).
+    expect(serieSana([1, 3]), 'acepta un hueco: RI-02 podría desaparecer sin ruido').toBe(false);
+    expect(serieSana([1, 2, 2]), 'acepta un número repetido').toBe(false);
+    expect(serieSana([2, 1, 3]), 'acepta la serie desordenada').toBe(false);
+    expect(serieSana([1]), 'acepta que RI-02 desaparezca de la serie').toBe(false);
+    expect(serieSana([]), 'acepta una sección de ingeniería vacía').toBe(false);
   });
 });
 
