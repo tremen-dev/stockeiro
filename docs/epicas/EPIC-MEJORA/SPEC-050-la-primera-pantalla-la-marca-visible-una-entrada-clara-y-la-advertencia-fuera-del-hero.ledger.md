@@ -293,6 +293,23 @@ feedback. A 360 px la llamada a la acción cae hacia los 320–430 px de una ven
   de esas páginas tiene su propio reparto de espacio. *Destino*: **EPIC-MEJORA**, el día que se
   mire el embudo entero del foro o el humano lo pida.
 
+- **`F-SPEC-050-4` — `package-lock.json` sigue declarando `0.3.2`, y se ha dejado así a
+  propósito.** `npm version patch --no-git-tag-version` sube el número **en los dos** ficheros;
+  aquí el del lock se ha revertido, y el motivo es **CA-19**: su conjunto de ficheros permitidos
+  es cerrado (`src/app/page.tsx`, `src/app/globals.css`, `tests/`, `docs/`, `_qa/SPEC-050/`,
+  `package.json`) y **`package-lock.json` no está en él**. Meterlo habría puesto en juego un CA
+  de gate para arreglar otro. La desincronización **no la crea esta rama**: ya venía de
+  `origin/main`, donde hoy conviven `package.json` en `0.3.3` y el lock en `0.3.2` —las dos
+  últimas subidas (la de esta rama y la de SPEC-051) tampoco tocaron el lock, mientras que la de
+  `0.3.1 → 0.3.2` (`3f62762`) sí lo hizo; de ahí la deriva. Y **no rompe la CI**: los dos jobs
+  instalan con `npm ci` (`.github/workflows/ci.yml:85` y `:160`), que valida el árbol de
+  dependencias y no el campo `version` de la raíz — comprobado aquí con `npm ci --dry-run`
+  → `added 156 packages`, **exit 0**, y comprobado también por el hecho de que `origin/main` pasa
+  la CI hoy con esa misma deriva. *Destino*: **EPIC-INFRA**, como decisión de una línea: o el
+  gate de ADR-024 sincroniza también el lock, o se declara por escrito que el lock no lleva la
+  versión de producto. Mientras no se decida, quien suba la versión seguirá teniendo que revertir
+  el lock a mano y sin saber por qué.
+
 ## Cómo retomar (handoff)
 
 **Estado: implementada, `en-revision`. Le toca a sdd-verificador.** No hay PR y no se ha
@@ -388,3 +405,62 @@ estar verdes antes y después. Con la implementación puesta: **22/22**.
   hay conflicto de fichero, pero sí uno **de sentido**: `F-SPEC-050-1` cambia
   `metadata.description` de `/`, que es justo lo que SPEC-051 pone en la tarjeta al compartir. El
   orden de merge lo decide el orquestador.
+
+### Ronda 2 (2026-08-23, sdd-implementador) — cómo se cerró `F-1`
+
+**El veredicto anterior fue RED con 21 de 22 CA en verde, y el único finding no estaba en el
+producto: estaba en el número.** Queda escrito aquí porque va a repetirse en cuanto dos specs
+hermanas vuelvan a ir en paralelo.
+
+**Qué pasó.** `origin/main` **se movió por debajo de la rama mientras ésta esperaba en el gate**:
+de `9387681` —la base contra la que el arquitecto escribió la spec y contra la que se implementó—
+a `93971e5`, el merge del PR #58 (**SPEC-051**, la tarjeta de Open Graph). SPEC-051 **se llevó el
+`0.3.3`**, que es exactamente el número que esta rama también dejaba puesto. A partir de ese
+merge, `npm run version:check` falla:
+
+```
+Esta rama toca codigo de aplicacion y deja la version en 0.3.3, la misma que la base.
+Ficheros que lo disparan:  · src/app/globals.css  · src/app/page.tsx
+exit 1
+```
+
+**Por qué importa.** **ADR-024 ptos. 9 y 10** piden versión **estrictamente mayor** que la de la
+base, y la CI lo cablea en `.github/workflows/ci.yml:132`. No es ceremonia: se publicarían **dos
+`globals.css` y dos `page.tsx` distintos bajo el mismo `v0.3.3`**, y los testers de esta app
+reportan **desde un foro, citando el número de versión**. Un número que no se mueve afirma una
+identidad estable sobre artefactos que ya no lo son.
+
+**Cómo se cerró.** `npm version patch --no-git-tag-version` → **`0.3.4`**, commiteado, y el gate
+re-ejecutado **con el árbol ya limpio** (esto último no es un detalle: **SPEC-049** hizo que sobre
+un árbol sucio el gate se **abstenga con `2`**, y una abstención no es un verde):
+
+```
+$ npm run version:check          # arbol limpio, despues de commitear
+[check-version-bump] Base: origin/main.
+[check-version-bump] La version sube de 0.3.3 a 0.3.4.
+exit 0
+```
+
+**Lo que deliberadamente NO se hizo, y por qué.**
+- **No se rebasó sobre `origin/main`.** Los dos diffs **no comparten ni un fichero**: SPEC-051
+  tocó `src/app/layout.tsx`, `src/proxy.ts`, `scripts/` y el PNG; ésta toca `src/app/page.tsx`,
+  `src/app/globals.css` y tests. Lo que colisiona es **el número**, no el contenido, y el número
+  se sube a mano en un fichero. Un rebase habría movido 22 CA de sitio para no arreglar nada.
+- **No se tocó ni una línea de presentación.** Los 21 CA verdes tenían evidencia ejecutada; abrir
+  un fichero de producto los habría vuelto a poner en juego. El diff de esta ronda es
+  `package.json`, un campo, más este ledger.
+- **`package-lock.json` se revirtió** — ver `F-SPEC-050-4`, con la evidencia de que `npm ci`
+  sigue contento.
+
+**Lo que quedó verde tras la ronda**, re-ejecutado aquí: `npm test` → **1607 pasan, 106
+ficheros**; `tests/primera-pantalla-fuente.test.ts` → **21/21**. El diff sigue **dentro del
+conjunto de CA-19** y la única carpeta de evidencia tocada sigue siendo `_qa/SPEC-050/`.
+
+**La lección, para la próxima pareja de specs hermanas.** El handoff de la ronda 1 ya había visto
+venir a SPEC-051 y anotó el riesgo de merge —pero lo acotó a un conflicto **de fichero** («no hay
+conflicto de fichero, pero sí uno de sentido»). Faltaba el tercer tipo: **el conflicto de
+recurso compartido único**. La versión de `package.json` es un recurso así, y **la reclama quien
+mergea primero**, no quien ramifica primero. Regla práctica: mientras haya otra rama viva que
+toque `src/`, la versión de la rama que espera en el gate **es provisional**, y hay que
+re-ejecutar `npm run version:check` **inmediatamente antes de abrir la PR**, no cuando se
+implementó. Es barato y es el único momento en que la respuesta vale.

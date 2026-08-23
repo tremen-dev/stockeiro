@@ -2,7 +2,7 @@
 id: SPEC-050
 tipo: spec
 epica: EPIC-MEJORA
-estado: en-progreso
+estado: en-revision
 aprobada-por: humano (Alberto Fojo)
 historial:
   - {estado: borrador, fecha: 2026-08-23, por: sdd-arquitecto}
@@ -10,6 +10,7 @@ historial:
   - {estado: en-progreso, fecha: 2026-08-23, por: sdd-implementador}
   - {estado: en-revision, fecha: 2026-08-23, por: sdd-implementador}
   - {estado: en-progreso, fecha: 2026-08-23, por: sdd-verificador}
+  - {estado: en-revision, fecha: 2026-08-23, por: sdd-implementador}
 ---
 # SPEC-050 — La primera pantalla: la marca visible, una entrada clara y la advertencia fuera del hero
 
