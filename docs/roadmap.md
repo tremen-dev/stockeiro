@@ -63,14 +63,19 @@ tipo: roadmap
   ve "sin cotización"). La app está desplegada, así que lleva desde el despliegue sin
   cumplir lo prometido. Nada de lo demás importa hasta que esto funcione.
   Aprobada por humano el 2026-07-15.
-  ↳ **Estado real a 2026-08-19**: **ocho** specs en `hecho` (SPEC-015, 016, 020, 021,
-  024, 025, **029, 030**) y **SPEC-033 en `en-revision`**. La promesa está restaurada
-  **de facto**; falta el cierre formal de la épica (moverla a "Entregado" cuando lo
-  sanciones).
-  ⚠️ **Cabo suelto detectado el 2026-08-19**: SPEC-033 está **mergeada en `main`** (PR #36,
-  con su commit de GREEN) pero su frontmatter sigue diciendo `en-revision`. El estado no se
-  cerró al mergear. No se toca desde aquí —`hecho` lo firma el verificador que juzgó, no
-  otro— así que hay que cerrarlo en su propia línea de trabajo.
+  ↳ **Estado real a 2026-08-23**: **trece** specs en `hecho` (SPEC-015, 016, 020, 021,
+  024, 025, 029, 030, 033, 040, 043, **046, 048**) y ninguna en curso. La promesa está
+  restaurada **de facto**; falta el cierre formal de la épica (moverla a "Entregado"
+  cuando lo sanciones).
+  ↳ *El cabo suelto de SPEC-033 quedó cerrado: su frontmatter pasó a `hecho` el 2026-08-21,
+  firmado por el verificador que la juzgó.*
+  ↳ **Lo que entró el 2026-08-22/23 no es más cobertura de mercado, y conviene saberlo.**
+  SPEC-046 y SPEC-048 no restauran la promesa —eso ya estaba hecho— sino que reparan **la
+  capacidad de esta épica para detectar sus propios fallos**: SPEC-046 arregló un panel de
+  edición que se abría fuera de la pantalla **y la guardia geométrica que no lo vio**, y
+  SPEC-048 destapó que tres guardias caducaban al mergear y que **otras doce pasaban sin
+  mirar nada**. Es defecto de instrumentación, no de producto, pero cae aquí por la misma
+  razón que todo lo demás: algo prometido no estaba siendo cierto.
   ⚠️ **Residual levantado el 2026-08-20 desde EPIC-MEJORA — `F-SPEC-041-1`**: los metadatos
   del símbolo (`name`, `instrument_type`) se escriben **solo al insertar**. `getOrCreateSymbol`
   (`src/lib/portfolio/symbols.ts`) devuelve la fila tal cual si el símbolo ya existe, así que
@@ -165,6 +170,25 @@ tipo: roadmap
   (SPEC-026) y CI en cada PR (SPEC-027).
   ↳ **Estado real a 2026-08-22**: todas sus 8 specs (SPEC-009, 010, 026, 027, 028, 031, 032, 042) están
   `hecho`; la épica bucket permanece abierta (no se cierran aunque todas sus specs lo estén).
+  ⚠️ **Trabajo vivo entrante desde EPIC-FIX — `F-SPEC-048-2` (2026-08-23)**: quedan en el repo
+  **guardias que congelan listas cerradas por estado** y que caducarán solas cuando el proyecto
+  crezca. SPEC-048 cerró para siempre una familia del defecto (la que compara contra una revisión
+  **móvil** de git, ahora vigilada por RI-03) pero **no ésta**: series `RI`/`RN`, los `scripts` de
+  `package.json`, los ficheros de `drizzle/`, los workflows. La frontera para decidir cuáles hay
+  que tocar está escrita en SPEC-048: **¿la lista crece por diseño o está cerrada por diseño?** Una
+  lista cerrada congelada al milímetro es una guardia **correcta** —su rojo dice *"alguien añadió
+  algo sin un CA detrás"*—; una que crece es una **foto**, y su rojo solo dice *"el proyecto
+  avanzó"*. Hay una **localizada y viva**: `tests/reglas-ingenieria-hecho-vivo.test.ts:181-183`
+  congela la serie `RN` y se pondrá roja el día que se escriba `RN-17`. Se dejó sin tocar a
+  propósito: la autorización de SPEC-048 CA-13 era nominal y no la cubría.
+  Cae aquí y **no** en EPIC-MEJORA porque su CE-M1 excluye defectos: una guardia que puede
+  quedarse vacía no es fricción de uso, es salud técnica. Sin spec asignada todavía.
+  ⚠️ **Dos roces de herramienta, observados el 2026-08-22 al correr dos worktrees a la vez**:
+  `tests/e2e/server.mjs` fija los puertos **3200 y 54329** a fuego, así que dos ramas no pueden
+  correr la e2e simultáneamente —le pasó a dos verificadores—; y `npm run build` **falla sin
+  `DATABASE_URL`** dejando `.next` sin `BUILD_ID`, con un mensaje que no señala la causa. Ninguno
+  es defecto de producto; los dos cuestan tiempo cada día que se trabaja en paralelo, que es como
+  se trabaja aquí.
 
 ## Después (comprometido, sin empezar)
 <!-- La regla que lo vaciaba ("nada nuevo hasta que EPIC-FIX restaure la promesa") ya se
@@ -172,8 +196,13 @@ ha cumplido, pero eso no la convierte en barra libre: lo único que subió por s
 EPIC-003, por las razones propias que allí se argumentan. EPIC-005 nació aquí el 2026-08-22
 y subió a "Ahora" el mismo día por decisión del humano. -->
 
-- **EPIC-006 — El historial de una vigilada** (estado: borrador; nace el 2026-08-22 a
-  petición del humano).
+- **EPIC-006 — El historial de una vigilada** (estado: **borrador — sin gate humano**; nace
+  el 2026-08-22 a petición del humano).
+  ⚠️ **Está en `main` sin firmar, y es una anomalía de proceso, no una aprobación tácita.**
+  Su documento viajó dentro de las ramas de SPEC-046 y SPEC-047 —se crearon desde el commit
+  de producto para que cada spec llevara su justificación al lado— y entró al mergear los PR
+  #52 y #53. **Que exista en `main` no la aprueba**: sigue en `borrador` y nada suyo se codea
+  hasta que el humano lo diga. Se retira si no la quiere.
   **Qué entrega.** Que una vigilada sepa decir **cómo ha estado**, no solo cómo está:
   cuándo entró en zona, **cuándo salió**, a qué precio y cuánto duró dentro.
   **El hallazgo que la justifica.** No es capacidad que haya que inventar: es dato que la
