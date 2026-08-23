@@ -806,3 +806,65 @@ describe('SPEC-049 CA-2 y CA-11: la abstención, sobre un repositorio que constr
     expect(salida).toMatch(/NO (ha|han) entrado en este veredicto/);
   });
 });
+
+describe('SPEC-049 CA-13: la cabecera deja de decir media verdad', () => {
+  /**
+   * El script ya avisaba de que **el bump** tiene que estar commiteado (`:36-41`,
+   * `:98-99`) y callaba la otra mitad: que **el código** también, y que si no lo está el
+   * gate se abstiene con 2 en vez de decir 0. La lección se deja aquí y no en un ADR ni
+   * en `reglas.md` porque éste es el sitio donde mirará quien escriba el gate siguiente
+   * —RI-03 cita este script como el molde a copiar— y hoy tiene un único consumidor.
+   */
+  const fuente = () => readFileSync(scriptPath, 'utf8');
+  const cabecera = () => fuente().slice(0, fuente().indexOf('*/') + 2);
+
+  function ayuda(): { codigo: number; salida: string } {
+    try {
+      return {
+        codigo: 0,
+        salida: execFileSync(process.execPath, [scriptPath, '--help'], {
+          cwd: rootDir,
+          encoding: 'utf8',
+          stdio: ['ignore', 'pipe', 'pipe'],
+        }),
+      };
+    } catch (error) {
+      const e = error as { status?: number; stdout?: string; stderr?: string };
+      return { codigo: e.status ?? -1, salida: `${e.stdout ?? ''}${e.stderr ?? ''}` };
+    }
+  }
+
+  /** El bloque del contrato de códigos de salida que arranca en la línea del `2`. */
+  function contratoDel2(texto: string): string {
+    const lineas = texto.split('\n');
+    const inicio = lineas.findIndex((l) => /^[\s*]*2 {2}\S/.test(l));
+    expect(inicio, `no encuentro el codigo de salida 2 en:\n${texto}`).toBeGreaterThanOrEqual(0);
+    const bloque = [lineas[inicio]];
+    for (let i = inicio + 1; i < lineas.length; i += 1) {
+      if (!/^[\s*]{5,}\S/.test(lineas[i])) break;
+      bloque.push(lineas[i]);
+    }
+    return bloque.join('\n');
+  }
+
+  it('`--help` sigue saliendo con 0 y su texto menciona la abstención', () => {
+    const { codigo, salida } = ayuda();
+    expect(codigo, salida).toBe(SALIDA.LIMPIO);
+    expect(salida).toMatch(/abst/i);
+  });
+
+  it('la cabecera dice la otra mitad: también el CÓDIGO tiene que estar commiteado', () => {
+    expect(cabecera()).toMatch(/abst/i);
+    expect(cabecera()).toMatch(/commitead/i);
+  });
+
+  it('el contrato del 2 recoge su tercer motivo, en la cabecera y en la ayuda', () => {
+    // Los otros dos —uso incorrecto y base inalcanzable— siguen ahí: el 2 no cambia de
+    // significado, recoge un motivo más de la misma imposibilidad.
+    for (const texto of [contratoDel2(cabecera()), contratoDel2(ayuda().salida)]) {
+      expect(texto).toMatch(/uso incorrecto/i);
+      expect(texto).toMatch(/comparar/i);
+      expect(texto).toMatch(/pendiente/i);
+    }
+  });
+});

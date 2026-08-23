@@ -36,19 +36,32 @@
  * QUÉ SE JUZGA: lo que se MERGEARÍA. Las dos versiones y la lista de ficheros
  * salen de git (`git show <ref>:package.json`, `git diff base...HEAD`), no del
  * árbol de trabajo, porque lo que se despliega son commits. En CI eso es
- * exactamente el checkout; en local significa que el bump tiene que estar
- * commiteado para que el gate lo vea, y si no lo está el mensaje lo dice en vez
- * de dejarte mirando un rojo sin causa.
+ * exactamente el checkout; en local significa que **el bump y el código tienen que
+ * estar commiteados** para que el gate los vea. Las dos mitades, no una:
+ *   - si te adelantaste con el NÚMERO, el gate ve el anterior y te lo dice (`:405`);
+ *   - si te adelantaste con el CÓDIGO, el rango `base...HEAD` no lo contiene, y ahí
+ *     el gate **se abstiene con 2 en vez de decir 0** (SPEC-049).
+ *
+ * La segunda mitad faltaba y se pagó el 2026-08-23 (PR #56): ejecutado antes de
+ * commitear, el gate respondió *«el diff no toca codigo de aplicacion»* y salió 0
+ * sobre un `src/` que sí estaba tocado. Ese 0 se citó como evidencia en un mensaje
+ * de commit y en el cuerpo de una PR, y la CI lo desmintió después. La abstención no
+ * cae ante cualquier árbol sucio —eso dejaría en rojo permanente a quien está a
+ * mitad de una spec—, sino sólo cuando el veredicto DEPENDE de lo pendiente:
+ * `evaluarConPendientes` lo forma dos veces y compara el código de salida.
  *
  * CÓDIGOS DE SALIDA — son el contrato:
  *   0  no hace falta subir nada, o ya se subió.
  *   1  hay que subir el número y no se ha subido (o se ha bajado, o no es semver).
- *   2  uso incorrecto, o no hay con qué comparar (base inalcanzable, git ausente).
+ *   2  uso incorrecto; no hay con qué comparar (base inalcanzable, git ausente); o
+ *      hay código de aplicación pendiente sin commitear cuyo commit cambiaría el
+ *      veredicto, y entonces el gate se abstiene en vez de emitirlo.
  *
  * El 2 es deliberado y no se degrada a 0: **un gate que no puede comparar no dice
- * verde**. En CI eso se ve como rojo con un mensaje que explica que falta el
- * histórico (`fetch-depth: 0`), que es información; un verde silencioso sería un
- * gate vacío.
+ * verde**, y tampoco lo dice cuando el sujeto todavía no existe como commit. En CI
+ * eso se ve como rojo con un mensaje que explica cuál de los tres motivos es —falta
+ * el histórico (`fetch-depth: 0`), la bandera no existe, o hay trabajo sin
+ * commitear—, que es información; un verde silencioso sería un gate vacío.
  *
  * PROPIEDADES QUE HAY QUE CONSERVAR (las prueba tests/version-bump-gate.test.ts):
  *   - Solo importa de `node:*`, igual que `scan-destructive-sql.mjs` y `check-alive.mjs`.
@@ -95,8 +108,10 @@ const USO = `check-version-bump.mjs — si tocas código, el número sube (SPEC-
                  referencia no existe y el gate sale con 2 en vez de comparar.
   --help         Esto.
 
-Juzga COMMITS, no el arbol de trabajo: si acabas de subir el numero y aun no lo
-has commiteado, el gate todavia ve el anterior (y te lo dice).
+Juzga COMMITS, no el arbol de trabajo, y eso vale para las dos mitades: si acabas
+de subir el numero y aun no lo has commiteado, el gate todavia ve el anterior (y
+te lo dice); y si el codigo pendiente cambiaria el veredicto, el gate SE ABSTIENE
+con 2 en vez de decir 0. Un 0 que no ha mirado nada acaba citado como evidencia.
 
 Falla si el diff contra la base toca codigo de aplicacion y \`version\` de
 package.json no ha AUMENTADO, y falla tambien si ha bajado. Una PR solo de
@@ -111,7 +126,8 @@ despliegue sigue siendo el commit.
 Codigos de salida:
   0  no hace falta subir nada, o ya se subio
   1  hay que subirlo y no se ha subido (o se ha bajado, o no es semver)
-  2  uso incorrecto, o no hay con que comparar`;
+  2  uso incorrecto; no hay con que comparar; o hay codigo de aplicacion
+     pendiente sin commitear que cambiaria el veredicto (abstencion)`;
 
 /**
  * Los tres segmentos de un semver de producto, o `null` si no lo es.
