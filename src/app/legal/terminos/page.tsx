@@ -22,10 +22,21 @@ export const metadata: Metadata = {
  *
  * Y aquí es donde CA-8 muerde. Lo natural al redactar unos términos es blindarse
  * —"todos los derechos reservados sobre los contenidos"—, y eso sería justamente el
- * error: los precios no son nuestros y el plan que los sirve no concede
- * redistribución (R-1, ADR-012). Así que esta página declara la fuente del dato y su
- * carácter informativo, y se para ahí. La lista cerrada de lo que no puede decir está
- * en `tests/legal-afirmaciones-prohibidas.ts`, con el motivo de cada entrada.
+ * error: los precios no son nuestros. Así que esta página declara la fuente del dato y
+ * su carácter informativo, y se para ahí. La lista cerrada de lo que no puede decir
+ * está en `tests/legal-afirmaciones-prohibidas.ts`, con el motivo de cada entrada.
+ *
+ * OJO al leer ese fichero, y también al leer ADR-012: sus motivos dicen que el plan del
+ * proveedor no concede uso comercial ni redistribución. Eso **caducó el 2026-08-23**
+ * (ADR-032): desde entonces el plan es de pago —Basic, 10.000/mes— y **sí** los
+ * concede; R-1 quedó disuelto.
+ *
+ * Esta página no cambia ni una palabra por eso, y es deliberado: un plan de pago compra
+ * **cupo, no exactitud**. El dato sigue siendo un cierre diferido servido por un
+ * tercero, así que se dice lo mismo pague lo que pague quien lo sirve. Lo que cambió es
+ * el **motivo** —de restricción de licencia a prudencia elegida—, no el texto. Si
+ * alguna vez alguien viene a "soltar el freno" porque ya hay licencia: el freno nunca
+ * fue la licencia.
  */
 export default function TerminosPage() {
   return (

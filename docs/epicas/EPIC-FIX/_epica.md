@@ -46,8 +46,31 @@ Medibles, por spec:
 - **CE-F2 (Ningún fallo silencioso).** Cuando un símbolo no se puede cotizar, el
   usuario **ve que pasa y por qué** — no un "sin cotización" indistinguible de "aún no
   ha corrido el ciclo". Objetivo: 0 símbolos descartados sin traza visible.
-- **CE-F3 (Coste cero de arranque).** El arreglo funciona en la **capa gratuita** del
-  proveedor elegido, sin gasto recurrente (restricción del humano, gate 2026-07-15).
+- ~~**CE-F3 (Coste cero de arranque).** El arreglo funciona en la **capa gratuita** del
+  proveedor elegido, sin gasto recurrente (restricción del humano, gate 2026-07-15).~~
+  **RETIRADO el 2026-08-23 (Alberto Fojo). No se cumplió, y se deja escrito que no se
+  cumplió.** Se tacha en vez de borrarse porque un criterio de éxito que se cae enseña
+  más que uno que se logra.
+  - **Qué falló.** No el arreglo: el criterio. La capa gratuita de Marketstack no podía
+    sostener la promesa de esta misma épica —**CE-1** de EPIC-001, cero zonas perdidas—
+    y **ningún cambio de código lo arreglaba**. `100` unidades/mes de free tier contra
+    un consumo real de **~400** (13 símbolos × ~31 días). **ADR-027** lo dejó anotado
+    como **F-ADR-027-1**, con esa frase exacta: *"ya no caben juntos"*.
+  - **Por qué no se vio antes.** Porque la cuenta estaba hecha en la unidad equivocada.
+    Se contaron **llamadas** (~30/mes, "caben de sobra en las 100") donde el proveedor
+    factura **símbolos** (una petición de 13 tickers consume 13 créditos). El error
+    viajó tres saltos —ADR-002 → ADR-012 → esta épica— sin que nadie lo tocase, y se
+    pagó con **tres días de precios congelados** (2026-08-19/20) que nadie detectó.
+  - **Cómo se resuelve.** Eligiendo el gasto, no forzando el criterio: **plan Basic,
+    10.000 peticiones/mes (~$9.99/mes)**, contratado el 2026-08-23 sobre cuenta propia.
+    Margen ~25× sobre el consumo actual. Misma key, cero código, cero despliegue.
+  - **La lección, que es lo único que sobrevive al criterio.** "Coste cero" no es un
+    criterio de éxito: es una **restricción de presupuesto**, y como tal no debió
+    escribirse al lado de criterios que se verifican con un test. Un criterio de éxito
+    dice *qué tiene que ser verdad para el usuario*; el dinero que cuesta que lo sea es
+    otra conversación. La unidad canónica para dimensionar un proveedor —**símbolos
+    distintos × ciclos**— la fija ahora **ADR-027 pto. 1**, y **ADR-032** deja la cuenta
+    de este plan hecha en esa unidad.
 
 ## Alcance
 - **Dentro:**
@@ -66,8 +89,14 @@ Medibles, por spec:
   - **Múltiples cuentas para estirar el free tier**: **rechazado**. Va contra los
     términos del proveedor — el mismo motivo por el que se descartó Yahoo (ADR-002/
     ADR-007), sería incoherente — y un cierre de cuentas rompería CE-1, que es
-    justo lo que esta épica viene a arreglar. **Además es innecesario**: el consumo
-    real (~30 llamadas/mes) cabe de sobra en las 100 del free tier.
+    justo lo que esta épica viene a arreglar. ~~**Además es innecesario**: el consumo
+    real (~30 llamadas/mes) cabe de sobra en las 100 del free tier.~~ **Esa última
+    frase era falsa y está medida como tal** (ADR-027 pto. 3): contaba llamadas donde
+    el proveedor cuenta símbolos, y el consumo real era de ~400 unidades/mes. **El
+    rechazo sigue en pie sin ella** —se sostiene por términos de uso y por coherencia
+    con el rechazo de Yahoo, que no dependían de la cifra— y desde el 2026-08-23 es
+    además **discutible por irrelevante**: con el plan Basic (10.000/mes) no hay free
+    tier que estirar.
   - **Reintentos/backoff** finos del proveedor y **alerting** del ciclo: mejora, no
     defecto (EPIC-MEJORA).
   - **Reconstruir el histórico** de cotizaciones: solo se guarda la última por
@@ -87,6 +116,16 @@ Medibles, por spec:
   proveedor lo hace valer**: corte de servicio → CE-1 roto. **Mitigación**: pasar al
   plan Basic ($9.99/mes) es **cambiar de plan con la misma key y el mismo adaptador**
   — minutos, cero código. El riesgo es barato de revertir; por eso es asumible.
+  ↳ **CERRADO el 2026-08-23 (Alberto Fojo): contratado el plan Basic (10.000
+  peticiones/mes) sobre cuenta propia.** El riesgo se **extingue** —el plan de pago sí
+  concede uso comercial—, no se mitiga. Y la mitigación resultó ser **exactamente** lo
+  que este riesgo prometía: misma key, mismo adaptador, cero código, cero despliegue.
+  Merece constar, porque un riesgo cuya vía de escape se verifica al ejecutarla es un
+  riesgo que estaba **bien evaluado**.
+  ↳ Con una ironía que vale más que el acierto: **el riesgo no se materializó nunca**.
+  Marketstack jamás reclamó nada. Lo que tumbó el free tier fue la **cuota** —un eje
+  que R-F1 no vigilaba— y R-F1 se cerró de rebote. Ver **CE-F3 (retirado)** y
+  **ADR-027**.
 - **R-F2 (Dependencia de un único proveedor).** Cambiar de Twelve Data a otro no
   elimina el riesgo de fondo: que el proveedor cambie límites, precios o cobertura y
   vuelva a romper CE-1. Mitigación estructural: el **puerto** ya existe (ADR-002), así
@@ -113,8 +152,11 @@ Decisiones ya tomadas contigo (gate 2026-07-15), para que las confirmes al aprob
    **$229/mes** (23× más caro), **Yahoo** (ToS + fiabilidad, rechazo ratificado),
    **Stooq** (sin API). La decisión técnica formal es un **ADR** de sdd-arquitecto que
    reinterpretará **ADR-002**.
-2. **Capa gratuita, riesgo de licencia asumido** (R-F1). Es tu decisión explícita; la
-   dejo escrita con su consecuencia y su mitigación.
+2. ~~**Capa gratuita, riesgo de licencia asumido** (R-F1). Es tu decisión explícita; la
+   dejo escrita con su consecuencia y su mitigación.~~ **Superado el 2026-08-23**: se
+   contrató el **plan Basic (10.000/mes)** y con él caen **R-F1** (cerrado) y **CE-F3**
+   (retirado). La mitigación que se dejó escrita aquí en el gate del 2026-07-15 se
+   ejecutó tal cual **cinco semanas después**: misma key, cero código.
 3. **Sin múltiples cuentas** (fuera de alcance, con motivo).
 4. **La canonización del MIC entra en esta épica** (R-F3): es la misma raíz que el
    defecto, y arregla de paso **F-SPEC-012-1** del import.

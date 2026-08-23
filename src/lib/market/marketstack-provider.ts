@@ -54,9 +54,14 @@ const BASE_URL = 'https://api.marketstack.com/v1/eod/latest';
  * └───────────────┴──────────────────────┴──────────────────────────────────────────┘
  *
  * **PROCEDENCIA DEL DATO: llamadas REALES a la API el 2026-08-11** (SPEC-020, tabla del
- * Problema). NO se cambia ni se "completa por simetría" a ojo: el free tier son ~100
- * peticiones/mes, y un formato inventado gasta cuota y le devuelve al usuario un motivo
- * falso ("puede estar deslistado") sobre un valor que cotiza perfectamente.
+ * Problema). NO se cambia ni se "completa por simetría" a ojo: un formato inventado
+ * gasta cuota y le devuelve al usuario un motivo falso ("puede estar deslistado") sobre
+ * un valor que cotiza perfectamente.
+ *
+ * (El plan es **Basic, 10.000 unidades/mes** desde el 2026-08-23, ADR-032; antes eran
+ * las 100 del free tier. La holgura es hoy ~25×, pero **no relaja esta regla**: la
+ * cuota nunca fue la mitad importante del argumento — el motivo falso sí. Y recuerda
+ * que se factura por **símbolo**, no por llamada: ADR-027 pto. 1.)
  *
  * `XSTO` **no tiene entrada A PROPÓSITO** (F-SPEC-020-1): fallaron `ERIC.XSTO`,
  * `ERIC_B.XSTO` y `VOLV_B.XSTO`, y el cuarto formato no se inventa. Sin entrada aquí, el

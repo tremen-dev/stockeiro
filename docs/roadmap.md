@@ -51,9 +51,13 @@ tipo: roadmap
   descargo de no asesoramiento, **ayuda de Vigiladas**, **borrar mi cuenta** (supresión
   RGPD, hoy inexistente), **grifo del registro** cerrable sin desplegar, **estados
   vacíos que guían** y un **canal de feedback**.
-  ⚠️ **Destapa R-1 (licencia de datos)**: el free tier de Marketstack no concede uso
-  comercial ni redistribución, y ADR-012 asumió esa ambigüedad *"porque se compartirá
-  con testers"*. Publicar en abierto es ese escenario. Ver "Ops y despliegue".
+  ✅ **R-1 (licencia de datos) — CERRADO el 2026-08-23.** Destapó que el free tier de
+  Marketstack no concedía uso comercial ni redistribución, ambigüedad que ADR-012 asumió
+  *"porque se compartirá con testers"* y que publicar en abierto convertía en escenario
+  real. Se extingue al contratar el **plan Basic (10.000/mes)**, que sí concede uso
+  comercial. Las páginas legales **no cambian**: siguen sin afirmar derechos sobre las
+  cotizaciones, ahora por prudencia elegida y no por falta de licencia. Ver
+  "Ops y despliegue" (`F-EPIC-004-1`) y **ADR-032**.
 
 - **EPIC-FIX — Defectos en producción** (estado: aprobada; épica *bucket*).
   Sube a "Ahora" porque hay un defecto que **rompe la promesa central del producto**:
@@ -315,16 +319,24 @@ esquema no necesita paso manual.
   **CERRADA y PROBADA el 2026-08-18** (dominio `tremen.dev` verificado, un reset real
   entregado). Fue bloqueante desde 2026-08-11 porque EPIC-003 no tiene fallback: la
   recuperación de contraseña viaja por email o no viaja. Runbook §7 y §8.
-- 🟡 **F-EPIC-004-1 — Plan de Marketstack (R-1 de EPIC-004)**: el free tier **no concede
-  derechos de uso comercial ni de redistribución**, y ADR-012 asumió esa ambigüedad
-  explícitamente *"porque la app se compartirá con testers"*. Publicar en un hilo abierto
-  de un foro es ese escenario, ya sin ambigüedad — y las páginas legales de EPIC-004
-  tendrán que declarar de dónde vienen los precios. **Mitigación conocida: plan Basic
-  ($9.99/mes), misma key, cero código.** No es una spec: es una decisión de ops.
-  ↳ **Decidido en el gate de EPIC-004 (2026-08-19, Alberto Fojo): se publica con el
-  free tier; el paso a Basic queda para más adelante.** Riesgo **asumido a conciencia**.
-  Queda abierta como recordatorio, no como bloqueo. Se revisa si el uso crece, si
-  Marketstack lo reclama, o antes de cualquier cobro a usuarios.
+- ✅ **F-EPIC-004-1 — Plan de Marketstack (R-1 de EPIC-004)** — **cerrada el 2026-08-23**:
+  contratado el **plan Basic (10.000 peticiones/mes, ~$9.99/mes)** sobre **cuenta propia
+  del titular**. La mitigación se ejecutó **tal como estaba escrita** —misma key, cero
+  código—, así que no hubo despliegue ni cambio de variables de entorno.
+  ↳ Historia, porque explica el porqué: el free tier **no concedía derechos de uso
+  comercial ni de redistribución**; ADR-012 asumió esa ambigüedad *"porque la app se
+  compartirá con testers"*, y el gate de EPIC-004 (2026-08-19, Alberto Fojo) decidió
+  **publicar igualmente con el free tier**, dejando el paso a Basic "para más adelante".
+  Ese "más adelante" fue **cuatro días**. Lo que lo precipitó no fue la licencia sino la
+  **cuota**: el incidente del 2026-08-19/20 (tres días de precios congelados, ADR-027)
+  midió que 13 símbolos × ~31 días ≈ **400 unidades/mes** contra las **100** del free
+  tier. Con Basic hay margen **~25×**, y el riesgo de licencia **desaparece de raíz**:
+  el plan de pago sí concede uso comercial.
+  ↳ **Lo que NO cambia**, y es deliberado: las páginas legales siguen declarando la
+  fuente y el carácter meramente informativo del dato, **sin afirmar derechos** sobre
+  las cotizaciones. Ya no es una restricción de licencia — es **prudencia elegida**.
+  Decisión del humano el 2026-08-23. El motivo actualizado vive en `docs/fundacion/
+  dominio.md` y en **ADR-032**.
 - ⏳ **F-SPEC-011-1** (el build debe alcanzar `cdn.sheetjs.com`; `xlsx` viene del CDN por
   los CVE del paquete npm) — registrado en el runbook §6.
 - ⏳ **F-SPEC-012-1** (validar el mapeo mercado→MIC contra el proveedor real) — **lo
