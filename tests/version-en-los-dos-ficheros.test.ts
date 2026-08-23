@@ -10,11 +10,12 @@ import { fileURLToPath } from 'node:url';
  * `package.json` y `package-lock.json`, y en el lock escribe **dos** campos —el
  * `version` de la raíz y el de `packages[""]`—. ADR-024 pto. 8 decía que editaba
  * *«`package.json` y nada más»*; su intención era el contraste con las etiquetas de
- * git, pero su letra es falsa y se leyó dos veces: SPEC-051 y SPEC-050 revirtieron a
- * mano el cambio del lock para no romper su propio conjunto cerrado de ficheros. El
- * resultado es que sobre `3b6fc8b` el producto era `0.3.4` y el lock declaraba
- * `0.3.2`. **ADR-033** enmienda esa cláusula y decide que el lock lleva la versión de
- * producto como espejo obligatorio de `package.json`.
+ * git, pero su letra es falsa y se leyó **dos veces**: las dos últimas subidas de
+ * versión revirtieron a mano el cambio del lock para no romper su propio conjunto
+ * cerrado de ficheros —la segunda lo dejó escrito como `F-SPEC-050-4`, que es el
+ * finding que origina esta spec—. El resultado es que sobre `3b6fc8b` el producto era
+ * `0.3.4` y el lock declaraba `0.3.2`. **ADR-033** enmienda esa cláusula y decide que
+ * el lock lleva la versión de producto como espejo obligatorio de `package.json`.
  *
  * ESTO ES UNA PROPIEDAD, NO UN CRITERIO DE GATE (RI-03 / ADR-031 pto. 1). *«Los tres
  * campos coinciden»* es cierto sobre el **estado del árbol**, en cualquier momento y

@@ -868,3 +868,176 @@ describe('SPEC-049 CA-13: la cabecera deja de decir media verdad', () => {
     }
   });
 });
+
+import { readdirSync } from 'node:fs';
+
+/**
+ * SPEC-053 CA-8, CA-9 y CA-10 / **ADR-033** — el bucle de aprendizaje se cierra donde
+ * alguien se lo encuentra.
+ *
+ * Este bloque es una ADICIÓN. No toca ni una línea de los de arriba: los bloques
+ * *SPEC-038 CA-12* y *CA-13* —el step de CI, `npm run version:check`, el job `Checks`,
+ * `fetch-depth: 0`—, los cinco motivos de `evaluar` y el contrato de códigos de salida
+ * de SPEC-049 siguen exactamente como estaban. Añadir sí; aflojar no.
+ *
+ * POR QUÉ EXISTE. `npm version <segmento> --no-git-tag-version` escribe **dos**
+ * ficheros. ADR-024 pto. 8 lo describió como si escribiera uno, y esa letra se leyó
+ * **dos veces** —en las dos últimas subidas de versión— como autoridad para revertir el
+ * `package-lock.json`; la segunda lo dejó escrito como `F-SPEC-050-4`, que es el finding
+ * que origina esta spec. De ahí salió una deriva de dos versiones (`0.3.4` contra
+ * `0.3.2`). Nadie hizo nada mal;
+ * el repositorio enseñó a hacerlo mal. Se cierra en los tres sitios donde alguien lo
+ * lee: la cabecera del script, su `--help`, y el veredicto `sin-subir` —que es el único
+ * que se lee **en caliente**, con la PR en rojo, sin ir a buscarlo—.
+ *
+ * El gate NO gana lógica nueva (ADR-033 pto. 7): sigue comparando dos `package.json` y
+ * sigue sin mirar el lock. De aquí sólo cambia **texto**. Que los tres campos coincidan
+ * es una PROPIEDAD del árbol y vive donde le toca, en
+ * `tests/version-en-los-dos-ficheros.test.ts`, sin git de por medio (RI-03).
+ */
+describe('SPEC-053 CA-8, CA-9 y CA-10: el comando toca los dos ficheros y se dice', () => {
+  const fuenteDelScript = () => readFileSync(scriptPath, 'utf8');
+  const cabeceraDelScript = () => {
+    const texto = fuenteDelScript();
+    return texto.slice(0, texto.indexOf('*/') + 2);
+  };
+
+  function ayudaDelScript(): { codigo: number; salida: string } {
+    try {
+      return {
+        codigo: 0,
+        salida: execFileSync(process.execPath, [scriptPath, '--help'], {
+          cwd: rootDir,
+          encoding: 'utf8',
+          stdio: ['ignore', 'pipe', 'pipe'],
+        }),
+      };
+    } catch (error) {
+      const e = error as { status?: number; stdout?: string; stderr?: string };
+      return { codigo: e.status ?? -1, salida: `${e.stdout ?? ''}${e.stderr ?? ''}` };
+    }
+  }
+
+  /** El texto de un ADR, localizado por su id: los ficheros llevan el título en el nombre. */
+  function adr(id: string): string {
+    const dir = join(rootDir, 'docs', 'adr');
+    const fichero = readdirSync(dir).find((n) => n.startsWith(`${id}-`) && n.endsWith('.md'));
+    expect(fichero, `no encuentro ${id} en docs/adr/`).toBeDefined();
+    return readFileSync(join(dir, fichero as string), 'utf8');
+  }
+
+  /**
+   * CA-10 — el detector de la afirmación falsa: *«`npm version` toca un solo fichero»*.
+   * Se normaliza el espacio en blanco antes de mirar porque la frase original de
+   * ADR-024 está partida en dos líneas.
+   */
+  const AFIRMACIONES_DE_FICHERO_UNICO = [
+    /edita\s+`?package\.json`?\s+y\s+nada\s+m[aá]s/i,
+    /npm version[^.]{0,90}\bs[oó]lo\s+`?package\.json`?/i,
+    /npm version[^.]{0,90}\bun\s+solo\s+fichero/i,
+  ];
+
+  function afirmaFicheroUnico(texto: string): boolean {
+    const plano = texto.replace(/\s+/g, ' ');
+    return AFIRMACIONES_DE_FICHERO_UNICO.some((patron) => patron.test(plano));
+  }
+
+  /** Que el comando toca los dos, dicho de cualquiera de las formas admisibles. */
+  function diceLosDosFicheros(texto: string): boolean {
+    const plano = texto.replace(/\s+/g, ' ');
+    return /package\.json/.test(plano) && /package-lock\.json/.test(plano);
+  }
+
+  it('CA-8 — la cabecera dice que el comando edita los DOS ficheros, y cita ADR-033', () => {
+    const cabecera = cabeceraDelScript();
+    expect(cabecera).toContain('package-lock.json');
+    expect(diceLosDosFicheros(cabecera)).toBe(true);
+    expect(cabecera, 'la cabecera no cita la fuente de la decisión').toContain('ADR-033');
+  });
+
+  it('CA-8 — y que los dos entran en el MISMO COMMIT', () => {
+    expect(cabeceraDelScript().replace(/\s+/g, ' ')).toMatch(/mismo commit/i);
+  });
+
+  it('CA-8 — `--help` lo dice también, y sigue saliendo con 0', () => {
+    const { codigo, salida } = ayudaDelScript();
+    expect(codigo, salida).toBe(SALIDA.LIMPIO);
+    // Lo de siempre sigue estando: el comando y la guía de segmento.
+    expect(salida).toContain('npm version patch --no-git-tag-version');
+    // Y lo nuevo: los dos ficheros y el commit.
+    expect(salida).toContain('package-lock.json');
+    expect(diceLosDosFicheros(salida)).toBe(true);
+    expect(salida.replace(/\s+/g, ' ')).toMatch(/mismo commit/i);
+  });
+
+  it('CA-8 — y `--help` dice cómo reparar el lock sin subir el número', () => {
+    expect(ayudaDelScript().salida).toContain('npm install --package-lock-only');
+  });
+
+  it('CA-9 — el veredicto `sin-subir` lo dice, sobre la función pura y sin invocar git', () => {
+    // Es el único de los tres sitios que alguien lee sin buscarlo: la PR está en rojo y
+    // este texto es lo que sale. Molde: el bloque puro de SPEC-038 CA-12, arriba.
+    const { motivo, mensaje } = evaluar({
+      ficheros: ['src/lib/version/identity.ts'],
+      versionBase: '0.3.4',
+      versionRama: '0.3.4',
+      rutas: ['src/'],
+    });
+    expect(motivo).toBe('sin-subir');
+    // Lo que ya decía, intacto.
+    expect(mensaje).toContain('npm version patch --no-git-tag-version');
+    expect(mensaje).toContain('npm version minor --no-git-tag-version');
+    // Y lo que ahora dice además.
+    expect(mensaje).toContain('package-lock.json');
+    expect(diceLosDosFicheros(mensaje)).toBe(true);
+    expect(mensaje.replace(/\s+/g, ' ')).toMatch(/mismo commit/i);
+  });
+
+  it('CA-9 — y los otros motivos no se contaminan: el aviso va donde toca', () => {
+    // `sin-codigo` y `subida` no tienen por qué hablar del lock: quien los lee no está
+    // subiendo nada. Repetir el aviso en los cinco mensajes es ruido, no bucle.
+    const mudos = [
+      evaluar({ ficheros: ['docs/x.md'], versionBase: '0.3.4', versionRama: '0.3.4', rutas: ['src/'] }),
+      evaluar({ ficheros: ['src/a.ts'], versionBase: '0.3.4', versionRama: '0.3.5', rutas: ['src/'] }),
+    ];
+    for (const veredicto of mudos) {
+      expect(veredicto.mensaje).not.toContain('package-lock.json');
+    }
+  });
+
+  it('CA-10 — el detector ve la afirmación falsa donde de verdad está: ADR-024 pto. 8', () => {
+    // Centinela de no-vacuidad, y a la vez prueba de que el ADR NO se ha editado: un ADR
+    // aceptado es inmutable. Si esto se pusiera verde por haber borrado la frase de
+    // ADR-024, el arreglo habría sido justo el prohibido.
+    expect(
+      afirmaFicheroUnico(adr('ADR-024')),
+      'la frase de ADR-024 pto. 8 ha desaparecido: o el detector no funciona, o se ha ' +
+        'editado un ADR aprobado',
+    ).toBe(true);
+  });
+
+  it('CA-10 — y no la ve en ningún script del repositorio', () => {
+    const dir = join(rootDir, 'scripts');
+    const scripts = readdirSync(dir).filter((n) => n.endsWith('.mjs'));
+    expect(
+      scripts.length,
+      'no hay scripts que mirar: la comprobación estaría vacía',
+    ).toBeGreaterThan(0);
+    for (const nombre of scripts) {
+      expect(
+        afirmaFicheroUnico(readFileSync(join(dir, nombre), 'utf8')),
+        `scripts/${nombre} afirma que \`npm version\` toca un solo fichero`,
+      ).toBe(false);
+    }
+  });
+
+  it('CA-10 — la frase de ADR-024 queda ENMENDADA por ADR-033, no reescrita', () => {
+    const texto = adr('ADR-033').replace(/\s+/g, ' ');
+    expect(texto).toMatch(/enmienda/i);
+    expect(texto).toContain('ADR-024');
+    expect(texto).toMatch(/pto\.?\s*8/i);
+    expect(texto, 'ADR-033 no está aprobado').toMatch(/estado:\s*aprobada/);
+    // Y no lo supersede: ADR-024 sigue vigente en todo lo demás (ADR-033 pto. 9).
+    expect(texto).toMatch(/no lo supersede/i);
+  });
+});
