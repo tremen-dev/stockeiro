@@ -38,14 +38,14 @@ epica: EPIC-MEJORA
 | CA-11 (ni una palabra nueva de cadencia) | `src/app/page.tsx` (`description: QUE_HACE`) | `tests/primera-pantalla-fuente.test.ts` › CA-11 ×3 (importa y renderiza la constante; **cero** `/cierre\|refresc\|una vez al día\|tiempo real\|diferid/i` fuera de comentarios; la constante sigue con sus 40 palabras) | El regex de la cadencia no casa nada en `src/app/page.tsx` fuera de comentarios; `CADENCIA_LINEA` se importa y se renderiza. **Con residual**: obligó a cambiar `metadata.description` — ver `F-SPEC-050-1` y mi juicio en el veredicto. El CA se cumple | ✅ |
 | CA-12 (descargo, legal y marca intactos) | — (no se toca nada) | `tests/e2e/primera-pantalla.spec.ts` › CA-12 (`color` y `font-size` de los tres bloques **idénticos** a los de `/legal/terminos`) · `tests/e2e/pie-legal.spec.ts` **sin tocar** | `src/app/app-footer.tsx` **no aparece en el diff: cero bytes**. Descargo, tres enlaces legales y `tremen.dev` presentes en `/` con `color`/`font-size` idénticos a los de `/legal/terminos`. `pie-legal.spec.ts` verde sin tocar | ✅ |
 | CA-13 (feedback oculto en `/`, versión subordinada) | `src/app/globals.css` (`.landing ~ .app-footer .app-footer-feedback { display: none }`) | `tests/e2e/primera-pantalla.spec.ts` › CA-13 (`display: none` y **alto 0**, no `visibility`/`opacity`; versión visible en `--fg-dim`; en `/legal/terminos` las dos visibles con `--fg-muted`/`--fg-dim`) | Medido por mí en `/`: feedback `display:none`, `visibility:visible`, `opacity:1`, **alto 0 px**; versión `display:block`, `rgba(245,241,234,0.42)` = `--fg-dim`. En `/legal/terminos` las dos visibles. El selector `.landing ~ .app-footer` solo puede alcanzar a `page.tsx`: es el único `className="landing"` del árbol | ✅ |
-| CA-14 (la versión sigue visible y copiable) | — (no se toca) | `tests/e2e/primera-pantalla.spec.ts` › CA-14 (semver primero, los cuatro atajos prohibidos comprobados, contraste sobre el fondo ≥ 3:1 con la cifra en `_qa/SPEC-050/ca14-contraste-de-la-version.txt`, y el rango de selección devuelve el texto) · `tests/e2e/version-en-el-pie.spec.ts` **sin tocar** | Verificado por mí: `v0.3.3 · entorno desconocido · cf146bf · 2026-08-23 18:46 UTC`, semver primero, después commit y fecha. `display` ≠ none, `visibility` ≠ hidden, `font-size` 13 px, `user-select: text`. Contraste 3,77:1 (umbral 3). El rango de selección devuelve el texto | ✅ |
+| CA-14 (la versión sigue visible y copiable) | — (no se toca) | `tests/e2e/primera-pantalla.spec.ts` › CA-14 (semver primero, los cuatro atajos prohibidos comprobados, contraste sobre el fondo ≥ 3:1 con la cifra en `_qa/SPEC-050/ca14-contraste-de-la-version.txt`, y el rango de selección devuelve el texto) · `tests/e2e/version-en-el-pie.spec.ts` **sin tocar** | Verificado por mí: `v0.3.3 · entorno desconocido · cf146bf · 2026-08-23 18:46 UTC`, semver primero, después commit y fecha. `display` ≠ none, `visibility` ≠ hidden, `font-size` 13 px, `user-select: text`. Contraste 3,77:1 (umbral 3). El rango de selección devuelve el texto. **Ronda 2**: reconstruido y remirado con el número nuevo — el pie dice `v0.3.4 · entorno desconocido · 190de31 · 2026-08-23 19:17 UTC`, semver primero, contraste **3,77:1** idéntico. El bump se propaga al producto sin tocar el contrato del pie | ✅ |
 | CA-15 (el pie no sabe en qué ruta está) | `src/app/app-footer.tsx` **sin un solo byte de cambio** | `tests/primera-pantalla-fuente.test.ts` › CA-15 ×4 (sin `usePathname`/`headers`/`landing`; `AppFooter()` sin argumentos; sus cinco bloques; la subordinación **vive en el CSS** y es `display: none`) · `tests/legal-import-graph.test.ts` y `tests/ayuda-import-graph.test.ts` verdes | `app-footer.tsx` sin tocar (diff vacío). Sin `usePathname`/`headers`/`landing`, `AppFooter()` sin argumentos, cinco bloques intactos. La subordinación vive entera en `globals.css`. Los dos import-graph verdes en mi ejecución | ✅ |
 | CA-16 (con sesión, `/` lleva al panel) | — (no se toca) | `tests/e2e/primera-pantalla.spec.ts` › CA-16 · `tests/e2e/ayuda.spec.ts` › «con sesión, la raíz sigue llevando al panel» **sin tocar** | Caso e2e verde en mi ejecución completa; `ayuda.spec.ts` › «con sesión, la raíz sigue llevando al panel» sin tocar | ✅ |
 | CA-17 (geometría a los ocho anchos) | `src/app/globals.css` | `tests/e2e/primera-pantalla.spec.ts` › CA-17 ×3 (M1+M2 a los 8 anchos **con testigos** ADR-030 §5, cifras en `_qa/SPEC-050/ca17-geometria.txt`; hueco muerto de los bloques **nuevos** medido por cajas de línea; `.landing-acciones` sigue siendo grid **con ese nombre**) · `tests/e2e/ayuda-responsive.spec.ts` y `tests/e2e/geometria-rutas.spec.ts` **sin tocar** | `ca17-geometria.txt`: 33 elementos medidos, **0 violaciones** y **2 testigos presentes** a los ocho anchos (ADR-030 §5 — sin testigos el cero no aprueba nada). Documento sin desborde también en mi medida a 360/390/768/1280. `.landing-acciones` **conserva el nombre** y sigue siendo `grid`, así que `ayuda-responsive.spec.ts` sigue casando con ≥2 elementos en `/`. Las dos guardias ajenas, sin tocar | ✅ |
-| CA-18 (suites verdes; acotación al gate) | — | `npm test` → **1607 passed (106 ficheros)** · `npx playwright test` **completa** → **289 passed (4,0 min)**, con las cinco citadas dentro: `ayuda.spec.ts`, `version-en-el-pie.spec.ts`, `pie-legal.spec.ts`, `ayuda-responsive.spec.ts` y `pie-responsive.spec.ts`. La mitad de acotación la comprueba el verificador en el gate | Ejecutadas **por mí, enteras**: `npm test` → **1607 passed (106 ficheros)**; `npx playwright test` → **289 passed (4,5 min)**; `npm run lint` y `npm run typecheck` limpios. Las cinco citadas, dentro. Y la mitad de acotación: **un solo fichero de test ajeno modificado** (`tests/e2e/ayuda.spec.ts`, el que CA-22 autoriza) | ✅ |
-| CA-19 (alcance acotado — **criterio de gate, no de suite**) | n-a | n-a — **y la nota es el punto**: *«este cambio está bien acotado»* es criterio de gate (**ADR-031 pto. 1.2**) y escribirlo como `git diff … origin/main` reproduciría el molde que **SPEC-048** desmontó, que se pone verde por vacuidad al mergear. No se ha inventado ningún test: la evidencia del árbol limpio la pega sdd-verificador aquí | **Verificado por mí con el árbol limpio** (`git status --porcelain` vacío) sobre `9387681..HEAD`. Salida pegada bajo el veredicto. Dentro del conjunto permitido; **fuera** `src/db/`, `drizzle/`, `src/lib/`, `app-footer.tsx`, `app-nav.tsx`, `layout.tsx`, `proxy.ts` y cualquier otra `_qa/SPEC-NNN/`. La excepción declarada para `app-nav.tsx` **no se usó**. Fila `n-a` de test: correcta, ADR-031 pto. 1.2, y **no se inventó ningún test para rellenarla** | ✅ |
-| CA-20 (sin dependencia y sin ADR) | `package.json` (solo `version`) | `tests/primera-pantalla-fuente.test.ts` › CA-20 ×5 (deps, devDeps y scripts **declarados en el test**, sin git; semver; **ningún ADR cita SPEC-050**) | **FALLA.** `npm run version:check` con el árbol limpio y después de commitear: **exit 1**. `origin/main` ya **no** es `9387681`: es `93971e5` (merge de PR #58, SPEC-051) y **su `package.json` ya dice `0.3.3`**. Esta rama deja `0.3.3`, la misma que la base, y ADR-024 pto. 10 exige **estrictamente mayor**. Lo demás del CA sí pasa (deps, devDeps y scripts idénticos; `docs/adr/` sin fichero nuevo). Ver F-1 del veredicto | ❌ |
-| CA-21 (el camino anónimo al feedback sobrevive) | `src/app/page.tsx` (el enlace a `/ayuda`, fuera de la fila pero presente) | `tests/e2e/primera-pantalla.spec.ts` › CA-21 — **navega de verdad**: `/` → clic «Cómo funciona, con detalle» → `/ayuda` → canal visible con `href` `mailto:`. Captura en `_qa/SPEC-050/ca21-camino-al-feedback.png` | **Recorrido por mí, navegando de verdad**: `/` → un único `a[href="/ayuda"]` con texto «Cómo funciona, con detalle» → clic → `/ayuda` → `[data-testid=feedback-enlace]` **visible** con `href` `mailto:hola@tremen.dev?subject=[Stockeiro v0.3.3 …]`. Comprobado además que la fila vuelve a `display:block` en `/ayuda`, que es lo que la navegación **de cliente** de Next podía romper. El test rompe en cada eslabón (`toHaveCount(1)`, `click()`, `waitForURL`, `toBeVisible`): **no puede pasar por vacuidad** | ✅ |
+| CA-18 (suites verdes; acotación al gate) | — | `npm test` → **1607 passed (106 ficheros)** · `npx playwright test` **completa** → **289 passed (4,0 min)**, con las cinco citadas dentro: `ayuda.spec.ts`, `version-en-el-pie.spec.ts`, `pie-legal.spec.ts`, `ayuda-responsive.spec.ts` y `pie-responsive.spec.ts`. La mitad de acotación la comprueba el verificador en el gate | Ejecutadas **por mí, enteras**: `npm test` → **1607 passed (106 ficheros)**; `npx playwright test` → **289 passed (4,5 min)**; `npm run lint` y `npm run typecheck` limpios. Las cinco citadas, dentro. Y la mitad de acotación: **un solo fichero de test ajeno modificado** (`tests/e2e/ayuda.spec.ts`, el que CA-22 autoriza). **Ronda 2, re-ejecutado tras el bump**: `npm test` → **1607 passed (106 ficheros)**, `npm run typecheck` y `npm run lint` limpios, `npm run db:scan` limpio, y `npx playwright test tests/e2e/primera-pantalla.spec.ts tests/e2e/version-en-el-pie.spec.ts` → **34/34** sobre un `next build` **posterior** al bump (el `.next` que había era anterior y habría medido `0.3.3`) | ✅ |
+| CA-19 (alcance acotado — **criterio de gate, no de suite**) | n-a | n-a — **y la nota es el punto**: *«este cambio está bien acotado»* es criterio de gate (**ADR-031 pto. 1.2**) y escribirlo como `git diff … origin/main` reproduciría el molde que **SPEC-048** desmontó, que se pone verde por vacuidad al mergear. No se ha inventado ningún test: la evidencia del árbol limpio la pega sdd-verificador aquí | **Verificado por mí con el árbol limpio** (`git status --porcelain` vacío) sobre `9387681..HEAD`. Salida pegada bajo el veredicto. Dentro del conjunto permitido; **fuera** `src/db/`, `drizzle/`, `src/lib/`, `app-footer.tsx`, `app-nav.tsx`, `layout.tsx`, `proxy.ts` y cualquier otra `_qa/SPEC-NNN/`. La excepción declarada para `app-nav.tsx` **no se usó**. Fila `n-a` de test: correcta, ADR-031 pto. 1.2, y **no se inventó ningún test para rellenarla**. **Ronda 2, re-verificado**: el conjunto de ficheros **no ha cambiado** —el arreglo de F-1 añadió `package.json` (que ya estaba dentro) y este ledger, nada más—, y **`package-lock.json` sigue fuera del diff**, que es lo que este CA exige aunque incomode: ver el juicio bajo el veredicto de la ronda 2 | ✅ |
+| CA-20 (sin dependencia y sin ADR) | `package.json` (solo `version`) | `tests/primera-pantalla-fuente.test.ts` › CA-20 ×5 (deps, devDeps y scripts **declarados en el test**, sin git; semver; **ningún ADR cita SPEC-050**) | **Ronda 1: ❌** — `version:check` daba **exit 1**, porque `origin/main` pasó de `9387681` a `93971e5` (PR #58, SPEC-051) y esa base ya decía `0.3.3`, el mismo número que dejaba esta rama. **Ronda 2: ✅** — re-ejecutado por mí con el árbol limpio (`git status --porcelain` vacío) y con `origin/main` **re-fetcheado** y todavía en `93971e5`: `[check-version-bump] La version sube de 0.3.3 a 0.3.4.` · **exit 0**. Lo demás del CA, re-verificado también: `git diff origin/main...HEAD -- package.json` cambia **una sola línea**, el campo `version`; deps, devDeps y scripts intactos; `docs/adr/` sin fichero nuevo; cero literales de versión en `src/` y `tests/` (`grep -rn '0\.3\.[0-9]'` → vacío), así que el bump no puede romper una aserción por literal. Ver F-1 cerrado en el veredicto de la ronda 2 | ✅ |
+| CA-21 (el camino anónimo al feedback sobrevive) | `src/app/page.tsx` (el enlace a `/ayuda`, fuera de la fila pero presente) | `tests/e2e/primera-pantalla.spec.ts` › CA-21 — **navega de verdad**: `/` → clic «Cómo funciona, con detalle» → `/ayuda` → canal visible con `href` `mailto:`. Captura en `_qa/SPEC-050/ca21-camino-al-feedback.png` | **Recorrido por mí, navegando de verdad**: `/` → un único `a[href="/ayuda"]` con texto «Cómo funciona, con detalle» → clic → `/ayuda` → `[data-testid=feedback-enlace]` **visible** con `href` `mailto:hola@tremen.dev?subject=[Stockeiro v0.3.3 …]` (**ronda 2, con el bump puesto: `v0.3.4`** — el asunto compone el semver, no lo teclea). Comprobado además que la fila vuelve a `display:block` en `/ayuda`, que es lo que la navegación **de cliente** de Next podía romper. El test rompe en cada eslabón (`toHaveCount(1)`, `click()`, `waitForURL`, `toBeVisible`): **no puede pasar por vacuidad** | ✅ |
 | CA-22 (la guardia ajena que se estrecha) | `tests/e2e/ayuda.spec.ts` (bucle sin `/`, porqué al lado, caso inverso nuevo) | `tests/primera-pantalla-fuente.test.ts` › CA-22 ×4 (una por condición) · el caso inverso vive en `tests/e2e/ayuda.spec.ts` › «y en la primera pantalla NO se muestra» | Las **cuatro** condiciones verificadas sobre el diff y sobre el fichero: (1) solo el bucle de la línea 361 pierde `/`, y **ningún otro fichero ajeno** se toca —lo confirma el diff de CA-19—; (2) el porqué está escrito al lado, con SPEC-050, D-5, CA-21 y la fecha del arbitraje; (3) **el inverso existe y es real**: «y en la primera pantalla NO se muestra» pasa en mi ejecución, y el bucle conserva `toBeVisible()` y `^mailto:`; (4) `'y desde cualquier pantalla autenticada'` con `['/dashboard', '/vigiladas', '/avisos', '/cuenta']` intacto | ✅ |
 
 > **CA-19 no lleva fila de test a propósito.** Es criterio de acotación y **ADR-031 pto. 1.2**
@@ -54,7 +54,136 @@ epica: EPIC-MEJORA
 ## Veredicto del verificador
 <!-- GREEN/RED + fecha + resumen. Lo escribe SOLO sdd-verificador. -->
 
-### 🔴 RED — 2026-08-23, sdd-verificador
+### 🟢 GREEN — 2026-08-23 (ronda 2), sdd-verificador
+
+**22 de 22 CA en verde. `F-1` cerrado, y cerrado sin llevarse por delante ninguno de los 21
+que ya lo estaban** — que es el modo de fallo clásico de una segunda ronda y lo primero que
+fui a buscar.
+
+#### F-1, re-verificado por mí
+
+Con `origin/main` **re-fetcheado** (sigue en `93971e5`; no se ha vuelto a mover) y el árbol
+**limpio** —`git status --porcelain` vacío antes de ejecutar, porque SPEC-049 hace que sobre
+un árbol sucio el gate se **abstenga con `2`** y una abstención no es un verde—:
+
+```
+$ git status --porcelain          # vacío
+$ npm run version:check
+> stockeiro@0.3.4 version:check
+> node scripts/check-version-bump.mjs
+
+[check-version-bump] Base: origin/main.
+[check-version-bump] La version sube de 0.3.3 a 0.3.4.
+exit 0
+```
+
+#### Que el arreglo no ha movido nada de lo que ya estaba verde
+
+El diff entre las dos rondas (`e5ec6f8..HEAD`) es **tres ficheros y 79 líneas**:
+
+```
+$ git diff --name-status e5ec6f8 HEAD
+M  docs/epicas/EPIC-MEJORA/SPEC-050-…-fuera-del-hero.ledger.md
+M  docs/epicas/EPIC-MEJORA/SPEC-050-…-fuera-del-hero.md
+M  package.json
+```
+
+- `package.json`: **una línea**, `"version": "0.3.3"` → `"0.3.4"`. Nada más.
+- La spec: **solo el frontmatter** (`estado: en-progreso` → `en-revision` y una línea de
+  historial). Ni un carácter del cuerpo ni de un CA.
+- El ledger: **solo adiciones** —`F-SPEC-050-4` y la sección «Ronda 2»—. **Las columnas
+  `Verif.` y `Estado` no las tocó**: lo comprobé sobre el diff, no de palabra. Siguen siendo
+  mías.
+- **Cero ficheros de producto y cero ficheros de test.** `src/app/page.tsx`,
+  `src/app/globals.css`, `tests/e2e/primera-pantalla.spec.ts`,
+  `tests/primera-pantalla-fuente.test.ts` y `tests/e2e/ayuda.spec.ts`: sin un byte de
+  cambio entre las dos rondas.
+
+Y no me quedé en el diff, porque el número **sí se renderiza**. Reconstruí (`npm run build`
+con las variables de juguete del CI, ya que el `.next` que había era de las 20:46 y el bump
+es de las 21:05: habría medido `0.3.3` y el verde no habría valido nada) y re-ejecuté:
+
+| Gate | Resultado |
+|---|---|
+| `npm run typecheck` | limpio |
+| `npm run lint` (`--max-warnings=0`) | limpio |
+| `npm test` | **1607 passed · 106 ficheros** |
+| `npm run db:scan` | 11 migraciones, 2 destructivas, ambas con waiver escrito |
+| `npm run version:check` | **exit 0 — 🟢** |
+| `npx playwright test primera-pantalla + version-en-el-pie` | **34 passed · 27,4 s** |
+
+**Y con el ojo**: el pie sirve `v0.3.4 · entorno desconocido · 190de31 · 2026-08-23 19:17
+UTC` —semver primero, commit `190de31` que es este `HEAD`— y la primera pantalla a 1280
+sigue siendo la que aprobé: wordmark `Stockeiro.` primero con su punto de acento, titular,
+`QUE_HACE`, «Crear cuenta» dominando a «Entrar», «gratis y sin publicidad» arriba, la
+cadencia como **prosa sin cromo de alarma**, «Cómo funciona, con detalle», la línea legal, y
+el pie **sin** el canal de feedback. Nada se ha movido.
+
+> **Nota de entorno.** El e2e volvió a reescribir `_qa/SPEC-038/pie-{360,1280}.png`, que es
+> evidencia ajena: restauradas con `git checkout -- _qa/SPEC-038/`. Las de `_qa/SPEC-050/`
+> **sí** se dejan regeneradas y commiteadas, porque ahora muestran el artefacto real
+> (`v0.3.4`) en vez del `v0.3.3` que ya no existe; `_qa/SPEC-050/` está dentro del conjunto
+> de CA-19.
+
+#### Sobre `package-lock.json`: la lectura del implementador es la correcta, y además es la única
+
+El lock se quedó en `0.3.2` a propósito. **Le doy la razón, y no por deferencia: verifiqué
+las tres cosas que afirma.**
+
+1. **La deriva ya venía de `origin/main`.** `git show origin/main:package.json` → `0.3.3`;
+   `git show origin/main:package-lock.json` → `0.3.2`. Esta rama **no la crea**: la hereda y
+   la ensancha un patch.
+2. **`npm ci` no la mira.** Comprobado ejecutándolo, no razonándolo: `npm ci --dry-run` →
+   `added 156 packages`, **exit 0**. `npm ci` valida que el árbol de dependencias del lock
+   case con los rangos de `package.json`; el campo `version` de la raíz no entra en esa
+   comparación.
+3. **`origin/main` pasa la CI hoy con esa misma deriva.** `gh run list --branch main`:
+   `CI` → **success** y `Deploy gate` → **success** en `93971e5`.
+
+Y lo comprobé también por el otro lado, que es lo que de verdad cierra el asunto: **nadie en
+este repositorio lee la versión del lock**. El único uso de `package-lock.json` en todo el
+proyecto es como **clave de caché** de los navegadores de Playwright
+(`ci.yml:169`, `hashFiles(...)`), que hashea el fichero y no lo interpreta. El semver de
+producto sale de `package.json` vía `STOCKEIRO_VERSION` (`src/lib/version/identity.ts`), y
+`scripts/check-version-bump.mjs` compara dos `package.json` con `git show`. Cero
+consumidores.
+
+**Lo decisivo, sin embargo, es CA-19, y ahí no hay margen.** Su conjunto es cerrado y dice
+«**únicamente**»: `src/app/page.tsx`, `src/app/globals.css`, `tests/`, `docs/`,
+`_qa/SPEC-050/`, `package.json`. `package-lock.json` no está en él. Si el implementador lo
+hubiera incluido, yo habría tenido que marcar **RED por CA-19** — y ampliar el conjunto por
+mi cuenta, en el gate, para acomodar un fichero que la spec no nombró sería **reescribir el
+criterio que estoy juzgando**, justo en el CA cuyo único árbitro soy yo. Su decisión no es
+solo defendible: dentro de esta spec es la única disponible.
+
+**No, dejar el lock desincronizado no es un defecto que esta entrega deba cerrar.** Precede a
+la rama en dos subidas de versión, no rompe ningún gate, no lo lee nadie, y cerrarlo aquí
+costaría un CA a cambio de nada.
+
+#### `F-SPEC-050-4`: bien encuadrado, y no es más grave de lo que suena
+
+Su severidad real es **fricción operativa recurrente, no riesgo de producto**: quien suba la
+versión seguirá teniendo que revertir el lock a mano sin saber por qué, y quien luego corra
+`npm install` verá aparecer un `package-lock.json` modificado que él no pidió. Nada más:
+ningún artefacto publicado depende de ese número.
+
+Añado **un dato que refuerza el finding sin agravarlo**: el texto de ayuda del propio gate
+(`scripts/check-version-bump.mjs`, `npm version <segmento> --no-git-tag-version`) **recomienda
+exactamente el comando que produce la deriva**, y después no la comprueba. El gate documenta
+cómo ensuciar el lock y no mira si se ensució. **EPIC-INFRA** es el destino correcto, y la
+decisión de una línea que el finding propone —o el gate sincroniza el lock, o se declara por
+escrito que el lock no lleva la versión de producto— es exactamente la que hay que tomar.
+**Nada de esto bloquea esta entrega.**
+
+#### Lo que sigue en manos del humano
+
+`F-SPEC-050-1` —si la tarjeta que el foro ve al compartir `/` debe volver a decir la
+cadencia— **sigue abierto y sigue siendo del humano**, tal como lo dejé en la ronda 1. No
+bloquea: ningún criterio aprobado se vuelve falso y las guardias de SPEC-051 están verdes.
+
+---
+
+### 🔴 RED — 2026-08-23 (ronda 1, superado), sdd-verificador
 
 **21 de 22 CA verificados en verde con evidencia ejecutada. Uno falla, y no es de
 presentación: `npm run version:check` está en rojo porque `origin/main` se movió debajo de
@@ -218,7 +347,11 @@ Una sola cosa, mecánica: **subir la versión a `0.3.4`**, commitear y volver a 
 <!-- Capturas de trabajo: test-results/SPEC-050/ (ignorado por git). Evidencia que se commitea: _qa/SPEC-050/ -->
 <!-- Pedir en el gate: la primera pantalla completa a 390, 768 y 1280 px, antes y después. -->
 
-En `_qa/SPEC-050/`, todo generado por `tests/e2e/primera-pantalla.spec.ts`:
+En `_qa/SPEC-050/`, todo generado por `tests/e2e/primera-pantalla.spec.ts`. **Las capturas se
+regeneraron en la ronda 2** sobre un build posterior al bump, así que el pie que se ve en ellas
+dice `v0.3.4` y el commit `190de31`: es el artefacto que se mergea, no el `v0.3.3` que la ronda 1
+fotografió y que ya no existe. Los `.txt` de cifras no cambian (ninguna medida depende del
+número). Ficheros:
 
 - `ancho-{360,390,640,700,730,760,768,800,1280}-primera-pantalla.png` — la pantalla entera a
   los ocho anchos del proyecto **más 768**, que es el que el gate pidió y no está en `ANCHOS`.
