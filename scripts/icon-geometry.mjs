@@ -57,6 +57,8 @@ import { readFileSync } from 'node:fs';
 import { dirname, join, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
 
+import { codificarPng } from './png.mjs';
+
 const RAIZ = resolve(dirname(fileURLToPath(import.meta.url)), '..');
 
 /** El lienzo. 32 porque 16 y 32 son los tamaños que se ven de verdad. */
@@ -379,4 +381,128 @@ export function codificarIco(rasters) {
 /** El `.ico` completo, con sus tres tamaños rasterizados desde el vector. */
 export function icoDelIcono(colores = tokensDeMarca()) {
   return codificarIco(TAMANOS_ICO.map((lado) => rasterizar(lado, colores)));
+}
+
+// ---------------------------------------------------------------------------
+// La tarjeta social — SPEC-051
+// ---------------------------------------------------------------------------
+
+/**
+ * El lienzo de la vista previa del enlace, y la escala a la que se lleva la rejilla de
+ * 32 del icono.
+ *
+ * 1200×630 es la medida que piden Open Graph y `summary_large_image`. `escala: 13` sale
+ * de dos contratos a la vez (§Geometría de la spec): la altura de mayúscula de la S son
+ * 22 unidades de rejilla, así que 22·13 = 286 px, dentro del 35–50 % de 630 que fija la
+ * tabla; y la marca entera —28 unidades de ancho— ocupa 364 px, que caben con holgura en
+ * el cuadrado central de 630 con sus 60 px de aire (D-6: las plataformas recortan, y una
+ * tarjeta que sólo se ve entera en Facebook es media tarjeta).
+ *
+ * NO se dibuja ninguna forma nueva (D-2): son `cuencosDeLaS()` y el mismo círculo del
+ * punto, escalados. Y NO va la teselá (D-3): la tarjeta ocupa el lienzo entero y es su
+ * propio suelo, así que el rectángulo redondeado del icono no tendría aquí contra qué
+ * recortarse — el motivo por el que el icono lo lleva (el cromo del navegador es claro u
+ * oscuro según el sistema de quien mira) no existe en una vista previa.
+ */
+export const TARJETA = { ancho: 1200, alto: 630, escala: 13 };
+
+/**
+ * La rejilla del icono llevada al lienzo de la tarjeta: el centro de la rejilla cae en el
+ * centro del lienzo. Que eso baste para centrar la marca no es suerte: la caja envolvente
+ * del wordmark sobre la rejilla de 32 va de 2 a 30 en x y de 5 a 27 en y, o sea que su
+ * centro ES (16, 16). Centrar la rejilla centra la marca, y exacto.
+ */
+function aLienzo(poly, escala, cx, cy) {
+  return poly.map(([x, y]) => [cx + (x - REJILLA / 2) * escala, cy + (y - REJILLA / 2) * escala]);
+}
+
+/**
+ * Rasteriza la tarjeta a RGBA (fila a fila desde arriba, TODO opaco — CA-7).
+ *
+ * Mismo criterio de muestreo que `rasterizar()`: se decide por submuestra qué forma manda
+ * (punto > S > lienzo) y se promedia, para que el borde entre dos formas salga de la
+ * mezcla real y no de superponer dos bordes ya suavizados. Lo que cambia es que el suelo
+ * no es una figura sino el fondo del lienzo, y que sólo se recorre la banda que ocupa la
+ * marca: el resto ya está pintado, y barrerlo entero serían 48 millones de submuestras
+ * para no cambiar un píxel.
+ */
+export function rasterizarTarjeta(colores = tokensDeMarca()) {
+  const { ancho, alto, escala } = TARJETA;
+  const fondo = [canal(colores.fondo, 0), canal(colores.fondo, 1), canal(colores.fondo, 2)];
+
+  const data = new Uint8ClampedArray(ancho * alto * 4);
+  for (let i = 0; i < ancho * alto; i++) {
+    data[i * 4] = fondo[0];
+    data[i * 4 + 1] = fondo[1];
+    data[i * 4 + 2] = fondo[2];
+    data[i * 4 + 3] = 255;
+  }
+
+  const capas = [
+    { polys: [poligonoPunto()], color: colores.acento },
+    { polys: cuencosDeLaS(), color: colores.hueso },
+  ].map((c) => ({
+    polys: c.polys.map((p) => aLienzo(p, escala, ancho / 2, alto / 2)),
+    rgb: [canal(c.color, 0), canal(c.color, 1), canal(c.color, 2)],
+  }));
+
+  const vertices = capas.flatMap((c) => c.polys.flat());
+  const x0 = Math.max(0, Math.floor(Math.min(...vertices.map((p) => p[0]))) - 1);
+  const x1 = Math.min(ancho - 1, Math.ceil(Math.max(...vertices.map((p) => p[0]))) + 1);
+  const y0 = Math.max(0, Math.floor(Math.min(...vertices.map((p) => p[1]))) - 1);
+  const y1 = Math.min(alto - 1, Math.ceil(Math.max(...vertices.map((p) => p[1]))) + 1);
+
+  const paso = 1 / SUBMUESTRAS;
+  const anchoBanda = x1 - x0 + 1;
+  const columnas = anchoBanda * SUBMUESTRAS;
+  const muestras = SUBMUESTRAS * SUBMUESTRAS;
+  const acumulado = new Float64Array(anchoBanda * (y1 - y0 + 1) * 4);
+
+  for (let sub = y0 * SUBMUESTRAS; sub < (y1 + 1) * SUBMUESTRAS; sub++) {
+    const y = (sub + 0.5) * paso;
+    const mascaras = capas.map((c) => mascara(c.polys, y, columnas, paso, x0 + paso / 2));
+    const fila = Math.floor(sub / SUBMUESTRAS) - y0;
+    for (let col = 0; col < columnas; col++) {
+      let capa = -1;
+      for (let k = 0; k < mascaras.length; k++) {
+        if (mascaras[k][col]) {
+          capa = k;
+          break;
+        }
+      }
+      if (capa < 0) continue;
+      const p = (fila * anchoBanda + Math.floor(col / SUBMUESTRAS)) * 4;
+      acumulado[p] += capas[capa].rgb[0];
+      acumulado[p + 1] += capas[capa].rgb[1];
+      acumulado[p + 2] += capas[capa].rgb[2];
+      acumulado[p + 3] += 1;
+    }
+  }
+
+  for (let fila = 0; fila <= y1 - y0; fila++) {
+    for (let col = 0; col < anchoBanda; col++) {
+      const p = (fila * anchoBanda + col) * 4;
+      const cobertura = acumulado[p + 3];
+      if (!cobertura) continue;
+      // Las submuestras que no cubre ninguna forma son lienzo, y entran en el promedio
+      // con el color del fondo. Así un píxel interior sale EXACTO —sus 64 muestras son
+      // del mismo color— y sólo el borde queda como mezcla, que es lo que CA-8 admite y
+      // acota en el 12 %.
+      const destino = ((fila + y0) * ancho + col + x0) * 4;
+      for (let k = 0; k < 3; k++) {
+        data[destino + k] = Math.round(
+          (acumulado[p + k] + (muestras - cobertura) * fondo[k]) / muestras,
+        );
+      }
+      data[destino + 3] = 255;
+    }
+  }
+
+  return { ancho, alto, data };
+}
+
+/** La tarjeta ya codificada: los bytes de `src/app/opengraph-image.png`. */
+export function pngDeLaTarjeta(colores = tokensDeMarca()) {
+  const { ancho, alto, data } = rasterizarTarjeta(colores);
+  return codificarPng(ancho, alto, data);
 }

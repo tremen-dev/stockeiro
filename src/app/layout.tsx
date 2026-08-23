@@ -1,6 +1,7 @@
 import type { Metadata } from 'next';
 import type { ReactNode } from 'react';
 import { Geist, Geist_Mono } from 'next/font/google';
+import { appBaseUrl } from '@/lib/config/app-url';
 import { AppFooter } from './app-footer';
 import './globals.css';
 
@@ -25,9 +26,46 @@ const geistMono = Geist_Mono({
   display: 'swap',
 });
 
+/**
+ * SPEC-051 — la vista previa del enlace: lo que el foro enseña antes de que nadie entre.
+ *
+ * **`metadataBase` no es una decisión nueva: es una que ya estaba tomada.** Sale de
+ * `appBaseUrl()` (SPEC-023, ADR-015 pto. 8), la misma función que compone el enlace de
+ * recuperación de contraseña y por el mismo motivo: el origen absoluto sale de
+ * CONFIGURACIÓN y nunca de la cabecera `Host`. Sin ella, Next emitiría un `og:image`
+ * relativo —que ningún rastreador resuelve— o uno apuntando a `localhost`, que es peor
+ * porque parece que funciona. Las tres alternativas (una clave nueva, el dominio del
+ * aviso legal, `VERCEL_URL`) están rechazadas por escrito en §Diseño D-4 de la spec.
+ *
+ * `appBaseUrl()` **lanza** si falta `APP_BASE_URL`, así que un build sin `.env` falla
+ * ruidosamente. Es el diseño y no un descuido (R-2): una tarjeta que en producción
+ * apunta a `localhost` es peor que un build rojo. CI la define (`ci.yml`, job `E2E`) y
+ * producción también (`docs/despliegue.md`).
+ *
+ * **Aquí NO se declaran `openGraph.title` ni `openGraph.description`, y es el punto
+ * entero de CA-3.** Cada página pone las suyas (`title`/`description`), y Next las
+ * hereda al componer la tarjeta; si se escribieran aquí, TODAS las vistas previas dirían
+ * «Stockeiro» a secas y la primera pantalla perdería su reclamo. Lo mismo con `twitter`:
+ * sólo se declara la clase de tarjeta, y el resto —incluida la imagen— lo hereda de
+ * `openGraph`, que es lo que hace que X enseñe la grande sin un segundo fichero (D-7).
+ *
+ * La imagen tampoco se declara: la ponen `opengraph-image.png` y `opengraph-image.alt.txt`
+ * por convención de fichero, y es Next quien calcula su URL —con su hash de caché— y
+ * emite los `<meta>`. Misma disciplina que SPEC-047 impuso a los iconos: un solo emisor.
+ */
 export const metadata: Metadata = {
+  metadataBase: new URL(appBaseUrl()),
   title: 'Stockeiro',
   description: 'Vigilancia de zonas de compra/venta con cartera y avisos',
+  openGraph: {
+    type: 'website',
+    siteName: 'Stockeiro',
+    locale: 'es_ES',
+    // El enlace que se pega en un hilo es la raíz (D-5): la tarjeta es global y todas
+    // las rutas la heredan. Relativa a propósito — `metadataBase` la vuelve absoluta.
+    url: '/',
+  },
+  twitter: { card: 'summary_large_image' },
 };
 
 /**
