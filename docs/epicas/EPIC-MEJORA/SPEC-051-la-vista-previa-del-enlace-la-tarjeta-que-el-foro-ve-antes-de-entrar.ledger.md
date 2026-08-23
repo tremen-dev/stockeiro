@@ -24,26 +24,26 @@ epica: EPIC-MEJORA
 
 | CA | Implementado (fichero) | Test (fichero/caso) | Verif. | Estado |
 |---|---|---|---|---|
-| CA-1 (`metadataBase` desde `appBaseUrl()`) | `src/app/layout.tsx` (`metadataBase: new URL(appBaseUrl())`) | `tests/tarjeta-frontera.test.ts` › *«aparece UNA sola vez en todo src/…»*, *«su valor se construye con `appBaseUrl()`…»*, *«no hay ningún origen absoluto alternativo en src/»* | | ❌ |
-| CA-2 (la tarjeta completa en `/`) | `src/app/layout.tsx`, `src/app/opengraph-image.png`, `src/app/opengraph-image.alt.txt` | `tests/e2e/tarjeta.spec.ts` › *«están los diez campos de Open Graph, y cada uno una sola vez»* | | ❌ |
-| CA-3 (las palabras son las de cada página) | `src/app/layout.tsx` (el `openGraph` **no** declara `title` ni `description`) | `tests/e2e/tarjeta.spec.ts` › *«{/, /ayuda, /legal/aviso-legal}: og:title y og:description coinciden…»* + *«la primera pantalla anuncia su reclamo, no «Stockeiro» a secas»* | | ❌ |
-| CA-4 (URL absoluta y del propio origen) | `src/app/layout.tsx` | `tests/e2e/tarjeta.spec.ts` › *«es absoluta, del origen que se está sirviendo, y no apunta a otro sitio»* | | ❌ |
-| CA-5 (`twitter:card` grande, misma imagen) | `src/app/layout.tsx` (`twitter: { card: 'summary_large_image' }`) | `tests/e2e/tarjeta.spec.ts` › *«twitter:card es summary_large_image y reutiliza el og:image»* | | ❌ |
-| CA-6 (convención de fichero, nada a mano) | `src/app/opengraph-image.png`, `src/app/opengraph-image.alt.txt` | `tests/tarjeta-frontera.test.ts` › los cuatro casos de *«SPEC-051 CA-6»* | | ❌ |
-| CA-7 (PNG 1200×630 opaco) | `scripts/png.mjs`, `scripts/icon-geometry.mjs` (`rasterizarTarjeta`) | `tests/tarjeta-imagen.test.ts` › *«la firma y la cabecera declaran 1200 × 630»*, *«los chunks obligatorios… con su CRC correcto»*, *«decodifica al tamaño exacto y TODOS sus píxeles son opacos»* | | ❌ |
-| CA-8 (tres colores, derivados del CSS) | `scripts/icon-geometry.mjs` (`tokensDeMarca`, sin un hexadecimal tecleado) | `tests/tarjeta-imagen.test.ts` › *«los tres tokens están presentes…»*, *«…no llega al 12 % del lienzo»*, *«y ese borde es MEZCLA de dos tokens…»* | | ❌ |
-| CA-9 (ni una letra, ni una fuente) | `scripts/icon-geometry.mjs`, `scripts/png.mjs`, `scripts/build-icon.mjs` | `tests/tarjeta-imagen.test.ts` › *«el PNG no lleva ningún chunk de texto»* + *«las formas son las del wordmark que ya existe…»*; `tests/tarjeta-frontera.test.ts` › los cinco casos de *«SPEC-051 CA-9»* | | ❌ |
-| CA-10 (geometría y área segura) | `scripts/icon-geometry.mjs` (`TARJETA`, `aLienzo`) | `tests/tarjeta-imagen.test.ts` › los cinco casos de *«SPEC-051 CA-10»* | | ❌ |
-| CA-11 (contraste) | `design/tremen-ds/colors_and_type.css` (consumido, no tocado) | `tests/tarjeta-imagen.test.ts` › *«la S contra el lienzo está por encima de 15:1»*, *«el punto… por encima de 6:1»* | | ❌ |
-| CA-12 (legible a tamaño de previsualización) | `scripts/icon-geometry.mjs` (escala 13) | `tests/tarjeta-imagen.test.ts` › los tres casos de *«SPEC-051 CA-12»* (reducción por promedio de área a 240×126) | | ❌ |
-| CA-13 (reproducible por `icon:build`, sin clave nueva) | `scripts/build-icon.mjs` (escribe los **tres** activos), `scripts/png.mjs` (sobre `node:zlib`) | `tests/tarjeta-frontera.test.ts` › los cinco casos de *«SPEC-051 CA-13»* | | ❌ |
-| CA-14 (alcanzable por un anónimo) | `src/proxy.ts` (una línea: el `matcher`) | `tests/e2e/tarjeta.spec.ts` › *«la URL que emite el framework responde 200 con image/png»* + *«y también sin cabecera Accept de navegador…»* | | ❌ |
-| CA-15 (sin `Set-Cookie`) | `src/proxy.ts` | `tests/e2e/tarjeta.spec.ts` › *«pedir la imagen no trae Set-Cookie y el contexto sigue sin cookies»* | | ❌ |
-| CA-16 (mismos bytes con y sin sesión) | `src/proxy.ts`; `src/lib/auth/guard.ts` **sin tocar** | `tests/e2e/tarjeta.spec.ts` › *«los bytes servidos con sesión y sin ella son idénticos»*; `tests/tarjeta-guardias-ampliadas.test.ts` › *«`PUBLIC_PREFIXES` no crece…»* | | ❌ |
-| CA-17 (las **dos** guardias, nombradas y autorizadas) | `tests/legal-rutas-publicas.test.ts:78`, `tests/cuenta-rutas.test.ts:94` (ampliadas con su porqué al lado) | `tests/tarjeta-guardias-ampliadas.test.ts` › los doce casos (17.1 · 17.2 · 17.3 con mutación de control · 17.4) | | ❌ |
-| CA-18 (suites verdes; acotación al gate) | — | `npm test` **1644/1644** y `npx playwright test` **278/278** (salidas abajo); `tests/tarjeta-frontera.test.ts` › los cuatro casos de *«SPEC-051 CA-18: los cuatro verdes citados siguen en su sitio»*. **La segunda mitad —«no se modifica ninguna aserción ajena salvo las dos»— es del gate** (ADR-031 pto. 1.2) | | ❌ |
-| CA-19 (la landing sigue sin pedir nada fuera) | `src/app/layout.tsx` (importa `@/lib/config/app-url`, que no importa nada) | `tests/e2e/tarjeta.spec.ts` › *«todas las peticiones son del propio origen, y ninguna es la tarjeta»*; `tests/legal-import-graph.test.ts` y `tests/ayuda-import-graph.test.ts` **verdes sin tocar** | | ❌ |
-| CA-20 (alcance acotado — **criterio de gate, no de suite**) | n-a | n-a | | ❌ |
+| CA-1 (`metadataBase` desde `appBaseUrl()`) | `src/app/layout.tsx` (`metadataBase: new URL(appBaseUrl())`) | `tests/tarjeta-frontera.test.ts` › *«aparece UNA sola vez en todo src/…»*, *«su valor se construye con `appBaseUrl()`…»*, *«no hay ningún origen absoluto alternativo en src/»*| `npm test` verde. Comprobado además a mano: `metadataBase` aparece **una sola vez como código** en todo `src/` (`src/app/layout.tsx:57`), el resto son comentarios; `VERCEL_URL` y `NEXT_PUBLIC_SITE_URL` no aparecen. `.env.example` y `tests/spec-031-frontera.test.ts` (`toHaveLength(11)`, línea 149) **no están en el diff**: siguen siendo once. | ✅ |
+| CA-2 (la tarjeta completa en `/`) | `src/app/layout.tsx`, `src/app/opengraph-image.png`, `src/app/opengraph-image.alt.txt` | `tests/e2e/tarjeta.spec.ts` › *«están los diez campos de Open Graph, y cada uno una sola vez»*| `npx playwright test` verde (caso 209). Repetido por mi cuenta en Chrome contra `next start`: los **diez** campos presentes y únicos, `og:image:width=1200`, `height=630`, `type=image/png`, `alt` no vacío. | ✅ |
+| CA-3 (las palabras son las de cada página) | `src/app/layout.tsx` (el `openGraph` **no** declara `title` ni `description`) | `tests/e2e/tarjeta.spec.ts` › *«{/, /ayuda, /legal/aviso-legal}: og:title y og:description coinciden…»* + *«la primera pantalla anuncia su reclamo, no «Stockeiro» a secas»*| Verde (casos 210–213). Repetido por mi cuenta en dos rutas: `/` → `og:title` = «Stockeiro — vigila tus zonas de compra y venta» (**no** «Stockeiro» a secas); `/legal/aviso-legal` → «Aviso legal · Stockeiro». En ambas coincide con su `<title>` y su `description`. R-3 no se ha materializado. | ✅ |
+| CA-4 (URL absoluta y del propio origen) | `src/app/layout.tsx` | `tests/e2e/tarjeta.spec.ts` › *«es absoluta, del origen que se está sirviendo, y no apunta a otro sitio»*| Verde (caso 214). En navegador: `og:image` = `http://localhost:3200/opengraph-image.png?opengraph-image.40o9ok3isrrdl.png` — absoluta, mismo origen que el documento, con el hash que pone el framework. | ✅ |
+| CA-5 (`twitter:card` grande, misma imagen) | `src/app/layout.tsx` (`twitter: { card: 'summary_large_image' }`) | `tests/e2e/tarjeta.spec.ts` › *«twitter:card es summary_large_image y reutiliza el og:image»*| Verde (caso 215). Medido a mano: `twitter:card=summary_large_image`, `twitter:title`/`twitter:description` heredados y no vacíos, y `twitter:image === og:image` (cadena idéntica). No hay un segundo fichero de imagen en el árbol. | ✅ |
+| CA-6 (convención de fichero, nada a mano) | `src/app/opengraph-image.png`, `src/app/opengraph-image.alt.txt` | `tests/tarjeta-frontera.test.ts` › los cuatro casos de *«SPEC-051 CA-6»*| Verde (los cuatro casos). Comprobado aparte: `public/` **no existe**; cero `<meta property="og:` o `name="twitter:` en `src/`; ninguna referencia a la tarjeta en un `<img>`, `preload` ni `url()`. | ✅ |
+| CA-7 (PNG 1200×630 opaco) | `scripts/png.mjs`, `scripts/icon-geometry.mjs` (`rasterizarTarjeta`) | `tests/tarjeta-imagen.test.ts` › *«la firma y la cabecera declaran 1200 × 630»*, *«los chunks obligatorios… con su CRC correcto»*, *«decodifica al tamaño exacto y TODOS sus píxeles son opacos»*| Verde. **Verificado con decodificador propio** (script independiente del repo, sólo `node:zlib`): IHDR **1200×630**, profundidad 8, tipo de color 6, entrelazado 0; chunks `IHDR,IDAT,IEND` con **CRC correcto**; **0** píxeles con alfa ≠ 255. | ✅ |
+| CA-8 (tres colores, derivados del CSS) | `scripts/icon-geometry.mjs` (`tokensDeMarca`, sin un hexadecimal tecleado) | `tests/tarjeta-imagen.test.ts` › *«los tres tokens están presentes…»*, *«…no llega al 12 % del lienzo»*, *«y ese borde es MEZCLA de dos tokens…»*| Verde. Medido por mi cuenta sobre los píxeles: **105** colores distintos, de los que los tres tokens exactos (`#111110`, `#F5F1EA`, `#FF6B00`) cubren el **99,72 %**; los intermedios son el **0,28 %**, muy por debajo del 12 % contratado. Ni degradado ni cuarto color. | ✅ |
+| CA-9 (ni una letra, ni una fuente) | `scripts/icon-geometry.mjs`, `scripts/png.mjs`, `scripts/build-icon.mjs` | `tests/tarjeta-imagen.test.ts` › *«el PNG no lleva ningún chunk de texto»* + *«las formas son las del wordmark que ya existe…»*; `tests/tarjeta-frontera.test.ts` › los cinco casos de *«SPEC-051 CA-9»*| Verde (los dos casos de píxeles + los cinco de código). Confirmado aparte: los chunks del PNG son exactamente `IHDR,IDAT,IEND` — **ningún** `tEXt`/`iTXt`/`zTXt`; el generador sólo importa de `node:*` y de ficheros vecinos, y no nombra ningún `.ttf/.otf/.woff*`. | ✅ |
+| CA-10 (geometría y área segura) | `scripts/icon-geometry.mjs` (`TARJETA`, `aLienzo`) | `tests/tarjeta-imagen.test.ts` › los cinco casos de *«SPEC-051 CA-10»*| Verde (los cinco casos). Medido por mi cuenta: caja de tinta x[418,781] y[172,457] → **alto 285 px** (contrato 220–315); centro (599,5 · 314,5) frente a (600 · 315), **0,5 px** de desvío (contrato ≤ 8); márgenes al cuadrado central de 630: **133 / 134 / 172 / 173 px** (contrato ≥ 60). El acento es una sola región, a la derecha y en la mitad inferior, sin tocar el hueso. | ✅ |
+| CA-11 (contraste) | `design/tremen-ds/colors_and_type.css` (consumido, no tocado) | `tests/tarjeta-imagen.test.ts` › *«la S contra el lienzo está por encima de 15:1»*, *«el punto… por encima de 6:1»*| Verde. Recalculado por mi cuenta con la fórmula WCAG 2.x: hueso/fondo = **16,78:1** (≥ 15) y acento/fondo = **6,62:1** (≥ 6). | ✅ |
+| CA-12 (legible a tamaño de previsualización) | `scripts/icon-geometry.mjs` (escala 13) | `tests/tarjeta-imagen.test.ts` › los tres casos de *«SPEC-051 CA-12»* (reducción por promedio de área a 240×126)| Verde (los tres casos). La reducción a 240×126 está además committeada en `_qa/SPEC-051/tarjeta-240x126.png` y la he mirado: el punto sigue separado y los dos ojos de la S siguen abiertos. | ✅ |
+| CA-13 (reproducible por `icon:build`, sin clave nueva) | `scripts/build-icon.mjs` (escribe los **tres** activos), `scripts/png.mjs` (sobre `node:zlib`) | `tests/tarjeta-frontera.test.ts` › los cinco casos de *«SPEC-051 CA-13»*| Verde (los cinco casos). **Reproducido por mí**: `node scripts/build-icon.mjs --out <tmp>` escribe los **tres** activos y `cmp` los da idénticos a los committeados — PNG, SVG **e ICO** (así que SPEC-047 CA-17 tampoco se ha movido). En el diff, `package.json` cambia **sólo** `version`. | ✅ |
+| CA-14 (alcanzable por un anónimo) | `src/proxy.ts` (una línea: el `matcher`) | `tests/e2e/tarjeta.spec.ts` › *«la URL que emite el framework responde 200 con image/png»* + *«y también sin cabecera Accept de navegador…»*| Verde (casos 216–217). **Control propio, y es el decisivo**: la misma petición de rastreador (`User-Agent: facebookexternalhit/1.1`, `Accept: */*`) devuelve **200 / image/png** sobre la tarjeta y **307 → /login** sobre `/dashboard`, que sí está dentro del matcher. La exclusión es lo que sostiene el CA; no pasa por vacuidad. | ✅ |
+| CA-15 (sin `Set-Cookie`) | `src/proxy.ts` | `tests/e2e/tarjeta.spec.ts` › *«pedir la imagen no trae Set-Cookie y el contexto sigue sin cookies»*| Verde (caso 218). En esa misma petición de rastreador: **ninguna cabecera `set-cookie`**. En `/dashboard`, en cambio, llegan `authjs.csrf-token` y `authjs.callback-url` — exactamente el daño que este CA evita. | ✅ |
+| CA-16 (mismos bytes con y sin sesión) | `src/proxy.ts`; `src/lib/auth/guard.ts` **sin tocar** | `tests/e2e/tarjeta.spec.ts` › *«los bytes servidos con sesión y sin ella son idénticos»*; `tests/tarjeta-guardias-ampliadas.test.ts` › *«`PUBLIC_PREFIXES` no crece…»*| Verde (caso 219). `src/lib/auth/guard.ts` **no aparece en el diff** y `PUBLIC_PREFIXES` sigue con sus siete páginas. Los bytes que descargué del servidor (16 853) coinciden con el fichero committeado. | ✅ |
+| CA-17 (las **dos** guardias, nombradas y autorizadas) | `tests/legal-rutas-publicas.test.ts:78`, `tests/cuenta-rutas.test.ts:94` (ampliadas con su porqué al lado) | `tests/tarjeta-guardias-ampliadas.test.ts` › los doce casos (17.1 · 17.2 · 17.3 con mutación de control · 17.4)| Verde (los doce casos), y **revisado sobre el diff, que es donde se juzga**: los únicos ficheros ajenos tocados son los **dos** autorizados; en ambos el cambio es *comentario nuevo + el literal del matcher con una exclusión más*, sin `.skip`, sin borrar casos, sin cambiar `toContain` por nada más laxo y sin tocar la hermana. `tests/deploy-gate-workflow.test.ts` **no está en el diff** y no menciona SPEC-051. | ✅ |
+| CA-18 (suites verdes; acotación al gate) | — | `npm test` **1644/1644** y `npx playwright test` **278/278** (salidas abajo); `tests/tarjeta-frontera.test.ts` › los cuatro casos de *«SPEC-051 CA-18: los cuatro verdes citados siguen en su sitio»*. **La segunda mitad —«no se modifica ninguna aserción ajena salvo las dos»— es del gate** (ADR-031 pto. 1.2)| Verde, reejecutado por mí sobre el árbol commiteado y limpio: `npm test` → **108 ficheros / 1644 casos / 0 fallos**; `npx playwright test` → **278 pasados** (4,0 min); `npm run lint` y `npm run typecheck` limpios; `npm run version:check` → `exit=0`. **Segunda mitad (la del gate): CUMPLIDA** — de los 19 ficheros del diff sólo **dos** son tests ajenos, los que CA-17 nombra, y ninguna aserción ajena se ha ablandado ni borrado. | ✅ |
+| CA-19 (la landing sigue sin pedir nada fuera) | `src/app/layout.tsx` (importa `@/lib/config/app-url`, que no importa nada) | `tests/e2e/tarjeta.spec.ts` › *«todas las peticiones son del propio origen, y ninguna es la tarjeta»*; `tests/legal-import-graph.test.ts` y `tests/ayuda-import-graph.test.ts` **verdes sin tocar**| Verde (caso 220). `tests/legal-import-graph.test.ts` y `tests/ayuda-import-graph.test.ts` **no aparecen en el diff** y pasan en la suite completa. | ✅ |
+| CA-20 (alcance acotado — **criterio de gate, no de suite**) | n-a | n-a — **por ADR-031 pto. 1.2, con el porqué escrito debajo; no es una omisión** | **Verificado a mano sobre el diff del árbol commiteado y limpio (`9387681..HEAD`), salida pegada en §Acotación (CA-20). CUMPLIDO**: 19 ficheros, todos dentro del conjunto que la spec permite; ni un fichero bajo `src/db/`, `drizzle/` ni `src/lib/`; `docs/adr/` no gana ninguno; ninguna otra carpeta `_qa/SPEC-NNN/`; en `package.json` sólo `version`. Salvedad menor, sin efecto: en `src/proxy.ts` el diff añade además un bloque de comentario de 24 líneas junto a la única línea de código cambiada — ver §Acotación. | ✅ |
 
 > **CA-20 no lleva fila de test a propósito, y su `n-a` no está en blanco por descuido.**
 > Es criterio de acotación y **ADR-031 pto. 1.2** lo saca de la suite: escrito como
@@ -61,6 +61,127 @@ epica: EPIC-MEJORA
 
 ## Veredicto del verificador
 <!-- GREEN/RED + fecha + resumen. Lo escribe SOLO sdd-verificador. -->
+
+**GREEN — 2026-08-23, sdd-verificador.** 20/20 CA cerrados: 19 con test verde y 1 (CA-20)
+verificado a mano en el gate, que es donde la spec lo puso.
+
+Se verificó **sin el informe del implementador, a propósito**: sólo spec, ledger, diff,
+código y lo que se observa al ejecutar. Por defecto ningún CA estaba cumplido.
+
+**Gates automáticos, reejecutados por mí sobre el árbol commiteado y limpio:**
+
+| Gate | Resultado |
+|---|---|
+| `npm test` | **108 ficheros · 1644 casos · 0 fallos** (156 s) |
+| `npx playwright test` | **278 pasados** (4,0 min), suite completa |
+| `npm run lint` | limpio (`--max-warnings=0`) |
+| `npm run typecheck` | limpio |
+| `npm run version:check` | `exit=0` — *«La version sube de 0.3.2 a 0.3.3»* |
+
+Los números del implementador coinciden con los míos; no me he fiado de ellos, los he
+vuelto a producir.
+
+**Lo que NO he dado por bueno de palabra, y he medido por mi cuenta:**
+
+1. **El PNG, con un decodificador propio** escrito para este gate (sólo `node:zlib`, sin
+   tocar `tests/` ni `scripts/` del repositorio, para no medir con la misma regla que
+   dibuja). Confirma CA-7 (1200×630, tipo de color 6, sin entrelazar, CRC bueno en los tres
+   chunks, **cero** píxeles no opacos), CA-8 (**99,72 %** en los tres tokens exactos,
+   **0,28 %** de borde frente al 12 % contratado), CA-9 (chunks exactamente
+   `IHDR,IDAT,IEND`: ningún `tEXt`/`iTXt`/`zTXt`), CA-10 (alto **285 px**, centro a
+   **0,5 px** del del lienzo, márgenes de **133/134/172/173 px** al cuadrado central) y
+   CA-11 (**16,78:1** y **6,62:1**).
+2. **La reproducibilidad, ejecutando el generador yo**: los **tres** activos salen
+   idénticos byte a byte a los committeados — el PNG **y también `icon.svg` y
+   `favicon.ico`**, que es la prueba directa de que SPEC-047 no se ha movido.
+3. **Los metadatos servidos, en un navegador de verdad** contra `next start`, en `/` y en
+   `/legal/aviso-legal`: los diez campos de Open Graph, `og:title` distinto por página y
+   coincidente con el `<title>`, `og:image` absoluto y del propio origen, `twitter:image`
+   idéntico a `og:image`, y el `og:image:alt` **sin salto de línea** dentro del atributo.
+4. **El control negativo de CA-14/CA-15, que es lo que impide que ese CA pase por
+   vacuidad**: con la **misma** petición de rastreador (`facebookexternalhit/1.1`,
+   `Accept: */*`), la tarjeta responde **200 / image/png y sin una sola `set-cookie`**,
+   mientras que `/dashboard` —que sigue dentro del matcher— responde **307 → /login** y
+   estampa `authjs.csrf-token` y `authjs.callback-url`. Es R-1 reproducido en vivo: la
+   exclusión del matcher está haciendo trabajo, y el guardián de sesión no se ha aflojado
+   para nadie más.
+
+**Las dos guardias ajenas: exactamente dos, y ampliadas, no aflojadas.** El diff toca
+`tests/legal-rutas-publicas.test.ts` y `tests/cuenta-rutas.test.ts` y **ningún otro test
+ajeno**. En los dos, el cambio es el porqué escrito al lado más el literal del matcher con
+**una** exclusión más; sigue siendo una cadena literal comparada con `toContain`, no hay
+`.skip`, no se borra ningún caso y las hermanas que miden la propiedad de verdad no se
+tocan. `tests/deploy-gate-workflow.test.ts` **no aparece en el diff** y `package.json` no
+gana ninguna clave en `scripts`: la tercera guardia de SPEC-047 se ha evitado por diseño
+(D-8) y se comprueba que se ha evitado.
+
+**Lo que queda para el ojo del humano, y no lo cierro yo.** CA-12 y la §Geometría dicen que
+la tarjeta cumple los números, y los cumple con holgura. Lo que ningún CA mide es **R-4**:
+si un lienzo oscuro con la S y el punto centrados representa al producto en un hilo lleno
+de enlaces. La evidencia está committeada, es legible y corresponde a lo que la spec pide
+(§Evidencia visual). **Esa mirada es del humano**; si dice que no, la spec ya deja escrito
+que la salida legítima no es añadir un degradado ni una frase pintada.
+
+### Acotación (CA-20) — el diff de la rama, con el árbol limpio
+
+```
+$ git status --porcelain          # (vacío: árbol limpio)
+$ git diff --name-status 9387681..HEAD
+A	_qa/SPEC-051/tarjeta-1200x630.png
+A	_qa/SPEC-051/tarjeta-240x126.png
+A	docs/epicas/EPIC-MEJORA/SPEC-051-…-antes-de-entrar.ledger.md
+A	docs/epicas/EPIC-MEJORA/SPEC-051-…-antes-de-entrar.md
+M	package.json
+M	scripts/build-icon.mjs
+M	scripts/icon-geometry.mjs
+A	scripts/png.mjs
+M	src/app/layout.tsx
+A	src/app/opengraph-image.alt.txt
+A	src/app/opengraph-image.png
+M	src/proxy.ts
+M	tests/cuenta-rutas.test.ts
+A	tests/e2e/tarjeta.spec.ts
+M	tests/legal-rutas-publicas.test.ts
+A	tests/tarjeta-frontera.test.ts
+A	tests/tarjeta-guardias-ampliadas.test.ts
+A	tests/tarjeta-imagen.test.ts
+A	tests/tarjeta-raster.ts
+19 ficheros
+```
+
+Contrastado uno a uno con el conjunto que CA-20 permite:
+
+- **Todos** caen dentro de `src/app/opengraph-image.{png,alt.txt}`, `src/app/layout.tsx`,
+  `src/proxy.ts`, `scripts/`, `tests/`, `docs/`, `_qa/SPEC-051/` y `package.json`.
+  (`src/app/page.tsx` está permitido y **no ha hecho falta tocarlo**.)
+- **Ni un fichero** bajo `src/db/`, `drizzle/` ni `src/lib/`: ni un dato, ni un cálculo, ni
+  una regla de negocio (**CE-M1**).
+- `docs/adr/` **no gana ningún fichero** (**CE-M3**).
+- **Ninguna otra** carpeta `_qa/SPEC-NNN/` en el diff.
+- En `package.json`, **sólo** `"version": "0.3.2" → "0.3.3"` (**ADR-024**); `scripts`,
+  `dependencies` y `devDependencies` intactos (**D-8**).
+- Tests ajenos tocados: **dos**, los que CA-17 nombra y el humano autorizó.
+
+**Salvedad anotada, y por qué no la cuento como incumplimiento.** CA-20 dice *«el cambio en
+`src/proxy.ts` afecta a una sola línea: la del `matcher`»*. En el diff, ese fichero cambia
+**una sola línea de código** —el literal— pero añade además **24 líneas de comentario**
+encima. Lo he mirado con lupa y lo doy por dentro de alcance: (a) la afirmación que lleva
+peso es la de **CA-16**, *«el cambio se limita a la cadena del `matcher`»*, y se cumple al
+pie de la letra; (b) el comentario no cambia ninguna conducta ni afloja nada; y (c) la
+propia spec, en **D-8**, mete explícitamente *«dentro del conjunto de CA-20»* una edición
+de comentario equivalente (la cabecera de `scripts/build-icon.mjs`), así que trata la
+documentación como alcance legítimo y no como desbordamiento. Queda escrito para que
+conste que se vio y no se pasó por alto.
+
+### Nota de entorno para quien lea esto después
+
+Correr `npx playwright test` entero **reescribe capturas committeadas de otras specs** bajo
+`_qa/SPEC-001…046/` (varias suites e2e las regeneran en cada pasada). Aparecieron como
+`M` en `git status` tras mi ejecución y las **restauré con `git checkout -- _qa/`**: no son
+obra de SPEC-051 y el árbol quedó igual de limpio que lo encontré. Se dice aquí porque el
+siguiente que corra la suite completa se va a llevar el mismo susto. No hubo, en cambio,
+ningún fichero fantasma marcado como borrado por longitud de ruta (`core.longpaths=true`
+está puesto y funcionó).
 
 ## Evidencia visual
 <!-- Capturas de trabajo: test-results/SPEC-051/ (ignorado por git). Evidencia que se commitea: _qa/SPEC-051/ -->
@@ -83,6 +204,26 @@ palabra «Stockeiro» pintada, ni reclamo (D-1: eso lo pone el foro como texto d
 `og:title`/`og:description`). Cumple todos los números; si aun así no representa al
 producto en un hilo lleno de enlaces, el sitio de decirlo es el gate, y la salida
 legítima **no** es añadir un degradado ni una frase pintada.
+
+### Mapa de evidencia visual — verificado por sdd-verificador (2026-08-23)
+
+Las dos capturas que §Notas pto. 4 pide **existen, son legibles y corresponden a lo que la
+spec pide**. Las he abierto y mirado:
+
+| Fichero | Qué demuestra | Qué se ve |
+|---|---|---|
+| `_qa/SPEC-051/tarjeta-1200x630.png` | CA-7 · CA-8 · CA-10 · CA-11 — y es **byte a byte** el entregable (`cmp` contra `src/app/opengraph-image.png`: idénticos, 16 853 B) | Lienzo `#111110` a sangre; la S en hueso y el punto ember centrados, con mucho aire; ni una letra, ni degradado, ni sombra |
+| `_qa/SPEC-051/tarjeta-240x126.png` | CA-12 — el tamaño al que se ve en un hilo | El punto sigue siendo **una cosa aparte** de la letra y los **dos ojos** de la S siguen abiertos |
+
+Y una tercera, mía y **no committeada** (queda en el transcript del gate, no ensucia el
+diff): la tarjeta **tal y como la sirve el servidor**, abierta en Chrome desde la URL con
+hash que emite el framework — Chrome rotula la pestaña `opengraph-image.png (1200×630)`,
+que es la confirmación de que lo que llega al rastreador es exactamente el fichero
+committeado.
+
+**Lo que sigue abierto y es del humano (R-4).** Todo lo anterior dice que la tarjeta
+*cumple*. Que *represente al producto* es otra pregunta y no la contesta ningún píxel
+medido: la contesta el ojo de quien va a pegar el enlace. Se la lleva el orquestador.
 
 ## Evidencia de ejecución
 
@@ -151,6 +292,23 @@ y reconstruido antes de commitear.
   `\n` al final acaba dentro del atributo del `<meta>`. Se detectó al inspeccionar el HTML
   construido. No hay guardia automática para esto; queda dicho aquí y en el mensaje de
   commit para que nadie lo «arregle» añadiéndoselo.
+
+### Levantado por sdd-verificador en el gate (2026-08-23)
+
+- **F-SPEC-051-6 — `docs/despliegue.md` afirma algo que esta entrega ha vuelto falso.** La
+  advertencia de §0 sobre `APP_BASE_URL` termina diciendo: *«Y ojo: el error es en tiempo de
+  **petición**, no de build, así que el deploy sale verde igualmente»*. Era cierto mientras
+  `appBaseUrl()` sólo se llamaba al componer el enlace de reset. Desde SPEC-051 se evalúa en
+  el **layout raíz**, así que `next build` **falla** si la clave falta — que es justo lo que
+  el propio ledger declara y acepta en **F-SPEC-051-4**. **No es un incumplimiento de ningún
+  CA**: ninguno exige tocar ese documento, la conducta nueva está declarada y aceptada como
+  diseño (R-2), y CI (`ci.yml:148`, job `E2E`, el único que ejecuta `Build`) y producción
+  (`docs/despliegue.md:55-56`, cerrado y probado) definen la variable, así que **no hay
+  riesgo de despliegue**. Se levanta porque la propia spec sostiene en **D-8** que *«un
+  documento de verdad que afirma algo falso es un defecto, no un detalle»* — y ese criterio
+  se aplicó a la cabecera de `scripts/build-icon.mjs` y no a esta frase. *Destino*:
+  **EPIC-FIX** o el próximo repaso de `docs/despliegue.md`; es una frase, no un cambio de
+  conducta.
 
 ## Cómo retomar (handoff)
 
