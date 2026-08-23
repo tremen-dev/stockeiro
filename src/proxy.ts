@@ -70,7 +70,31 @@ export default function proxy(request: NextRequest, event: NextFetchEvent) {
  * escapadas (`favicon.ico` empareja el punto como comodín); está visto y anotado, y
  * arreglarlo es otra spec — no algo que se cuele en el guardián de sesión de paso.
  */
+
+/**
+ * SPEC-051 CA-14, CA-15 y CA-16 — `opengraph-image.png` se suma a la misma lista, y por
+ * el mismo motivo exacto que `icon.svg`.
+ *
+ * Quien pide la tarjeta social NO es el navegador de nadie: es el rastreador del foro,
+ * de Facebook, de X, de Slack o de WhatsApp, **sin cookies y a menudo sin JavaScript**.
+ * Con la ruta dentro de este matcher esa petición anónima entraría en Auth.js y saldría
+ * redirigida a `/login`, así que la vista previa quedaría vacía **y nadie vería un
+ * error** — ni siquiera quien pegó el enlace. Es el R-1 de la spec, el fallo silencioso
+ * clásico. Y de paso estamparía `authjs.csrf-token` y `authjs.callback-url`, que es lo
+ * que pondría RED a SPEC-035 CA-13.
+ *
+ * Va aquí y no en `PUBLIC_PREFIXES`, igual que el icono y por lo mismo: esa lista es la
+ * excepción DOCUMENTADA a RN-03 y es de **páginas**. Lo de esta línea es otra familia
+ * —`_next/static`, `_next/image`, `favicon.ico`, `icon.svg`—: activos idénticos para
+ * todo el mundo, sin un byte de dato de usuario. La tarjeta es exactamente eso, y CA-16
+ * lo prueba comparando los bytes servidos con sesión y sin ella.
+ *
+ * Y conviene dejarlo dicho en voz alta, porque es la SEGUNDA vez que esta línea arrastra
+ * tests ajenos —tres con SPEC-047, dos aquí—: si añadir un activo estático vuelve a
+ * costar tocar dos literales copiados a mano en dos specs ajenas, el defecto está en el
+ * literal y se arregla en EPIC-FIX, no parcheando a la tercera (§Fuera de alcance).
+ */
 export const config = {
   // Todo salvo estáticos y las rutas internas de auth.
-  matcher: ['/((?!api|_next/static|_next/image|favicon.ico|icon.svg).*)'],
+  matcher: ['/((?!api|_next/static|_next/image|favicon.ico|icon.svg|opengraph-image.png).*)'],
 };

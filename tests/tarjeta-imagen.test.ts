@@ -98,17 +98,6 @@ function rejillaDelIcono() {
   };
 }
 
-/** La caja envolvente de TODA la marca sobre la rejilla del icono: la S más el punto. */
-function marcaEnRejilla() {
-  const { s, punto } = rejillaDelIcono();
-  return {
-    x0: Math.min(s.x0, punto.cx - punto.r),
-    x1: Math.max(s.x1, punto.cx + punto.r),
-    y0: Math.min(s.y0, punto.cy - punto.r),
-    y1: Math.max(s.y1, punto.cy + punto.r),
-  };
-}
-
 // ---------------------------------------------------------------------------
 
 let cacheLienzo: Lienzo | null = null;
