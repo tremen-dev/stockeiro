@@ -73,9 +73,34 @@ describe('SPEC-035 CA-2: el matcher del proxy no cambia', () => {
     // El implementador no tocó esto por su cuenta: escaló, lo decidió el humano y la
     // autorización está escrita en la spec (SPEC-047 §El arbitraje de las tres guardias
     // ajenas y CA-19) ANTES de ejecutarse.
+    //
+    // ── AMPLIADA OTRA VEZ POR SPEC-051 (CA-17), arbitraje del humano del 2026-08-23 ──
+    //
+    // Qué vigilaba antes: el literal con cinco exclusiones que dejó SPEC-047.
+    // Qué vigila ahora: el mismo literal con SEIS, comparado igual de carácter a
+    // carácter. La lista crece EXACTAMENTE en `opengraph-image.png` y sigue cerrada: un
+    // séptimo que apareciera sin CA detrás vuelve a poner esto en rojo. No se ha cambiado
+    // la comparación exacta por una laxa, no se ha borrado ningún caso y no se ha marcado
+    // ninguno `.skip`.
+    //
+    // En virtud de qué entra: **CA-14 y CA-15 de SPEC-051**. Quien pide la tarjeta social
+    // no es el navegador de nadie, es el rastreador del foro, sin cookies; dentro del
+    // matcher esa petición anónima salía redirigida a `/login` —vista previa vacía y sin
+    // error visible— y estampaba `authjs.csrf-token` y `authjs.callback-url`, que es otra
+    // vez el RED a SPEC-035 CA-13.
+    //
+    // Por qué no debilita nada: `opengraph-image.png` tampoco es una ruta de producto,
+    // es un ACTIVO —de la misma familia que los cinco que ya están—, idéntico para todo
+    // el mundo y sin un byte de dato de usuario (SPEC-051 CA-16 lo prueba comparando los
+    // bytes servidos con sesión y sin ella). La propiedad de verdad la sigue midiendo el
+    // caso de abajo, que sigue verde y SIN TOCAR, y `PUBLIC_PREFIXES` tampoco se toca.
+    //
+    // Y otra vez el mismo orden: el implementador no tocó esto por su cuenta. La
+    // autorización se pidió en el gate, por escrito y ANTES de implementar, y el humano
+    // la concedió el 2026-08-23 (SPEC-051 §Notas pto. 2 y CA-17).
     const proxy = readFileSync(join(rootDir, 'src', 'proxy.ts'), 'utf8');
     expect(proxy).toContain(
-      "matcher: ['/((?!api|_next/static|_next/image|favicon.ico|icon.svg).*)']",
+      "matcher: ['/((?!api|_next/static|_next/image|favicon.ico|icon.svg|opengraph-image.png).*)']",
     );
   });
 
