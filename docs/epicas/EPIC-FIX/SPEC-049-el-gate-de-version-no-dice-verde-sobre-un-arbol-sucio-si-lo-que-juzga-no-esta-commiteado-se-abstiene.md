@@ -2,13 +2,14 @@
 id: SPEC-049
 tipo: spec
 epica: EPIC-FIX
-estado: en-revision
+estado: hecho
 aprobada-por: humano (Alberto Fojo)
 historial:
   - {estado: borrador, fecha: 2026-08-23, por: sdd-arquitecto}
   - {estado: aprobada, fecha: 2026-08-23, por: humano (Alberto Fojo)}
   - {estado: en-progreso, fecha: 2026-08-23, por: sdd-implementador}
   - {estado: en-revision, fecha: 2026-08-23, por: sdd-implementador}
+  - {estado: hecho, fecha: 2026-08-23, por: sdd-verificador}
 ---
 # SPEC-049 — El gate de versión no dice verde sobre un árbol sucio: si lo que juzga no está commiteado, se abstiene
 
