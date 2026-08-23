@@ -6,8 +6,7 @@ epica: EPIC-MEJORA
 # Ledger — SPEC-050 La primera pantalla: la marca visible, una entrada clara y la advertencia fuera del hero
 
 ## Resumen
-- Fase: `en-revision` — implementada por sdd-implementador el 2026-08-23 sobre la spec
-  aprobada por el humano ese mismo día. Pendiente del gate de sdd-verificador.
+- Fase: `hecho` — verificada y aprobada por sdd-verificador el 2026-08-23 (GREEN 22/22 CA).
 - Rama: `ft/SPEC-050-la-primera-pantalla-la-marca-visible-una-entrada-clara-y-la-advertencia-fuera-del-hero`
   (sale de `origin/main` en `9387681`).
 - **Nació como `SPEC-049`.** Otra sesión mergeó en `origin/main` una SPEC-049 propia (EPIC-FIX,
@@ -15,7 +14,7 @@ epica: EPIC-MEJORA
   reasignado desde `origin/main`; citas reverificadas contra `9387681`.
 - **Ficheros de producto tocados: dos.** `src/app/page.tsx` y `src/app/globals.css`. Ni
   `app-footer.tsx`, ni `app-nav.tsx`, ni `proxy.ts`, ni `layout.tsx`, ni nada bajo `src/db/`,
-  `drizzle/` o `src/lib/`. Versión **0.3.2 → 0.3.3** (PATCH, ADR-024: presentación pura).
+  `drizzle/` o `src/lib/`. Versión **0.3.2 → 0.3.4** (PATCH, ADR-024: presentación pura).
 - **Un solo fichero de test ajeno modificado**, el que CA-22 autoriza nominalmente:
   `tests/e2e/ayuda.spec.ts`. Ningún otro.
 

@@ -92,6 +92,7 @@ Actualizado: 2026-08-23
 |---|---|---|
 | SPEC-041 — vigiladas-legible-y-ordenable-el-nombre-del-activo-el-orden-a-eleccion-y-el-alta-plegable | hecho | 2026-08-20 (sdd-verificador) |
 | SPEC-047 — el-icono-de-la-app | hecho | 2026-08-22 (sdd-verificador) |
+| SPEC-050 — la-primera-pantalla-la-marca-visible-una-entrada-clara-y-la-advertencia-fuera-del-hero | hecho | 2026-08-23 (sdd-verificador) |
 
 ## ADRs
 
@@ -131,5 +132,5 @@ Actualizado: 2026-08-23
 
 ## Resumen
 
-- hecho: 44
+- hecho: 45
 - aprobada: 1
