@@ -2,12 +2,13 @@
 id: SPEC-053
 tipo: spec
 epica: EPIC-INFRA
-estado: en-progreso
+estado: en-revision
 aprobada-por: humano (Alberto Fojo)
 historial:
   - {estado: borrador, fecha: 2026-08-23, por: sdd-arquitecto}
   - {estado: aprobada, fecha: 2026-08-23, por: humano (Alberto Fojo)}
   - {estado: en-progreso, fecha: 2026-08-23, por: sdd-implementador}
+  - {estado: en-revision, fecha: 2026-08-23, por: sdd-implementador}
 ---
 # SPEC-053 — La versión vive en los dos ficheros: el lock deja de derivar y una guardia lo mantiene
 
