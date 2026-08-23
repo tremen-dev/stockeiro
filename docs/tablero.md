@@ -1,7 +1,7 @@
 <!-- GENERADO por tremen-sdd (scripts/tablero.mjs). NO EDITAR A MANO. -->
 # Tablero
 
-Actualizado: 2026-08-22
+Actualizado: 2026-08-23
 
 ## EPIC-001 — vigilancia-de-zonas-de-compra-venta-con-cartera-y-avisos (hecho)
 
@@ -70,6 +70,7 @@ Actualizado: 2026-08-22
 | SPEC-040 — el-movil-completa-el-alta-de-una-vigilada-y-la-guardia-de-geometria-deja-de-ser-ciega | hecho | 2026-08-20 (sdd-verificador) |
 | SPEC-043 — la-cotizacion-que-dejo-de-refrescarse-lo-dice-y-la-cuota-agotada-deja-de-disfrazarse-de-caida-del-proveedor | hecho | 2026-08-21 (sdd-verificador) |
 | SPEC-046 — el-panel-de-edicion-se-abre-donde-el-usuario-mira-y-la-guardia-lo-mide | hecho | 2026-08-22 (sdd-verificador) |
+| SPEC-048 — guardias-por-diff-que-caducan-al-mergear | hecho | 2026-08-23 (sdd-verificador) |
 
 ## EPIC-INFRA (aprobada)
 
@@ -124,8 +125,9 @@ Actualizado: 2026-08-22
 | ADR-028 | aprobada | el-episodio-de-zona-sobrevive-al-cambio-de-opinion-editar-una-zona-es-una-actualizacion-y-la-reconciliacion-es-del-ciclo-siguiente | 2026-08-21 (humano (Alberto Fojo)) |
 | ADR-029 | aprobada | el-silencio-se-aplica-al-aviso-no-a-la-deteccion-la-vigilada-silenciada-sigue-ingiriendo-evaluando-y-abriendo-episodios-y-su-aviso-de-entrada-queda-pendiente | 2026-08-21 (humano (Alberto Fojo)) |
 | ADR-030 | aprobada | lo-que-abre-una-fila-vive-anclado-a-la-ventana-y-la-geometria-mide-la-respuesta-al-gesto | 2026-08-22 (humano (Alberto Fojo)) |
+| ADR-031 | aprobada | la-guardia-por-diff-nace-anclada-a-una-ventana-fija | 2026-08-22 (humano (Alberto Fojo)) |
 
 ## Resumen
 
-- hecho: 40
+- hecho: 43
 - aprobada: 1
