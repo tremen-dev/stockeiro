@@ -207,6 +207,20 @@ export function tocanCodigoDeAplicacion(ficheros, rutas) {
 }
 
 /**
+ * Hasta diez ficheros, uno por línea. Vive fuera de los mensajes para que la lista de
+ * la abstención (SPEC-049 CA-8.2) tenga literalmente el mismo recorte y el mismo
+ * formato que la de `sin-subir`, en vez de una copia que se les separe.
+ *
+ * @param {string[]} ficheros
+ * @returns {string}
+ */
+function listar(ficheros) {
+  const muestra = ficheros.slice(0, 10).map((f) => `  · ${normalizar(f)}`).join('\n');
+  const resto = ficheros.length > 10 ? `\n  … y ${ficheros.length - 10} mas.` : '';
+  return `${muestra}${resto}`;
+}
+
+/**
  * El veredicto, puro: qué pasa con este diff y estas dos versiones.
  *
  * @param {{ ficheros: string[], versionBase: string, versionRama: string, rutas: string[] }} entrada
@@ -254,8 +268,6 @@ export function evaluar({ ficheros, versionBase, versionRama, rutas }) {
   }
 
   if (comparacion === 0) {
-    const muestra = tocados.slice(0, 10).map((f) => `  · ${normalizar(f)}`).join('\n');
-    const resto = tocados.length > 10 ? `\n  … y ${tocados.length - 10} mas.` : '';
     return {
       salida: SALIDA.MARCADO,
       motivo: 'sin-subir',
@@ -265,7 +277,7 @@ export function evaluar({ ficheros, versionBase, versionRama, rutas }) {
         'que la base. Un numero que no se mueve afirma una identidad estable sobre\n' +
         'artefactos distintos, y con testers fuera eso convierte cada reporte en una ida\n' +
         'y vuelta.\n\n' +
-        `Ficheros que lo disparan:\n${muestra}${resto}\n\n` +
+        `Ficheros que lo disparan:\n${listar(tocados)}\n\n` +
         'Subelo y vuelve a intentarlo:\n' +
         '  npm version patch --no-git-tag-version   # corregiste un defecto\n' +
         '  npm version minor --no-git-tag-version   # entregaste una spec\n\n' +
@@ -279,6 +291,59 @@ export function evaluar({ ficheros, versionBase, versionRama, rutas }) {
     motivo: 'subida',
     tocados,
     mensaje: `La version sube de ${versionBase} a ${versionRama}.`,
+  };
+}
+
+/**
+ * El contraste de SPEC-049 CA-1, también puro: **¿depende este veredicto de lo que
+ * todavía no está commiteado?**
+ *
+ * El gate juzga commits, así que con el trabajo aún en el árbol el rango `base...HEAD`
+ * está vacío y `evaluar` responde `sin-codigo` → 0. Ese 0 no significa "todo en orden":
+ * significa que no ha mirado nada, y el 2026-08-23 (PR #56) se citó como evidencia en
+ * un mensaje de commit y en el cuerpo de una PR antes de que la CI dijera lo contrario
+ * sobre los mismos ficheros.
+ *
+ * La regla no es "si el árbol está sucio, plántate" —eso dejaría en rojo permanente a
+ * quien está a mitad de una spec, y un rojo permanente acaba desactivado—. Es: forma el
+ * veredicto DOS veces, con la misma base y las mismas dos versiones **commiteadas**,
+ * cambiando únicamente la lista de ficheros por *diff ∪ pendientes*. Si el código de
+ * salida coincide, lo pendiente no puede cambiar la respuesta y se emite el primero tal
+ * cual. Si difiere, no se emite ninguno: `USO` (2).
+ *
+ * Se compara el **código de salida** y no el motivo a propósito: lo que se consume
+ * aguas arriba es el código, y un `sin-codigo` que al commitear pasara a `subida` sigue
+ * siendo un 0 honesto. Por eso una rama que ya subió el número no se bloquea por su
+ * propio `src/` sucio, y un `sin-subir` legítimo se emite entero en vez de degradarse a
+ * una negativa: el 1 es el mejor diagnóstico que este script sabe dar.
+ *
+ * @param {{ ficheros: string[], pendientes: string[], versionBase: string, versionRama: string, rutas: string[] }} entrada
+ * @returns {{ salida: number, motivo: string, tocados: string[], pendientes: string[], mensaje: string }}
+ */
+export function evaluarConPendientes({ ficheros, pendientes, versionBase, versionRama, rutas }) {
+  const veredicto = evaluar({ ficheros, versionBase, versionRama, rutas });
+  const pendientesDeAplicacion = tocanCodigoDeAplicacion(pendientes, rutas);
+  const emitir = () => ({ ...veredicto, pendientes: pendientesDeAplicacion });
+
+  if (pendientes.length === 0) return emitir();
+
+  const union = [...new Set([...ficheros, ...pendientes])];
+  const conPendientes = evaluar({ ficheros: union, versionBase, versionRama, rutas });
+  if (conPendientes.salida === veredicto.salida) return emitir();
+
+  return {
+    salida: SALIDA.USO,
+    motivo: 'pendiente-sin-commitear',
+    tocados: veredicto.tocados,
+    pendientes: pendientesDeAplicacion,
+    mensaje:
+      'No puedo emitir un veredicto: hay codigo de aplicacion pendiente sin commitear.\n\n' +
+      'Este gate juzga COMMITS —es lo que se mergea—, y con estos ficheros dentro el\n' +
+      'veredicto cambiaria. Contestar ahora seria afirmar por escrito algo que el commit\n' +
+      'siguiente desmiente, y esa afirmacion viaja: acaba citada en un mensaje de commit\n' +
+      'o en el cuerpo de una PR.\n\n' +
+      `Pendientes en el arbol de trabajo:\n${listar(pendientesDeAplicacion)}\n\n` +
+      'Commitealos —o guardalos aparte con `git stash`— y vuelve a pasar el gate.',
   };
 }
 

@@ -8,6 +8,7 @@ import {
   SALIDA,
   compararSemver,
   evaluar,
+  evaluarConPendientes,
   parsearSemver,
   rutasDeAplicacion,
   tocanCodigoDeAplicacion,
@@ -366,5 +367,156 @@ describe('SPEC-038 CA-14: la cuarta clave del canal tampoco se configura', () =>
       'STOCKEIRO_VERSION',
     );
     expect(workflowSource()).not.toContain('STOCKEIRO_VERSION');
+  });
+});
+
+describe('SPEC-049 CA-1: el contraste con lo pendiente, como función pura', () => {
+  /**
+   * El defecto del 2026-08-23 (PR #56): el gate juzga COMMITS, así que con el trabajo
+   * todavía en el árbol el rango `base...HEAD` está vacío, `evaluar` devuelve
+   * `sin-codigo` y el script sale con **0**. Ese 0 se citó en un mensaje de commit y en
+   * el cuerpo de una PR; la CI lo desmintió después sobre los mismos ficheros.
+   *
+   * La regla de CA-1 no mira si el árbol está sucio: mira si la suciedad **cambiaría el
+   * veredicto**. Forma el veredicto dos veces con las MISMAS dos versiones commiteadas y
+   * la misma base, cambiando sólo la lista de ficheros (diff vs. diff ∪ pendientes), y
+   * compara el **código de salida** —no el motivo—, que es lo que se consume aguas
+   * arriba. Se prueba caso a caso sin invocar git, igual que `evaluar` (SPEC-038 CA-12).
+   */
+  const CODIGO = ['src/lib/version/identity.ts'];
+  const DOCS = ['docs/adr/ADR-024.md', 'docs/tablero.md'];
+  const PENDIENTE_APP = ['src/lib/version/a-medio-escribir.ts'];
+
+  const contrastar = (entrada: Partial<Parameters<typeof evaluarConPendientes>[0]> = {}) =>
+    evaluarConPendientes({
+      ficheros: DOCS,
+      pendientes: [],
+      versionBase: '0.1.0',
+      versionRama: '0.1.0',
+      rutas: RUTAS,
+      ...entrada,
+    });
+
+  const LOS_CINCO_MOTIVOS = [
+    { motivo: 'sin-codigo', ficheros: DOCS, versionBase: '0.1.0', versionRama: '0.1.0' },
+    { motivo: 'subida', ficheros: CODIGO, versionBase: '0.1.0', versionRama: '0.2.0' },
+    { motivo: 'sin-subir', ficheros: CODIGO, versionBase: '0.1.0', versionRama: '0.1.0' },
+    { motivo: 'bajada', ficheros: CODIGO, versionBase: '0.2.0', versionRama: '0.1.0' },
+    { motivo: 'semver-invalido', ficheros: CODIGO, versionBase: '0.1.0', versionRama: 'v2' },
+  ] as const;
+
+  for (const caso of LOS_CINCO_MOTIVOS) {
+    it(`CA-7 — sin nada pendiente, \`${caso.motivo}\` sale exactamente como hoy`, () => {
+      const { ficheros, versionBase, versionRama } = caso;
+      const hoy = evaluar({ ficheros: [...ficheros], versionBase, versionRama, rutas: RUTAS });
+      const ahora = contrastar({ ficheros: [...ficheros], versionBase, versionRama, pendientes: [] });
+      expect(ahora.salida).toBe(hoy.salida);
+      expect(ahora.motivo).toBe(hoy.motivo);
+      expect(ahora.mensaje).toBe(hoy.mensaje);
+      expect(ahora.tocados).toEqual(hoy.tocados);
+    });
+  }
+
+  it('lo pendiente que no cambia el código de salida no cambia nada: emite el primero tal cual', () => {
+    // Docs, specs, ledgers, el `package.json` del `npm version` sin commitear: la unión
+    // no mueve `tocados`, así que el veredicto es el mismo que hoy.
+    const hoy = evaluar({
+      ficheros: DOCS,
+      versionBase: '0.1.0',
+      versionRama: '0.1.0',
+      rutas: RUTAS,
+    });
+    const ahora = contrastar({ pendientes: ['docs/roadmap.md', 'package.json', 'tests/x.test.ts'] });
+    expect(ahora.salida).toBe(hoy.salida);
+    expect(ahora.motivo).toBe(hoy.motivo);
+    expect(ahora.mensaje).toBe(hoy.mensaje);
+  });
+
+  it('el falso verde del 2026-08-23: `sin-codigo` que al commitear sería `sin-subir` -> 2', () => {
+    const veredicto = contrastar({ ficheros: DOCS, pendientes: PENDIENTE_APP });
+    expect(veredicto.salida).toBe(SALIDA.USO);
+    expect(veredicto.motivo).toBe('pendiente-sin-commitear');
+    // Y no emite NINGUNO de los dos veredictos, ni siquiera su texto.
+    expect(veredicto.mensaje).not.toContain('El diff no toca codigo de aplicacion');
+  });
+
+  it('el diff vacío de quien ejecuta el gate antes de commitear -> 2 igual', () => {
+    // La reproducción literal: la rama todavía sin commits, todo el trabajo en el árbol.
+    const veredicto = contrastar({ ficheros: [], pendientes: PENDIENTE_APP });
+    expect(veredicto.salida).toBe(SALIDA.USO);
+    expect(veredicto.motivo).toBe('pendiente-sin-commitear');
+  });
+
+  it('se compara el CÓDIGO de salida, no el motivo: `sin-codigo` que sería `subida` emite el primero', () => {
+    // CA-4 por la vía pura. Los dos motivos difieren —`sin-codigo` y `subida`— pero los
+    // dos son 0: commitear esos ficheros no puede convertir un verde en rojo, así que
+    // abstenerse aquí sería bloquear a quien ya hizo lo que ADR-024 pide.
+    const veredicto = contrastar({
+      ficheros: DOCS,
+      pendientes: PENDIENTE_APP,
+      versionBase: '0.1.0',
+      versionRama: '0.2.0',
+    });
+    expect(veredicto.salida).toBe(SALIDA.LIMPIO);
+    expect(veredicto.motivo).toBe('sin-codigo');
+  });
+
+  it('CA-5 — un `sin-subir` con código pendiente sigue siendo el `1` completo', () => {
+    const hoy = evaluar({
+      ficheros: CODIGO,
+      versionBase: '0.1.0',
+      versionRama: '0.1.0',
+      rutas: RUTAS,
+    });
+    const veredicto = contrastar({ ficheros: CODIGO, pendientes: PENDIENTE_APP });
+    expect(veredicto.salida).toBe(SALIDA.MARCADO);
+    expect(veredicto.motivo).toBe('sin-subir');
+    // Con su mensaje entero: el mejor diagnóstico que el script sabe dar no se degrada
+    // a una negativa.
+    expect(veredicto.mensaje).toBe(hoy.mensaje);
+    expect(veredicto.mensaje).toContain('src/lib/version/identity.ts');
+  });
+
+  it('CA-5 — y un `bajada` o un `semver-invalido` tampoco se degradan', () => {
+    expect(
+      contrastar({ ficheros: DOCS, pendientes: PENDIENTE_APP, versionBase: '0.2.0' }).motivo,
+    ).toBe('bajada');
+    expect(
+      contrastar({ ficheros: DOCS, pendientes: PENDIENTE_APP, versionRama: '0.2.0-rc1' }).motivo,
+    ).toBe('semver-invalido');
+  });
+
+  it('CA-3 — sólo lo que se le pasa como pendiente cuenta: la lista es la que decide', () => {
+    // Lo que `.gitignore` excluye no llega hasta aquí —lo filtra `git status`—, y sin
+    // pendientes la función es la de hoy. Que la parte pura no invente nada es lo que
+    // permite probar el filtro donde vive: en la lectura del árbol.
+    expect(contrastar({ ficheros: DOCS, pendientes: [] }).salida).toBe(SALIDA.LIMPIO);
+  });
+
+  it('CA-9 — devuelve los pendientes de aplicación, para que main pueda decir cuántos son', () => {
+    const veredicto = contrastar({
+      ficheros: DOCS,
+      pendientes: ['docs/roadmap.md', ...PENDIENTE_APP],
+      versionRama: '0.2.0',
+    });
+    expect(veredicto.pendientes).toEqual(PENDIENTE_APP);
+  });
+
+  it('CA-8 — el mensaje de la abstención: se distingue, nombra, dice la salida y no habla de la versión', () => {
+    const muchos = Array.from({ length: 12 }, (_, i) => `src/pendiente-${i}.ts`);
+    const { mensaje } = contrastar({ ficheros: DOCS, pendientes: muchos });
+    // 1. Frase propia: ni «Bandera desconocida» ni «No hay con que comparar».
+    expect(mensaje).toContain('pendiente sin commitear');
+    // 2. Nombra los ficheros, con el mismo recorte y el mismo formato que `sin-subir`.
+    expect(mensaje).toContain('  · src/pendiente-0.ts');
+    expect(mensaje).toContain('  · src/pendiente-9.ts');
+    expect(mensaje).not.toContain('src/pendiente-10.ts');
+    expect(mensaje).toContain('y 2 mas.');
+    // 3. Dice la salida.
+    expect(mensaje).toMatch(/commitea/i);
+    // 4. Y no afirma nada sobre la versión: no es un veredicto, es la negativa a emitir
+    //    uno, y sugerir aquí el remedio del `1` sería inventarse el veredicto que falta.
+    expect(mensaje).not.toContain('npm version');
+    expect(mensaje).not.toMatch(/\bsub[ei]\w*/i);
   });
 });
