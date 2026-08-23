@@ -1,0 +1,11 @@
+SPEC-046 CA-2 — M4 en las tres posiciones de la lista, a 360 y 1280 px
+360 px · fila primera (0) · página arriba → dialog.editar-vigilada[data-testid="editar-panel"]: top=404 bottom=800 (alto 396) sobre una ventana de 800 px · dentro de la ventana · desplazamiento del documento 0 → 0
+360 px · fila intermedia (13) · página arriba → dialog.editar-vigilada[data-testid="editar-panel"]: top=404 bottom=800 (alto 396) sobre una ventana de 800 px · dentro de la ventana · desplazamiento del documento 1313 → 1313
+360 px · fila intermedia (13) · página desplazada → dialog.editar-vigilada[data-testid="editar-panel"]: top=404 bottom=800 (alto 396) sobre una ventana de 800 px · dentro de la ventana · desplazamiento del documento 1333 → 1333
+360 px · fila última (25) · página arriba → dialog.editar-vigilada[data-testid="editar-panel"]: top=404 bottom=800 (alto 396) sobre una ventana de 800 px · dentro de la ventana · desplazamiento del documento 2501 → 2501
+360 px · fila última (25) · página desplazada → dialog.editar-vigilada[data-testid="editar-panel"]: top=404 bottom=800 (alto 396) sobre una ventana de 800 px · dentro de la ventana · desplazamiento del documento 2520 → 2520
+1280 px · fila primera (0) · página arriba → dialog.editar-vigilada[data-testid="editar-panel"]: top=504 bottom=900 (alto 396) sobre una ventana de 900 px · dentro de la ventana · desplazamiento del documento 0 → 0
+1280 px · fila intermedia (13) · página arriba → dialog.editar-vigilada[data-testid="editar-panel"]: top=504 bottom=900 (alto 396) sobre una ventana de 900 px · dentro de la ventana · desplazamiento del documento 764 → 764
+1280 px · fila intermedia (13) · página desplazada → dialog.editar-vigilada[data-testid="editar-panel"]: top=504 bottom=900 (alto 396) sobre una ventana de 900 px · dentro de la ventana · desplazamiento del documento 764 → 764
+1280 px · fila última (25) · página arriba → dialog.editar-vigilada[data-testid="editar-panel"]: top=504 bottom=900 (alto 396) sobre una ventana de 900 px · dentro de la ventana · desplazamiento del documento 1447 → 1447
+1280 px · fila última (25) · página desplazada → dialog.editar-vigilada[data-testid="editar-panel"]: top=504 bottom=900 (alto 396) sobre una ventana de 900 px · dentro de la ventana · desplazamiento del documento 1447 → 1447

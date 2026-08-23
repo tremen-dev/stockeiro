@@ -1,5 +1,5 @@
 SPEC-041 CA-22 — M1 sobre el estado «lista con filas + alta desplegada»
 ancho 360 · con filas + alta desplegada · M1: 0 violaciones sobre 16 elementos medidos (ventana 360)
-ancho 360 · página completa · M1: 0 violaciones sobre 52 elementos medidos
+ancho 360 · página completa · M1: 0 violaciones sobre 60 elementos medidos
 ancho 390 · con filas + alta desplegada · M1: 0 violaciones sobre 16 elementos medidos (ventana 390)
-ancho 390 · página completa · M1: 0 violaciones sobre 52 elementos medidos
+ancho 390 · página completa · M1: 0 violaciones sobre 60 elementos medidos
