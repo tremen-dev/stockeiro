@@ -42,9 +42,54 @@ describe('SPEC-048 CA-11: RI-03 existe y está en la serie de ingeniería', () =
     expect(seccionDeIngenieria()).toContain('**RI-03**');
   });
 
-  it('y la serie de ingeniería sigue completa y en orden: RI-01, RI-02, RI-03', () => {
-    const encontradas = [...seccionDeIngenieria().matchAll(/\*\*(RI-\d+)\*\*/g)].map((m) => m[1]);
-    expect(encontradas).toEqual(['RI-01', 'RI-02', 'RI-03']);
+  it('y la serie de ingeniería sigue bien formada, con RI-03 dentro', () => {
+    // **`F-SPEC-048-3` — re-encuadrado el 2026-08-23, antes del merge.**
+    //
+    // Qué vigilaba antes: que la serie fuera EXACTAMENTE `['RI-01', 'RI-02', 'RI-03']`.
+    // Una foto de su extensión de hoy: cierta mientras tres fueran tres, y roja el día
+    // que alguien escriba RI-04 sin que RI-04 tenga nada de malo. Es la forma exacta que
+    // CA-13 acaba de re-encuadrar en `tests/reglas-ingenieria-hecho-vivo.test.ts`,
+    // cometida otra vez en el mismo rango de commits, dentro de la spec que existe para
+    // eliminarla. Qué vigila ahora: la propiedad que no caduca —la serie empieza en
+    // RI-01, va en orden, no salta números ni se repite, y RI-03 está dentro—. Lo que
+    // CA-11 afirma sigue entero, y el contenido de RI-03 lo miden los bloques de abajo.
+    //
+    // Esto es guardia **PROPIA** de SPEC-048, y ahí está la diferencia con
+    // `F-SPEC-048-1`: no hay fichero ajeno, no hay arbitraje que pedir y no hay
+    // beneficiario que apartar. Sólo hay que hacerlo bien, y hacerlo antes del merge —
+    // embarcarlo sabiendo lo que es sería la sexta instancia del defecto, y el argumento
+    // «ya lo cogerá el follow-up» es el que dejó `main` en rojo.
+    //
+    // **La frontera que decide, escrita para quien pase por aquí:** ¿la lista crece por
+    // diseño o está cerrada por diseño? El literal del `matcher` de `src/proxy.ts` o los
+    // `scripts` de `package.json` están CERRADOS: congelarlos al milímetro es una guardia
+    // correcta, y su rojo dice «alguien añadió algo sin un CA que lo pida». La serie RI
+    // CRECE: congelar su extensión es una foto, y su rojo sólo dice «el proyecto avanzó»,
+    // que no es información.
+    const numeros = (fuente: string) =>
+      [...fuente.matchAll(/\*\*RI-(\d+)\*\*/g)].map((m) => Number(m[1]));
+
+    /** La propiedad entera, aislada para poder volver a ejecutarla contra una serie mutada. */
+    const serieSana = (serie: number[]) =>
+      serie.length > 0 && serie.every((n, i) => n === i + 1) && serie.includes(3);
+
+    const serie = numeros(seccionDeIngenieria());
+    expect(serie, 'la serie RI ni salta números, ni se repite, ni se desordena').toEqual(
+      serie.map((_, i) => i + 1),
+    );
+    expect(serie, 'RI-03 tiene que estar dentro de la serie').toContain(3);
+    expect(serieSana(serie), 'la serie de ingeniería del árbol real no cumple la propiedad').toBe(
+      true,
+    );
+
+    // …y la MISMA comparación rechaza las cuatro formas de romperla, más la serie vacía.
+    // Sin esto estaría afirmando una propiedad que no he probado, que es la otra mitad
+    // del defecto que esta spec persigue.
+    expect(serieSana([1, 2, 4]), 'acepta un hueco: RI-03 podría desaparecer sin ruido').toBe(false);
+    expect(serieSana([1, 2, 3, 3]), 'acepta un número repetido').toBe(false);
+    expect(serieSana([2, 1, 3]), 'acepta la serie desordenada').toBe(false);
+    expect(serieSana([1, 2]), 'acepta que RI-03 desaparezca de la serie').toBe(false);
+    expect(serieSana([]), 'acepta una sección de ingeniería vacía').toBe(false);
   });
 });
 
