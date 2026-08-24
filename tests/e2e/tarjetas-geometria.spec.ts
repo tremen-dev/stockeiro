@@ -1,5 +1,5 @@
 import { mkdirSync, writeFileSync } from 'node:fs';
-import { test, expect } from '@playwright/test';
+import { test, expect, type Page } from '@playwright/test';
 import {
   ANCHOS_TABLA,
   ANCHOS_TELEFONO,
@@ -313,6 +313,72 @@ test('SPEC-054 CA-5: por encima del canto, la tabla se sigue desplazando en SU c
 const m1Ventana = (ancho: number) => ancho + TOLERANCIA_PX;
 
 /* ────────────────────────────────────────────────────────────────────────────
+   El suelo táctil, afirmado en el 44 EXACTO — F-VERIF-054-1
+   ──────────────────────────────────────────────────────────────────────────── */
+
+/**
+ * Los campos de formulario que CA-13 y CA-17 alcanzan, en las tres superficies donde
+ * viven: los de compra y venta de `/cartera`, los del alta plegable de `/vigiladas` y los
+ * de la capa de edición —que son los mismos, porque la capa monta `WatchForm`—.
+ */
+const CAMPOS_DE_FORMULARIO = [
+  '.auth-form input',
+  '.auth-form select',
+  '.auth-form textarea',
+  '.symbol-search-input',
+];
+
+/** Misma trampa que en `avisosDentroDe`: `A B, C` se lee `(A B), (C)`. Se reparte a mano. */
+const camposDentroDe = (raices: string) =>
+  raices
+    .split(',')
+    .flatMap((raiz) => CAMPOS_DE_FORMULARIO.map((campo) => `${raiz.trim()} ${campo}`))
+    .join(', ');
+
+/**
+ * **Los campos, medidos SIN tolerancia ninguna** (F-VERIF-054-1).
+ *
+ * `medirAreaTactil` filtra con `alto < suelo − TOLERANCIA_PX`, y el módulo dice para qué
+ * existe esa resta: *«tolerancia de redondeo del motor… NO es una holgura de diseño: es
+ * que `getBoundingClientRect()` devuelve fracciones y `clientWidth` enteros»*. O sea, vale
+ * para un 43,6 que en realidad quería ser 44 — **para fracciones y sólo para fracciones**.
+ *
+ * Y estos campos no eran una fracción. Median **43,000 px exactos** —`padding: 10px`
+ * arriba y abajo, `border: 1px` y 21 de línea— en los formularios de compra y venta de
+ * `/cartera` (8), en el alta desplegada de `/vigiladas` (5) y en la capa de edición (4):
+ * un píxel entero por debajo del suelo, colándose por la puerta que existe para el
+ * redondeo. Con la tolerancia haciendo de holgura del suelo, el umbral efectivo de M5 era
+ * **43 y no 44** — la versión suave de lo que `F-ADR-026-1` prohíbe por escrito.
+ *
+ * Esta guardia **no toca `medirAreaTactil`, ni `TOLERANCIA_PX`, ni el suelo**: añade al
+ * lado una afirmación más estricta, con el mismo primitivo de medida (`medirCajas`) y con
+ * el número tal y como lo escribe CA-13 —*«caja de al menos 44 × 44 px CSS»*—. Aflojar un
+ * suelo está prohibido; apretar la afirmación hasta el suelo que el CA declara, no.
+ */
+async function camposBajoElSuelo(page: Page, raices: string): Promise<string[]> {
+  const cajas = await medirCajas(page, camposDentroDe(raices));
+  return (
+    cajas
+      // Caja 0 × 0 = no está pintado (el alta plegada, la representación oculta). Misma
+      // regla que M1 y que M5.
+      .filter((c) => c.ancho > 0 || c.alto > 0)
+      .filter((c) => c.alto < SUELO_TACTIL_PX)
+      .map((c) => `${c.selector} «${c.texto}» ${c.ancho.toFixed(2)}x${c.alto.toFixed(2)}`)
+  );
+}
+
+/** El porqué, entero, en el mensaje del fallo: quien lo lea no tiene que venir hasta aquí. */
+const porQueSinTolerancia = (donde: string) =>
+  `${donde}: hay campos de formulario cuya caja NO llega a ${SUELO_TACTIL_PX} px de alto, ` +
+  `medida sin tolerancia. Ojo con la salida fácil: M5 los da por buenos porque compara ` +
+  `contra \`suelo − TOLERANCIA_PX\`, y esa resta existe para las FRACCIONES que devuelve ` +
+  `\`getBoundingClientRect()\`, no para regalar un píxel de holgura. Un campo de 43,00 ` +
+  `exactos no es un 44 mal redondeado: es un 43. La salida legítima es AGRANDARLO —bajo el ` +
+  `canto, que CE-5 dice que el escritorio no paga la factura del móvil—; subir la ` +
+  `tolerancia o bajar el suelo sería F-ADR-026-1 cumpliéndose por escrito (ADR-026 §4, ` +
+  `ADR-034 §6).`;
+
+/* ────────────────────────────────────────────────────────────────────────────
    CA-13 — M5, el área táctil, con su prueba de eficacia
    ──────────────────────────────────────────────────────────────────────────── */
 
@@ -361,8 +427,53 @@ test('SPEC-054 CA-13: todo control llega al suelo táctil, y la medida ve el def
           `${SUELO_TACTIL_PX} px que se solapan no son dos dianas: son una zona en la que no ` +
           `se sabe qué se está pulsando`,
       ).toEqual([]);
+
+      // Y el mismo suelo, otra vez, contra el 44 pelado (F-VERIF-054-1).
+      const rasos = await camposBajoElSuelo(page, RAICES_EN_ALCANCE);
+      lineas.push(
+        `${pantalla.ruta} · ancho ${ancho} · campos por debajo de ${SUELO_TACTIL_PX} sin ` +
+          `tolerancia=${rasos.length}${rasos.length > 0 ? `\n  ${rasos.join('\n  ')}` : ''}`,
+      );
+      expect(rasos, porQueSinTolerancia(`${pantalla.ruta} a ${ancho} px`)).toEqual([]);
     }
   }
+
+  /*
+    ── La capa de edición ────────────────────────────────────────────────────────────
+
+    `RAICES_EN_ALCANCE` la nombra desde el primer día, pero ninguna guardia de este fichero
+    llegaba a **abrirla**: el bucle de arriba mide la pantalla con la capa cerrada, así que
+    sus campos no los medía nadie y el alcance declarado era mayor que el alcance real. Se
+    abre una vez, en el ancho más estrecho, que es donde cuesta más.
+  */
+  await abrirAncha(page, PANTALLAS[0]);
+  await ponerVentana(page, ANCHOS_TELEFONO[0]);
+  await page
+    .locator(`${TARJETAS_VIGILADAS} > li`)
+    .first()
+    .getByTestId('editar-zonas-tarjeta')
+    .click();
+  await page.locator('dialog.editar-vigilada').waitFor({ state: 'visible' });
+
+  const m5Capa = await medirAreaTactil(page, { raices: 'dialog.editar-vigilada' });
+  const rasosCapa = await camposBajoElSuelo(page, 'dialog.editar-vigilada');
+  lineas.push(
+    `capa de edición · ancho ${ANCHOS_TELEFONO[0]} · ${describirAreaTactil(m5Capa)} · campos ` +
+      `por debajo de ${SUELO_TACTIL_PX} sin tolerancia=${rasosCapa.length}` +
+      `${rasosCapa.length > 0 ? `\n  ${rasosCapa.join('\n  ')}` : ''}`,
+  );
+  expect(
+    m5Capa.medidos,
+    `la capa de edición no aportó ni un control a M5: se abrió mal, o la medida no está ` +
+      `mirando donde cree`,
+  ).toBeGreaterThan(2);
+  expect(
+    m5Capa.pequenos.map((c) => `${c.selector} «${c.rotulo}»`),
+    `la capa de edición tiene controles por debajo del suelo táctil.\n${describirAreaTactil(m5Capa)}`,
+  ).toEqual([]);
+  expect(rasosCapa, porQueSinTolerancia('la capa de edición')).toEqual([]);
+  await page.getByTestId('editar-cancelar').click();
+  await expect(page.locator('dialog.editar-vigilada')).toHaveCount(0);
 
   /*
     ── Prueba de eficacia (ADR-026 §7) ───────────────────────────────────────────────
@@ -643,6 +754,16 @@ test('SPEC-054 CA-17: cabecera, orden, alta plegable y formularios de cartera', 
             `${s.nombre} a ${ancho} px tiene controles por debajo del suelo táctil`,
           ).toEqual([]);
 
+          // El mismo suelo contra el 44 pelado. Aquí importa más que en ningún otro sitio:
+          // estas son EXACTAMENTE las superficies donde vivían los 43,00 (F-VERIF-054-1).
+          const rasos = await camposBajoElSuelo(page, s.selector);
+          expect(
+            rasos,
+            porQueSinTolerancia(
+              `${s.nombre} a ${ancho} px (alta ${plegado ? 'plegada' : 'desplegada'})`,
+            ),
+          ).toEqual([]);
+
           // Y ninguna de estas superficies declara un contenedor con desplazamiento
           // horizontal: la salida de «no cabe» aquí es que quepa, no que se arrastre.
           const arrastrables = (await medirOverflowHorizontal(page)).filter(
@@ -655,7 +776,8 @@ test('SPEC-054 CA-17: cabecera, orden, alta plegable y formularios de cartera', 
 
           lineas.push(
             `${s.nombre} · ancho ${ancho} · alta ${plegado ? 'plegada' : 'desplegada'} · ` +
-              `M1 ${m1.violaciones.length}/${m1.medidos} · M5 ${m5.pequenos.length}/${m5.medidos}`,
+              `M1 ${m1.violaciones.length}/${m1.medidos} · M5 ${m5.pequenos.length}/${m5.medidos} · ` +
+              `campos bajo ${SUELO_TACTIL_PX} sin tolerancia ${rasos.length}`,
           );
         }
 
