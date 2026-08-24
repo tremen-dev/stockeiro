@@ -1,10 +1,11 @@
 ---
 id: ADR-034
 tipo: adr
-estado: borrador
+estado: aprobada
 historial:
   - {estado: borrador, fecha: 2026-08-24, por: sdd-arquitecto}
-aprobada-por:
+  - {estado: aprobada, fecha: 2026-08-24, por: humano (Alberto Fojo)}
+aprobada-por: humano (Alberto Fojo)
 ---
 # ADR-034: La tabla de datos conmuta a tarjetas por debajo de 720 px, que es el único breakpoint de **modo** del producto, y el área táctil se mide
 

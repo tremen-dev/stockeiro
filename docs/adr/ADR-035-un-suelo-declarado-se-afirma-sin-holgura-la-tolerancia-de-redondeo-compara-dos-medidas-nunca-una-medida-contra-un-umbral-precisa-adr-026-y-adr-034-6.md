@@ -1,10 +1,11 @@
 ---
 id: ADR-035
 tipo: adr
-estado: borrador
+estado: aprobada
 historial:
   - {estado: borrador, fecha: 2026-08-24, por: sdd-arquitecto}
-aprobada-por:
+  - {estado: aprobada, fecha: 2026-08-24, por: humano (Alberto Fojo)}
+aprobada-por: humano (Alberto Fojo)
 ---
 # ADR-035: Un suelo declarado se afirma sin holgura: la tolerancia de redondeo compara dos medidas, nunca una medida contra un umbral (precisa ADR-026 y ADR-034 §6)
 
