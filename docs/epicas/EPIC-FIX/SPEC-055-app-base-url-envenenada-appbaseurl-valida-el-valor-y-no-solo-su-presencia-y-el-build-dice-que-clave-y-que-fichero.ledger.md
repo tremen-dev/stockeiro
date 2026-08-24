@@ -13,7 +13,7 @@ epica: EPIC-FIX
   El arquitecto lo reescribio el 2026-08-24 (§Vuelta del 2.º RED) y el implementador respondio
   el mismo dia (§Respuesta al 2.º RED): el cambio vive entero en el bloque de CA-12 de
   `tests/app-base-url.test.ts`, con el detector extraido a funcion pura y la prueba de eficacia
-  por mutacion en los dos sentidos. **Espera al verificador**. La pasada anterior cerro F1 de la
+  por mutacion en los dos sentidos. La pasada anterior cerro F1 de la
   1.a vuelta (CA-5), verificado.
 - Rama: `ft/SPEC-055-app-base-url-envenenada-appbaseurl-valida-el-valor-y-no-solo-su-presencia`
   (la abrio el humano desde `origin/main`; su primer commit trae la spec y este ledger).
@@ -32,7 +32,7 @@ epica: EPIC-FIX
   `tests/ci-workflow.test.ts`, ni `tests/entornos-de-despliegue.test.ts` (territorio de
   SPEC-052); ni `tests/spec-031-frontera.test.ts`, ni `tests/tarjeta-frontera.test.ts`, ni
   `src/lib/auth/password-reset.ts`.
-- Suite completa en verde tras el cambio: **113 ficheros, 1767 casos**, mas `typecheck` y
+- Suite completa en verde tras el cambio: **113 ficheros, 1779 casos**, mas `typecheck` y
   `lint` limpios.
 
 ## Matriz de criterios de aceptación
