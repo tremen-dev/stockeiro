@@ -306,13 +306,18 @@ describe('SPEC-055 CA-4 — ruta, query, fragmento y credenciales se rechazan', 
 });
 
 /**
- * CA-5 — los valores vivos se LEEN de sus fuentes, no se escriben aquí.
+ * CA-5 — los DOS valores VIVOS se LEEN de sus fuentes; el tercero se escribe aquí.
  *
  * `FOUNDATION.md` §Cómo se trabaja aquí: *un test de frontera fija una propiedad, no un
  * estado del árbol*. La propiedad es «lo que CI y el e2e usan de verdad sigue pasando la
  * guardia»; si mañana alguien cambia el valor de CI por algo que la guardia rechaza, el
- * rojo sale aquí y no en un despliegue. Leer estos ficheros no es tocarlos: ninguno de
- * los tres se modifica en esta entrega.
+ * rojo sale aquí y no en un despliegue. Leer esos dos ficheros no es tocarlos: ninguno de
+ * los dos se modifica en esta entrega, y ninguno es de otra spec en vuelo.
+ *
+ * **D-7 (spec, §Decisiones): leer un fichero ajeno y aseverar sobre su contenido acopla
+ * igual que escribirlo.** Por eso aquí se lee lo que un proceso real CONSUME —CI construye
+ * con su valor, el e2e sirve con el suyo— y no documentación de otra spec. Ver la nota
+ * junto al caso del origen `https`, que por eso va escrito y no leído.
  */
 function valoresDeCi(): string[] {
   const ci = parseYaml(fuente('.github/workflows/ci.yml')) as unknown;
@@ -344,17 +349,6 @@ function valorDelE2e(): string {
   return m![1].replace(/\$\{([^}]+)\}/g, (_, nombre: string) => constantes.get(nombre.trim()) ?? '');
 }
 
-/**
- * El de `.env.example`. Las comillas se quitan A PROPÓSITO y con nombre: el fichero las
- * lleva porque es formato `dotenv`, y el valor que la variable acaba teniendo no las
- * incluye. Copiarlas con comillas es precisamente una de las filas rechazadas.
- */
-function valorDeEnvExample(): string {
-  const m = /^APP_BASE_URL=(.+)$/m.exec(fuente('.env.example'));
-  expect(m, 'no se encontró APP_BASE_URL en .env.example: centinela').not.toBeNull();
-  return m![1].trim().replace(/^"(.*)"$/, '$1').replace(/^'(.*)'$/, '$1');
-}
-
 describe('SPEC-055 CA-5 — los valores que hoy funcionan de verdad siguen funcionando', () => {
   it('el de CI, leído de .github/workflows/ci.yml', () => {
     const valores = valoresDeCi();
@@ -372,10 +366,22 @@ describe('SPEC-055 CA-5 — los valores que hoy funcionan de verdad siguen funci
     expect(appBaseUrl(entorno(v))).toBe(v.replace(/\/+$/, ''));
   });
 
-  it('y el origen https de producción, leído de .env.example', () => {
-    const v = valorDeEnvExample();
-    expect(v.startsWith('https://'), `.env.example declara «${v}», que no es https`).toBe(true);
-    expect(appBaseUrl(entorno(v))).toBe(v.replace(/\/+$/, ''));
+  // Éste va ESCRITO aquí, y los dos de arriba leídos, por **D-7** de la spec: se lee lo que
+  // un proceso real consume —CI construye con su `APP_BASE_URL`, el e2e sirve con el suyo—,
+  // y leer eso compra anticipación: si mañana uno cambia a algo que la guardia rechaza, el
+  // rojo sale aquí antes que en CI o en un despliegue, y lo paga el mismo que lo cobra.
+  // Un origen `https` de producción no tiene fichero VIVO del que salir: el que hubo aquí se
+  // sacaba de `.env.example`, que no lo lee ningún proceso —es documentación para humanos— y
+  // encima es territorio de SPEC-052, que ahora mismo cambia ese literal a
+  // `http://localhost:3000`. Aseverar sobre él acoplaba igual que escribirlo: dejaba un rojo
+  // garantizado bajo la spec hermana, con la cara de un cambio legítimo suyo. Así que el
+  // valor va escrito: es el mismo literal que CA-6 ya exige dentro del mensaje, con lo que no
+  // entra ningún valor nuevo al fichero. Si alguien quiere la guardia de que el ejemplo de
+  // `.env.example` pasa `appBaseUrl()` —propiedad legítima—, vive con el dueño del fichero:
+  // queda pedida a SPEC-052 en `D-SPEC-055-1`. NO la traigas de vuelta aquí.
+  it('y el origen https de producción, escrito aquí y no leído de ningún fichero (D-7)', () => {
+    const v = 'https://stockeiro.tremen.dev';
+    expect(appBaseUrl(entorno(v))).toBe(v);
   });
 
   it('http y localhost valen sin excepción ni «sólo en desarrollo»', () => {
