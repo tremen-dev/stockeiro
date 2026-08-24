@@ -69,7 +69,8 @@ epica: EPIC-FIX
 
 **Estado de la suite tras la entrega:** `tests/entornos-de-despliegue.test.ts` → **43/43 verde**;
 `tests/tarjeta-guardias-ampliadas.test.ts` (re-encuadrada) → **15/15 verde**. `npm run typecheck`
-y `npm run lint` limpios. **Suite completa: 1711/1711 en verde, 110/110 ficheros.**
+y `npm run lint` limpios. **Suite completa: 1748/1748 en verde, 113/113 ficheros**, sobre la
+base nueva `825046f` (con SPEC-053 y SPEC-054 ya dentro).
 
 > Antes del re-encuadre de CA-18 la suite estaba en **1702/1703**, con el único rojo de
 > `F-SPEC-052-7` — que no era un defecto de esta entrega sino una guardia ajena caducada. Con
@@ -125,22 +126,25 @@ que es justo lo que esta spec **no** cambia).
   gate**. Evidencia a pegar aquí: salida de `git diff --name-only <base>...<rama>`, con
   la base indicada.
 
-  **Ejecutado el 2026-08-24.** Base: `origin/main` en `3b6fc8b` (`git merge-base origin/main
-  HEAD` lo confirma). Comando y salida literal:
+  **Ejecutado el 2026-08-24, y RE-EJECUTADO sobre la base nueva** tras el rebase que se
+  explica abajo. Base vigente: `origin/main` en **`825046f`**. Comando y salida literal:
 
   ```
   $ git merge-base origin/main HEAD
-  3b6fc8bd2611958e6faeb15f3c60f51341f6fe88
+  825046fabfe8aad319648881d93e852c93ff504d
 
-  $ git diff --name-only 3b6fc8b...HEAD
+  $ git diff --name-only 825046f...HEAD
   .env.example
   docs/despliegue.md
   docs/epicas/EPIC-FIX/SPEC-052-….ledger.md
   docs/epicas/EPIC-FIX/SPEC-052-….md
   tests/entornos-de-despliegue.test.ts
+  tests/tarjeta-guardias-ampliadas.test.ts
   ```
 
-  **Ni un fichero bajo `src/` ni bajo `drizzle/`.** Consecuencia declarada, comprobada:
+  **Ni un fichero bajo `src/` ni bajo `drizzle/`.** El sexto —la guardia ajena— entra por
+  **CA-18**, con autorización nominal del humano; los otros cinco son los de siempre.
+  Consecuencia declarada, comprobada:
 
   ```
   $ npm run version:check
@@ -148,6 +152,26 @@ que es justo lo que esta spec **no** cambia).
   [check-version-bump] El diff no toca codigo de aplicacion: no hay nada que subir.
   (exit 0)
   ```
+
+  > 🔁 **La base se movió mientras esto se implementaba, y el gate lo cazó.** La primera
+  > pasada iba sobre `3b6fc8b` y decía lo mismo en verde. Antes de cerrar se refrescó
+  > `origin/main` y **habían entrado dos merges**: **SPEC-053** (PR #60, el lockfile —
+  > subió la versión a **0.4.0**) y **SPEC-054** (PR #62, la interfaz en el teléfono).
+  > Con la base nueva, `version:check` pasó a **rojo con exit 1**:
+  >
+  > ```
+  > La version BAJA: 0.4.0 en la base y 0.3.4 en esta rama.
+  > Suele ser un rebase mal resuelto. Bajarla no es "no subirla": afirma que este
+  > artefacto es anterior al que ya esta desplegado.
+  > ```
+  >
+  > **No era un defecto de esta entrega ni pedía subir la versión**: el delta sigue sin
+  > tocar código de aplicación. Era la rama sentada sobre una base vieja. Se resolvió
+  > **rebasando sobre `825046f`** —cinco commits, sin un solo conflicto: ninguno de los
+  > 60 ficheros que trajeron esas dos specs coincide con los seis de esta—, `npm ci` para
+  > realinear con el `package-lock.json` nuevo, y **re-ejecutando los gates enteros**. No
+  > se tocó `package.json`: subir la versión aquí habría sido afirmar que esta entrega
+  > toca producto, que es justo lo que CA-15 dice que no hace.
 
   Eso es correcto aquí y **no** un verde vacío: `.sdd.json` vigila `src/` y `app/`, y esta
   entrega es documentación más una guardia. Ejecutado **con el árbol limpio y después de
@@ -367,7 +391,7 @@ No aplica: esta spec no cambia ninguna superficie de UI. La evidencia es textual
 
   ↳ **APLICADO y CERRADO el 2026-08-24 por sdd-implementador.** Las seis partes están
   implementadas y probadas; el fichero ajeno queda en **15/15 verde** y la suite completa en
-  **1711/1711**. Lo que se hizo, y la evidencia de que no es un verde de conveniencia:
+  **1748/1748** sobre la base `825046f`. Lo que se hizo, y la evidencia de que no es un verde de conveniencia:
 
   **1. El criterio cambió de verdad, y se puede medir.** Ejecutando **el criterio viejo** (la
   cadena) sobre el árbol de hoy salen **nueve** ficheros; el nuevo (la firma) devuelve
@@ -487,7 +511,8 @@ No aplica: esta spec no cambia ninguna superficie de UI. La evidencia es textual
 
 **Estado real (2026-08-24)**: **implementación TERMINADA, con CA-18 incluido**; spec en
 `en-revision`; rama `ft/SPEC-052-sin-app-base-url-el-build-ya-no-sale-verde` sobre `origin/main`
-en `3b6fc8b`. **Suite completa en verde: 1711/1711.** **Sin PR y sin merge** — eso es del
+en **`825046f`** (rebasada tras los merges de SPEC-053 y SPEC-054). **Suite completa en verde:
+1748/1748**, y `version:check` en verde con el árbol limpio. **Sin PR y sin merge** — eso es del
 orquestador.
 
 **`F-SPEC-052-7` está CERRADO, y conviene leer su cierre antes que nada.** El rojo de la guardia
@@ -506,13 +531,16 @@ el cierre de ese follow-up, junto con la medida del criterio viejo (9 ficheros) 
 2. `npx vitest run tests/tarjeta-guardias-ampliadas.test.ts` → **15/15**. La guardia ajena
    re-encuadrada, con las partes (a)…(d) de CA-18.
 3. `npm run typecheck` y `npm run lint` → limpios.
-4. `npm run test` → **1711/1711**, 110/110 ficheros. **Sin excepciones ni rojos declarados.**
+4. `npm run test` → **1748/1748**, 113/113 ficheros. **Sin excepciones ni rojos declarados.**
 5. Los dos `n-a` **ya están ejecutados y con su salida literal pegada** en N-1 y N-2 de arriba
    (incluido el **control** del build en verde con las cuatro claves de la CI, que es lo que
    hace que el rojo de N-2 signifique algo).
 6. `npm run version:check` → *«el diff no toca codigo de aplicacion»*, exit 0, **con el árbol
-   limpio**. Si SPEC-053 (PR #60, el lockfile) se mergea antes, **re-ejecútalo**: la versión
-   base es un recurso compartido y la reclama quien mergea primero.
+   limpio**. **Vuelve a ejecutarlo si `origin/main` se mueve otra vez**, y no supongas que un
+   verde de ayer sigue valiendo: durante esta entrega la base avanzó dos merges y el gate pasó
+   a rojo por versión que **baja** sin que el delta hubiera cambiado ni una línea. La salida es
+   **rebasar**, nunca subir la versión: subirla afirmaría que esta entrega toca producto, que
+   es exactamente lo que CA-15 niega. Está contado en N-1.
 
 **Para comprobar que las dos guardias no son decoración, sin creerse el ledger:**
 
