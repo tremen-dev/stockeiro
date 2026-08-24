@@ -1,4 +1,4 @@
-import { readFileSync, readdirSync } from 'node:fs';
+import { readFileSync } from 'node:fs';
 import { describe, expect, it } from 'vitest';
 
 /**
@@ -22,7 +22,9 @@ import { describe, expect, it } from 'vitest';
  *          segundo literal que la parafrasee
  *   CA-15  el pie sigue sin saber en qué ruta está: ni `usePathname`, ni `headers`, ni
  *          prop, ni la palabra `landing`
- *   CA-20  ni una dependencia nueva, ni un script nuevo, ni un ADR nuevo
+ *   CA-20  ni una dependencia nueva y ni un script nuevo (el tercer caso, «ni un ADR
+ *          nuevo», lo retiró SPEC-053 CA-13 el 2026-08-24; el porqué, en el hueco
+ *          que dejó)
  *   CA-22  las condiciones 2, 3 y 4 de la ÚNICA guardia ajena que esta spec estrecha,
  *          que son propiedades de `tests/e2e/ayuda.spec.ts` y se comprueban aquí
  *          (la condición 1 —«y ningún otro fichero»— es de acotación y va al gate,
@@ -231,7 +233,8 @@ describe('SPEC-050 CA-15: el pie sigue sin saber nada', () => {
 });
 
 /* ────────────────────────────────────────────────────────────────────────────
-   CA-20 — sin dependencia nueva, sin script nuevo, sin ADR nuevo
+   CA-20 — sin dependencia nueva y sin script nuevo
+   (el «sin ADR nuevo» lo retiró SPEC-053 CA-13 el 2026-08-24; el porqué, más abajo)
    ──────────────────────────────────────────────────────────────────────────── */
 
 describe('SPEC-050 CA-20: esto es presentación pura', () => {
@@ -307,15 +310,55 @@ describe('SPEC-050 CA-20: esto es presentación pura', () => {
     expect(pkg.version).toMatch(/^\d+\.\d+\.\d+$/);
   });
 
-  it('`docs/adr/` no gana ningún fichero por esta spec: no hay decisión que registrar', () => {
-    const adrs = readdirSync('docs/adr').filter((f) => f.endsWith('.md'));
-    const citantes = adrs.filter((f) => fuente(`docs/adr/${f}`).includes('SPEC-050'));
-    expect(
-      citantes,
-      'esta spec no toma ninguna decisión que constriña trabajo futuro (CE-M3): ' +
-        'desacoplar `.brand` de `.app-nav` REDUCE acoplamiento, no abre puerta a nada',
-    ).toEqual([]);
-  });
+  /**
+   * ⚠️ **Caso RETIRADO el 2026-08-24 por SPEC-053, bajo su CA-13.** Aquí vivía
+   * *«`docs/adr/` no gana ningún fichero por esta spec: no hay decisión que registrar»*,
+   * y no se ha sustituido por nada: **este hueco es la retirada**.
+   *
+   * - **Qué vigilaba antes**: que **ningún** fichero de `docs/adr/` contuviera la cadena
+   *   `SPEC-050`, como prueba de que esta spec no registró ninguna decisión que
+   *   constriñera trabajo futuro (CE-M3).
+   * - **Qué vigila ahora**: **nada en la suite.** La afirmación vuelve al **gate**, que es
+   *   donde le tocaba por **ADR-031** pto. 1.2 / **RI-03** —*«esta entrega no metió un ADR
+   *   de tapadillo»* es cierto sobre un **delta**, no sobre el árbol— y donde **ya se
+   *   consumó**: el ledger de SPEC-050 lleva su **GREEN 22/22 del 2026-08-23**. Es la
+   *   segunda salida legítima de `FOUNDATION.md` —*borrar, si lo que vigilaba era del
+   *   momento de la entrega y ya no puede volver a ser cierto*—, molde `F-SPEC-042-9`.
+   * - **Por qué ya no puede volver a ser cierto**: **SPEC-050 está en `hecho`, y una spec
+   *   en `hecho` no se reabre** (**ADR-025**). No puede registrar un ADR nunca más. Lo que
+   *   el caso negaba está zanjado; lo único que podía hacer ya era dar rojos falsos.
+   * - **Y los dio.** `ADR-033` (SPEC-053) **menciona** a SPEC-050 porque cita
+   *   **`F-SPEC-050-4`**, el hallazgo que la origina — el comportamiento sano de este
+   *   proyecto: unas specs levantan hallazgos y otras los recogen. El caso confundía
+   *   *«SPEC-050 tomó una decisión»* con *«alguien menciona a SPEC-050»*, y `docs/adr/`
+   *   **solo crece**: a diferencia de las tres guardias de SPEC-047, que caducaban a
+   *   **verde vacío**, ésta caducaba a **rojo falso**, que para la CI de un tercero.
+   * - **Por qué se retira en vez de re-encuadrarse**: el re-encuadre obvio —mirar solo la
+   *   línea *«Specs relacionadas»* del ADR— **seguiría rojo sobre el mismísimo `ADR-033`**,
+   *   porque es justo ahí donde cita `F-SPEC-050-4`. Distinguir *«la origina SPEC-053»* de
+   *   *«la levanta `F-SPEC-050-4`»* exigiría analizar prosa libre que cada ADR redacta a su
+   *   manera. Se cambiaría un rojo sin defecto detrás por otro más caro.
+   * - **Lo que NO se ha hecho, y está prohibido hacer** (CA-13 cond. 3): excluir `ADR-033`
+   *   **por nombre** del filtro. Dejaría el molde vivo para el siguiente ADR que mencione a
+   *   SPEC-050 —y habrá más—. Lo descartó el humano explícitamente.
+   * - **En virtud de qué entra**: **SPEC-053 CA-13**, autorizada **nominalmente por el
+   *   humano (Alberto Fojo) el 2026-08-24**, y escrita en la spec **antes** de
+   *   implementarse. **Quien la escribió no es quien se beneficia**: la escaló el
+   *   implementador de SPEC-053 como `F-SPEC-053-4` **sin tocar este fichero**, y el
+   *   arreglo lo redactó el **arquitecto** (`FOUNDATION.md`, ADR-031 pto. 5).
+   * - **Qué se pierde**: cazar automáticamente un ADR futuro que se retro-ajustara a
+   *   SPEC-050 presentándola como la spec que lo origina. Aceptado: sería una afirmación
+   *   falsa sobre una spec en `hecho` que ADR-025 ya prohíbe, y todo ADR pasa por el gate
+   *   humano.
+   * - **Qué NO se pierde**: **la otra mitad de CA-20 sigue intacta y verde** —las listas
+   *   exactas de `dependencies`, `devDependencies` y `scripts`, y que `version` sea
+   *   semver—, que sí son propiedades del árbol. No se ha tocado ni una línea suya, ni de
+   *   los otros 20 casos de este fichero, ni se ha marcado nada como saltado.
+   *
+   * *Nota mecánica*: `readdirSync` desaparece del `import` de la línea 1 porque este era su
+   * único uso y `eslint --max-warnings=0` rechaza un import sin usar. Es consecuencia de la
+   * retirada, no un cambio de criterio.
+   */
 });
 
 /* ────────────────────────────────────────────────────────────────────────────

@@ -1,7 +1,7 @@
 <!-- GENERADO por tremen-sdd (scripts/tablero.mjs). NO EDITAR A MANO. -->
 # Tablero
 
-Actualizado: 2026-08-23
+Actualizado: 2026-08-24
 
 ## EPIC-001 — vigilancia-de-zonas-de-compra-venta-con-cartera-y-avisos (hecho)
 
@@ -72,6 +72,7 @@ Actualizado: 2026-08-23
 | SPEC-046 — el-panel-de-edicion-se-abre-donde-el-usuario-mira-y-la-guardia-lo-mide | hecho | 2026-08-22 (sdd-verificador) |
 | SPEC-048 — guardias-por-diff-que-caducan-al-mergear | hecho | 2026-08-23 (sdd-verificador) |
 | SPEC-049 — el-gate-de-version-no-dice-verde-sobre-un-arbol-sucio-si-lo-que-juzga-no-esta-commiteado-se-abstiene | hecho | 2026-08-23 (sdd-verificador) |
+| SPEC-052 — sin-app-base-url-el-build-ya-no-sale-verde-el-runbook-deja-de-decir-lo-contrario-y-la-asimetria-preview-production-se-escribe | aprobada | 2026-08-23 (humano (Alberto Fojo)) |
 
 ## EPIC-INFRA (aprobada)
 
@@ -85,6 +86,7 @@ Actualizado: 2026-08-23
 | SPEC-031 — el-despliegue-dice-de-que-commit-viene-api-version-y-comprobacion-de-vida | hecho | 2026-08-18 (sdd-verificador) |
 | SPEC-032 — las-guardias-de-migracion-nada-migra-sin-permiso-y-ningun-drop-pasa-mudo | hecho | 2026-08-18 (sdd-verificador) |
 | SPEC-042 — la-limpieza-de-las-ramas-de-preview-de-neon-deja-de-ser-un-recordatorio | hecho | 2026-08-20 (sdd-verificador) |
+| SPEC-053 — la-version-vive-en-los-dos-ficheros-el-lock-deja-de-derivar-y-una-guardia-lo-mantiene | hecho | 2026-08-24 (sdd-verificador) |
 
 ## EPIC-MEJORA (aprobada)
 
@@ -130,8 +132,9 @@ Actualizado: 2026-08-23
 | ADR-030 | aprobada | lo-que-abre-una-fila-vive-anclado-a-la-ventana-y-la-geometria-mide-la-respuesta-al-gesto | 2026-08-22 (humano (Alberto Fojo)) |
 | ADR-031 | aprobada | la-guardia-por-diff-nace-anclada-a-una-ventana-fija | 2026-08-22 (humano (Alberto Fojo)) |
 | ADR-032 | aprobada | el-proveedor-de-precios-pasa-a-plan-de-pago-basic-10-000-mes-con-cuenta-propia-y-la-misma-clave | 2026-08-23 (humano (Alberto Fojo)) |
+| ADR-033 | aprobada | el-package-lock-json-lleva-la-version-de-producto-el-bump-commitea-los-dos-ficheros-y-una-propiedad-lo-vigila-enmienda-pto-8-de-adr-024 | 2026-08-23 (humano (Alberto Fojo)) |
 
 ## Resumen
 
-- hecho: 46
-- aprobada: 1
+- hecho: 47
+- aprobada: 2

@@ -21,6 +21,21 @@
  * nueva — sería un sha más largo y peor. Este script no escribe nada, no crea
  * etiquetas y no toca la rama: lee, compara y dice que no.
  *
+ * QUÉ FICHEROS TOCA EL COMANDO QUE ESTE GATE RECOMIENDA (ADR-033, que **enmienda** el
+ * pto. 8 de ADR-024). `npm version <segmento> --no-git-tag-version` edita **dos**
+ * ficheros: `package.json` y `package-lock.json` —y en el lock, **dos** campos: el
+ * `version` de la raíz y el de `packages[""]`—. Los dos ficheros entran en el
+ * **mismo commit**, y la spec que suba el número los lista **los dos** en su conjunto
+ * cerrado de ficheros. ADR-024 pto. 8 lo describió de otra forma; su intención era el contraste
+ * con las etiquetas de git, pero su letra se leyó dos veces —SPEC-051 y SPEC-050— como
+ * autoridad para revertir el lock, y de ahí salió una deriva de dos versiones (`0.3.4`
+ * en el producto contra `0.3.2` en el lock). Para reparar el lock **sin** subir el
+ * número: `npm install --package-lock-only`, que produce el mismo diff de dos líneas y
+ * no re-resuelve dependencias. En ninguno de los dos casos se edita el lock a mano.
+ * Este gate NO comprueba nada de eso —sigue comparando dos `package.json` y no mira el
+ * lock (ADR-033 pto. 7)—: quien lo vigila es la propiedad
+ * `tests/version-en-los-dos-ficheros.test.ts` (SPEC-053 CA-1).
+ *
  * QUÉ CUENTA COMO CÓDIGO DE APLICACIÓN. Las rutas que ya declara la configuración
  * del proyecto (`.sdd.json` → `rutasVigiladas`), con `src/` como suelo. Se leen de
  * ahí a propósito: una segunda lista mantenida aquí divergiría de la primera el
@@ -122,6 +137,13 @@ Para subirlo:  npm version patch --no-git-tag-version
 Guia (ADR-024 pto. 8): PATCH para un defecto, MINOR para una spec entregada,
 MAJOR reservado para el 1.0.0. No se crean etiquetas de git: la identidad del
 despliegue sigue siendo el commit.
+
+Ese comando edita DOS ficheros —package.json y package-lock.json, y en el lock
+los DOS campos \`version\`: el de la raiz y el de packages[""]— y los dos entran
+en el MISMO COMMIT (ADR-033, que enmienda el pto. 8 de ADR-024). Tu spec los
+lista los dos en su conjunto cerrado de ficheros. Para reparar el lock SIN subir
+el numero: npm install --package-lock-only. No lo edites a mano. Lo vigila
+tests/version-en-los-dos-ficheros.test.ts, no este gate.
 
 Codigos de salida:
   0  no hace falta subir nada, o ya se subio
@@ -297,6 +319,11 @@ export function evaluar({ ficheros, versionBase, versionRama, rutas }) {
         'Subelo y vuelve a intentarlo:\n' +
         '  npm version patch --no-git-tag-version   # corregiste un defecto\n' +
         '  npm version minor --no-git-tag-version   # entregaste una spec\n\n' +
+        'Ese comando edita DOS ficheros —package.json y package-lock.json— y los dos\n' +
+        'entran en el MISMO COMMIT (ADR-033, que enmienda el pto. 8 de ADR-024). No\n' +
+        'reviertas el lock: tu spec lista los dos ficheros en su conjunto cerrado, y si\n' +
+        'solo commiteas package.json la suite se pone roja\n' +
+        '(tests/version-en-los-dos-ficheros.test.ts).\n\n' +
         'No crea etiquetas de git a proposito (ADR-024 pto. 8): la identidad del\n' +
         'despliegue sigue siendo el commit.',
     };
