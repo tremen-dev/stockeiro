@@ -288,10 +288,19 @@ describe('SPEC-056 CA-20: el código, el ejemplo y la guía dicen los tres lo mi
     expect(declaradas).toContain('APP_BASE_URL');
   });
 
-  it('`APP_BASE_URL` no se toca: sigue valiendo lo que valía (SPEC-052 / SPEC-055 en vuelo)', () => {
-    // R-6: esta spec comparte `.env.example` con dos sesiones en paralelo. Que la línea
-    // vecina siga intacta es parte del acotado, no una casualidad.
-    expect(leer(ENV)).toContain('APP_BASE_URL="https://stockeiro.app"');
+  it('el remitente vive en UNA sola línea: el acotado de R-6 es una propiedad, no una promesa', () => {
+    // Esta spec comparte `.env.example` con dos sesiones en paralelo, y lo que prometió
+    // fue cambiar el valor de `RESEND_FROM` y nada más.
+    //
+    // Lo que aquí NO se hace, y es deliberado: congelar el valor de la línea vecina
+    // (`APP_BASE_URL`). Sería el patrón que `FOUNDATION.md` señala como el que caduca —
+    // una foto del árbol el día de la entrega—: se pondría rojo el día que SPEC-052
+    // cambie ese ejemplo, sin defecto ninguno detrás. Lo que sí es una propiedad estable
+    // es que la clave siga declarada una vez y que el remitente no se haya desparramado.
+    const lineas = leer(ENV).split('\n');
+    expect(lineas.filter((l) => /^#?\s*APP_BASE_URL=/.test(l))).toHaveLength(1);
+    expect(lineas.filter((l) => /^#?\s*RESEND_FROM=/.test(l))).toHaveLength(1);
+    expect(remitentesEn(leer(ENV))).toHaveLength(1);
   });
 });
 
