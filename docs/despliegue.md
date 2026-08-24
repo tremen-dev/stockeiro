@@ -88,27 +88,69 @@
 
 ## 0. Qué vamos a aprovisionar
 
-| Variable | Servicio | Para qué | Spec |
-|---|---|---|---|
-| `DATABASE_URL` | Neon | Postgres de producción | ADR-001 / F-SPEC-001-2 |
-| `DB_DRIVER` | — | `neon` en producción (por defecto) | ADR-001 |
-| `AUTH_SECRET` | — | Firma de sesión (Auth.js) | SPEC-001 / F-SPEC-001-2 |
-| `AUTH_TRUST_HOST` | — | `true` tras el proxy de Vercel | SPEC-001 |
-| `MARKETSTACK_API_KEY` | Marketstack | **Cotizaciones** (proveedor de precios). Plan **Basic, 10.000/mes**, **cuenta propia del titular** desde el 2026-08-23. **La clave NO cambió al contratar el plan: no hay rotación.** | ADR-012 / **ADR-032** / F-ADR-012-2 |
-| `TWELVE_DATA_API_KEY` | Twelve Data | **Búsqueda** de símbolos (ya no cotiza) | ADR-007 / ADR-012 |
-| `CRON_SECRET` | — | Protege `/api/cron/refresh` | ADR-004 / F-SPEC-004-1 |
-| `RESEND_API_KEY` | Resend | Envío de avisos por email **y del enlace de reset** | ADR-006 / F-SPEC-006-1 |
-| `RESEND_FROM` | Resend | Remitente (dominio verificado) | ADR-006 |
-| `APP_BASE_URL` | — | Origen absoluto de los enlaces de **recuperación de contraseña** | SPEC-023 / F-SPEC-023-3 |
-| `FEEDBACK_EMAIL` | — | **Opcional.** Buzón del canal de feedback del pie | SPEC-039 / F-SPEC-039-6 |
+| Variable | Servicio | Para qué | Entornos | Spec |
+|---|---|---|---|---|
+| `DATABASE_URL` | Neon | Postgres de producción | Preview + Production | ADR-001 / F-SPEC-001-2 |
+| `DB_DRIVER` | — | `neon` en producción (por defecto) | Opcional | ADR-001 |
+| `AUTH_SECRET` | — | Firma de sesión (Auth.js) | Preview + Production | SPEC-001 / F-SPEC-001-2 |
+| `AUTH_TRUST_HOST` | — | `true` tras el proxy de Vercel | Preview + Production | SPEC-001 |
+| `MARKETSTACK_API_KEY` | Marketstack | **Cotizaciones** (proveedor de precios). Plan **Basic, 10.000/mes**, **cuenta propia del titular** desde el 2026-08-23. **La clave NO cambió al contratar el plan: no hay rotación.** | Preview + Production | ADR-012 / **ADR-032** / F-ADR-012-2 |
+| `TWELVE_DATA_API_KEY` | Twelve Data | **Búsqueda** de símbolos (ya no cotiza) | Production | ADR-007 / ADR-012 |
+| `CRON_SECRET` | — | Protege `/api/cron/refresh` | Production | ADR-004 / F-SPEC-004-1 |
+| `RESEND_API_KEY` | Resend | Envío de avisos por email **y del enlace de reset** | Production | ADR-006 / F-SPEC-006-1 |
+| `RESEND_FROM` | Resend | Remitente (dominio verificado) | Production | ADR-006 |
+| `APP_BASE_URL` | — | Origen absoluto de los enlaces de **recuperación de contraseña** y de `metadataBase` (la tarjeta de vista previa). **El build la lee** | Preview + Production | SPEC-023 / **SPEC-051** / F-SPEC-023-3 |
+| `FEEDBACK_EMAIL` | — | **Opcional.** Buzón del canal de feedback del pie | Opcional | SPEC-039 / F-SPEC-039-6 |
 
-> ⚠️ **`APP_BASE_URL` debe ser el origen REAL del despliegue** (hoy
-> `https://stockeiro-lemon.vercel.app`), no el valor de ejemplo de `.env.example`
-> (`https://stockeiro.app`, un dominio propio que quizá no exista aún). Si apunta a otro
-> sitio, los enlaces de reset llevan a la nada — y lo hacen con aire de estar bien
-> configurado. `appBaseUrl()` **falla ruidosamente si la variable falta**, pero no puede
-> detectar que esté *mal*: eso solo lo ve el usuario que pincha el enlace. Y ojo: el error
-> es en tiempo de **petición**, no de build, así que el deploy sale verde igualmente.
+La columna **Entornos** tiene vocabulario **cerrado** —`Production`, `Preview + Production`,
+`Opcional`— y ninguna fila puede quedar sin marcar. No es adorno: `tests/entornos-de-despliegue.test.ts`
+la cruza contra el bloque `env` del job de CI que ejecuta `npm run build` y exige que **toda clave
+que el build lee** figure aquí como `Preview + Production` (SPEC-052). Una columna que admitiera
+prosa volvería a ser prosa, y ese cruce dejaría de poder leerla.
+
+- **`Preview + Production`** — obligatoria en **los dos** entornos. Si falta en Preview, la PR
+  **no tiene preview**: el build revienta (§3.2).
+- **`Production`** — solo producción, **a propósito**. Ver el aviso de aquí abajo.
+- **`Opcional`** — la app arranca sin ella; tiene valor por defecto.
+
+> 🧭 **Que cuatro claves estén solo en Production NO es un descuido: es una decisión, y
+> este es su motivo.** `TWELVE_DATA_API_KEY`, `RESEND_API_KEY`, `RESEND_FROM` y
+> `CRON_SECRET` se quedan fuera de Preview porque **una preview no debe gastar cuota de
+> proveedores externos ni poder mandar correo de verdad**: una rama cualquiera no puede
+> quemar el cupo de Marketstack/Twelve Data ni escribirle a una persona real.
+>
+> Su consecuencia es el **precio aceptado**, no un defecto: en una preview **el buscador de
+> símbolos no busca, no sale ni un correo y el cron no se puede probar**. Eso se comprueba
+> en producción o en local, no en una rama. **No lo "arregles" añadiéndolas a Preview** —
+> arbitrado por el titular en el gate del 2026-08-24 (SPEC-052, D-5). Si algún día hace
+> falta cambiarlo, se cambia aquí primero.
+
+> ⚠️ **`APP_BASE_URL` debe ser el origen REAL del despliegue** — hoy
+> `https://stockeiro.tremen.dev`, el dominio principal desde el 2026-08-17 (arriba, y
+> F-SPEC-023-3). Si apunta a otro sitio, los enlaces de reset llevan a la nada — y lo hacen
+> con aire de estar bien configurado. `appBaseUrl()` **falla ruidosamente si la variable
+> falta**, pero no puede detectar que esté *mal*: eso solo lo ve el usuario que pincha el
+> enlace.
+>
+> 🚨 **Y si falta, ya no hay despliegue que salvar: `next build` FALLA.** Desde **SPEC-051**
+> el origen absoluto también alimenta `metadataBase: new URL(appBaseUrl())` en el export
+> `metadata` del layout raíz (`src/app/layout.tsx`), y ese export se evalúa **en tiempo de
+> build**. Sin la variable, el build muere recogiendo datos de página y **el despliegue no
+> llega a existir**: no es un deploy verde con algo roto, es la ausencia de deploy. Pasó el
+> **2026-08-23** en el **PR #58**, y así se ve en el log de Vercel:
+>
+> ```
+> Collecting page data using 1 worker ...
+> Error: Failed to collect configuration for /_not-found
+>   [cause]: Error: APP_BASE_URL no definida (ver .env.example): sin ella no hay enlaces válidos.
+> > Build error occurred
+> ```
+>
+> Por eso la fila de arriba dice `Preview + Production` y por eso hay una guardia que lo
+> vigila. <sub>Este aviso decía lo contrario hasta el 2026-08-24 —que el fallo era de
+> tiempo de ejecución y no afectaba al despliegue—, y convenció a un lector el mismo día
+> del incidente. Retirado por **SPEC-052**; la frase está en la lista cerrada de
+> `tests/entornos-de-despliegue.test.ts` para que no vuelva por copia.</sub>
 
 > ℹ️ **`FEEDBACK_EMAIL` es la única variable que añade EPIC-004, y normalmente NO hay que
 > ponerla** (SPEC-039 CA-16). El enlace «contar algo o reportar un fallo» del pie compone un
@@ -203,8 +245,7 @@ vercel link            # elige/crea el proyecto bajo tu scope
 
 ### 3.2 Configurar las variables de entorno
 
-Con la integración de Neon, `DATABASE_URL` ya está. Añade el resto (a Production; repite para
-Preview si quieres previews funcionales):
+Con la integración de Neon, `DATABASE_URL` ya está. Añade el resto **a Production**:
 
 ```bash
 vercel env add AUTH_SECRET production          # pega el valor generado
@@ -214,14 +255,42 @@ vercel env add TWELVE_DATA_API_KEY production   # key de Twelve Data (free, solo
 vercel env add CRON_SECRET production           # el generado
 vercel env add RESEND_API_KEY production        # key de Resend
 vercel env add RESEND_FROM production           # Stockeiro <avisos@tu-dominio>
+vercel env add APP_BASE_URL production          # https://stockeiro.tremen.dev
 # Si NO usas la integración de Neon, añade también:
 vercel env add DATABASE_URL production          # connection string de Neon
 ```
+
+**Y ahora Preview, que no es opcional.** La columna **Entornos** de §0 dice cuál es cuál, y hay
+dos grupos que no se parecen en nada:
+
+- **Obligatorias en Preview porque el build las lee** — `DATABASE_URL`, `AUTH_SECRET`,
+  `AUTH_TRUST_HOST` y `APP_BASE_URL`, más `ALLOW_MIGRATE=1` (§13.2), que es de la guardia de
+  migración y no del build. Si falta una, **`next build` falla y la PR se queda sin preview**.
+  No sale «a medias»: no llega a existir. Es exactamente lo que pasó el 2026-08-23 (§0).
+- **Las que solo hacen la preview más útil** — `MARKETSTACK_API_KEY`. Sin ella la preview
+  construye y arranca igual; simplemente hay menos que mirar.
+
+```bash
+vercel env add AUTH_SECRET preview
+vercel env add AUTH_TRUST_HOST preview          # true
+vercel env add APP_BASE_URL preview             # https://stockeiro.tremen.dev
+vercel env add ALLOW_MIGRATE preview            # valor: 1 (§13.2)
+vercel env add MARKETSTACK_API_KEY preview      # opcional: previews con cotizaciones
+# `DATABASE_URL` en Preview la inyecta el preview branching de Neon (§13.3): no se copia a mano.
+```
+
+Las marcadas `Production` en §0 —`TWELVE_DATA_API_KEY`, `RESEND_*`, `CRON_SECRET`— **se quedan
+fuera de Preview a propósito**, con el motivo escrito en §0. No las añadas «para que la preview
+funcione entera»: esa es la decisión, no el defecto.
 
 Comprobar: `vercel env ls`.
 
 > **Importante:** el build necesita `DATABASE_URL` presente (el cliente de DB se instancia al
 > importar). Si falta, `next build` falla. La integración de Neon o el `env add` lo resuelven.
+> Desde **SPEC-051** lo mismo vale para `APP_BASE_URL`, y por la misma vía: se lee al construir
+> (§0). Lo que el build exige está congelado en el bloque `env` del job de CI que ejecuta
+> `npm run build`, y `tests/entornos-de-despliegue.test.ts` no deja que esa lista y la tabla
+> de §0 se separen.
 
 ### 3.3 Cron (ya configurado)
 
@@ -299,6 +368,9 @@ tras mergear es el **check de la puerta**, y el pipeline entero está documentad
   (ver **§7** y **§8**). Para los *avisos* era opcional (fallback in-app, RN-15); para la
   *recuperación de contraseña* no hay fallback y sin Resend no funciona.
 - [ ] `APP_BASE_URL` con el **origen real del despliegue** (no el ejemplo de `.env.example`) — §0.
+- [x] `APP_BASE_URL` **también en el entorno Preview** — **HECHO el 2026-08-23**, valor
+  `https://stockeiro.tremen.dev` (§13.5). Sin ella **`next build` falla** y la PR se queda sin
+  preview: es la clave que tumbó el Preview del PR #58 ese mismo día (§0).
 - [ ] `E2E_OUTBOX_FILE` **NO** definida en Vercel (desviaría el correo a un fichero) — F-SPEC-023-8.
 - [ ] Buzón del canal de feedback **creado y leído por alguien** (F-SPEC-039-6). `FEEDBACK_EMAIL`
   solo hace falta si se desvía a un buzón distinto del contacto del aviso legal.
@@ -385,7 +457,8 @@ Pasos para incorporarlo cuando quieras (cierra **F-SPEC-006-1**):
 1. **Cuenta + dominio verificado (Resend).** Sigue la **§2**: crea la cuenta, añade tu dominio en
    *Domains* y publica los registros **DNS** (SPF/DKIM) en tu gestor DNS hasta que Resend lo marque
    *Verified*. Crea una **API Key**.
-2. **Añade las variables a Vercel** (Production; repite en Preview si lo usas):
+2. **Añade las variables a Vercel** (**solo Production**: `RESEND_*` se queda fuera de Preview a
+   propósito — una preview no puede mandar correo de verdad, §0):
 
    ```bash
    printf '%s' "re_XXXX_tu_api_key"                 | vercel env add RESEND_API_KEY production
@@ -1001,6 +1074,11 @@ Es el permiso explícito que la guardia `guard-migrate` exige a todo entorno que
 **F-SPEC-032-2**, y su efecto —que una Preview construya verde— es la única prueba imposible de
 falsear de que la variable existe.
 
+> **No es la única de su clase, y conviene leerlas juntas.** `APP_BASE_URL` es su **gemelo
+> exacto** desde SPEC-051: una clave que Preview también necesita, cuya ausencia tumba **todas**
+> las previews y cuya única prueba imposible de falsear es la misma —que una PR construya verde—.
+> Se añadió a Preview el **2026-08-23** y queda registrada en **§13.5**.
+
 ### 13.3 El *preview branching* de Neon, sus dos techos y quién los barre
 
 La integración nativa de Neon tiene activado el ***preview branching*** (`Create Database Branch
@@ -1213,3 +1291,44 @@ Dos razones distintas, cada una con su paso:
 - **`ALLOW_MIGRATE` va antes de conectar** (#3 antes que #4) porque la guardia es *fail-closed*:
   conectar el repositorio sin esa variable deja **todas** las previews en rojo desde el primer
   minuto. Es el comportamiento correcto, pero conviene que sea una decisión y no una sorpresa.
+
+### 13.5 El inventario por entorno, y el arreglo de `APP_BASE_URL` en Preview (2026-08-23)
+
+**`APP_BASE_URL` en el entorno Preview: HECHO el 2026-08-23.** No es un pendiente, no hay que
+volver a hacerlo. Es el gemelo de `ALLOW_MIGRATE` (§13.2) y se resolvió igual:
+
+```bash
+vercel env add APP_BASE_URL preview     # valor: https://stockeiro.tremen.dev
+```
+
+Qué lo motivó: desde **SPEC-051** el origen absoluto se lee **en tiempo de build** (§0), y el
+entorno Preview no tenía la clave. El **2026-08-23** eso tumbó el Preview del **PR #58** en
+`next build` — *Collecting page data* → `Failed to collect configuration for /_not-found` — y con
+él, todas las previews abiertas. Tras añadirla, **el redespliegue del PR #58 pasó en 53 s** y las
+PR posteriores salen verdes. Igual que con `ALLOW_MIGRATE`, esa preview verde es la única prueba
+imposible de falsear de que la variable existe: el repositorio **no puede** leer el panel.
+
+#### La foto del panel — `vercel env ls`, 2026-08-23
+
+Medido con:
+
+```bash
+vercel env ls
+```
+
+| Entorno | Claves |
+|---|---|
+| **Solo Production** | `RESEND_API_KEY`, `RESEND_FROM`, `CRON_SECRET`, `TWELVE_DATA_API_KEY` |
+| **Production y Preview** | `MARKETSTACK_API_KEY`, `DATABASE_*` (inyectadas por la integración de Neon), `AUTH_*`, `ALLOW_MIGRATE`, y `APP_BASE_URL` **desde ese mismo día** |
+
+> ⚠️ **Esto es una FOTO FECHADA de un panel que el repositorio no puede leer, y no es una fuente
+> de verdad viva.** Vale para el **2026-08-23** y para nada más: cualquiera con acceso al proyecto
+> de Vercel puede cambiar una clave sin tocar este fichero, y esta tabla no se enteraría. La
+> fuente de verdad de **qué entorno necesita cada clave** es la tabla de **§0**, que sí está
+> vigilada por `tests/entornos-de-despliegue.test.ts`; esta de aquí solo dice **qué había** el día
+> que se miró. Nada compara ambas cosas automáticamente: hacerlo exige la API de Vercel con
+> credencial y red desde la suite, y está declarado como **F-SPEC-052-1**. Mientras tanto, lo que
+> delata una divergencia es una preview roja, no un test verde.
+
+Las cuatro que se quedan solo en Production lo hacen **a propósito**, y el motivo está en §0: una
+preview no debe gastar cuota de proveedores externos ni poder mandar correo de verdad.
