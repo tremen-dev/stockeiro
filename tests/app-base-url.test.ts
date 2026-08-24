@@ -1,6 +1,6 @@
 import { describe, it, expect } from 'vitest';
-import { readFileSync } from 'node:fs';
-import { dirname, join, resolve } from 'node:path';
+import { readFileSync, readdirSync, statSync } from 'node:fs';
+import { dirname, join, relative, resolve, sep } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { parse as parseYaml } from 'yaml';
 import { passwordResetTokens, users } from '@/db/schema';
@@ -623,5 +623,140 @@ describe('SPEC-055 CA-8 — con la clave envenenada, recuperación falla igual p
     expect(src).toContain('const user = await getUserByEmail(db, email);');
     expect(src).toContain('if (!user) return nothing;');
     expect(src).not.toContain('appBaseUrl');
+  });
+});
+
+// ---------------------------------------------------------------------------
+// CA-9, CA-10 y CA-13 — una sola fuente, cero claves nuevas y el porqué escrito al lado
+// ---------------------------------------------------------------------------
+
+const srcDir = join(rootDir, 'src');
+
+/** Todos los fuentes bajo un directorio. Mismo recorrido que `tests/tarjeta-frontera.test.ts`. */
+function ficheros(dir: string): string[] {
+  const out: string[] = [];
+  for (const entrada of readdirSync(dir).sort()) {
+    const ruta = join(dir, entrada);
+    if (statSync(ruta).isDirectory()) out.push(...ficheros(ruta));
+    else if (/\.tsx?$/.test(entrada)) out.push(ruta);
+  }
+  return out;
+}
+
+const rel = (f: string) => relative(rootDir, f).split(sep).join('/');
+
+/** Lo que se audita es lo que se ejecuta, no lo que se explica. */
+const sinComentarios = (src: string) =>
+  src.replace(/\/\*[\s\S]*?\*\//g, '').replace(/^\s*\/\/.*$/gm, '');
+
+/** Las invocaciones de una función, con sus argumentos y los paréntesis balanceados. */
+function invocaciones(codigo: string, nombre: string): string[] {
+  const out: string[] = [];
+  const aguja = `${nombre}(`;
+  for (let i = codigo.indexOf(aguja); i !== -1; i = codigo.indexOf(aguja, i + 1)) {
+    // La declaración no es una invocación.
+    if (/\bfunction\s+$/.test(codigo.slice(Math.max(0, i - 30), i))) continue;
+    let profundidad = 0;
+    for (let k = i + nombre.length; k < codigo.length; k++) {
+      if (codigo[k] === '(') profundidad++;
+      else if (codigo[k] === ')') {
+        profundidad--;
+        if (profundidad === 0) {
+          out.push(codigo.slice(i, k + 1));
+          break;
+        }
+      }
+    }
+  }
+  return out;
+}
+
+describe('SPEC-055 CA-9 — la única fuente del origen absoluto sigue siendo `appBaseUrl()`', () => {
+  const fuentes = ficheros(srcDir).map((f) => ({ ruta: rel(f), codigo: sinComentarios(readFileSync(f, 'utf8')) }));
+
+  it('el `baseUrl` que va a `requestPasswordReset` sale siempre de `appBaseUrl()`', () => {
+    const puntos: { ruta: string; llamada: string }[] = [];
+    for (const { ruta, codigo } of fuentes) {
+      for (const llamada of invocaciones(codigo, 'requestPasswordReset')) {
+        puntos.push({ ruta, llamada: llamada.replace(/\s+/g, ' ') });
+      }
+    }
+    // Centinela: una guardia que no ve ningún punto de uso no está verde, está vacía.
+    expect(
+      puntos.length,
+      'no se encontró ninguna llamada a requestPasswordReset en src/: la guardia está ciega',
+    ).toBeGreaterThan(0);
+    for (const { ruta, llamada } of puntos) {
+      expect(llamada, `${ruta} compone su propio baseUrl: ${llamada}`).toMatch(
+        /baseUrl:\s*appBaseUrl\(\)/,
+      );
+    }
+  });
+
+  it('el argumento del origen de la tarjeta sale siempre de `appBaseUrl()`', () => {
+    const puntos: { ruta: string; linea: string }[] = [];
+    for (const { ruta, codigo } of fuentes) {
+      for (const m of codigo.matchAll(/metadataBase:\s*([^,\n]+)/g)) {
+        puntos.push({ ruta, linea: m[1].trim() });
+      }
+    }
+    // Mismo centinela: si el origen de la tarjeta desapareciera de `src/`, esto tiene que
+    // ponerse rojo en vez de aprobar una lista vacía.
+    //
+    // Nota para quien edite este fichero: la spec que introdujo esa tarjeta NO se nombra
+    // por su identificador en ninguna parte de `tests/`, y no es descuido.
+    // `tests/tarjeta-guardias-ampliadas.test.ts:119` mantiene una lista cerrada de los
+    // ficheros de `tests/` que la mencionan —su forma de detectar que alguien re-encuadró
+    // una guardia ajena sin pasar por el gate—, y este fichero no es uno de ellos: lo cita
+    // por su ruta, que además es lo accionable.
+    expect(
+      puntos.length,
+      'no se encontró ningún origen de tarjeta en src/: la guardia está ciega',
+    ).toBeGreaterThan(0);
+    for (const { ruta, linea } of puntos) {
+      expect(linea, `${ruta} declara el origen de la tarjeta por su cuenta`).toBe(
+        'new URL(appBaseUrl())',
+      );
+    }
+  });
+});
+
+describe('SPEC-055 CA-10 — no se añade ninguna clave de entorno', () => {
+  it('`appBaseUrl()` sigue leyendo `APP_BASE_URL` y ninguna otra clave', () => {
+    // La lista de `.env.example` está cerrada en once y `tests/spec-031-frontera.test.ts`
+    // lo afirma con su propio contador. Este caso no la duplica: vigila que la guardia
+    // NUEVA no haya traído una clave por la puerta de atrás —un `APP_BASE_URL_STRICT`,
+    // un `VERCEL_URL` de reserva— que habría que ir a declarar allí.
+    const codigo = sinComentarios(fuente('src/lib/config/app-url.ts'));
+    const claves = new Set<string>();
+    for (const m of codigo.matchAll(/\benv\.([A-Z][A-Z0-9_]*)/g)) claves.add(m[1]);
+    expect(claves.size, 'la función no lee ninguna clave: la guardia está ciega').toBeGreaterThan(0);
+    for (const clave of claves) expect(clave).toBe('APP_BASE_URL');
+  });
+});
+
+describe('SPEC-055 CA-13 — el comentario del punto de estallido dice la otra mitad', () => {
+  const LA_OTRA_MITAD = 'lanza si falta o si el valor no es un origen absoluto `http`/`https`';
+  const llano = (src: string) => src.replace(/\s+/g, ' ');
+
+  it('la cabecera de `src/lib/config/app-url.ts`', () => {
+    const cabecera = llano(fuente('src/lib/config/app-url.ts'));
+    expect(cabecera.toLowerCase()).toContain(LA_OTRA_MITAD.toLowerCase());
+    expect(cabecera).toContain('[SENSITIVE]');
+    expect(cabecera).toContain('vercel env pull');
+    expect(cabecera).toContain('.env.production.local');
+  });
+
+  it('el comentario del bloque `metadata` de `src/app/layout.tsx`', () => {
+    const layout = fuente('src/app/layout.tsx');
+    const llanoLayout = llano(layout);
+    expect(llanoLayout.toLowerCase()).toContain(LA_OTRA_MITAD.toLowerCase());
+    expect(llanoLayout).toContain('[SENSITIVE]');
+    expect(llanoLayout).toContain('vercel env pull');
+
+    // Y es SÓLO comentario: la expresión no se toca, y `tests/tarjeta-frontera.test.ts:75`
+    // —que exige literalmente esta forma— sigue verde.
+    expect(layout).toMatch(/metadataBase:\s*new URL\(appBaseUrl\(\)\)/);
+    expect(layout).toMatch(/from\s+'@\/lib\/config\/app-url'/);
   });
 });
