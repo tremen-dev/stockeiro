@@ -425,6 +425,47 @@ No usa `git` (D-4).
   quien desmentir; y el aviso de §0 sigue diciendo que la variable debe ser el **origen
   real del despliegue** (CA-2 d), que es la parte que no dependía del ejemplo.
 
+  **Enmienda del 2026-08-25 — la propiedad detrás del literal (viene de `D-SPEC-055-1`).**
+  Lo anterior congela **un literal**; esto añade **la propiedad que ese literal
+  representa**, que es la parte que sobrevive a que un día se cambie el valor con
+  autorización. Es el patrón *hermana* que este repositorio ya nombra —una foto del árbol
+  y, en su mismo fichero, un caso que mide la propiedad— y que el propio
+  `tests/tarjeta-guardias-ampliadas.test.ts` enuncia en su cabecera. Escribir en esta
+  entrega un literal congelado **sin** su hermana, siendo esta la entrega que formalizó la
+  distinción en CA-18, sería incoherente.
+
+  **(c) El valor de ejemplo de `.env.example` es un valor que `appBaseUrl()` acepta.**
+  Dado el valor de `APP_BASE_URL` leído de `.env.example`, cuando se pasa a
+  `appBaseUrl({ APP_BASE_URL: <valor> })`, entonces **no lanza** y devuelve el mismo
+  origen. Tres condiciones sobre cómo se escribe:
+
+  1. **Se llama a la función; no se reescriben sus reglas.** La aserción **invoca**
+     `appBaseUrl()`. Queda **prohibido** replicar aquí su criterio con una expresión
+     regular o una lista de comprobaciones propias. SPEC-055 es la **única dueña** de qué
+     es un origen usable —protocolo, credenciales, query, fragmento y ruta, sus cuatro
+     condiciones— y restatearlas aquí convertiría a SPEC-052 en **segunda dueña** del
+     mismo contrato: exactamente lo que SPEC-055 evitó al aflojar a propósito su propia
+     aserción sobre el mensaje para que CA-14 fuese el único dueño de aquel literal. Un
+     contrato con dos dueños diverge; la forma de tener uno solo es **ejecutarlo**.
+  2. **Centinela de no-vacuidad.** Un lector que no case ninguna línea dejaría el caso en
+     verde sin haber mirado nada. Un caso del mismo bloque afirma que el valor extraído
+     **no está vacío** y que es **el que CA-17 (a) congela**; y que el lector aplicado a
+     un `.env.example` sintético **sin** la clave **no devuelve un valor**, sino que falla
+     de forma reconocible.
+  3. **Se prueba en rojo.** Con un `.env.example` sintético cuyo `APP_BASE_URL` lleve una
+     **ruta** (p. ej. `http://localhost:3000/app`) —el caso que SPEC-055 documenta como el
+     que significaría dos cosas distintas según quién lo lea—, la comprobación **falla**.
+     Misma exigencia que CA-11 y CA-18 (c), y por la misma razón.
+
+  Por qué entra aquí y no en un residual: **el valor lo cambia esta spec**, así que quien
+  lo cambia es quien responde de que sirva; y la propiedad vive en el **fichero propio** de
+  esta entrega, sin tocar nada ajeno, sin `git` y sin ensanchar CA-15. Cuenta como
+  **enmienda a CA-17**, no como criterio decimonoveno: el humano aprobó *«el valor de
+  ejemplo es el de desarrollo»*, y *«y de verdad sirve»* es la forma-propiedad de ese mismo
+  criterio, no alcance nuevo. Origen: petición **`D-SPEC-055-1`** de SPEC-055, detectada
+  por su arquitecto y **no ejecutada por el implementador** —correctamente— porque ningún
+  CA aprobado la pedía. La decide sdd-arquitecto el **2026-08-25**.
+
   Nota de alcance, para que nadie la amplíe sola: `RESEND_FROM` sigue proponiendo
   `Stockeiro <avisos@stockeiro.app>` y **no se toca aquí**. Ese sí es un ejemplo de
   formato de remitente y no un valor que ningún build vaya a leer; cambiarlo es otra
@@ -740,7 +781,23 @@ además que el caso asserte **el mensaje literal**, que es el que aparece en el 
 Vercel y el que CA-2 (c) exige en el documento: así el documento y el código quedan atados
 por el mismo literal.
 
-**11. Sin paradas.** El defecto está medido, la causa raíz verificada con `vercel env ls`,
+**11. `D-SPEC-055-1` entra, como enmienda a CA-17 y no como criterio decimonoveno**
+(2026-08-25). SPEC-055 pidió una guardia que compruebe que el valor de ejemplo de
+`.env.example` **pasa `appBaseUrl()`**. La acepto, y por una razón que me obliga: **CA-17
+congela un literal**, y esta es la entrega que en CA-18 acaba de formalizar que un literal
+congelado necesita su **hermana** que mida la propiedad. Enviar CA-17 sin ella, en esta
+spec precisamente, sería predicar y no aplicar. Además SPEC-055 hizo la propiedad
+**significativa**: `appBaseUrl()` ya no comprueba solo presencia sino cuatro condiciones
+reales, así que *«el ejemplo sirve»* dejó de ser trivial. Lo que **no** se hace, y está
+exigido por escrito: **no se reescriben las reglas de SPEC-055 aquí**; la aserción
+**llama** a la función. SPEC-055 se quedó como dueña única de qué es un origen usable
+—igual que CA-14 quedó como dueño único del literal del mensaje—, y un contrato con dos
+dueños diverge. El implementador tiene tres condiciones en **CA-17 (c)**: invocar la
+función, un centinela de no-vacuidad sobre el lector, y el rojo probado con un valor con
+ruta. **El implementador hizo bien en no escribirla por iniciativa propia**: con CA-18
+recién puesto, añadir aserciones que ningún CA pide es justo lo que esa disciplina evita.
+
+**12. Sin paradas.** El defecto está medido, la causa raíz verificada con `vercel env ls`,
 el arreglo de ops hecho y fechado, las dos preguntas arbitradas e incorporadas, y el
 alcance de la guardia acotado con su límite declarado (F-SPEC-052-1). Nada queda abierto
 que impida implementar.

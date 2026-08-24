@@ -59,7 +59,7 @@ epica: EPIC-FIX
 | CA-14 — `appBaseUrl()` sigue lanzando, con la nota de que es deliberado; **y su primer test propio** (premisa del CA corregida el 2026-08-24, F-SPEC-052-8) | **Nada**: `src/lib/config/app-url.ts` intacto (ver **F-SPEC-052-8**) | `G` › *CA-14* — **2 casos**: lanza con la clave ausente **y** con una cadena de espacios, en ambos con el **mensaje literal entero** (`APP_BASE_URL no definida (ver .env.example): sin ella no hay enlaces válidos.`) — el mismo del log del PR #58 —, y **la misma cadena se exige presente en el aviso de §0**, que es lo que ata documento y código; y el propio caso **contiene la nota** (SPEC-051 · D-4 · deliberado · *SPEC-052 NO revisa esta conducta*), leída de la fuente del fichero, sin `git` | | |
 | CA-15 — la entrega no toca `src/` ni `drizzle/` | — (criterio sobre el delta) | **n-a — ver nota N-1** | gate | n-a |
 | CA-16 — `npm run build` sin `APP_BASE_URL` falla | — (verificación empírica única) | **n-a — ver nota N-2** | gate | n-a |
-| CA-17 — `.env.example`: `APP_BASE_URL` → `http://localhost:3000`, y §0 retira el desmentido | `.env.example` (valor + comentario) y `docs/despliegue.md` §0 (desmentido retirado) | `G` › *CA-17: el valor de ejemplo es el de desarrollo* — **3 casos** (valor literal · `stockeiro.app` ya no es su valor · `RESEND_FROM` **conserva** el suyo) y *CA-17: §0 retira el desmentido* — **2 casos** (`stockeiro.app` fuera del aviso, pero *origen REAL del despliegue* sigue) | | |
+| CA-17 — `.env.example`: `APP_BASE_URL` → `http://localhost:3000`, y §0 retira el desmentido; **(c) enmienda 2026-08-25 (`D-SPEC-055-1`): el valor de ejemplo pasa `appBaseUrl()`** — invocando la función, con centinela y rojo probado | `.env.example` (valor + comentario) y `docs/despliegue.md` §0 (desmentido retirado) | `G` › *CA-17: el valor de ejemplo es el de desarrollo* — **3 casos** (valor literal · `stockeiro.app` ya no es su valor · `RESEND_FROM` **conserva** el suyo) y *CA-17: §0 retira el desmentido* — **2 casos** (`stockeiro.app` fuera del aviso, pero *origen REAL del despliegue* sigue) | | |
 
 | CA-18 — re-encuadre autorizado de `tests/tarjeta-guardias-ampliadas.test.ts:118-126`: **(a)** firma en vez de mención · **(b)** autoexclusión probada · **(c)** rojo en los dos sentidos · **(d)** el porqué al lado · **(e)** nada más del fichero aflojado · **(f)** sin atajo del literal | **(a)–(d)** `tests/tarjeta-guardias-ampliadas.test.ts`: `FIRMA_DE_REENCUADRE` (6 marcas), `EXCLUIDOS_DE_LA_DETECCION` (1 elemento, con motivo), `cuerposDeCasos()` **nuevo** —`casos()` NO se toca—, `llevaFirmaDeReencuadre(ruta, fuente)` pura, y el porqué de 40 líneas junto a la comparación. **`PROPIOS` retirado**, con su motivo escrito ahí mismo. **(e)–(f)** `tests/entornos-de-despliegue.test.ts` | **(a)** `tarjeta-guardias-ampliadas` › *los ficheros de tests/ re-encuadrados bajo la autorización de esta spec son esos dos* — **1 caso** · **(b)** *la exclusión de este fichero es NECESARIA, y es exactamente una* — **1 caso**, las dos mitades · **(c)** *la detección se prueba en rojo: firma completa sí, mención en prosa NO* (**3 sentidos**: firma→`true`, cita→`false`, firma incompleta→`false`) y *un TERCER fichero con firma rompería la igualdad* — **2 casos** · **(d)** el porqué es prosa, se verifica leyéndolo · **(e)** `G` › *CA-18 (e)* — **3 casos** (nada apagado · los cuatro bloques en pie · solo cambió el caso nombrado) · **(f)** `G` › *CA-18 (f)* — **2 casos** (barrido de `tests/**/*.ts` + centinela de las 6 formas y 3 inocentes) | | |
 
@@ -551,6 +551,41 @@ No aplica: esta spec no cambia ninguna superficie de UI. La evidencia es textual
   **Lo que hace falta para cerrarla**: que el arquitecto decida si entra como enmienda a CA-17 en
   esta spec —es el sitio natural: el mismo fichero, el mismo valor, y el coste es una línea— o
   si se queda como residual con destino propio. **Decisión del gate, no mía.**
+
+  ---
+
+  ↳ **RESUELTO el 2026-08-25 por sdd-arquitecto: ENTRA, como enmienda a CA-17 → nueva parte
+  `CA-17 (c)`.** No como criterio decimonoveno: el humano aprobó *«el valor de ejemplo es el de
+  desarrollo»*, y *«y de verdad sirve»* es la **forma-propiedad de ese mismo criterio**, no
+  alcance nuevo. **El implementador hizo bien en no escribirla**: con CA-18 recién puesto, añadir
+  aserciones que ningún CA pide es justo lo que esa disciplina evita.
+
+  **Por qué entra, y el argumento que me obliga**: **CA-17 congela un literal**, y esta es la
+  entrega que en **CA-18** acaba de formalizar que un literal congelado necesita su **hermana**
+  que mida la propiedad —el patrón que el propio `tests/tarjeta-guardias-ampliadas.test.ts`
+  enuncia en su cabecera—. Enviar CA-17 sin ella, **en esta spec precisamente**, sería predicar y
+  no aplicar. Y **SPEC-055 hizo la propiedad significativa**: `appBaseUrl()` ya no comprueba solo
+  presencia sino **cuatro condiciones** (protocolo, credenciales, query/fragmento, ruta), así que
+  *«el ejemplo sirve»* dejó de ser trivial. Además el valor lo cambia **esta** spec: quien lo
+  cambia responde de que sirva. Vive en el **fichero propio** de esta entrega, sin tocar nada
+  ajeno, sin `git`, y sin ensanchar CA-15.
+
+  **Lo que tiene que hacer el implementador — tres condiciones, en `CA-17 (c)`:**
+
+  1. **Llamar a la función; NO reescribir sus reglas.** La aserción **invoca** `appBaseUrl()`.
+     Queda **prohibido** replicar aquí su criterio con un regex o comprobaciones propias.
+     **SPEC-055 es la dueña única** de qué es un origen usable, y restatearlo aquí haría de
+     SPEC-052 una **segunda dueña** del mismo contrato — exactamente lo que SPEC-055 evitó al
+     aflojar a propósito su aserción sobre el mensaje para que **CA-14** fuese dueño único de
+     aquel literal. Un contrato con dos dueños diverge; la forma de tener uno solo es
+     **ejecutarlo**.
+  2. **Centinela de no-vacuidad sobre el lector**: el valor extraído no está vacío y es el que
+     CA-17 (a) congela; y el lector aplicado a un `.env.example` sintético **sin** la clave falla
+     de forma reconocible en vez de devolver algo.
+  3. **Rojo probado**: con un `.env.example` sintético cuyo `APP_BASE_URL` lleve **ruta**
+     (`http://localhost:3000/app`) —el caso que SPEC-055 documenta como el que significaría dos
+     cosas distintas según quién lo lea— la comprobación **falla**. Misma exigencia que CA-11 y
+     CA-18 (c).
 
 
 ## Cómo retomar (handoff)
