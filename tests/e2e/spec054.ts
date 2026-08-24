@@ -209,9 +209,17 @@ export async function sembrar(email: string, filas: SembradoVigilada[]): Promise
         const escritaEn = new Date(
           Date.now() - (f.escritaHaceHoras ?? HORAS_FRESCA) * H,
         ).toISOString();
+        /*
+          ⚠️ `as_of` es el MISMO que usa `spec041.ts`, y no es indiferente: la entradilla de
+          `/cartera` enseña `max(as_of)` de **todas** las cotizaciones de la base —no de las
+          del usuario—, y `tests/e2e/ingesta-cartera.spec.ts` afirma esa fecha exacta. Una
+          siembra con un `as_of` más nuevo mueve ese máximo y rompe una guardia ajena con un
+          síntoma que no se parece en nada a su causa. Lo que esta spec necesita congelado
+          es `updated_at` (RN-16), que es otra columna.
+        */
         await sql`
           INSERT INTO quotes (symbol_id, price, currency, as_of, updated_at)
-          VALUES (${symbolId}, ${f.price}, 'EUR', '2026-08-18T23:43:00.000Z', ${escritaEn})
+          VALUES (${symbolId}, ${f.price}, 'EUR', '2026-07-13T00:00:00.000Z', ${escritaEn})
           ON CONFLICT (symbol_id) DO UPDATE
             SET price = EXCLUDED.price, as_of = EXCLUDED.as_of, updated_at = EXCLUDED.updated_at`;
       } else {

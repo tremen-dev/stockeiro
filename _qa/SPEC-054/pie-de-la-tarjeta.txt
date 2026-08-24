@@ -1,0 +1,3 @@
+SPEC-054 CA-20 — dos controles al 50 %, en una fila
+ancho 360 · 7 pies · ancho del pie 294 px · cada control ~143 px
+ancho 390 · 7 pies · ancho del pie 316 px · cada control ~154 px

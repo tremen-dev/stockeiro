@@ -1,0 +1,121 @@
+SPEC-054 CA-11 — M3 sobre los rótulos de /cartera, a los ocho anchos
+ancho 360 · div.tarjeta-cabecera «Z7BOTH»: palabras=1 lineas=1 anchoLineaMax=61 contenedor=294
+ancho 360 · dt «Cantidad viva»: palabras=2 lineas=1 anchoLineaMax=103 contenedor=294
+ancho 360 · dt «Coste medio»: palabras=2 lineas=1 anchoLineaMax=87 contenedor=294
+ancho 360 · dt «P/L realizado»: palabras=2 lineas=1 anchoLineaMax=103 contenedor=294
+ancho 360 · dt «P/L actual»: palabras=2 lineas=1 anchoLineaMax=79 contenedor=294
+ancho 360 · div.tarjeta-cabecera «Z7BUY»: palabras=1 lineas=1 anchoLineaMax=50 contenedor=294
+ancho 360 · dt «Cantidad viva»: palabras=2 lineas=1 anchoLineaMax=103 contenedor=294
+ancho 360 · dt «Coste medio»: palabras=2 lineas=1 anchoLineaMax=87 contenedor=294
+ancho 360 · dt «P/L realizado»: palabras=2 lineas=1 anchoLineaMax=103 contenedor=294
+ancho 360 · dt «P/L actual»: palabras=2 lineas=1 anchoLineaMax=79 contenedor=294
+ancho 360 · div.tarjeta-cabecera «Z7OUT»: palabras=1 lineas=1 anchoLineaMax=50 contenedor=294
+ancho 360 · dt «Cantidad viva»: palabras=2 lineas=1 anchoLineaMax=103 contenedor=294
+ancho 360 · dt «Coste medio»: palabras=2 lineas=1 anchoLineaMax=87 contenedor=294
+ancho 360 · dt «P/L realizado»: palabras=2 lineas=1 anchoLineaMax=103 contenedor=294
+ancho 360 · dt «P/L actual»: palabras=2 lineas=1 anchoLineaMax=79 contenedor=294
+ancho 360 · div.tarjeta-cabecera «Z7FALLO»: palabras=1 lineas=1 anchoLineaMax=67 contenedor=294
+ancho 360 · dt «Cantidad viva»: palabras=2 lineas=1 anchoLineaMax=103 contenedor=294
+ancho 360 · dt «Coste medio»: palabras=2 lineas=1 anchoLineaMax=87 contenedor=294
+ancho 360 · dt «P/L realizado»: palabras=2 lineas=1 anchoLineaMax=103 contenedor=294
+ancho 360 · dt «P/L actual»: palabras=2 lineas=1 anchoLineaMax=79 contenedor=294
+ancho 360 · div.tarjeta-cabecera «Z7STALE»: palabras=1 lineas=1 anchoLineaMax=65 contenedor=294
+ancho 360 · dt «Cantidad viva»: palabras=2 lineas=1 anchoLineaMax=103 contenedor=294
+ancho 360 · dt «Coste medio»: palabras=2 lineas=1 anchoLineaMax=87 contenedor=294
+ancho 360 · dt «P/L realizado»: palabras=2 lineas=1 anchoLineaMax=103 contenedor=294
+ancho 360 · dt «P/L actual»: palabras=2 lineas=1 anchoLineaMax=79 contenedor=294
+ancho 390 · div.tarjeta-cabecera «Z7BOTH»: palabras=1 lineas=1 anchoLineaMax=61 contenedor=316
+ancho 390 · dt «Cantidad viva»: palabras=2 lineas=1 anchoLineaMax=103 contenedor=316
+ancho 390 · dt «Coste medio»: palabras=2 lineas=1 anchoLineaMax=87 contenedor=316
+ancho 390 · dt «P/L realizado»: palabras=2 lineas=1 anchoLineaMax=103 contenedor=316
+ancho 390 · dt «P/L actual»: palabras=2 lineas=1 anchoLineaMax=79 contenedor=316
+ancho 390 · div.tarjeta-cabecera «Z7BUY»: palabras=1 lineas=1 anchoLineaMax=50 contenedor=316
+ancho 390 · dt «Cantidad viva»: palabras=2 lineas=1 anchoLineaMax=103 contenedor=316
+ancho 390 · dt «Coste medio»: palabras=2 lineas=1 anchoLineaMax=87 contenedor=316
+ancho 390 · dt «P/L realizado»: palabras=2 lineas=1 anchoLineaMax=103 contenedor=316
+ancho 390 · dt «P/L actual»: palabras=2 lineas=1 anchoLineaMax=79 contenedor=316
+ancho 390 · div.tarjeta-cabecera «Z7OUT»: palabras=1 lineas=1 anchoLineaMax=50 contenedor=316
+ancho 390 · dt «Cantidad viva»: palabras=2 lineas=1 anchoLineaMax=103 contenedor=316
+ancho 390 · dt «Coste medio»: palabras=2 lineas=1 anchoLineaMax=87 contenedor=316
+ancho 390 · dt «P/L realizado»: palabras=2 lineas=1 anchoLineaMax=103 contenedor=316
+ancho 390 · dt «P/L actual»: palabras=2 lineas=1 anchoLineaMax=79 contenedor=316
+ancho 390 · div.tarjeta-cabecera «Z7FALLO»: palabras=1 lineas=1 anchoLineaMax=67 contenedor=316
+ancho 390 · dt «Cantidad viva»: palabras=2 lineas=1 anchoLineaMax=103 contenedor=316
+ancho 390 · dt «Coste medio»: palabras=2 lineas=1 anchoLineaMax=87 contenedor=316
+ancho 390 · dt «P/L realizado»: palabras=2 lineas=1 anchoLineaMax=103 contenedor=316
+ancho 390 · dt «P/L actual»: palabras=2 lineas=1 anchoLineaMax=79 contenedor=316
+ancho 390 · div.tarjeta-cabecera «Z7STALE»: palabras=1 lineas=1 anchoLineaMax=65 contenedor=316
+ancho 390 · dt «Cantidad viva»: palabras=2 lineas=1 anchoLineaMax=103 contenedor=316
+ancho 390 · dt «Coste medio»: palabras=2 lineas=1 anchoLineaMax=87 contenedor=316
+ancho 390 · dt «P/L realizado»: palabras=2 lineas=1 anchoLineaMax=103 contenedor=316
+ancho 390 · dt «P/L actual»: palabras=2 lineas=1 anchoLineaMax=79 contenedor=316
+ancho 640 · div.tarjeta-cabecera «Z7BOTH»: palabras=1 lineas=1 anchoLineaMax=61 contenedor=566
+ancho 640 · dt «Cantidad viva»: palabras=2 lineas=1 anchoLineaMax=103 contenedor=566
+ancho 640 · dt «Coste medio»: palabras=2 lineas=1 anchoLineaMax=87 contenedor=566
+ancho 640 · dt «P/L realizado»: palabras=2 lineas=1 anchoLineaMax=103 contenedor=566
+ancho 640 · dt «P/L actual»: palabras=2 lineas=1 anchoLineaMax=79 contenedor=566
+ancho 640 · div.tarjeta-cabecera «Z7BUY»: palabras=1 lineas=1 anchoLineaMax=50 contenedor=566
+ancho 640 · dt «Cantidad viva»: palabras=2 lineas=1 anchoLineaMax=103 contenedor=566
+ancho 640 · dt «Coste medio»: palabras=2 lineas=1 anchoLineaMax=87 contenedor=566
+ancho 640 · dt «P/L realizado»: palabras=2 lineas=1 anchoLineaMax=103 contenedor=566
+ancho 640 · dt «P/L actual»: palabras=2 lineas=1 anchoLineaMax=79 contenedor=566
+ancho 640 · div.tarjeta-cabecera «Z7OUT»: palabras=1 lineas=1 anchoLineaMax=50 contenedor=566
+ancho 640 · dt «Cantidad viva»: palabras=2 lineas=1 anchoLineaMax=103 contenedor=566
+ancho 640 · dt «Coste medio»: palabras=2 lineas=1 anchoLineaMax=87 contenedor=566
+ancho 640 · dt «P/L realizado»: palabras=2 lineas=1 anchoLineaMax=103 contenedor=566
+ancho 640 · dt «P/L actual»: palabras=2 lineas=1 anchoLineaMax=79 contenedor=566
+ancho 640 · div.tarjeta-cabecera «Z7FALLO»: palabras=1 lineas=1 anchoLineaMax=67 contenedor=566
+ancho 640 · dt «Cantidad viva»: palabras=2 lineas=1 anchoLineaMax=103 contenedor=566
+ancho 640 · dt «Coste medio»: palabras=2 lineas=1 anchoLineaMax=87 contenedor=566
+ancho 640 · dt «P/L realizado»: palabras=2 lineas=1 anchoLineaMax=103 contenedor=566
+ancho 640 · dt «P/L actual»: palabras=2 lineas=1 anchoLineaMax=79 contenedor=566
+ancho 640 · div.tarjeta-cabecera «Z7STALE»: palabras=1 lineas=1 anchoLineaMax=65 contenedor=566
+ancho 640 · dt «Cantidad viva»: palabras=2 lineas=1 anchoLineaMax=103 contenedor=566
+ancho 640 · dt «Coste medio»: palabras=2 lineas=1 anchoLineaMax=87 contenedor=566
+ancho 640 · dt «P/L realizado»: palabras=2 lineas=1 anchoLineaMax=103 contenedor=566
+ancho 640 · dt «P/L actual»: palabras=2 lineas=1 anchoLineaMax=79 contenedor=566
+ancho 700 · div.tarjeta-cabecera «Z7BOTH»: palabras=1 lineas=1 anchoLineaMax=61 contenedor=626
+ancho 700 · dt «Cantidad viva»: palabras=2 lineas=1 anchoLineaMax=103 contenedor=626
+ancho 700 · dt «Coste medio»: palabras=2 lineas=1 anchoLineaMax=87 contenedor=626
+ancho 700 · dt «P/L realizado»: palabras=2 lineas=1 anchoLineaMax=103 contenedor=626
+ancho 700 · dt «P/L actual»: palabras=2 lineas=1 anchoLineaMax=79 contenedor=626
+ancho 700 · div.tarjeta-cabecera «Z7BUY»: palabras=1 lineas=1 anchoLineaMax=50 contenedor=626
+ancho 700 · dt «Cantidad viva»: palabras=2 lineas=1 anchoLineaMax=103 contenedor=626
+ancho 700 · dt «Coste medio»: palabras=2 lineas=1 anchoLineaMax=87 contenedor=626
+ancho 700 · dt «P/L realizado»: palabras=2 lineas=1 anchoLineaMax=103 contenedor=626
+ancho 700 · dt «P/L actual»: palabras=2 lineas=1 anchoLineaMax=79 contenedor=626
+ancho 700 · div.tarjeta-cabecera «Z7OUT»: palabras=1 lineas=1 anchoLineaMax=50 contenedor=626
+ancho 700 · dt «Cantidad viva»: palabras=2 lineas=1 anchoLineaMax=103 contenedor=626
+ancho 700 · dt «Coste medio»: palabras=2 lineas=1 anchoLineaMax=87 contenedor=626
+ancho 700 · dt «P/L realizado»: palabras=2 lineas=1 anchoLineaMax=103 contenedor=626
+ancho 700 · dt «P/L actual»: palabras=2 lineas=1 anchoLineaMax=79 contenedor=626
+ancho 700 · div.tarjeta-cabecera «Z7FALLO»: palabras=1 lineas=1 anchoLineaMax=67 contenedor=626
+ancho 700 · dt «Cantidad viva»: palabras=2 lineas=1 anchoLineaMax=103 contenedor=626
+ancho 700 · dt «Coste medio»: palabras=2 lineas=1 anchoLineaMax=87 contenedor=626
+ancho 700 · dt «P/L realizado»: palabras=2 lineas=1 anchoLineaMax=103 contenedor=626
+ancho 700 · dt «P/L actual»: palabras=2 lineas=1 anchoLineaMax=79 contenedor=626
+ancho 700 · div.tarjeta-cabecera «Z7STALE»: palabras=1 lineas=1 anchoLineaMax=65 contenedor=626
+ancho 700 · dt «Cantidad viva»: palabras=2 lineas=1 anchoLineaMax=103 contenedor=626
+ancho 700 · dt «Coste medio»: palabras=2 lineas=1 anchoLineaMax=87 contenedor=626
+ancho 700 · dt «P/L realizado»: palabras=2 lineas=1 anchoLineaMax=103 contenedor=626
+ancho 700 · dt «P/L actual»: palabras=2 lineas=1 anchoLineaMax=79 contenedor=626
+ancho 730 · th «Ticker»: palabras=1 lineas=1 anchoLineaMax=45 contenedor=634
+ancho 730 · th «Cantidad viva»: palabras=2 lineas=2 anchoLineaMax=60 contenedor=634
+ancho 730 · th «Coste medio»: palabras=2 lineas=2 anchoLineaMax=37 contenedor=634
+ancho 730 · th «P/L realizado»: palabras=2 lineas=2 anchoLineaMax=67 contenedor=634
+ancho 730 · th «P/L actual»: palabras=2 lineas=1 anchoLineaMax=75 contenedor=634
+ancho 760 · th «Ticker»: palabras=1 lineas=1 anchoLineaMax=45 contenedor=664
+ancho 760 · th «Cantidad viva»: palabras=2 lineas=2 anchoLineaMax=60 contenedor=664
+ancho 760 · th «Coste medio»: palabras=2 lineas=2 anchoLineaMax=37 contenedor=664
+ancho 760 · th «P/L realizado»: palabras=2 lineas=2 anchoLineaMax=67 contenedor=664
+ancho 760 · th «P/L actual»: palabras=2 lineas=1 anchoLineaMax=75 contenedor=664
+ancho 800 · th «Ticker»: palabras=1 lineas=1 anchoLineaMax=45 contenedor=704
+ancho 800 · th «Cantidad viva»: palabras=2 lineas=2 anchoLineaMax=60 contenedor=704
+ancho 800 · th «Coste medio»: palabras=2 lineas=2 anchoLineaMax=37 contenedor=704
+ancho 800 · th «P/L realizado»: palabras=2 lineas=2 anchoLineaMax=67 contenedor=704
+ancho 800 · th «P/L actual»: palabras=2 lineas=1 anchoLineaMax=75 contenedor=704
+ancho 1280 · th «Ticker»: palabras=1 lineas=1 anchoLineaMax=45 contenedor=1184
+ancho 1280 · th «Cantidad viva»: palabras=2 lineas=1 anchoLineaMax=97 contenedor=1184
+ancho 1280 · th «Coste medio»: palabras=2 lineas=1 anchoLineaMax=82 contenedor=1184
+ancho 1280 · th «P/L realizado»: palabras=2 lineas=1 anchoLineaMax=97 contenedor=1184
+ancho 1280 · th «P/L actual»: palabras=2 lineas=1 anchoLineaMax=75 contenedor=1184

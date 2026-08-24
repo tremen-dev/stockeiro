@@ -1821,6 +1821,22 @@ td.num .quote-fail, td.num .quote-stale { text-align: right; }
     font-size: 14px;
   }
 
+  /* El segundo suelo de ADR-034 §7: **ningún texto baja de 12 px**. `.eyebrow` del
+     sistema de diseño es `font: 600 11px/1` a todos los anchos
+     (`design/tremen-ds/components/eyebrows.css:22`, que pisa el `--t-caption` de 12 px
+     que declara `colors_and_type.css`). En una portada de escritorio, once píxeles de
+     mono en versales es una decisión tipográfica; en un teléfono a 360 px es texto que
+     no se lee.
+
+     Se sube **sólo por debajo del canto** y **sólo en la cabecera de estas páginas**:
+     CE-5 de EPIC-007 dice que el escritorio no paga la factura del móvil, y ADR-026 §5
+     dice que la app no muta el sistema de diseño —`tremen-ds` lo comparte el sitio de
+     tremen.dev—. `globals.css` importa el sistema en su primera línea, así que basta el
+     orden de fuente y la especificidad del descendiente: sin `!important`. */
+  .page-head .eyebrow {
+    font-size: var(--t-caption);
+  }
+
   /* El selector de criterio de orden: mismo suelo táctil y, además, el suelo de 16 px de
      ADR-034 §7 — por debajo de 16 px Safari en iOS **amplía la página al enfocar el
      campo** y no la devuelve. 16 x 1.2 de interlineado + 24 de relleno + 2 de borde = 45. */

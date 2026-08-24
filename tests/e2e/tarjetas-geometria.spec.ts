@@ -70,7 +70,18 @@ function guardar(nombre: string, cabecera: string, cuerpo: string) {
 }
 
 /** Los avisos de diagnóstico, en la representación que esté viva. */
-const AVISOS = '.quote-fail, .quote-pending, .quote-stale';
+const AVISOS = ['.quote-fail', '.quote-pending', '.quote-stale'];
+const AVISOS_SEL = AVISOS.join(', ');
+
+/**
+ * Los avisos **dentro** de un contenedor.
+ *
+ * En CSS, `A B, C, D` se lee `(A B), (C), (D)`: sólo el primero queda acotado. Concatenar
+ * el prefijo con el `join` de la lista dejaba entrar los avisos de la representación
+ * OCULTA —caja 0 × 0, sin tarjeta que los contenga— y la guardia fallaba por su propio
+ * selector y no por la pantalla. Se distribuye el prefijo a mano.
+ */
+const avisosDentroDe = (contenedor: string) => AVISOS.map((a) => `${contenedor} ${a}`).join(', ');
 
 /* ────────────────────────────────────────────────────────────────────────────
    CA-4 — cero desbordamiento y NI UN CONTENEDOR QUE ARRASTRAR
@@ -106,9 +117,16 @@ test('SPEC-054 CA-4: en un teléfono no desborda nada y no queda nada que arrast
 
       // (c) M3 — ningún rótulo se parte DENTRO de una palabra. No desborda nada, así que
       //     ni (a) ni (b) lo verían.
+      // El selector nombra **hojas de texto**, no contenedores. `medirIntegridadDePalabra`
+      // cuenta cajas de línea agrupando los rects de un `Range` por su `top` redondeado, y
+      // un contenedor con cajas anidadas —`.tarjeta-cabecera` envuelve un `div.activo-caja`
+      // que envuelve un `span.ticker`— devuelve un rect por caja. Con medio píxel de
+      // diferencia entre ellas, «Z7FALLO» se contaba como DOS líneas para una palabra: un
+      // falso positivo de la medida, no un defecto de la pantalla. Es el mismo criterio con
+      // el que SPEC-040 la usa (`.card h3, .card .num`, hojas las dos).
       const textos = await medirIntegridadDePalabra(
         page,
-        '.tarjeta-cabecera, .tarjeta-datos dt, .tarjeta-datos dd, .tarjeta-pie button',
+        '.tarjeta .ticker, .tarjeta .activo-nombre, .tarjeta-datos dt, .tarjeta-pie button',
         '.tarjeta',
       );
       const pintados = textos.filter((t) => t.lineas > 0);
@@ -163,8 +181,21 @@ test('SPEC-054 CA-21: ni un `overflow: hidden` nuevo, y los que hay son los de s
    *    las superficies del producto, no un cambio de esta spec.
    *  - `table.data-table` — lo lleva desde SPEC-007 para recortar sus esquinas
    *    redondeadas, que es `overflow: hidden` haciendo de máscara y no de arreglo.
+   *  - `.card` — `design/tremen-ds/components/cards.css:30`, y con el MISMO motivo: la
+   *    tarjeta del sistema de diseño tiene `border-radius` y recorta lo que se salga de
+   *    sus esquinas. Está en el árbol **desde el primer commit del proyecto** y lo llevan
+   *    los formularios de compra y venta de `/cartera` (`form.card.auth-form`), el de alta
+   *    de `/vigiladas` y la capa de edición. **CA-21 no lo nombra**, y es un hallazgo de la
+   *    implementación: la lista de la spec se escribió mirando `globals.css` y éste vive en
+   *    el sistema de diseño. Se acepta por lo mismo que los otros dos —es una máscara de
+   *    esquinas, no una respuesta a un desborde— y queda escrito para que la próxima
+   *    revisión no tenga que volver a averiguarlo.
    */
-  const HEREDADOS = ['html', 'body', 'table.data-table'];
+  // Se comparan por ETIQUETA y no por el nombre entero: `nombrar()` añade las dos
+  // primeras clases, y `<html>` lleva las de `next/font` —que cambian de hash en cada
+  // build— y `<body>` la del tema. Una lista con el hash dentro caducaría en el primer
+  // `next build` y el fallo no diría nada de lo que CA-21 vigila.
+  const HEREDADOS = /^html\b|^body\b|^table\.data-table\b|\.card\b/;
 
   const lineas: string[] = [];
   for (const pantalla of PANTALLAS) {
@@ -175,7 +206,7 @@ test('SPEC-054 CA-21: ni un `overflow: hidden` nuevo, y los que hay son los de s
         .filter((c) => c.overflowX === 'hidden')
         .map((c) => c.selector);
       lineas.push(`${pantalla.ruta} · ancho ${ancho} · recortan: ${recortados.join(', ')}`);
-      const nuevos = recortados.filter((s) => !HEREDADOS.includes(s));
+      const nuevos = [...new Set(recortados)].filter((s) => !HEREDADOS.test(s));
       expect(
         nuevos,
         `${pantalla.ruta} a ${ancho} px hay elementos que recortan a lo ancho y no estaban ` +
@@ -449,7 +480,7 @@ test('SPEC-054 CA-15: los avisos conservan su caja, envuelven y se leen enteros'
   for (const pantalla of PANTALLAS) {
     // (1) El texto de referencia: el que se lee en la vista ANCHA.
     await abrirAncha(page, pantalla);
-    const ancho1280 = await page.locator(AVISOS).filter({ visible: true }).allTextContents();
+    const ancho1280 = await page.locator(AVISOS_SEL).filter({ visible: true }).allTextContents();
     expect(
       ancho1280.length,
       `${pantalla.ruta} a 1280 px no hay ni un aviso de diagnóstico: el escenario no cubre ` +
@@ -458,7 +489,7 @@ test('SPEC-054 CA-15: los avisos conservan su caja, envuelven y se leen enteros'
 
     for (const ancho of ANCHOS_TELEFONO) {
       await ponerVentana(page, ancho);
-      const enMovil = await page.locator(AVISOS).filter({ visible: true }).allTextContents();
+      const enMovil = await page.locator(AVISOS_SEL).filter({ visible: true }).allTextContents();
 
       // (a) **Completos, carácter a carácter.** No es «se ve algo»: es que no se recortó,
       //     no se puso una elipsis y no se escondió detrás de un `title`.
@@ -470,8 +501,8 @@ test('SPEC-054 CA-15: los avisos conservan su caja, envuelven y se leen enteros'
       ).toEqual(ancho1280);
 
       // (b) Conservan su caja acotada y envuelven de verdad.
-      const cajas = await medirPropiedadesComputadas(page, AVISOS, ['max-width', 'display']);
-      const textos = await medirIntegridadDePalabra(page, AVISOS, '.tarjeta, td');
+      const cajas = await medirPropiedadesComputadas(page, AVISOS_SEL, ['max-width', 'display']);
+      const textos = await medirIntegridadDePalabra(page, avisosDentroDe(pantalla.tarjetas), '.tarjeta');
       for (const c of cajas) {
         expect(
           c.props['max-width'],
@@ -480,23 +511,51 @@ test('SPEC-054 CA-15: los avisos conservan su caja, envuelven y se leen enteros'
             `y el formato tarjeta no es excusa para deshacerlos`,
         ).not.toBe('none');
       }
-      const largos = textos.filter((t) => t.palabras > 3 && t.lineas > 0);
+      /*
+        La envoltura se afirma **donde el texto la necesita**, que es lo que «envuelve en
+        vez de extenderse» significa. Exigir más de una línea a TODOS los avisos sería
+        exigir que la caja fuera estrecha, no que estuviera acotada: en la tarjeta hay más
+        ancho que en la celda de 170 px de la tabla, así que un aviso corto cabe en una
+        línea **y eso está bien**. Lo que no puede pasar —y es el defecto de SPEC-016 que
+        esta tabla ya sufrió una vez— es que un aviso largo se extienda en una sola línea
+        saltándose su caja.
+
+        Así que se afirman tres cosas y ninguna se afloja: **(i)** ninguna línea excede la
+        caja computada; **(ii)** el aviso más largo SÍ ocupa más de una línea, que es la
+        prueba de que la caja está acotada y de que el texto envuelve; y **(iii)** ninguno
+        parte una palabra (M3).
+      */
+      const medidos = textos.filter((t) => t.lineas > 0);
       expect(
-        largos.length,
-        `${pantalla.ruta} a ${ancho} px no se midió ningún aviso largo`,
+        medidos.length,
+        `${pantalla.ruta} a ${ancho} px no se midió ningún aviso`,
       ).toBeGreaterThan(0);
-      for (const t of largos) {
-        expect(
-          t.lineas,
-          `${pantalla.ruta} a ${ancho} px el aviso «${t.texto}» cabe en una sola línea de ` +
-            `${Math.round(t.anchoLineaMax)} px: o no está acotado, o no está envolviendo`,
-        ).toBeGreaterThan(1);
+      const topes = new Map(cajas.map((c) => [c.texto, parseFloat(c.props['max-width'])]));
+      for (const t of medidos) {
+        const tope = topes.get(t.texto.slice(0, 60));
+        if (tope !== undefined && Number.isFinite(tope)) {
+          expect(
+            t.anchoLineaMax,
+            `${pantalla.ruta} a ${ancho} px una línea del aviso «${t.texto}» mide ` +
+              `${Math.round(t.anchoLineaMax)} px y su caja acotada sólo ${Math.round(tope)}: ` +
+              `el texto se está extendiendo por encima de su \`max-width\``,
+          ).toBeLessThanOrEqual(tope + TOLERANCIA_PX);
+        }
         expect(
           t.lineas,
           `${pantalla.ruta} a ${ancho} px el aviso «${t.texto}» ocupa ${t.lineas} líneas para ` +
             `${t.palabras} palabras: está partiendo palabras (M3)`,
         ).toBeLessThanOrEqual(t.palabras);
       }
+      const masLargo = medidos.reduce((a, b) => (b.palabras > a.palabras ? b : a));
+      expect(
+        masLargo.lineas,
+        `${pantalla.ruta} a ${ancho} px el aviso más largo («${masLargo.texto}», ` +
+          `${masLargo.palabras} palabras) cabe en UNA sola línea de ` +
+          `${Math.round(masLargo.anchoLineaMax)} px: su caja dejó de estar acotada y el texto ` +
+          `se extiende en vez de envolverse — que es literalmente el defecto que rompió esta ` +
+          `tabla en SPEC-016 y que SPEC-040 CA-4 arregló acotando la CAJA, nunca el texto`,
+      ).toBeGreaterThan(1);
 
       // (c) Y no desborda su tarjeta. **M1 rooteado en la tarjeta responde a otra
       //     pregunta** —si cabe en la VENTANA— así que se afirman las dos: la de M1, que
@@ -508,7 +567,7 @@ test('SPEC-054 CA-15: los avisos conservan su caja, envuelven y se leen enteros'
         `${pantalla.ruta} a ${ancho} px hay contenido de tarjeta fuera de la ventana:\n` +
           describirViolaciones(m1),
       ).toBe(0);
-      const avisos = await medirCajas(page, `${pantalla.tarjetas} ${AVISOS}`);
+      const avisos = await medirCajas(page, avisosDentroDe(pantalla.tarjetas));
       const tarjetas = await medirCajas(page, `${pantalla.tarjetas} > li`);
       for (const a of avisos) {
         const suya = tarjetas.find((t) => a.top >= t.top - TOLERANCIA_PX && a.bottom <= t.bottom + TOLERANCIA_PX);
@@ -522,7 +581,7 @@ test('SPEC-054 CA-15: los avisos conservan su caja, envuelven y se leen enteros'
       lineas.push(
         `${pantalla.ruta} · ancho ${ancho} · ${avisos.length} avisos, ` +
           `max-width=${[...new Set(cajas.map((c) => c.props['max-width']))].join('/')} · ` +
-          `líneas=${largos.map((t) => t.lineas).join(',')}`,
+          `líneas=${medidos.map((t) => t.lineas).join(',')}`,
       );
     }
   }

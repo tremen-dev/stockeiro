@@ -75,12 +75,32 @@ test.beforeAll(async ({ browser }) => {
   }
 });
 
-/** Entra, deja la lista larga recién sembrada y la pinta. Cada test parte de lo mismo. */
+/**
+ * Entra, deja la lista larga recién sembrada y la pinta. Cada test parte de lo mismo.
+ *
+ * ── ADAPTACIÓN DE SPEC-054 (a qué se espera, no qué se exige) ─────────────────────────
+ *
+ * **Es lo único que cambia en este fichero, y no es una aserción: es una espera.** Desde
+ * SPEC-054 / ADR-034 §1, `/vigiladas` monta la fila dos veces y el `@media` de 720 px
+ * apaga la que no toca. Varios casos de aquí recorren los ocho anchos y vuelven a preparar
+ * la lista **con la ventana ya estrecha**, así que esperar a `table.data-table` visible se
+ * quedaba esperando para siempre a un árbol que a ese ancho está apagado a propósito.
+ *
+ * Se espera a que **la lista esté pintada**, sea cual sea su forma — que es la
+ * precondición que este helper siempre quiso decir. Todo lo demás de este fichero, incluida
+ * cada una de sus aserciones, se queda exactamente como estaba: `filas`, `editarEnFila` y
+ * la precondición de lista larga ya apuntan solas a la representación viva desde
+ * `spec046.ts`.
+ */
 async function prepararLista(page: Page): Promise<void> {
   await entrar(page, CUENTA);
   await sembrarVigiladas(CUENTA, listaLarga(FILAS_TOTAL));
   await page.goto('/vigiladas');
-  await page.locator('table.data-table').waitFor({ state: 'visible' });
+  await page
+    .locator('table.data-table, ul[data-testid="tarjetas-vigiladas"]')
+    .filter({ visible: true })
+    .first()
+    .waitFor({ state: 'visible' });
 }
 
 /** Las cuatro casillas de zona de la capa. */

@@ -1,0 +1,5 @@
+SPEC-054 CA-14 — los dos suelos, en las dos pantallas
+/vigiladas · ancho 360 · 6 controles, 132 textos · control mínimo=16 · texto mínimo=12
+/vigiladas · ancho 390 · 6 controles, 132 textos · control mínimo=16 · texto mínimo=12
+/cartera · ancho 360 · 10 controles, 69 textos · control mínimo=16 · texto mínimo=12
+/cartera · ancho 390 · 10 controles, 69 textos · control mínimo=16 · texto mínimo=12

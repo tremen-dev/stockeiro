@@ -1,0 +1,6 @@
+SPEC-054 CA-13 — M5 en las dos pantallas, con su prueba de eficacia
+/vigiladas · ancho 360 · suelo 44x44 · controles medidos=17 · por debajo=0 · solapes=0
+/vigiladas · ancho 390 · suelo 44x44 · controles medidos=17 · por debajo=0 · solapes=0
+/cartera · ancho 360 · suelo 44x44 · controles medidos=13 · por debajo=0 · solapes=0
+/cartera · ancho 390 · suelo 44x44 · controles medidos=13 · por debajo=0 · solapes=0
+── prueba de eficacia a 360 px · sano=0 · con el defecto=15 · al quitarlo=0

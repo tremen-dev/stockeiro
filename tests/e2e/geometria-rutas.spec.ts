@@ -2,6 +2,7 @@ import { mkdirSync, writeFileSync } from 'node:fs';
 import { test, expect, type Page } from '@playwright/test';
 import {
   ANCHOS,
+  ANCHOS_TABLA,
   TOLERANCIA_PX,
   describirDesborde,
   describirViolaciones,
@@ -19,7 +20,7 @@ import {
 import { RUTAS_CON_POSICIONES, RUTAS_CON_SESION, RUTAS_PUBLICAS } from './rutas';
 // SPEC-054 CA-11: `/cartera` con posiciones. El escenario lo monta quien lo tiene —esta
 // guardia no siembra carteras— y de ahí salen también las cifras de `_qa/SPEC-054/`.
-import { PANTALLAS, SELECTOR_TABLA, prepararCuenta } from './spec054';
+import { PANTALLAS, SELECTOR_TABLA, SHOTS as SHOTS_054, prepararCuenta } from './spec054';
 
 /**
  * SPEC-040 CA-3, CA-4, CA-5 y CA-11 — **la geometría de las rutas que alcanza un
@@ -262,7 +263,23 @@ test.describe('SPEC-040 CA-5: la tabla se desplaza dentro de su caja, nunca la p
     await page.goto('/vigiladas');
     await page.locator('table.data-table').waitFor({ state: 'visible' });
 
-    for (const ancho of ANCHOS) {
+    /*
+      ── RE-ENCUADRE DE SPEC-054 (a qué anchos, no qué se exige) ──────────────────────
+
+      Este caso afirma que **la tabla sigue siendo legible**: que desplazándola dentro de
+      su caja se alcanza el control de la última columna. Desde SPEC-054 / ADR-034 §1, por
+      debajo de 720 px **no hay tabla** —`/vigiladas` se presenta como tarjetas y el
+      `<table>` está apagado con `display: none`, que lo retira del árbol de
+      accesibilidad—, así que `getByRole('button', { name: 'Quitar' })` no encuentra nada
+      que esperar. Medir ahí sería medir un árbol que nadie ve.
+
+      Se recorre el conjunto donde la premisa sigue siendo cierta: los anchos en los que la
+      tabla ES la representación viva. Y no se pierde nada por debajo del canto, al revés:
+      allí rige una afirmación **más fuerte** —SPEC-054 CA-4, «no queda ni un contenedor
+      que arrastrar»—, porque la pregunta «¿se alcanza la última columna arrastrando?» deja
+      de tener sentido cuando no hay nada que arrastrar.
+    */
+    for (const ancho of ANCHOS_TABLA) {
       await ponerVentana(page, ancho);
       const caja = page.locator('.table-scroll');
       await caja.evaluate((el) => {
@@ -397,14 +414,17 @@ test('SPEC-054 CA-11: /cartera con posiciones, M1 + M2 + M3 a los ocho anchos', 
     }
   }
 
-  guardarMedidas(
-    'medidas-cartera.txt',
-    'SPEC-054 CA-11 — M1 + M2 sobre /cartera con posiciones, a los ocho anchos',
-    informe,
-  );
-  mkdirSync('_qa/SPEC-054', { recursive: true });
+  // La evidencia de este caso va bajo `_qa/SPEC-054/` y NO bajo `_qa/SPEC-040/`, aunque el
+  // caso viva en la guardia de SPEC-040: CA-19 acota lo que esta spec escribe a su propia
+  // carpeta, y `guardarMedidas` apunta a la de la spec dueña de este fichero.
+  mkdirSync(SHOTS_054, { recursive: true });
   writeFileSync(
-    '_qa/SPEC-054/medidas-cartera-m3.txt',
+    `${SHOTS_054}/medidas-cartera.txt`,
+    `SPEC-054 CA-11 — M1 + M2 sobre /cartera con posiciones, a los ocho anchos\n${informe}\n`,
+    'utf8',
+  );
+  writeFileSync(
+    `${SHOTS_054}/medidas-cartera-m3.txt`,
     `SPEC-054 CA-11 — M3 sobre los rótulos de /cartera, a los ocho anchos\n${lineas.join('\n')}\n`,
     'utf8',
   );

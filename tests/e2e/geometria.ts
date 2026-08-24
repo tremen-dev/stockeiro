@@ -1328,7 +1328,11 @@ export async function medirOverflowHorizontal(page: Page): Promise<ContenedorDeD
       visible: number;
       hayQueArrastrar: boolean;
     }[] = [];
-    for (const el of [document.documentElement, ...document.querySelectorAll('*')]) {
+    // `querySelectorAll('*')` ya devuelve `<html>`, así que se recorre con un `Set`: sin
+    // esto el documento aparecía DOS veces en el inventario y quien lo compara con una
+    // lista de elementos aceptados veía un duplicado que no existe.
+    const vistos = new Set<Element>([document.documentElement, ...document.querySelectorAll('*')]);
+    for (const el of vistos) {
       const ox = getComputedStyle(el).overflowX;
       if (ox === 'visible') continue;
       const declarado = ox === 'auto' || ox === 'scroll';

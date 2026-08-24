@@ -1,0 +1,55 @@
+SPEC-054 — R-1 de EPIC-007: lo que M5 destapa en la nav y el pie. NO se afirma aquí:
+la navegación global y el pie están en el «fuera de alcance» de esta spec y son la
+spec 2 de la épica. La salida es agrandarlos, nunca bajar el suelo (ADR-034 §6).
+/vigiladas · ancho 360 · pantalla entera: 12 de 30 controles por debajo del suelo · en alcance: 0 de 17 · FUERA de alcance: 12
+    a «Leer el descargo completo»: 158x17
+    a «tremen.dev»: 67x18
+    a «Aviso legal»: 64x20
+    a «Privacidad»: 62x20
+    a «Términos»: 54x20
+    a.brand «Stockeiro.»: 97x20
+    a «Panel»: 36x26
+    a «Cartera»: 48x26
+    a «Avisos»: 42x26
+    a «Cuenta»: 46x26
+    a.active «Vigiladas»: 59x27
+    a[data-testid="feedback-enlace"] «Contar algo o reportar un fallo»: 320x37
+/vigiladas · ancho 390 · pantalla entera: 12 de 30 controles por debajo del suelo · en alcance: 0 de 17 · FUERA de alcance: 12
+    a «Leer el descargo completo»: 158x17
+    a «tremen.dev»: 67x18
+    a «Aviso legal»: 64x20
+    a «Privacidad»: 62x20
+    a «Términos»: 54x20
+    a.brand «Stockeiro.»: 97x20
+    a «Panel»: 36x26
+    a «Cartera»: 48x26
+    a «Avisos»: 42x26
+    a «Cuenta»: 46x26
+    a.active «Vigiladas»: 59x27
+    a[data-testid="feedback-enlace"] «Contar algo o reportar un fallo»: 348x37
+/cartera · ancho 360 · pantalla entera: 12 de 26 controles por debajo del suelo · en alcance: 0 de 13 · FUERA de alcance: 12
+    a «Leer el descargo completo»: 158x17
+    a «tremen.dev»: 67x18
+    a «Aviso legal»: 64x20
+    a «Privacidad»: 62x20
+    a «Términos»: 54x20
+    a.brand «Stockeiro.»: 97x20
+    a «Panel»: 36x26
+    a «Vigiladas»: 59x26
+    a «Avisos»: 42x26
+    a «Cuenta»: 46x26
+    a.active «Cartera»: 48x27
+    a[data-testid="feedback-enlace"] «Contar algo o reportar un fallo»: 320x37
+/cartera · ancho 390 · pantalla entera: 12 de 26 controles por debajo del suelo · en alcance: 0 de 13 · FUERA de alcance: 12
+    a «Leer el descargo completo»: 158x17
+    a «tremen.dev»: 67x18
+    a «Aviso legal»: 64x20
+    a «Privacidad»: 62x20
+    a «Términos»: 54x20
+    a.brand «Stockeiro.»: 97x20
+    a «Panel»: 36x26
+    a «Vigiladas»: 59x26
+    a «Avisos»: 42x26
+    a «Cuenta»: 46x26
+    a.active «Cartera»: 48x27
+    a[data-testid="feedback-enlace"] «Contar algo o reportar un fallo»: 348x37
