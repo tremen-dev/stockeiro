@@ -2,13 +2,14 @@
 id: SPEC-055
 tipo: spec
 epica: EPIC-FIX
-estado: en-revision
+estado: en-progreso
 aprobada-por: humano (Alberto Fojo)
 historial:
   - {estado: borrador, fecha: 2026-08-24, por: sdd-arquitecto}
   - {estado: aprobada, fecha: 2026-08-24, por: humano (Alberto Fojo)}
   - {estado: en-progreso, fecha: 2026-08-24, por: sdd-implementador}
   - {estado: en-revision, fecha: 2026-08-24, por: sdd-implementador}
+  - {estado: en-progreso, fecha: 2026-08-24, por: sdd-verificador}
 ---
 # SPEC-055 — `APP_BASE_URL` envenenada: `appBaseUrl()` valida el valor y no solo su presencia, y el build dice qué clave y qué fichero
 
@@ -85,6 +86,31 @@ mundo por igual. **Es precisamente el envenenamiento —y sólo él— el que mu
 al otro lado de las dos salidas tempranas.** Colapsar el caso envenenado dentro del caso
 ausente cierra el oráculo por construcción.
 
+#### La otra mitad de la frase: el oráculo era LATENTE, y esto se mide
+
+Añadido el **2026-08-24** tras el gate del verificador (O3). Todo lo de arriba está
+condicionado —«con la clave envenenada»— y por tanto no miente; pero **decirlo sin decir la
+otra mitad hace que se lea peor de lo que fue**, y en este proyecto ya hay varias specs
+dedicadas a frases que fueron ciertas y dejaron de serlo. La otra mitad, con sus dos apoyos:
+
+- **El razonamiento, del gate.** `metadataBase` se evalúa en **tiempo de build** (eslabón 5,
+  SPEC-051 CA-1), así que **un despliegue de producción con la clave envenenada no llega a
+  existir**: el build se cae antes de que haya nada que desplegar. Por tanto el oráculo
+  **nunca estuvo abierto en un despliegue vivo**. Era un defecto **latente**, esperando a que
+  alguien construyera y desplegara con la variable marcada *Sensitive*.
+- **La medida, contra producción, del 2026-08-24** —la que el verificador no podía tomar
+  desde los artefactos, porque `.env.production.local` trae la clave enmascarada y ése es el
+  defecto entero—: `curl https://stockeiro.tremen.dev/login` devuelve
+  `<meta property="og:url" content="https://stockeiro.tremen.dev"/>`. Ese `og:url` **sale de
+  `metadataBase`, que sale de `appBaseUrl()`**. Luego **`APP_BASE_URL` vale hoy en producción
+  `https://stockeiro.tremen.dev` y es válida**: comprobado, no deducido.
+
+**Qué cambia y qué no.** No cambia la gravedad de lo que la spec arregla —el 200/500 está
+medido y es real en cuanto la clave se envenena, que es un `vercel env pull` de distancia— ni
+justifica bajar de prioridad. Cambia el tiempo verbal: **no hay incidente que investigar, ni
+usuarios afectados que avisar, ni ventana que acotar.** Quien lea esta spec dentro de seis
+meses tiene derecho a saber las dos cosas.
+
 ### Por qué `new URL()` no lanza no basta como listón
 
 Medido, ejecutando las expresiones reales de los dos consumidores:
@@ -116,8 +142,10 @@ Dos cosas que sólo se ven con la tabla delante:
   ni la clave ni el fichero, que son las dos únicas cosas que necesita.
 - **La persona que pide recuperar su contraseña** en un despliegue con la clave envenenada:
   hoy pierde su enlace vivo y recibe un 500. No lo ve venir y no puede hacer nada.
-- **Cualquiera capaz de probar direcciones contra el formulario de recuperación**: hoy, con
-  la clave envenenada, el par 200/500 le dice qué cuentas existen.
+- **Cualquiera capaz de probar direcciones contra el formulario de recuperación**: con la
+  clave envenenada, el par 200/500 le dice qué cuentas existen. **Los dos anteriores son
+  víctimas potenciales, no víctimas**: ese despliegue no llega a existir porque el build cae
+  antes — ver §La otra mitad de la frase.
 - **Quien implemente esto**: hereda un contrato con **dos consumidores** (`metadataBase` en
   build y el enlace de correo en petición) y **dos specs vecinas** cuyos tests no puede tocar
   (§Frontera con SPEC-052, §Fuera de alcance).
@@ -133,7 +161,7 @@ interpretación: su propio §Fuera de alcance manda aquí, literalmente —
 
 Esta es esa otra spec, y **no toma ninguna de las tres alternativas**: ver D-1.
 
-### Ficheros compartidos: ninguno. Contrato compartido: uno, y es un literal
+### Ficheros ESCRITOS en común: ninguno. Acoplamientos: dos, y ninguno es un fichero escrito
 
 Comprobado contra la rama en vuelo
 (`git diff --name-only origin/main...ft/SPEC-052-sin-app-base-url-el-build-ya-no-sale-verde`):
@@ -144,19 +172,31 @@ Comprobado contra la rama en vuelo
 | `docs/despliegue.md` | `src/app/layout.tsx` (**sólo comentario**) |
 | `tests/entornos-de-despliegue.test.ts` (nuevo) | `tests/app-base-url.test.ts` (nuevo) |
 
-**Intersección de ficheros: vacía.** Pero hay un acoplamiento real y no está en un fichero:
+**Intersección de ESCRITURAS: vacía.** Pero eso no basta, y esta spec lo aprendió por las
+dos vías. Hay **dos** acoplamientos reales, y ninguno se ve en un `git diff --name-only`:
 
-**SPEC-052 CA-14 congela el mensaje de la rama que esta spec NO cambia.** Su test
+**Acoplamiento 1 — por contrato. SPEC-052 CA-14 congela el mensaje de la rama que esta spec
+NO cambia.** Su test
 (`tests/entornos-de-despliegue.test.ts:697-740`, en su rama) exige
 `expect(() => appBaseUrl(sinLaClave)).toThrow(/APP_BASE_URL no definida/)` y lo mismo para
 `'   '`, y además exige que la firma siga siendo `appBaseUrl(env)`. **Cambiar ese literal, o
 esa firma, pone RED a SPEC-052 sin tocar ni uno de sus ficheros.** Por eso CA-1 de esta spec
 lo conserva palabra por palabra y lo dice en voz alta.
 
+**Acoplamiento 2 — por lectura. Un test que LEE un fichero de SPEC-052 y asevera sobre su
+contenido ata esta rama al estado del árbol de la otra.** Es el que se nos coló: el primer
+test de CA-5 leía `.env.example` y exigía que su valor fuera `https`, justo mientras el CA-17
+de SPEC-052 lo cambia a `http://localhost:3000`. El daño es **el mismo** que el del
+acoplamiento 1 —el primer merge deja roja a la otra spec sin que nadie haya tocado sus
+ficheros—, sólo que llega por el canal contrario y no lo enseña ninguna herramienta de diff.
+**Leer un fichero ajeno y aseverar sobre él acopla igual que escribirlo:** está en D-7, en la
+redacción nueva de CA-5 y, porque no es local a esta spec, en `FOUNDATION.md`.
+
 ## Diseño
 
-Seis decisiones. Las dos primeras son las que impiden que esto se convierta en una
-reapertura de SPEC-051.
+Siete decisiones. Las dos primeras son las que impiden que esto se convierta en una
+reapertura de SPEC-051. La séptima se añadió **después** del gate del verificador y es la que
+arregla CA-5.
 
 - **D-1 — Esto extiende D-4 de SPEC-051; no lo contradice.** SPEC-051 §Diseño D-4 dice de
   `appBaseUrl()` que **«ya falla ruidosamente si falta, que es la conducta correcta»**, y
@@ -208,6 +248,31 @@ reapertura de SPEC-051.
   mensaje. Es ADR-026 §7 («una guardia nueva demuestra que caza el defecto») aplicado a una
   guardia que no es de geometría, y es lo que impide que la tabla se convierta en una lista
   congelada de literales que nadie vuelve a comprobar (`F-SPEC-048-2`).
+- **D-7 — Leer un fichero ajeno y aseverar sobre su contenido acopla igual que escribirlo.**
+  Añadida el **2026-08-24**, después del gate, a raíz de F1: el test de CA-5 leía
+  `.env.example` —fichero de SPEC-052— y **exigía que su valor empezara por `https://`**.
+  Ninguna línea de SPEC-052 se tocaba, y aun así el primer merge de cualquiera de las dos
+  ramas dejaba roja a la otra, con la cara de un cambio legítimo de la vecina. **Es el mismo
+  daño al que esta spec dedica una sección entera (§Frontera con SPEC-052) y que CA-1 evita
+  por el canal de escritura, cometido por el canal de lectura.** Y contradice lo que
+  `FOUNDATION.md` §*Cómo se trabaja aquí* ya fija —*un test de frontera fija una propiedad, no
+  un estado del árbol*—: que `.env.example` traiga hoy un ejemplo `https` es un estado del
+  árbol, no una propiedad de `appBaseUrl()`.
+  El corolario operativo, que es el que decide CA-5: **leer un fichero sólo compra algo cuando
+  lo que se lee es un valor VIVO —uno que un proceso real consume— y ese proceso es de esta
+  spec o de nadie.**
+  - `.github/workflows/ci.yml` y `tests/e2e/server.mjs` lo son: **CI construye** con su valor
+    y **el e2e sirve** con el suyo. Si mañana uno cambia a algo que la guardia rechaza, el
+    rojo de aquí **precede** al rojo de CI o del e2e. Esa anticipación es lo que se compra, y
+    la paga el mismo que la cobra: ninguno de los dos ficheros es de otra spec en vuelo.
+  - `.env.example` **no** lo es: no lo lee ningún proceso, es documentación para humanos, y
+    encima es territorio de SPEC-052. Leerlo no compra nada y cuesta el acoplamiento entero.
+  Si alguien quiere una guardia de que el ejemplo que `.env.example` enseña pasa
+  `appBaseUrl()` —y es una propiedad legítima, no la estoy despachando—, **vive con quien es
+  dueño del fichero**. Queda pedida a SPEC-052 como tercer punto de `D-SPEC-055-1`.
+  **Esta decisión no es local a esta spec**, así que se sube donde el próximo la vea: queda
+  escrita como corolario en `FOUNDATION.md` §*Cómo se trabaja aquí*, colgando de la
+  convención del 2026-08-20 que generaliza.
 
 ## Criterios de aceptación
 
@@ -243,19 +308,41 @@ Todos verificables con test unitario. El fichero nuevo es `tests/app-base-url.te
 - **CA-4 — Un valor con ruta, query, fragmento o credenciales se rechaza; la barra final,
   no.** Dado `https://a.com/es`, `https://a.com?x=1`, `https://a.com#f` o
   `https://u:p@a.com`, entonces lanza. Dado `https://a.com/` (sólo barra final), entonces
-  **no** lanza y devuelve `https://a.com`, igual que hoy. *Test:* para el caso de la ruta, la
+  **no** lanza y devuelve `https://a.com`, igual que hoy. Y dado `https://a.com//` —**varias**
+  barras finales y nada más— **lo mismo**: «igual que hoy» se lee al pie de la letra, porque
+  el recorte de hoy ya era `/\/+$/` y no una sola barra. Tolerarlas es lo conservador y no
+  abre nada: el valor sale ya recortado, así que ninguno de los dos consumidores llega a ver
+  la barra doble y no hay discrepancia que arbitrar. **Decisión registrada** (§Decisiones,
+  fila 4): la tomó el implementador, la ratifico, y se escribe aquí para que deje de ser
+  tácita. *Test:* para el caso de la ruta, la
   fila **calcula** la discrepancia entre los dos consumidores —`new URL('https://a.com/es')`
   conserva `/es` y `new URL('/reset-password/tok', 'https://a.com/es/')` lo pierde— y la
   exige distinta antes de exigir el rechazo.
 
-- **CA-5 — Los valores que hoy funcionan de verdad siguen funcionando, y se leen de sus
-  fuentes.** Dado el valor de `APP_BASE_URL` **extraído de `.github/workflows/ci.yml`** (job
-  que construye) y el **extraído de `tests/e2e/server.mjs`**, cuando se pasan a
-  `appBaseUrl()`, entonces devuelven el origen sin lanzar. Más un origen `https` de
-  producción de la misma forma. *Test:* los dos valores se **leen de esos ficheros**, no se
-  escriben en el test; si mañana CI cambia el suyo a algo que la guardia rechaza, el rojo
-  sale aquí y no en un despliegue. **Centinela:** si la extracción devuelve vacío, el caso
-  falla en vez de pasar de vacío.
+- **CA-5 — Los valores que hoy funcionan de verdad siguen funcionando: los DOS que un
+  proceso consume se leen de su fichero, y el tercero se escribe en el test.**
+  Dado el valor de `APP_BASE_URL` **extraído de `.github/workflows/ci.yml`** (job que
+  construye) y el **extraído de `tests/e2e/server.mjs`**, cuando se pasan a `appBaseUrl()`,
+  entonces devuelven el origen sin lanzar. Y dado un origen `https` de producción **escrito
+  literalmente en el test** —`https://stockeiro.tremen.dev`, el mismo que el mensaje de CA-6
+  ya propone como ejemplo—, entonces igual.
+  *Test:* se leen de fichero **exactamente dos** valores, y son esos dos; si mañana CI cambia
+  el suyo a algo que la guardia rechaza, el rojo sale aquí y no en un despliegue. El origen
+  `https` **no se deriva de ningún fichero**, y **ningún caso de este CA lee `.env.example`**
+  ni ningún otro fichero cuyo dueño sea otra spec — el porqué está en **D-7**, y es la
+  corrección de esta redacción. **Centinela:** si cualquiera de las dos extracciones devuelve
+  vacío, el caso falla en vez de pasar de vacío.
+  *Nota de encuadre, para que nadie la añada creyendo que la pedía:* aquí **no** se pide una
+  guardia que vigile qué ficheros lee esta batería. Sería exactamente la lista cerrada que
+  caduca sola (`F-SPEC-048-2`). La regla vive escrita en D-7 y en `FOUNDATION.md`, que es
+  donde el próximo la mira.
+  *Historia de este CA, escrita a propósito:* su primera redacción decía «más un origen
+  `https` de producción **de la misma forma**» y sólo nombraba dos ficheros. «De la misma
+  forma» admitía dos lecturas —«también extraído de un fichero» y «que se comporta igual»— y
+  la implementación escogió la primera: leyó `.env.example`, que es de SPEC-052, y **aseveró
+  que su valor era `https`**. Eso plantaba un rojo garantizado bajo la spec hermana, que está
+  cambiando ese literal a `http://localhost:3000` ahora mismo. Lo cazó el gate (F1 del
+  ledger); el defecto era de la letra, no del código.
 
 ### El mensaje
 
@@ -356,8 +443,11 @@ Todos verificables con test unitario. El fichero nuevo es `tests/app-base-url.te
 - **ADR-026 §7** — una guardia nueva demuestra que caza el defecto. CA-11.
 - **`F-SPEC-048-2`** — guardias que congelan una lista que crece. D-5 y CA-12.
 - **`FOUNDATION.md` §Cómo se trabaja aquí** — *un test de frontera fija una propiedad, no un
-  estado del árbol*. Por eso CA-5 **deriva** los valores vivos de sus ficheros en vez de
-  escribirlos.
+  estado del árbol*. Por eso CA-5 **deriva** de sus ficheros los dos valores **vivos** (los
+  de CI y del e2e) en vez de escribirlos. **Y es lo único de esta lista que esta spec no se
+  limita a aplicar: le añade un corolario** —leer un fichero ajeno y aseverar sobre su
+  contenido acopla igual que escribirlo—, porque F1 demostró que la convención tal y como
+  estaba escrita no cubría el canal de lectura. Ver **D-7**, y el gate de §Notas pto. 7.
 - **`.gitignore:12`** (`.env*.local`) — la razón de que aquí no haya nada que limpiar.
 
 ### Ficheros que esta spec modifica
@@ -367,6 +457,14 @@ Todos verificables con test unitario. El fichero nuevo es `tests/app-base-url.te
 | `src/lib/config/app-url.ts` | La validación del valor en `appBaseUrl()` y su mensaje; cabecera | CA-1..CA-8, CA-13 |
 | `src/app/layout.tsx` | **Sólo el comentario** del bloque `metadata`; ni una línea de expresión | CA-13 |
 | `tests/app-base-url.test.ts` (**nuevo**) | Toda la batería, sus centinelas y el contraste con la versión anterior | CA-1..CA-12 |
+| `package.json` + `package-lock.json` | La **subida de versión** (0.4.0 → 0.4.1) que el gate `Version bump` exige por tocar `src/`; los dos en el **mismo commit**, que es lo que manda ADR-033 | — (gate, no CA) |
+| `FOUNDATION.md` | Un corolario en §*Cómo se trabaja aquí*: leer un fichero ajeno y aseverar sobre su contenido acopla igual que escribirlo | D-7 |
+| La propia spec y su `.ledger.md` | — | — |
+
+**Esta tabla estaba incompleta y se corrige aquí (O2 del verificador).** `package.json` y
+`package-lock.json` faltaban aunque el párrafo siguiente ya los anunciaba: la tabla se
+escribió antes que su propia frase. `FOUNDATION.md` entra ahora, con D-7. **Ocho ficheros en
+total**, y ése es el conjunto cerrado que el gate debe ver en `git diff --name-only`.
 
 Nada bajo `drizzle/`, `.github/workflows/`, `docs/despliegue.md`, `.env.example` ni
 `tests/entornos-de-despliegue.test.ts`. `src/lib/auth/password-reset.ts` **no se toca**
@@ -405,6 +503,31 @@ Aparcado a propósito, con su motivo:
   vacío que ADR-031 prohíbe. Se verifica **en el gate**, una vez, con la salida pegada en el
   ledger — mismo tratamiento que SPEC-052 CA-16.
 
+## Decisiones registradas
+
+Cuatro decisiones que **se tomaron de verdad** —tres en el gate humano del **2026-08-24** y
+una durante la implementación— y que hasta ahora sólo vivían en el código o en una
+conversación. Se escriben aquí, con su autor, porque una decisión que sólo existe en el diff
+se vuelve a discutir dentro de seis meses. Las señaló el verificador, con razón.
+
+| # | Decisión | Quién | Dónde vive |
+|---|---|---|---|
+| 1 | **`javascript:` y `file:` NO llevan mensaje propio**: basta el rechazo genérico de CA-3, que ya nombra el protocolo recibido. A diferencia de `[SENSITIVE]`, no son valores que escriba solo ningún proceso: llegan por error humano, y en cuanto se lee el protocolo la corrección es evidente. Cierra la 1.ª pregunta de §Notas pto. 6 | **humano (Alberto Fojo)** | CA-3, sin cambio |
+| 2 | **Sin ADR.** La restricción de no admitir ruta (D-3 pto. 3) queda como fuera de alcance con nombre, **`F-SPEC-055-1`**, y no como ADR inmutable: es una restricción sobre el valor de una clave de configuración, reversible por otra spec, no una frontera de datos ni de integración. Cierra §Notas pto. 5 | **humano (Alberto Fojo)** | §Fuera de alcance, `F-SPEC-055-1` |
+| 3 | **El valor se recorta a 120 caracteres** en el mensaje, no a 60. CA-7 exigía el recorte sin fijar el número. `APP_BASE_URL` **no es un secreto** —lo dice la nota de seguridad de CA-6—, así que el recorte es **legibilidad, no confidencialidad**, y 120 deja ver entera una URL larga de verdad. Cierra la 2.ª pregunta de §Notas pto. 6 | **sdd-orquestador** | `src/lib/config/app-url.ts:41` (`MAX_VALOR_EN_MENSAJE`), CA-7 |
+| 4 | **Se aceptan varias barras finales** (`https://a.com//`), no sólo una | **sdd-implementador**, ratificada por sdd-arquitecto | CA-4 |
+
+Sobre la 4, que es la única que no venía del gate y por eso la razono: **me parece bien y la
+ratifico.** Tres motivos, en orden de peso. (a) **Es lo que CA-4 ya decía**: «se recorta como
+hoy», y el recorte de hoy es `/\/+$/`, no una sola barra — rechazarlas habría sido *más*
+estricto que la letra aprobada, y en la dirección contraria a la que se aprobó. (b) **Es lo
+conservador**: no deja pasar ningún valor que antes no pasara, y `//` al final no es un
+segmento de ruta, que es lo único que D-3 pto. 3 rechaza y por el motivo **medido** de que
+los dos consumidores discrepan. (c) **El valor sale ya recortado de la función**, así que
+ningún consumidor llega a ver la barra doble y no hay discrepancia que arbitrar. Si algún día
+hubiera que rechazarlas sería por higiene y no por conducta, y eso no vale un cambio de
+contrato con SPEC-052 encima de la mesa.
+
 ## Notas para el gate humano
 
 Lo que necesitas para decidir, y lo que decides tú.
@@ -432,6 +555,13 @@ clave **ausente** no pasa, porque ahí `appBaseUrl()` lanza antes de entrar. **E
 envenenamiento, y sólo él, el que mueve el fallo al lado malo de la comparación.** Si te
 parece que esto solo ya justifica la spec por delante del build rojo, coincido.
 
+**Matiz añadido después del gate del verificador (O3), y va con esta nota:** el oráculo era
+**latente**. `metadataBase` se evalúa en build, así que un despliegue de producción con la
+clave envenenada no llega a existir, y la medida contra producción del 2026-08-24
+(`curl https://stockeiro.tremen.dev/login` → `og:url` = `https://stockeiro.tremen.dev`)
+confirma que la clave viva **es válida**. Sigue justificando la spec; lo que no hay es
+incidente que investigar. Todo el detalle, en §La otra mitad de la frase.
+
 **4. La dependencia que dejo, y a quién.** Mi mensaje de error remite al desarrollador a
 `.env.production.local` y a la precedencia sobre `.env`. **Eso debería estar también en el
 runbook y en `.env.example`, y esos dos ficheros son de SPEC-052.** No los toco. Lo que pido
@@ -454,15 +584,27 @@ hay decisión nueva que arbitrar: no hay clave nueva (CA-10), ni fuente de verda
 una ruta: eso sí constriñe trabajo futuro —cierra la puerta a un despliegue en sub-ruta—.
 Lo he dejado **fuera de alcance con nombre (`F-SPEC-055-1`)** en vez de en un ADR, porque es
 una restricción sobre el valor de una clave de configuración, reversible por otra spec, y no
-una frontera de datos ni de integración. **Si prefieres que quede como ADR inmutable, lo
-escribo antes de aprobar**: dímelo en el gate.
+una frontera de datos ni de integración.
+**RESUELTO en el gate del 2026-08-24: sin ADR, `F-SPEC-055-1` se queda como está** — decisión
+del humano, registrada en §Decisiones fila 2.
 
-**6. Dos preguntas abiertas para ti.**
-- **¿`javascript:` y `file:` merecen mensaje propio, o basta el de protocolo?** He decidido
-  que basta el genérico —nombra el protocolo recibido— porque, a diferencia de
-  `[SENSITIVE]`, no son valores que ningún proceso escriba solo: llegan por error humano y
-  la corrección es evidente en cuanto se lee el protocolo. Si crees que un valor `javascript:`
-  en `APP_BASE_URL` merece un aviso más fuerte por lo que insinúa, se añade.
-- **¿Corto el valor en el mensaje a 60 caracteres o a 120?** CA-7 exige el recorte pero no
-  fija el número; lo dejo al implementador salvo que quieras fijarlo aquí. `APP_BASE_URL` no
-  es un secreto, así que el recorte es por legibilidad, no por confidencialidad.
+**6. Dos preguntas que estaban abiertas, y ya no lo están.** Las dos se decidieron en el gate
+del 2026-08-24 y viven ahora en §Decisiones (filas 1 y 3), no aquí:
+- **¿`javascript:` y `file:` merecen mensaje propio?** **No**: basta el genérico, que ya
+  nombra el protocolo recibido. *(Decisión del humano.)*
+- **¿60 o 120 caracteres de recorte?** **120**, y el motivo es legibilidad, no
+  confidencialidad: `APP_BASE_URL` no es un secreto. *(Decisión de sdd-orquestador.)*
+
+**7. Lo que cambió en esta spec DESPUÉS del RED del verificador (2026-08-24), y por qué
+deberías mirarlo tú.** No se tocó ni una línea de código ni de test: el verificador no
+encontró ningún defecto en la implementación. Lo que estaba mal era **la letra**:
+- **CA-5, reescrito.** Su «de la misma forma» admitía dos lecturas y la implementación cogió
+  la que ataba esta rama a `.env.example`, que es de SPEC-052. Ahora dice de qué fuente sale
+  cada valor: **dos leídos, uno escrito**. La lección general, en **D-7**.
+- **`FOUNDATION.md`**, un corolario nuevo. Es lo único de este lote que sale del territorio de
+  esta spec, y por eso es lo primero que te pido que mires: **es una convención de proyecto,
+  no una decisión de SPEC-055**. Si prefieres que espere a su propio gate, se saca de la rama
+  y queda como follow-up.
+- **La tabla de ficheros** (O2) y **la latencia del oráculo** (O3), corregidas donde tocaba.
+- **Cuatro decisiones tácitas**, ahora escritas con su autor en §Decisiones. Tres son tuyas
+  del gate anterior; confirma que las recogí como las dijiste.

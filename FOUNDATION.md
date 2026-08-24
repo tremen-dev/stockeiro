@@ -118,3 +118,24 @@ Y una tercera, que ya ha costado **cuatro** veces y se fija el **2026-08-20** (c
   no es quien se beneficia** — un implementador no ablanda en silencio la guardia que le
   está fallando; la declara y la lleva al gate. Precedentes: `F-SPEC-034-6` (tres guardias
   re-encuadradas) y `F-SPEC-042-9` (un caso borrado, con su motivo escrito en el sitio).
+
+Y un **corolario de esa tercera**, que ya ha costado una vez y se fija el **2026-08-24**
+(cierra `F1` de SPEC-055):
+
+- **Leer un fichero ajeno y aseverar sobre su contenido acopla igual que escribirlo.** Que
+  `git diff --name-only` de dos ramas no se solape **no prueba que estén desacopladas**. Un
+  test que **lee** un fichero de otra spec en vuelo y **exige algo de lo que encuentra** ata
+  su rama al estado del árbol de la otra: cuando la otra cambie ese fichero —cambio legítimo,
+  dentro de su territorio— el primer merge deja **roja** a la que quedó, y con la cara de un
+  defecto de la vecina. Es el rojo sin defecto detrás de la convención de arriba, entrando
+  por la puerta que esa convención no nombraba.
+- **La regla, en una línea: leer un fichero sólo compra algo cuando lo que se lee es un valor
+  VIVO —uno que un proceso real consume— y ese proceso es de tu spec o de nadie.**
+  `.github/workflows/ci.yml` lo es, porque CI construye con su valor, y `tests/e2e/server.mjs`
+  lo es, porque el e2e sirve con el suyo: leerlos hace que el rojo salga en la batería **antes**
+  que en CI, que es la protección que se paga. Un `.env.example` **no** lo es: no lo lee ningún
+  proceso, es documentación para humanos, y quien lo cambia es su dueño. Leerlo no compra nada
+  y cuesta el acoplamiento entero.
+- **Si la propiedad que quieres vigilar es sobre un fichero ajeno, la guardia vive con el
+  dueño del fichero**, y se le pide como dependencia (`D-SPEC-nnn-n`). No se trae de contrabando
+  al fichero de test propio. Precedente: `D-SPEC-055-1` pto. 3.
