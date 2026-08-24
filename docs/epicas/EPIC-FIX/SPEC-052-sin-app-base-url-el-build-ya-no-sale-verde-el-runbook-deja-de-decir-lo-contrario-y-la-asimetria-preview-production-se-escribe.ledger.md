@@ -69,8 +69,8 @@ epica: EPIC-FIX
 
 **Estado de la suite tras la entrega:** `tests/entornos-de-despliegue.test.ts` → **43/43 verde**;
 `tests/tarjeta-guardias-ampliadas.test.ts` (re-encuadrada) → **15/15 verde**. `npm run typecheck`
-y `npm run lint` limpios. **Suite completa: 1748/1748 en verde, 113/113 ficheros**, sobre la
-base nueva `825046f` (con SPEC-053 y SPEC-054 ya dentro).
+y `npm run lint` limpios. **Suite completa: 1825/1825 en verde, 114/114 ficheros**, sobre la
+base vigente `497eccf` (con SPEC-053, SPEC-054 y SPEC-055 ya dentro).
 
 > Antes del re-encuadre de CA-18 la suite estaba en **1702/1703**, con el único rojo de
 > `F-SPEC-052-7` — que no era un defecto de esta entrega sino una guardia ajena caducada. Con
@@ -126,14 +126,14 @@ que es justo lo que esta spec **no** cambia).
   gate**. Evidencia a pegar aquí: salida de `git diff --name-only <base>...<rama>`, con
   la base indicada.
 
-  **Ejecutado el 2026-08-24, y RE-EJECUTADO sobre la base nueva** tras el rebase que se
-  explica abajo. Base vigente: `origin/main` en **`825046f`**. Comando y salida literal:
+  **Ejecutado el 2026-08-24, y RE-EJECUTADO dos veces** sobre las bases nuevas, por lo que
+  se explica abajo. Base vigente: `origin/main` en **`497eccf`**. Comando y salida literal:
 
   ```
   $ git merge-base origin/main HEAD
-  825046fabfe8aad319648881d93e852c93ff504d
+  497eccf8cc288d843daa8f985c8494abf6291047
 
-  $ git diff --name-only 825046f...HEAD
+  $ git diff --name-only 497eccf...HEAD
   .env.example
   docs/despliegue.md
   docs/epicas/EPIC-FIX/SPEC-052-….ledger.md
@@ -172,6 +172,17 @@ que es justo lo que esta spec **no** cambia).
   > realinear con el `package-lock.json` nuevo, y **re-ejecutando los gates enteros**. No
   > se tocó `package.json`: subir la versión aquí habría sido afirmar que esta entrega
   > toca producto, que es justo lo que CA-15 dice que no hace.
+  >
+  > **Y volvió a moverse acto seguido**, lo que confirma que no fue mala suerte sino el
+  > régimen normal de este repositorio: al refrescar otra vez entró **SPEC-055** (PR #63,
+  > `APP_BASE_URL` envenenada), versión a **0.4.1**, y el gate volvió a rojo por lo mismo.
+  > Segundo rebase, ahora sobre **`497eccf`**, seis commits y de nuevo cero conflictos.
+  >
+  > **La lección operativa, para quien venga:** `version:check` **no se ejecuta al empezar
+  > ni una sola vez al final** — se ejecuta **inmediatamente antes de entregar, con
+  > `origin/main` recién traído**, y se vuelve a ejecutar si media algo entre esa pasada y
+  > el cierre. El número de versión es un recurso compartido que reclama quien mergea
+  > primero, y en esta entrega lo reclamaron **tres** specs seguidas.
 
   Eso es correcto aquí y **no** un verde vacío: `.sdd.json` vigila `src/` y `app/`, y esta
   entrega es documentación más una guardia. Ejecutado **con el árbol limpio y después de
@@ -391,7 +402,7 @@ No aplica: esta spec no cambia ninguna superficie de UI. La evidencia es textual
 
   ↳ **APLICADO y CERRADO el 2026-08-24 por sdd-implementador.** Las seis partes están
   implementadas y probadas; el fichero ajeno queda en **15/15 verde** y la suite completa en
-  **1748/1748** sobre la base `825046f`. Lo que se hizo, y la evidencia de que no es un verde de conveniencia:
+  **1825/1825** sobre la base `497eccf`. Lo que se hizo, y la evidencia de que no es un verde de conveniencia:
 
   **1. El criterio cambió de verdad, y se puede medir.** Ejecutando **el criterio viejo** (la
   cadena) sobre el árbol de hoy salen **nueve** ficheros; el nuevo (la firma) devuelve
@@ -506,14 +517,54 @@ No aplica: esta spec no cambia ninguna superficie de UI. La evidencia es textual
   aparece en el log de Vercel del PR #58 y el que **CA-2 (c)** exige en el documento — así el
   documento y el código quedan atados por el mismo literal y no pueden divergir en silencio.
 
+  ↳ **Epílogo del 2026-08-24, y sale bien: SPEC-055 mergeó encima y NO chocó.** Mientras esto
+  se cerraba entró **SPEC-055** (PR #63), que reescribe `src/lib/config/app-url.ts` para que
+  `appBaseUrl()` valide el **valor** y no solo su presencia, y estrena
+  `tests/app-base-url.test.ts` — el test propio que F-SPEC-052-8 echaba en falta, ahora con 77
+  casos. Podría haber sido una colisión fea: mi CA-14 congela un literal de esa misma función.
+  No lo fue, y merece quedar escrito **porque es el mecanismo funcionando**:
+
+  - SPEC-055 **dejó intacto** el mensaje de la rama «clave ausente» y escribió al lado, en el
+    código, que *«el literal de este mensaje y la firma de esta función son CONTRATO con
+    SPEC-052 CA-14, que los congela en `tests/entornos-de-despliegue.test.ts`»*.
+  - Su propio test **afloja a propósito** su aserción sobre ese literal (`/APP_BASE_URL no
+    definida/`, regex) y **cede el congelado** a esta spec, para no tener dos dueños.
+  - Y evitó acoplarse a `.env.example` **sabiendo que CA-17 lo estaba cambiando**, dejándolo
+    dicho en su D-7. Dos specs hermanas tocando la misma función el mismo día, sin pisarse.
+
+  Tras el rebase, `tests/app-base-url.test.ts` pasa **77/77** y el caso de CA-14 sigue verde
+  con el literal entero. **No hay duplicación**: aquel prueba la validación del valor (SPEC-055),
+  este congela el literal y la firma de la rama ausente (SPEC-052).
+
+- **F-SPEC-052-9** (petición entrante de SPEC-055, **NO implementada aquí**) — **`D-SPEC-055-1`
+  pide a esta spec una guardia que SPEC-052 no tiene entre sus CA.** El comentario de
+  `tests/app-base-url.test.ts` (bloque de CA-5) lo deja escrito: *«si alguien quiere la guardia
+  de que el ejemplo de `.env.example` pasa `appBaseUrl()` —propiedad legítima—, vive con el
+  dueño del fichero: queda pedida a SPEC-052 en `D-SPEC-055-1`. NO la traigas de vuelta aquí»*.
+
+  Es una propiedad **buena y barata** —una línea: `expect(() => appBaseUrl({ APP_BASE_URL:
+  'http://localhost:3000' })).not.toThrow()`— y cae justo al lado de CA-17, que es quien fija
+  ese valor. **Y aun así no se ha escrito**, porque **ningún CA de SPEC-052 la pide** y la regla
+  del rol es que nada entra fuera de los CA. Con CA-18 recién añadido por el arquitecto, meter
+  una aserción por iniciativa propia sería exactamente lo que esa disciplina evita.
+
+  **Lo que hace falta para cerrarla**: que el arquitecto decida si entra como enmienda a CA-17 en
+  esta spec —es el sitio natural: el mismo fichero, el mismo valor, y el coste es una línea— o
+  si se queda como residual con destino propio. **Decisión del gate, no mía.**
+
 
 ## Cómo retomar (handoff)
 
 **Estado real (2026-08-24)**: **implementación TERMINADA, con CA-18 incluido**; spec en
 `en-revision`; rama `ft/SPEC-052-sin-app-base-url-el-build-ya-no-sale-verde` sobre `origin/main`
-en **`825046f`** (rebasada tras los merges de SPEC-053 y SPEC-054). **Suite completa en verde:
-1748/1748**, y `version:check` en verde con el árbol limpio. **Sin PR y sin merge** — eso es del
-orquestador.
+en **`497eccf`** (rebasada **dos veces**: tras SPEC-053 + SPEC-054, y luego tras SPEC-055).
+**Suite completa en verde: 1825/1825**, y `version:check` en verde con el árbol limpio. **Sin PR
+y sin merge** — eso es del orquestador.
+
+**Lo único abierto que necesita a alguien: `F-SPEC-052-9`.** SPEC-055 le pide a esta spec una
+guardia (`D-SPEC-055-1`: que el valor de ejemplo de `.env.example` pase `appBaseUrl()`). Es una
+línea y cae al lado de CA-17, pero **ningún CA la pide** y no se ha escrito. Decide el arquitecto:
+enmienda a CA-17 aquí, o residual con destino propio.
 
 **`F-SPEC-052-7` está CERRADO, y conviene leer su cierre antes que nada.** El rojo de la guardia
 ajena de SPEC-051 CA-17.1 **ya no existe, y no porque se haya callado**: el humano autorizó
@@ -531,7 +582,7 @@ el cierre de ese follow-up, junto con la medida del criterio viejo (9 ficheros) 
 2. `npx vitest run tests/tarjeta-guardias-ampliadas.test.ts` → **15/15**. La guardia ajena
    re-encuadrada, con las partes (a)…(d) de CA-18.
 3. `npm run typecheck` y `npm run lint` → limpios.
-4. `npm run test` → **1748/1748**, 113/113 ficheros. **Sin excepciones ni rojos declarados.**
+4. `npm run test` → **1825/1825**, 114/114 ficheros. **Sin excepciones ni rojos declarados.**
 5. Los dos `n-a` **ya están ejecutados y con su salida literal pegada** en N-1 y N-2 de arriba
    (incluido el **control** del build en verde con las cuatro claves de la CI, que es lo que
    hace que el rojo de N-2 signifique algo).
