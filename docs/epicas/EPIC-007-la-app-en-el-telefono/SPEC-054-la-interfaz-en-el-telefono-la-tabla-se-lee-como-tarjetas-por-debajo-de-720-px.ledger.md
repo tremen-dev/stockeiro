@@ -6,16 +6,21 @@ epica: EPIC-007
 # Ledger — SPEC-054 La interfaz en el teléfono: la tabla se lee como tarjetas por debajo de 720 px
 
 ## Resumen
-- Fase: `en-revision` — **implementada, ronda 2**, pendiente de re-verificación. El gate
+- Fase: `en-revision` — **implementada, ronda 4**, pendiente de re-verificación. El gate
   humano dijo que sí el 2026-08-24 y el orquestador registró `aprobada`; sdd-implementador
   la pasó a `en-progreso` y, terminada la entrega, a `en-revision`. La verificación devolvió
   **RED** con un único finding de implementación (`F-VERIF-054-1`, el suelo táctil), y la
-  ronda 2 lo cierra: la spec volvió a `en-progreso` y otra vez a `en-revision`. **El
+  ronda 2 lo cerró. La **ronda 3 fue sólo redacción** (sdd-arquitecto reescribió CA-13,
+  CA-16, CA-18, CA-19 y CA-21; ni una línea de código). La **ronda 4** ejecuta la única
+  tarea de implementación que esa reescritura dejó abierta: **el suelo táctil, afirmado sin
+  holgura sobre TODOS los controles en alcance** y no sólo sobre los campos de formulario
+  (§Ronda 4). Un commit, de test y evidencia; **ni una línea de `src/`**. **El
   veredicto RED de más abajo es el de la ronda 1 y se deja tal cual: lo reescribe el
   verificador, no el implementador.**
 - Rama: `ft/SPEC-054-la-interfaz-en-el-telefono-la-tabla-se-lee-como-tarjetas-por-debajo-de-720-px`,
-  abierta desde `origin/main` (primer commit `492c53f`). **Nueve commits**: seis de la
-  ronda 1 y tres de la 2. Sin push, sin PR, sin merge.
+  abierta desde `origin/main` (primer commit `492c53f`). **Dieciséis commits** contra
+  `origin/main`: los de las rondas 1 y 2, **dos** de la ronda 3 (redacción) y **uno** de la
+  ronda 4 (`5c5fdbc`). Sin push, sin PR, sin merge.
 - Épica: **EPIC-007 — La app en el teléfono**. La spec nació en **EPIC-MEJORA** y la expulsó
   **CE-M3** de aquella épica (necesita ADR nuevo → replanteo → épica propia, decidido por el
   humano el 2026-08-24). Los criterios que gobiernan ahora son **CE-1 a CE-6 de EPIC-007**, no
@@ -96,11 +101,11 @@ epica: EPIC-007
 | CA-10 — el estado de zona sigue siendo el fondo, con el mismo color computado (SPEC-007) | `src/app/vigiladas/watched-table.tsx` (`zone-${state}` en el `<li>`) · `src/app/globals.css`: `.tarjeta` **no declara `background`**, a propósito, para no tapar el tinte de zona | `tests/e2e/tarjetas-conmutacion.spec.ts` › «CA-10: el fondo de la tarjeta es el de su fila, con el mismo color computado» (los cinco estados, `background-color` idéntico al del `<tr>`, un solo color de borde para todos y la etiqueta de texto viva) | | `background-color` computado **idéntico** entre el `<li>`@360 y su `<tr>`@1280 en los cinco estados: both `srgb .7296 .8681 .3674 / .19`, buy `.4863 1 .698 / .11`, sell `1 .7216 0 / .12`, out `.9608 .9451 .9176 / .03`, none `rgba(0,0,0,0)`. `.tarjeta` no declara `background`; `.zone-label.is-*` sigue viva; sin distintivo, borde de color ni icono nuevos. | ✅ 
 | CA-11 — `/cartera` entra en el conjunto de rutas medidas, a los ocho anchos | `tests/e2e/rutas.ts` (nuevo: las tres listas, importables sin arrancar el navegador) · `tests/e2e/geometria-rutas.spec.ts` las consume | `tests/e2e/geometria-rutas.spec.ts` › «SPEC-054 CA-11: /cartera con posiciones, M1 + M2 + M3 a los ocho anchos» · `tests/spec054-breakpoint-y-rutas.test.ts` › «CA-11: la ruta está en el conjunto, y retirarla se ve en rojo» + «la guardia consume el conjunto compartido» · **mutación**: vaciar `RUTAS_CON_POSICIONES` lo pone rojo | | `/cartera` está en `RUTAS_CON_POSICIONES` y en `RUTAS_MEDIDAS` (`tests/e2e/rutas.ts`); `tests/spec054-breakpoint-y-rutas.test.ts` lo afirma **y** exige que la guardia importe de `./rutas` en vez de copiarse la lista. El caso e2e mide M1 + M2 + M3 a los ocho anchos con 5 posiciones y precondición afirmada. `medidas-cartera.txt` y `medidas-cartera-m3.txt` se regeneraron idénticos. | ✅ 
 | CA-12 — M4 sobre la capa de edición, con lista larga afirmada y en tres posiciones (ADR-030) | La capa **no se mueve**: `dialog.editar-vigilada` intacto. Lo único nuevo es `data-editando` en el `<li>` y `.tarjeta.fila-editando` en `globals.css` | `tests/e2e/tarjetas-capa-edicion.spec.ts` › tres casos: M4 en las tres posiciones a 360/390 con la precondición **derivada** sobre la lista de tarjetas; el foco que vuelve por guardar, cancelar y Escape; y la capa anclada a la ventana. La capa entra en M1 como **testigo** | | `_qa/SPEC-054/m4-sobre-tarjetas.txt` regenerado idéntico: 3 posiciones × 2 anchos, precondición **derivada** (12 tarjetas; fondo de la lista en 4219, o sea 3419 px por debajo del pliegue a 360), capa `top=383 bottom=800` sobre una ventana de 800 (cabe entera) y **el desplazamiento del documento igual antes y después** del gesto (0→0, 2213→2213, 3781→3781). La capa no entra en `EXCLUSIONES_M1`. Foco de vuelta por guardar, cancelar y Escape: verde. | ✅ 
-| CA-13 — **M5** en el módulo compartido, suelo 44×44, con prueba de eficacia por reinyección | `tests/e2e/geometria.ts` › `SUELO_TACTIL_PX`, `SELECTOR_INTERACTIVO`, `medirAreaTactil`, `describirAreaTactil`, `DEFECTO_AREA_TACTIL` · `src/app/globals.css`: `.btn-sm` pasa de ≈31 a 46 px de alto y `.orden-control select` a 45, **sólo por debajo del canto**. **Ronda 2 (F-VERIF-054-1)**: los campos de formulario suben de **43,00** a **45** px con `padding-block: 11px` en el mismo bloque de 720 (`.auth-form input/select/textarea` y `.symbol-search-input`) — 11 + 11 de relleno + 1 + 1 de borde + 21 de línea. **Ni `padding` de dos valores** (se comería el `padding-right: 34px` del cheurón del `select`, que se declara antes en el fichero) **ni `min-height`** (la altura dejaría de derivarse de la caja y un defecto futuro en el relleno o en el tamaño de letra no la bajaría: la medida se volvería decorativa, ADR-026 §7). El porqué está escrito al lado de la regla | `tests/e2e/tarjetas-geometria.spec.ts` › «CA-13: todo control llega al suelo táctil, y la medida ve el defecto» (0 de 17 controles por debajo del suelo; reinyección `.btn-sm { padding: 2px 6px; font-size: 10px }` → rojo, quitada → verde) · `tests/spec054-m5-en-el-modulo.test.ts` (7 casos: el 44 con su fuente citada, los siete tipos de control, las dos mitades, y que ninguna guardia escriba el número por su cuenta) · **ronda 2**, en la misma guardia de CA-13: `camposBajoElSuelo` mide los campos con `medirCajas` —el primitivo del módulo— y afirma el suelo **sin tolerancia ninguna**, tal cual lo escribe el CA («caja de al menos 44 × 44 px CSS»). No toca `medirAreaTactil`, ni `TOLERANCIA_PX`, ni el suelo: apretar la afirmación hasta el número que el CA declara no es aflojar un umbral. Rojo antes del arreglo (8 campos a 43,00 en `/cartera`, 5 en el alta desplegada), verde después. Y la misma guardia **abre ahora la capa de edición**, que `RAICES_EN_ALCANCE` nombraba desde el primer día sin que ninguna guardia de este fichero llegara a abrirla: 6 controles medidos, 0 por debajo | | **RED.** (a) La prueba de eficacia **sí funciona**, y lo comprobé aparte con código mío: `.btn-sm` sano mide **46 px** de alto y con `.btn-sm { padding: 2px 6px; font-size: 10px }` reinyectado baja a **16 px**, dejando 16 controles por debajo del suelo; el arreglo está escrito donde la reinyección lo puede deshacer (sin `min-height` y sin subir la especificidad). (b) **Pero el suelo no se cumple**: medidos con mi propio código, **todos** los campos de formulario en alcance miden **43.00 px** exactos de alto — 8 en los formularios de compra y venta de `/cartera`, 5 en el alta desplegada de `/vigiladas` y 4 en la capa de edición. No es una fracción de redondeo: es `height: 43px` computado. Pasan **sólo** porque `medirAreaTactil` compara contra `suelo − TOLERANCIA_PX`, y `TOLERANCIA_PX = 1` está documentado en el módulo como tolerancia de **redondeo del motor** («NO es una holgura de diseño»). Con el suelo tal cual lo escribe el CA, `/cartera` va **8 de 13** en alcance, no 0 de 13. (c) Y el CA dice «todo elemento interactivo visible» de las dos páginas mientras la guardia lo acota a `main.page, dialog.editar-vigilada`: fuera quedan **12 de 30** controles rojos en /vigiladas (documentado como F-SPEC-054-1). | ⚠️ 
+| CA-13 — **M5** en el módulo compartido, suelo 44×44, con prueba de eficacia por reinyección | `tests/e2e/geometria.ts` › `SUELO_TACTIL_PX`, `SELECTOR_INTERACTIVO`, `medirAreaTactil`, `describirAreaTactil`, `DEFECTO_AREA_TACTIL` · `src/app/globals.css`: `.btn-sm` pasa de ≈31 a 46 px de alto y `.orden-control select` a 45, **sólo por debajo del canto**. **Ronda 2 (F-VERIF-054-1)**: los campos de formulario suben de **43,00** a **45** px con `padding-block: 11px` en el mismo bloque de 720 (`.auth-form input/select/textarea` y `.symbol-search-input`) — 11 + 11 de relleno + 1 + 1 de borde + 21 de línea. **Ni `padding` de dos valores** (se comería el `padding-right: 34px` del cheurón del `select`, que se declara antes en el fichero) **ni `min-height`** (la altura dejaría de derivarse de la caja y un defecto futuro en el relleno o en el tamaño de letra no la bajaría: la medida se volvería decorativa, ADR-026 §7). El porqué está escrito al lado de la regla · **Ronda 4**: sin cambios en `src/` — la medición sin holgura no destapó ni un rojo, así que no hubo nada que agrandar | `tests/e2e/tarjetas-geometria.spec.ts` › «CA-13: todo control llega al suelo táctil, y la medida ve el defecto» (0 de 17 controles por debajo del suelo; reinyección `.btn-sm { padding: 2px 6px; font-size: 10px }` → rojo, quitada → verde) · `tests/spec054-m5-en-el-modulo.test.ts` (7 casos: el 44 con su fuente citada, los siete tipos de control, las dos mitades, y que ninguna guardia escriba el número por su cuenta) · **ronda 2**, en la misma guardia de CA-13: `camposBajoElSuelo` mide los campos con `medirCajas` —el primitivo del módulo— y afirma el suelo **sin tolerancia ninguna**, tal cual lo escribe el CA («caja de al menos 44 × 44 px CSS»). No toca `medirAreaTactil`, ni `TOLERANCIA_PX`, ni el suelo: apretar la afirmación hasta el número que el CA declara no es aflojar un umbral. Rojo antes del arreglo (8 campos a 43,00 en `/cartera`, 5 en el alta desplegada), verde después. Y la misma guardia **abre ahora la capa de edición**, que `RAICES_EN_ALCANCE` nombraba desde el primer día sin que ninguna guardia de este fichero llegara a abrirla: 6 controles medidos, 0 por debajo · **ronda 4**: `camposBajoElSuelo` pasa a `controlesBajoElSuelo` y mide `SELECTOR_INTERACTIVO` —la lista de ADR-034 §6, importada del módulo— **en los dos ejes**, no sólo los cuatro selectores de campo. Sigue sin tocar `medirAreaTactil`, `TOLERANCIA_PX` ni el suelo. Devuelve además `medidos`, y la guardia exige que no sea cero: una lista de rojos vacía por un selector que no case ya no puede pasar por verde. **Segunda prueba de eficacia**, la que justifica que esta guardia afirme por su cuenta: reinyectando `padding-block: 10px` (el defecto real de F-VERIF-054-1) los campos vuelven a **43,00** y la afirmación estricta los ve (**8** en `/cartera`) mientras **M5 sigue en verde (0)** por su tolerancia | | **RED.** (a) La prueba de eficacia **sí funciona**, y lo comprobé aparte con código mío: `.btn-sm` sano mide **46 px** de alto y con `.btn-sm { padding: 2px 6px; font-size: 10px }` reinyectado baja a **16 px**, dejando 16 controles por debajo del suelo; el arreglo está escrito donde la reinyección lo puede deshacer (sin `min-height` y sin subir la especificidad). (b) **Pero el suelo no se cumple**: medidos con mi propio código, **todos** los campos de formulario en alcance miden **43.00 px** exactos de alto — 8 en los formularios de compra y venta de `/cartera`, 5 en el alta desplegada de `/vigiladas` y 4 en la capa de edición. No es una fracción de redondeo: es `height: 43px` computado. Pasan **sólo** porque `medirAreaTactil` compara contra `suelo − TOLERANCIA_PX`, y `TOLERANCIA_PX = 1` está documentado en el módulo como tolerancia de **redondeo del motor** («NO es una holgura de diseño»). Con el suelo tal cual lo escribe el CA, `/cartera` va **8 de 13** en alcance, no 0 de 13. (c) Y el CA dice «todo elemento interactivo visible» de las dos páginas mientras la guardia lo acota a `main.page, dialog.editar-vigilada`: fuera quedan **12 de 30** controles rojos en /vigiladas (documentado como F-SPEC-054-1). | ⚠️ 
 | CA-14 — los dos suelos de legibilidad: controles ≥16 px, texto ≥12 px | `src/app/globals.css` §SPEC-054: `.orden-control select`, `.auth-form input/select/textarea`, `.symbol-search-input` a 16 px; **`.page-head .eyebrow` a 12** (hallazgo: el sistema de diseño lo pisa a 11 px) | `tests/e2e/tarjetas-geometria.spec.ts` › «CA-14: 16 px en los controles de formulario y 12 px en cualquier texto», con el alta **desplegada** para que sus campos entren en la medida (`medirSuelosTipograficos`) | | Verificado por mí en las dos pantallas a 360 y 390: (a) ningún `input`/`select`/`textarea` visible por debajo de **16 px** (mínimo = 16), incluidos los del alta desplegada y los de la capa de edición; (b) **cero** nodos de texto por debajo de **12 px**, y lo medí sobre **toda la página**, no sólo `main.page`, que es lo que el CA pide. `.page-head .eyebrow` sube de 11 a 12 sólo por debajo del canto. | ✅ 
 | CA-15 — los avisos de diagnóstico no se rompen en formato tarjeta (`34ch`, envuelven, completos) | `src/app/globals.css` › `.tarjeta-estado .estado-caja`: **no** sobrescribe el `max-width: 34ch` de `.quote-*`, al revés de lo que hace `.data-table .estado-caja` | `tests/e2e/tarjetas-geometria.spec.ts` › «CA-15: los avisos conservan su caja, envuelven y se leen enteros» (texto idéntico al de 1280, `max-width` distinto de `none`, ninguna línea por encima de la caja, el más largo envuelve, ninguno parte palabra, y ninguno se sale de su tarjeta) | | A 360 y 390, los tres avisos de la tarjeta computan `max-width: 270.504px` = **34ch** (no `none`; `.tarjeta-estado` no lo sobrescribe), `font-size: 12px`, texto idéntico carácter a carácter al de 1280, envuelven y **ninguno se sale de su tarjeta** (`right ≤ li.right`). En /cartera, `244.8px` = 34ch en mono. Nota: el `100%` que aparece en `avisos-en-la-tarjeta.txt` viene del árbol de **tabla oculto** — `AVISOS_SEL` de la guardia no está acotado a la representación viva. | ✅ 
 | CA-16 — cero regresión funcional: suites enteras verdes y diff acotado (CE-5) | No hay implementación: es el resultado. El diff **no toca** `src/db/`, `drizzle/`, `src/lib/portfolio/`, `src/lib/watchlist/zone-status.ts` ni `src/lib/market/` | `npx vitest run` → **1702/1702** en 112 ficheros · `npx playwright test` → **323/323**. Detalle de los seis ficheros que sí se tocaron y por qué, en §Decisiones y hallazgos | | **Salvedad, y el CA es autocontradictorio.** Lo medible se cumple: `npx vitest run` **1702/1702** en 112 ficheros; `npx playwright test` **323/323** (7,4 min); `npm run typecheck` y `npm run lint --max-warnings=0` en verde; `npm run version:check` 0.3.4 → 0.4.0 con el árbol limpio. El diff **no toca** `src/db/`, `drizzle/`, `src/lib/portfolio/`, `src/lib/watchlist/zone-status.ts` ni `src/lib/market/` (comprobado con `git diff --name-only origin/main...HEAD`). Pero **tres de las siete guardias que el CA nombra «sin tocarse» sí se tocaron** (`vigiladas-editar`, `vigiladas-capa-edicion`, `geometria-rutas`), además de `geometria-puntos-ciegos` y `movil-alta`. Leí los seis diffs: **ninguna aserción se afloja** — cambian localizadores, una espera y el conjunto de anchos, con el motivo escrito al lado. | ⚠️ 
-| CA-17 — cabecera, control de orden, alta plegable y formularios de cartera cumplen M1/M3/M5 | `src/app/globals.css` §SPEC-054 (los mismos agrandados de CA-13 y CA-14, **incluido el `padding-block: 11px` de la ronda 2**, que es lo que sube a 45 px los 8 campos de los formularios de compra y venta y los 5 del alta desplegada) | `tests/e2e/tarjetas-geometria.spec.ts` › «CA-17: cabecera, orden, alta plegable y formularios de cartera» — cinco superficies × 2 anchos × alta **plegada y desplegada**, con M1 rooteado en cada una (y su testigo), M5, M3 sobre el rótulo del orden y cero contenedores que arrastrar. **Ronda 2**: cada superficie pasa además por `camposBajoElSuelo`, el suelo sin tolerancia; la cifra queda escrita superficie a superficie en `_qa/SPEC-054/entorno-de-las-tablas.txt` | | **RED en M5.** M1 y M3 sí: cabecera, control de orden, alta plegada y desplegada y formularios de cartera dan 0 violaciones y 0 contenedores que arrastrar a 360 y 390, comprobado también con mi medida propia. Pero **M5 no**: las superficies que este CA nombra son exactamente donde están los 43.00 px — los formularios de compra y venta de `/cartera` (8 campos) y el alta desplegada de `/vigiladas` (5 campos). Ver CA-13 (b). | ⚠️ 
+| CA-17 — cabecera, control de orden, alta plegable y formularios de cartera cumplen M1/M3/M5 | `src/app/globals.css` §SPEC-054 (los mismos agrandados de CA-13 y CA-14, **incluido el `padding-block: 11px` de la ronda 2**, que es lo que sube a 45 px los 8 campos de los formularios de compra y venta y los 5 del alta desplegada) | `tests/e2e/tarjetas-geometria.spec.ts` › «CA-17: cabecera, orden, alta plegable y formularios de cartera» — cinco superficies × 2 anchos × alta **plegada y desplegada**, con M1 rooteado en cada una (y su testigo), M5, M3 sobre el rótulo del orden y cero contenedores que arrastrar. **Ronda 2**: cada superficie pasa además por `camposBajoElSuelo`, el suelo sin tolerancia; la cifra queda escrita superficie a superficie en `_qa/SPEC-054/entorno-de-las-tablas.txt` · **ronda 4**: cada superficie pasa por `controlesBajoElSuelo`, que ahora recorre **todos** los controles y no sólo los campos; la evidencia guarda `rojos/medidos` superficie a superficie | | **RED en M5.** M1 y M3 sí: cabecera, control de orden, alta plegada y desplegada y formularios de cartera dan 0 violaciones y 0 contenedores que arrastrar a 360 y 390, comprobado también con mi medida propia. Pero **M5 no**: las superficies que este CA nombra son exactamente donde están los 43.00 px — los formularios de compra y venta de `/cartera` (8 campos) y el alta desplegada de `/vigiladas` (5 campos). Ver CA-13 (b). | ⚠️ 
 | CA-18 — un solo breakpoint de modo en `globals.css`, afirmado por test | `src/app/globals.css`: toda la conmutación vive en los dos lados del mismo canto | `tests/spec054-breakpoint-y-rutas.test.ts` › cuatro casos: los cantos declarados, que sólo el bloque de modo cambia representaciones, que **toda** regla de `display` sobre la tabla o las tarjetas vive en él, y que existen las dos caras · **mutación**: un `@media` de 480 px o un `display` fuera del bloque lo ponen rojo | | **Salvedad: la letra del CA es falsa sobre el árbol.** La parte fuerte sí se cumple y la comprobé: **todas** las reglas de `display` sobre `table.data-table`, `.tarjetas` y `.table-scroll` viven en los dos lados del canto de 720, y el bloque de densidad sólo toca `.cards`. Pero `globals.css` declara los cantos **[599, 720, 1023]** y el CA dice «no aparece ningún cuarto valor». El 1023 ya estaba (borde superior del bloque de `.cards`) y el test lo declara con su motivo en vez de tolerarlo en silencio — pero afirma una propiedad distinta de la que el CA escribe (F-SPEC-054-3). | ⚠️ 
 | CA-19 — evidencia reproducible sólo bajo `_qa/SPEC-054/` | — | 26 ficheros bajo `_qa/SPEC-054/`: cifras de M1/M2/M3/M5 por ruta y por ancho, el inventario de `overflow`, las medidas de M4 y el pie, capturas de las dos pantallas a 360/390/700/730/1280 y la capa abierta sobre una tarjeta a 360. Las capturas ajenas se restauraron con `git checkout -- _qa/`: **ninguna otra `_qa/SPEC-NNN/` aparece en el diff** | | **27** ficheros bajo `_qa/SPEC-054/` y **ninguna otra `_qa/SPEC-NNN/` en el diff** (`git diff --name-only origin/main...HEAD -- _qa` devuelve sólo `_qa/SPEC-054`). Y son reproducibles de verdad: tras re-ejecutar la e2e completa, los **27 ficheros de cifras `.txt` volvieron byte a byte idénticos**; sólo cambiaron los 11 PNG. La pasada tocó 241 capturas ajenas y las restauré con `git checkout -- _qa/`. | ✅ 
 | CA-20 — pie de tarjeta: *Editar* y *Quitar* al 50 %, misma fila, cada uno ≥44×44 | `src/app/globals.css` › `.tarjeta-pie { display: grid; grid-template-columns: 1fr 1fr }` + `.tarjeta-pie form { display: grid }` y `.tarjeta-pie .btn-sm { width: 100% }` — con la aritmética de la tercera acción de ADR-034 §10 escrita al lado | `tests/e2e/tarjetas-geometria.spec.ts` › «CA-20: *Editar* y *Quitar*, misma fila, mitad y mitad, y pulsables» (mismo `top`, anchos iguales, los dos más el hueco = el ancho del pie, y cada uno ≥ el suelo en los dos ejes) | | Medido por mí a 360 y 390 en los **7** pies: pie de **294 px** con hueco 8 → *Editar* **143** y *Quitar* **143** (143 + 143 + 8 = 294); a 390, pie 316 → 154 + 154 + 8. Mismo `top` (707,13 y 624,25), alto **46 px** los dos, ancho ≥ 44 y solape **0**. | ✅ 
@@ -326,6 +331,19 @@ que hay.
   redacción de **CA-13**, que ahora afirma el suelo contra 44 **sin holgura** — la propiedad,
   medida como haga falta.
 
+- **F-SPEC-054-8** (dueño: **quien implemente `F-ADR-035-1`**; no bloquea): **cuando el
+  módulo deje de restar, `controlesBajoElSuelo` sobra — pero hay que retirarla mirando, no
+  por deducción.** Hoy la guardia de esta spec afirma el suelo sin holgura **por su cuenta**
+  porque `medirAreaTactil` no lo hace. En cuanto entre ADR-035 §2, M5 pasará a afirmar lo
+  mismo y esta comprobación quedará redundante en su parte principal. **Dos cosas que no lo
+  son y que no se deben perder al borrarla**: (a) mide **en los dos ejes** y exige
+  `medidos > 0`, que es lo que impide que un cero de rojos salga de un selector que no case;
+  y (b) su **segunda prueba de eficacia** —el `padding-block: 10px` que devuelve los campos a
+  43,00— es lo que demuestra que el suelo se afirma de verdad, y en ese momento el que tiene
+  que ponerse rojo con ella es **M5**. Lo natural es mover esa reinyección al módulo, junto a
+  `DEFECTO_AREA_TACTIL`. ⚠️ Su cifra de M5 (hoy `0`, escrita y **no afirmada**) dejará de ser
+  0 ese día: es lo esperado, no una regresión.
+
 - ✅ **F-SPEC-054-7** — **CERRADO el 2026-08-24: el drift de trazabilidad contra la épica.** La
   §Notas 9 de la spec decía que **CA-14 y CA-7/CA-8/CA-9** no colgaban de ningún criterio de
   épica (o colgaban de CE-4 «con lectura forzada»). Dejó de ser cierto cuando sdd-producto
@@ -338,8 +356,14 @@ que hay.
 ## Cómo retomar (handoff)
 
 - **Rama**: `ft/SPEC-054-la-interfaz-en-el-telefono-la-tabla-se-lee-como-tarjetas-por-debajo-de-720-px`,
-  desde `origin/main` (`492c53f`). **Nueve commits** (seis de la ronda 1, tres de la 2).
+  desde `origin/main` (`492c53f`). **Dieciséis commits**: rondas 1 y 2, dos de la 3
+  (redacción, sin código) y uno de la 4 (`5c5fdbc`, sólo test y evidencia).
   **Sin push, sin PR, sin merge.**
+- **Lo primero que hay que saber de la ronda 4**: la afirmación del suelo táctil sin holgura
+  ya **no** mira sólo los campos de formulario; recorre `SELECTOR_INTERACTIVO` entero en los
+  dos ejes (`controlesBajoElSuelo`, en `tests/e2e/tarjetas-geometria.spec.ts`). **Cero rojos
+  en las tres superficies en alcance**, con las cifras en §Ronda 4. El módulo compartido
+  sigue sin tocarse: eso es `F-ADR-035-1`.
 - **Para arrancar la e2e hace falta un `next build` primero, y el build pide cuatro
   variables** — sin ellas muere con `Invalid URL` en `/_not-found`, que no dice nada de la
   causa. Son las mismas de juguete que usa el CI (`.github/workflows/ci.yml`, job `e2e`):
@@ -418,6 +442,96 @@ otra sesión paralela reclamó el 035.
 
 **Lo que NO se tocó**: ni código, ni tests, ni el estado de la spec (sigue `en-revision`), ni
 las columnas *Implementado* / *Test* / *Verif.* / *Estado* de la matriz.
+
+### Ronda 4 — 2026-08-24, sdd-implementador. **La medición sin holgura, sobre todos los controles**
+
+Un solo commit (`5c5fdbc`), de **test y evidencia**. **Ni una línea de `src/`**, porque no
+hizo falta: no apareció ni un rojo. Cierra la única casilla de implementación que dejó
+abierta la reescritura de CA-13 en la ronda 3.
+
+**Qué había y por qué no bastaba.** La comprobación estricta de la ronda 2
+(`camposBajoElSuelo`) afirmaba el suelo **sin tolerancia**, pero sólo recorría cuatro
+selectores de campo (`.auth-form input|select|textarea` y `.symbol-search-input`). Todo lo
+demás en alcance —botones, enlaces, `summary`— se seguía juzgando **sólo** con
+`medirAreaTactil`, que filtra con `alto < suelo − TOLERANCIA_PX`: para esos controles el
+suelo efectivo seguía siendo **43**. CA-13, tal y como quedó redactado, no acota por tipo de
+control y exige el suelo contra 44 sin holgura.
+
+**Qué se hizo, en una frase.** `camposBajoElSuelo` pasa a `controlesBajoElSuelo` y mide
+**`SELECTOR_INTERACTIVO`** —la lista de los siete tipos de ADR-034 §6, **importada del
+módulo**, no reescrita aquí— dentro de cada raíz en alcance, **en los dos ejes**.
+
+**Lo que NO se tocó, y es la restricción dura de esta ronda**: `TOLERANCIA_PX`,
+`SUELO_TACTIL_PX` y el filtro de `medirAreaTactil` siguen exactamente como estaban. Arreglar
+la resta **en el módulo** está decidido (**ADR-035 §2**) y **decidido también que no se
+implementa aquí** (`F-ADR-035-1`, ADR-035 §5). La guardia afirma sin holgura **por su
+cuenta**, al lado, con el primitivo `medirCajas`.
+
+**Las cifras, medidas y no supuestas** (`_qa/SPEC-054/m5-area-tactil.txt` y
+`entorno-de-las-tablas.txt`):
+
+| Superficie | Controles medidos sin holgura | Por debajo de 44 |
+|---|---|---|
+| `/vigiladas` (`main.page`), 360 y 390 px | 17 | **0** |
+| `/cartera` (`main.page`), 360 y 390 px | 13 | **0** |
+| `dialog.editar-vigilada`, 360 px | 6 | **0** |
+| CA-17 · control de orden | 2 | **0** |
+| CA-17 · alta plegable (plegada / desplegada) | 1 / 7 | **0** |
+| CA-17 · formularios de compra y venta | 12 | **0** |
+| CA-17 · cabecera de cartera | 1 | **0** |
+| CA-17 · cabecera de vigiladas | 0 *(no tiene controles)* | — |
+
+**Cero rojos, que es lo que el arquitecto esperaba — pero ahora está medido.** Y hay una
+comprobación cruzada que conviene leer: **el número de controles medidos coincide uno a uno
+con el `medidos` de M5** en todas las superficies (17/17, 13/13, 6/6, 2/2, 1/1, 7/7, 12/12).
+O sea que las dos diferencias conocidas entre las dos medidas —que la estricta **no** cuenta
+el área ampliada por pseudoelemento y descarta lo no pintado por la caja 0 × 0 en vez de por
+`checkVisibility()`— **no introducen ninguna divergencia real dentro del alcance**: hoy no
+hay ni un control que dependa de un pseudoelemento para llegar al suelo. Está escrito en el
+docblock de la función, con el porqué de que el error, si algún día lo hubiera, caería del
+lado de quejarse de más.
+
+**Una medida vacía ya no puede pasar por verde.** `controlesBajoElSuelo` devuelve además
+`medidos`, y la guardia exige que no sea cero antes de creerse el cero de rojos. Una lista
+de rojos vacía tenía dos causas —que no haya rojos, o que el selector no case con nada— y
+sin ese número no se distinguían. Es la misma constancia que M5 lleva en `medidos` y M1 en
+sus testigos.
+
+**Dos pruebas de eficacia, y la segunda es nueva** (ADR-026 §7):
+
+1. **La de M5, intacta y viva**: reinyectando `DEFECTO_AREA_TACTIL` —`.btn-sm { padding: 2px
+   6px; font-size: 10px }`— **sano = 0 · con el defecto = 15 · al quitarlo = 0**. Las tres
+   cifras son idénticas a las de la ronda 2: el cambio no la ha rozado.
+2. **La del suelo sin holgura**, que es la que justifica que esta guardia afirme por su
+   cuenta. Se le devuelve **el defecto real de `F-VERIF-054-1`** —`padding-block: 10px` en
+   los campos, que es lo que medía el árbol el día del RED— y los campos vuelven a **43,00
+   px exactos**. Resultado en `/cartera` a 360 px: **sano = 0 · con el defecto = 8 · al
+   quitarlo = 0**, y **M5, ante el MISMO defecto, sigue diciendo 0**. Ése es exactamente el
+   hueco que esta comprobación tapa, demostrado con un rojo en vez de con un argumento.
+   ⚠️ La cifra de M5 se **escribe en la evidencia pero no se afirma**: dejará de ser 0
+   cuando entre `F-ADR-035-1`, y eso no debe volver roja a esta guardia.
+
+**Lo que sigue fuera de la afirmación y no se ha tocado**: la nav global, el pie y el enlace
+de feedback. `m5-fuera-de-alcance.txt` los mide y los escribe igual que antes —**12 de 30**
+en `/vigiladas`, **12 de 26** en `/cartera`, los mismos doce— sin asertarlos. Es `R-1 de
+EPIC-007` y `F-SPEC-054-1`. **No se ha bajado ningún suelo por ellos.**
+
+**Comprobaciones de la ronda 4**: `npm run typecheck` ✅ · `npm run lint --max-warnings=0` ✅
+· `npx vitest run` ✅ **1702/1702** en 112 ficheros (incluida
+`tests/spec054-m5-en-el-modulo.test.ts`, que prohíbe escribir el literal del suelo fuera del
+módulo: el número va interpolado con `${SUELO_TACTIL_PX}` y una línea de comentario hubo que
+reescribirla por eso) · `npx playwright test` ✅ **323/323**, **dos pasadas completas
+seguidas** · **CA-19 (a)**: los **16 `.txt`** volvieron **byte a byte idénticos** entre las
+dos pasadas (`md5sum -c`, 16 de 16 OK), y las dos cifras que este cambio movió
+—`m5-area-tactil.txt` y `entorno-de-las-tablas.txt`— reproducen los mismos bytes al
+regenerarlas por separado · `npm run version:check` ✅ 0.3.4 → 0.4.0 con el árbol limpio
+(**la versión no se vuelve a subir**: ya la subió la ronda 1) · las capturas ajenas que
+reescribió la pasada, restauradas; `git diff --name-only origin/main...HEAD -- _qa` sólo
+devuelve `_qa/SPEC-054/`.
+
+⚠️ **Aviso de intendencia para quien venga**: `git checkout -- _qa/` restaura **todo** `_qa`,
+incluida la evidencia de esta spec, y hay que regenerarla después. Lo acotado es
+`git checkout -- $(git diff --name-only -- _qa | grep -v SPEC-054)`.
 
 ## Veredicto del verificador
 <!-- GREEN/RED + fecha + resumen. Lo escribe SOLO sdd-verificador. -->
