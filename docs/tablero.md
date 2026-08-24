@@ -78,6 +78,7 @@ Actualizado: 2026-08-24
 | SPEC-046 — el-panel-de-edicion-se-abre-donde-el-usuario-mira-y-la-guardia-lo-mide | hecho | 2026-08-22 (sdd-verificador) |
 | SPEC-048 — guardias-por-diff-que-caducan-al-mergear | hecho | 2026-08-23 (sdd-verificador) |
 | SPEC-049 — el-gate-de-version-no-dice-verde-sobre-un-arbol-sucio-si-lo-que-juzga-no-esta-commiteado-se-abstiene | hecho | 2026-08-23 (sdd-verificador) |
+| SPEC-055 — app-base-url-envenenada-appbaseurl-valida-el-valor-y-no-solo-su-presencia-y-el-build-dice-que-clave-y-que-fichero | hecho | 2026-08-24 (sdd-verificador) |
 
 ## EPIC-INFRA (aprobada)
 
@@ -143,5 +144,5 @@ Actualizado: 2026-08-24
 
 ## Resumen
 
-- hecho: 48
+- hecho: 49
 - aprobada: 1
