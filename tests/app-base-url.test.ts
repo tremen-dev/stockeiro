@@ -467,19 +467,259 @@ describe('SPEC-055 CA-11 — la guardia demuestra que caza el defecto (ADR-026 �
   });
 });
 
-describe('SPEC-055 CA-12 — la batería crece sin tocar ninguna aserción', () => {
-  it('ninguna aserción congela la tabla en un número ni en una lista literal', () => {
-    // `F-SPEC-048-2`: la familia de guardias que congelan una lista que crece. Añadir una
-    // fila mañana no puede obligar a actualizar un contador escrito a mano; si obligara,
-    // la siguiente persona con prisa aflojaría el contador en vez de mirar la fila.
-    const src = readFileSync(ESTE_FICHERO, 'utf8');
-    const congelantes = src.match(/(?:toHaveLength\(|toEqual\(\[)[^\n]*/g) ?? [];
-    for (const uso of congelantes) {
-      expect(uso, `esta aserción congela la tabla: ${uso}`).not.toContain(NOMBRE_DE_LA_TABLA);
+// ---------------------------------------------------------------------------
+// CA-12 — la batería crece sin tocar ninguna aserción, y la guardia se puede poner roja
+// ---------------------------------------------------------------------------
+/**
+ * **Por qué este bloque está escrito así, y por qué tiene DOS mitades.**
+ *
+ * La propiedad que compra CA-12 es una sola: **si añadir una fila obligara a actualizar un
+ * aserto, ese aserto congela la tabla**. Es `F-SPEC-048-2`, la familia de guardias que
+ * congelan una lista que crece: quien añade la fila catorce se encuentra un contador rojo,
+ * y con prisa afloja el contador en vez de mirar la fila.
+ *
+ * **La versión anterior de esta guardia era ciega, y la ceguera se midió (`F1` de la 2.ª
+ * vuelta del verificador, 2026-08-24).** Su patrón empezaba **en el matcher** —`toHaveLength(`
+ * o `toEqual([`, y de ahí al final de la línea—, o sea que examinaba sólo el texto
+ * **posterior** al matcher, y en una congelación de verdad el nombre de la
+ * tabla va **antes**, del lado del `expect(`. Inyectadas
+ * `expect(VALORES_RECHAZADOS).toHaveLength(13);` y `expect(VALORES_RECHAZADOS.length).toBe(13);`
+ * —las dos formas naturales de congelarla— el caso **seguía verde**. Lo único que cazaba era
+ * `toHaveLength(VALORES_RECHAZADOS.length)`, que es la forma **derivada**: la buena.
+ *
+ * La raíz no fue la implementación sino **la letra**, que nombraba una FORMA prohibida
+ * («que la constante no aparezca dentro de un `toHaveLength(`») en vez de la PROPIEDAD. Es
+ * **D-8** de la spec, con sus cuatro casos. Por eso aquí no hay lista de matchers vetados:
+ * hay un detector con un criterio, y **la prueba de que el detector se pone rojo**
+ * (ADR-026 §7), aplicada a especímenes escritos aquí abajo y sin tocar el disco.
+ *
+ * **La mitad de «NO debe cazar» no es adorno, y borrarla es el fallo que viene.** La
+ * reparación barata —cazar cualquier mención de la tabla— pondría **roja a CA-11**, cuyo
+ * centinela es literalmente `expect(VALORES_RECHAZADOS.length).toBeGreaterThan(0)`, y el
+ * siguiente en pasar por aquí aflojaría ese centinela para volver al verde. Un suelo sin
+ * techo y un valor **derivado** de la propia tabla sobreviven intactos a una fila nueva:
+ * ninguno de los dos congela nada. Si alguien «simplifica» el detector, esa mitad se pone
+ * roja antes que CA-11.
+ */
+
+/**
+ * Matchers **tolerantes**: fijan un suelo o una pertenencia, así que una fila más no los
+ * rompe. Es una lista de lo PERMITIDO a propósito, no de lo prohibido: un matcher que no
+ * esté aquí cuenta como exacto y la guardia falla hacia el **rojo**, nunca hacia la ceguera
+ * —que es exactamente el defecto que `F1` encontró—.
+ */
+const MATCHERS_TOLERANTES = new Set(['toBeGreaterThan', 'toBeGreaterThanOrEqual', 'toContain', 'toContainEqual']);
+
+/**
+ * Deja sólo código: quita comentarios, **vacía** cadenas y plantillas, y colapsa las
+ * expresiones regulares. Sin esto, los propios especímenes de aquí abajo —que llevan el
+ * nombre de la tabla dentro de una cadena— se contarían como asertos del fichero.
+ */
+function soloCodigo(codigo: string): string {
+  const salida: string[] = [];
+  const ultimoSignificativo = () => {
+    for (let k = salida.length - 1; k >= 0; k--) {
+      const t = salida[k].trim();
+      if (t) return t[t.length - 1];
     }
-    // Centinela del propio recorrido: si la constante cambiara de nombre, este caso se
-    // quedaría mirando a un fantasma y pasaría de vacío.
+    return '';
+  };
+  let i = 0;
+  while (i < codigo.length) {
+    const c = codigo[i];
+    const par = codigo.slice(i, i + 2);
+    if (par === '//') {
+      while (i < codigo.length && codigo[i] !== '\n') i++;
+      continue;
+    }
+    if (par === '/*') {
+      const fin = codigo.indexOf('*/', i + 2);
+      i = fin < 0 ? codigo.length : fin + 2;
+      continue;
+    }
+    if (c === "'" || c === '"' || c === '`') {
+      i++;
+      while (i < codigo.length && codigo[i] !== c) i += codigo[i] === '\\' ? 2 : 1;
+      i++;
+      salida.push(c + c);
+      continue;
+    }
+    const previo = c === '/' ? ultimoSignificativo() : '';
+    if (c === '/' && (previo === '' || '(,=:[!&|?{};+-*%^<~'.includes(previo))) {
+      // Una expresión regular. Puede llevar comillas dentro (`/^['"`]|['"`]$/`), así que
+      // hay que saltarla entera o el analizador se descarrila y deja de ver el resto.
+      i++;
+      let enClase = false;
+      while (i < codigo.length) {
+        const d = codigo[i];
+        if (d === '\\') {
+          i += 2;
+          continue;
+        }
+        if (d === '\n') break;
+        if (d === '[') enClase = true;
+        else if (d === ']') enClase = false;
+        else if (d === '/' && !enClase) break;
+        i++;
+      }
+      i++;
+      while (i < codigo.length && /[a-z]/.test(codigo[i])) i++;
+      salida.push('/RE/');
+      continue;
+    }
+    salida.push(c);
+    i++;
+  }
+  return salida.join('');
+}
+
+/** El contenido del paréntesis que abre en `abre`, con los anidados contados. */
+function cuerpoBalanceado(texto: string, abre: number): { cuerpo: string; fin: number } {
+  let profundidad = 0;
+  for (let i = abre; i < texto.length; i++) {
+    if (texto[i] === '(') profundidad++;
+    else if (texto[i] === ')' && --profundidad === 0) return { cuerpo: texto.slice(abre + 1, i), fin: i };
+  }
+  return { cuerpo: texto.slice(abre + 1), fin: texto.length };
+}
+
+/**
+ * Las sentencias de aserto completas: **del `expect(` a su `;`**, atravesando saltos de
+ * línea. Mirar sólo el rabo del matcher —o sólo una línea— es la ceguera de `F1`.
+ */
+function sentenciasDeAserto(codigo: string): string[] {
+  const limpio = soloCodigo(codigo);
+  const sentencias: string[] = [];
+  const inicio = /\bexpect\s*\(/g;
+  let m: RegExpExecArray | null;
+  while ((m = inicio.exec(limpio)) !== null) {
+    let i = m.index + m[0].length;
+    let profundidad = 1;
+    while (i < limpio.length && !(profundidad === 0 && limpio[i] === ';')) {
+      if (limpio[i] === '(') profundidad++;
+      else if (limpio[i] === ')') profundidad--;
+      i++;
+    }
+    sentencias.push(limpio.slice(m.index, i));
+    inicio.lastIndex = i;
+  }
+  return sentencias;
+}
+
+/** Un valor esperado **escrito a mano** que fija una magnitud o una composición. */
+const fijaMagnitudOLista = (esperado: string) =>
+  /^-?\d+(\.\d+)?$/.test(esperado) || esperado.startsWith('[') || esperado.startsWith('{');
+
+/**
+ * Los asertos de `codigo` que **congelan** la tabla. Uno congela cuando las tres cosas a la
+ * vez: lo **observado** (dentro del `expect(`) depende de la tabla, el matcher **compara
+ * exacto** en vez de fijar un suelo o una pertenencia, y lo **esperado** es una magnitud o
+ * una lista **escrita a mano** en vez de derivarse de la propia tabla. Si falta cualquiera
+ * de las tres, añadir una fila no obliga a tocar ese aserto y por tanto no congela nada.
+ */
+function asertosQueCongelan(codigo: string): string[] {
+  const congelan: string[] = [];
+  for (const sentencia of sentenciasDeAserto(codigo)) {
+    const { cuerpo: observado, fin } = cuerpoBalanceado(sentencia, sentencia.indexOf('('));
+    if (!observado.includes(NOMBRE_DE_LA_TABLA)) continue;
+    const cadena = sentencia.slice(fin + 1);
+    const llamada = /\.\s*([A-Za-z]\w*)\s*\(/g;
+    let matcher = '';
+    let esperado = '';
+    let m: RegExpExecArray | null;
+    while ((m = llamada.exec(cadena)) !== null) {
+      const { cuerpo, fin: finLlamada } = cuerpoBalanceado(cadena, m.index + m[0].length - 1);
+      matcher = m[1];
+      esperado = cuerpo.trim();
+      llamada.lastIndex = finLlamada;
+    }
+    if (!matcher || MATCHERS_TOLERANTES.has(matcher)) continue;
+    if (esperado.includes(NOMBRE_DE_LA_TABLA)) continue;
+    if (!fijaMagnitudOLista(esperado)) continue;
+    congelan.push(sentencia.trim().replace(/\s+/g, ' '));
+  }
+  return congelan;
+}
+
+/** El detector, como función pura de texto: se le puede dar un espécimen, no sólo el fuente. */
+const congelaLaTabla = (fragmento: string): boolean => asertosQueCongelan(fragmento).length > 0;
+
+type Especimen = { nombre: string; codigo: string; debeCazar: boolean; porque: string };
+
+/** Los especímenes de la prueba de eficacia, en los **dos** sentidos (ADR-026 §7, D-8). */
+const ESPECIMENES: Especimen[] = [
+  {
+    nombre: 'la longitud, contra un número escrito a mano',
+    codigo: `expect(${NOMBRE_DE_LA_TABLA}).toHaveLength(13);`,
+    debeCazar: true,
+    porque:
+      'REGRESIÓN DE F1 (2.ª vuelta, 2026-08-24): esto es literalmente lo que el verificador ' +
+      'inyectó y la guardia anterior dejó pasar en verde, porque miraba sólo el texto ' +
+      'posterior al matcher y aquí la tabla va antes',
+  },
+  {
+    nombre: '`.length`, contra un número escrito a mano',
+    codigo: `expect(${NOMBRE_DE_LA_TABLA}.length).toBe(13);`,
+    debeCazar: true,
+    porque: 'REGRESIÓN DE F1 (2.ª vuelta, 2026-08-24): la otra forma inyectada; también pasó en verde',
+  },
+  {
+    nombre: 'la composición, contra una lista escrita a mano',
+    codigo: `expect(${NOMBRE_DE_LA_TABLA}.map((f) => f.nombre)).toEqual(['[SENSITIVE]', 'sin esquema']);`,
+    debeCazar: true,
+    porque: 'congelar CUÁLES son es tan caduco como congelar cuántas; la fila catorce lo rompe igual',
+  },
+  {
+    nombre: 'la longitud, derivada de la propia tabla',
+    codigo: `expect(algo).toHaveLength(${NOMBRE_DE_LA_TABLA}.length);`,
+    debeCazar: false,
+    porque: 'la forma buena: se deriva de la tabla, así que la fila catorce no obliga a tocarla',
+  },
+  {
+    nombre: 'un suelo sin techo — el centinela de CA-11',
+    codigo: `expect(${NOMBRE_DE_LA_TABLA}.length).toBeGreaterThan(0);`,
+    debeCazar: false,
+    porque:
+      'vive HOY en el fichero (CA-6 y CA-11). Cazarlo sería la reparación barata —cazar ' +
+      'cualquier mención de la tabla— y pondría roja a CA-11: por eso esta dirección está en el CA',
+  },
+];
+
+describe('SPEC-055 CA-12 — la batería crece sin tocar ninguna aserción', () => {
+  it('el conjunto de especímenes no está vacío y tiene las dos direcciones (centinela)', () => {
+    expect(ESPECIMENES.length).toBeGreaterThan(0);
+    expect(
+      ESPECIMENES.some((e) => e.debeCazar),
+      'sin ningún espécimen que la guardia deba cazar, la prueba de eficacia no prueba nada',
+    ).toBe(true);
+    expect(
+      ESPECIMENES.some((e) => !e.debeCazar),
+      'sin la dirección de «NO debe cazar», nada impide reparar esto cazando cualquier mención de la tabla, y eso tumba CA-11',
+    ).toBe(true);
+  });
+
+  it('la constante de la tabla sigue existiendo con ese nombre (centinela)', () => {
+    // Si la constante cambiara de nombre, el detector se quedaría mirando a un fantasma y
+    // el bloque entero pasaría de vacío.
+    const src = readFileSync(ESTE_FICHERO, 'utf8');
     expect(src).toContain(`const ${NOMBRE_DE_LA_TABLA}: Fila[] = [`);
+  });
+
+  it('el fuente real no congela la tabla', () => {
+    const src = readFileSync(ESTE_FICHERO, 'utf8');
+    expect(asertosQueCongelan(src)).toEqual([]);
+  });
+
+  it.each(ESPECIMENES)('el detector, sobre $nombre', ({ codigo, debeCazar, porque }) => {
+    expect(congelaLaTabla(codigo), `${codigo} → ${porque}`).toBe(debeCazar);
+  });
+
+  it.each(ESPECIMENES)('inyectado en el fuente real: $nombre', ({ codigo, debeCazar, porque }) => {
+    // La mutación del verificador, hecha en memoria: el fuente entero más el espécimen. No
+    // se toca el disco —eso es del verificador, no de la suite— y además mide el recorrido
+    // a escala de fichero, no sólo el detector suelto.
+    const inyectado = `${readFileSync(ESTE_FICHERO, 'utf8')}\n${codigo}\n`;
+    expect(asertosQueCongelan(inyectado), `${codigo} → ${porque}`).toHaveLength(debeCazar ? 1 : 0);
   });
 });
 

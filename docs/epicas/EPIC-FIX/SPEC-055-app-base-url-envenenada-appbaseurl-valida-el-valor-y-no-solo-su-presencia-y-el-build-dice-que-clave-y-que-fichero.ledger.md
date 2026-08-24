@@ -7,9 +7,14 @@ epica: EPIC-FIX
 
 ## Resumen
 - Fase: **en-revision** — aprobada por el humano (Alberto Fojo) el 2026-08-24, implementada
-  el mismo dia por sdd-implementador. **Segunda pasada tras el RED del verificador**: el
-  bloqueante F1 era de la letra de CA-5, que el arquitecto reescribio; la reparacion es una
-  linea de test y esta hecha (ver la fila CA-5 y §Vuelta del RED). Espera al verificador.
+  el mismo dia por sdd-implementador. **Tercera pasada, tras el SEGUNDO RED del verificador**:
+  12 de 13 CA en verde con evidencia ejecutada; el unico bloqueante es **F1 de la 2.a vuelta**
+  y vuelve a ser **de la letra** —CA-12 describia una forma prohibida en vez de la propiedad—.
+  El arquitecto lo reescribio el 2026-08-24 (§Vuelta del 2.º RED) y el implementador respondio
+  el mismo dia (§Respuesta al 2.º RED): el cambio vive entero en el bloque de CA-12 de
+  `tests/app-base-url.test.ts`, con el detector extraido a funcion pura y la prueba de eficacia
+  por mutacion en los dos sentidos. **Espera al verificador**. La pasada anterior cerro F1 de la
+  1.a vuelta (CA-5), verificado.
 - Rama: `ft/SPEC-055-app-base-url-envenenada-appbaseurl-valida-el-valor-y-no-solo-su-presencia`
   (la abrio el humano desde `origin/main`; su primer commit trae la spec y este ledger).
 - Esta entrega **toca `src/`**, asi que el gate `Version bump` exigio subida: **0.4.0 -> 0.4.1**,
@@ -36,24 +41,167 @@ epica: EPIC-FIX
 <!-- Un CA está ✅ solo cuando Implementado + Test + Verif. aplicables están en verde. Una salvedad se marca ⚠️, nunca ✅. -->
 | CA | Qué exige (resumen; la fuente es la spec) | Implementado (fichero) | Test (fichero/caso) | Verif. | Estado |
 |---|---|---|---|---|---|
-| CA-1 | Clave ausente / `'   '` sigue lanzando con `/APP_BASE_URL no definida/` y la firma `appBaseUrl(env)` no cambia — **contrato con SPEC-052 CA-14** | `src/lib/config/app-url.ts` — el literal y la firma **sin tocar**, con el porqué escrito al lado | `tests/app-base-url.test.ts` › CA-1 — 3 casos: clave ausente, `'   '`, y la firma leída del fuente como texto (`export function appBaseUrl(env: NodeJS.ProcessEnv = process.env): string {`) más `appBaseUrl.length === 0` | **Verificado leyendo el fuente, no el relato.** `src/lib/config/app-url.ts:87` conserva el literal `APP_BASE_URL no definida (ver .env.example)…` y `:81` la firma `export function appBaseUrl(env: NodeJS.ProcessEnv = process.env): string {`. Contrastado contra la rama hermana con `git show ft/SPEC-052-…:tests/entornos-de-despliegue.test.ts`: sus dos únicas aserciones de runtime (`:712` y `:716`, `toThrow(/APP_BASE_URL no definida/)` sin la clave y con `'   '`) siguen satisfechas. Los 3 casos verdes en la suite. | ✅ |
-| CA-2 | Valor que no parsea (`[SENSITIVE]`, sin esquema, `//evil.com`, comillas dentro) → lanza con diagnóstico; cada fila evalúa su propio «antes» | `src/lib/config/app-url.ts` — `new URL(raw)` en `try`/`catch`, y el `catch` llama a `rechazar()` | `tests/app-base-url.test.ts` › CA-2 — centinela de familia no vacía + 5 filas `it.each`; cada fila EJECUTA `new URL(valor)`, exige `/Invalid URL/` y que ese mensaje no nombre la clave, y después el rechazo nuevo | 5 filas verdes. El «antes» no es prosa: cada fila ejecuta `new URL(valor)`, exige `/Invalid URL/` y exige que ese mensaje **no** contenga `APP_BASE_URL` (`tests/app-base-url.test.ts:228-243`). Reinyectado el defecto (`git checkout origin/main -- src/lib/config/app-url.ts`), las 5 se ponen **rojas**; restaurado después, `git hash-object` vuelve a `29fcd0e`. | ✅ |
-| CA-3 | Protocolo distinto de `http:`/`https:` (`ftp:`, `file:`, `javascript:`) → lanza; cada fila demuestra que hoy llega vivo al enlace de correo | `src/lib/config/app-url.ts` — guarda de `url.protocol` distinto de `http:`/`https:`; el motivo interpola el protocolo recibido | `tests/app-base-url.test.ts` › CA-3 — centinela + 3 filas (`ftp:`, `file:`, `javascript:`); cada fila MIDE el río abajo con `buildResetUrl` (llega vivo o estalla sin diagnóstico) antes de exigir el rechazo, y comprueba que el mensaje nombra el protocolo y los dos aceptados | 3 filas verdes. El río abajo se **mide** con `buildResetUrl` (`:251-272`): `ftp:` y `file:` llegan vivos al enlace del correo y se comprueba que conservan su protocolo; `javascript:` estalla allí con `Invalid URL` y sin nombrar la clave. Rojas las 3 con el defecto reinyectado. | ✅ |
-| CA-4 | Ruta / query / fragmento / credenciales → lanza; barra final sigue tolerada (`https://a.com/` → `https://a.com`); la fila de la ruta calcula la discrepancia entre los dos consumidores | `src/lib/config/app-url.ts` — guardas de credenciales, `search`, `hash` y `!/^\/+$/.test(url.pathname)`; el recorte de barras finales sigue siendo `raw.replace(/\/+$/, '')` | `tests/app-base-url.test.ts` › CA-4 — centinela + 5 filas de forma, más el caso de la ruta que CALCULA la discrepancia (`new URL('https://a.com/es').pathname === '/es'` frente al enlace de correo, que la pierde) y el caso de la barra final (una y varias) | 5 filas de forma + los 2 casos propios, verdes. La discrepancia entre consumidores se **calcula** (`:285-298`): `new URL('https://a.com/es').pathname === '/es'` frente a `/reset-password/tok` en el correo. La barra final se sigue tolerando: `appBaseUrl('https://a.com/') === 'https://a.com'`, y también con varias. Guardas leídas en `app-url.ts:102-126`. | ✅ |
-| CA-5 | Los valores vivos siguen valiendo: los **DOS** que un proceso consume se **leen** de `.github/workflows/ci.yml` y `tests/e2e/server.mjs`, con centinela de extracción no vacía; el origen `https` de producción va **escrito en el test** y **ningún caso lee `.env.example`** (D-7) | sin cambio de código: es la propiedad que la guardia no puede romper | `tests/app-base-url.test.ts` › CA-5 — 4 casos. **Se leen exactamente dos**, y son los vivos: el de CI recorre el YAML de `.github/workflows/ci.yml` y el del e2e resuelve `${APP_PORT}` desde `tests/e2e/server.mjs`, los dos con centinela de extracción no vacía. El tercero, *«y el origen https de producción, escrito aquí y no leído de ningún fichero (D-7)»*, usa el literal `https://stockeiro.tremen.dev` —el mismo que CA-6 ya exige dentro del mensaje, así que no entra ningún valor nuevo al fichero— y comprueba lo de siempre: `appBaseUrl()` lo devuelve sin lanzar y sin recorte. Cuarto caso: `http` y `localhost` valen sin excepción. **Corrección de F1:** eliminado `valorDeEnvExample()` entero con su comentario; `.env.example` ya no se lee en ningún punto del fichero (sólo sobrevive dentro del literal del mensaje de `appBaseUrlAnterior` y en comentarios, que no leen nada). El porqué —se lee lo que un proceso real **consume**, no documentación de otra spec— queda escrito junto al caso y en la cabecera del bloque, citando **D-7**. **No se añadió ninguna guardia sobre qué ficheros lee esta batería** (sería `F-SPEC-048-2`), como pide la §Nota de encuadre de CA-5 | Verde hoy y **medido en el mundo real**: `APP_BASE_URL=http://localhost:3200 npx next build` termina en **verde** (21 rutas, exit 0), así que el listón no se pasó de frenada. CI (`.github/workflows/ci.yml:148`) y el e2e (`tests/e2e/server.mjs:69`) se leen de verdad y ninguno se ha tocado. **PERO el tercer caso** (`tests/app-base-url.test.ts:375-379`) deriva su origen `https` de `.env.example` **y además exige que sea `https`** — y `.env.example` es fichero de SPEC-052, que ahora mismo lo está cambiando a `http://localhost:3000`. Simulado con el contenido real de esa rama: el caso **FALLARÍA**. Ver F1 del veredicto. | ⚠️ |
-| CA-6 | El mensaje nombra clave + valor delimitado + forma esperada con ejemplo + `.env.production.local` manda sobre `.env`; aplicado a **todas** las filas | `src/lib/config/app-url.ts` — `rechazar()` compone las tres partes fijas: clave, valor delimitado con `«»` y recortado, forma esperada con los dos ejemplos, y la precedencia `.env.production.local` sobre `.env` | `tests/app-base-url.test.ts` › CA-6 — centinela + `it.each` sobre **TODAS** las filas de las tres familias, con los cuatro asertos etiquetados (a)(b)(c)(d) | 13 filas verdes, una por valor de las tres familias: los cuatro asertos se aplican a **todas**, no a una de muestra. Comprobado además fuera de la suite, en la salida literal del build envenenado (§Verificación de gate, escena 2): el mensaje lleva la clave, `«[SENSITIVE]»`, los dos ejemplos y la precedencia de `.env.production.local` sobre `.env`. | ✅ |
-| CA-7 | `[SENSITIVE]` añade la pista de `vercel env pull` / *Sensitive*; `[REDACTED]` se rechaza igual **sin** pista; valor recortado en el mensaje | `src/lib/config/app-url.ts` — `MARCADOR_DE_VERCEL` y `MAX_VALOR_EN_MENSAJE = 120`; la pista se hace `push` **después** del rechazo genérico, nunca antes | `tests/app-base-url.test.ts` › CA-7 — 3 casos: `[SENSITIVE]` con pista y sin perder nada de CA-6, `[REDACTED]` rechazado igual y **sin** pista, y un valor de 314 caracteres que entra recortado | 3 casos verdes. La pista es **aditiva y no la rama que decide**: `[REDACTED]` se rechaza igual y su mensaje **no** contiene `vercel env pull` (`:416-424`); el `if` de `app-url.ts:70` está después de componer el rechazo genérico, no antes. El recorte a 120 se recalcula en el test a mano en vez de preguntárselo a la implementación (`:50-52`). | ✅ |
-| CA-8 | Con la clave envenenada, recuperación falla **igual** para cuenta existente e inexistente y **sin tocar la BD**; el «antes» (oráculo 200/500 + enlace vivo quemado) se mide en el mismo fichero. `password-reset.ts` **sin modificar** | `src/lib/config/app-url.ts` — nada más: el arreglo es que el valor envenenado ya no sale de la función. `src/lib/auth/password-reset.ts` **sin modificar** (comprobado por el propio test) | `tests/app-base-url.test.ts` › CA-8 — 3 casos sobre un doble de `db` que registra CUALQUIER acceso. El DESPUÉS: las dos direcciones lanzan el mismo error con **cero** accesos. El ANTES, medido en el mismo fichero componiendo con `appBaseUrlAnterior`: la inexistente devuelve el acuse y la existente lanza tras un `update` y un `insert`; la asimetría se calcula. Tercer caso: `password-reset.ts` no gana ninguna guardia | **El apretón principal, y aguanta.** El «antes» está medido, no afirmado: con `appBaseUrlAnterior` componiendo, `noexiste@` devuelve el **acuse** y `existe@` **lanza** `Invalid URL` tras `update:passwordResetTokens` e `insert:passwordResetTokens` (`:587-617`); la asimetría se calcula comparando las dos listas de accesos. El doble de `db` es fiel al camino real (comprobado contra `password-reset.ts:79-107`: `getUserByEmail`, el `count(*)` que devuelve `n:0`, el `update` y el `insert`). **Y no es verde de vacío:** reinyectado el defecto de `origin/main`, la mitad del DESPUÉS se pone **roja** (junto con otros 43 casos del fichero); restaurado el árbol al hash original. `src/lib/auth/password-reset.ts` **idéntico a `origin/main`** (hash comparado). | ✅ |
-| CA-9 | Única fuente del origen absoluto = `appBaseUrl()`; guardia estática sobre `src/` **con centinela** (cero puntos de uso ⇒ rojo) | sin cambio de código: `appBaseUrl()` sigue siendo el único productor (D-2) | `tests/app-base-url.test.ts` › CA-9 — 2 casos con recorrido de `src/` y comentarios fuera. Uno extrae las invocaciones de `requestPasswordReset` con paréntesis balanceados y exige `baseUrl: appBaseUrl()`; el otro exige que el argumento del origen de la tarjeta sea exactamente `new URL(appBaseUrl())`. Los dos con centinela: cero puntos de uso es rojo | 2 casos verdes. Los centinelas son reales: si `puntos.length === 0` el caso falla con mensaje propio (`:685-688`, `:712-715`). Contrastado a mano: el único punto de uso es `src/app/(auth)/actions.ts:128` (`{ baseUrl: appBaseUrl() }`) y el único `metadataBase` es `src/app/layout.tsx` con `new URL(appBaseUrl())`. | ✅ |
-| CA-10 | Cero claves nuevas: `tests/spec-031-frontera.test.ts` (11, `toHaveLength(11)`) y `tests/tarjeta-frontera.test.ts` verdes **sin tocarse** | ninguna clave nueva: la guardia sólo lee `APP_BASE_URL` | `tests/spec-031-frontera.test.ts` y `tests/tarjeta-frontera.test.ts` verdes **sin una línea modificada** (confirmado con `git diff --name-only origin/main...HEAD`), más `tests/app-base-url.test.ts` › CA-10, que comprueba que `app-url.ts` no lee ninguna otra clave de entorno | Verde. Comprobado por hash que `tests/spec-031-frontera.test.ts` (con su `toHaveLength(11)` en `:149`) y `tests/tarjeta-frontera.test.ts` son **byte a byte idénticos a `origin/main`**; también `tests/tarjeta-guardias-ampliadas.test.ts`. Ninguna guardia ajena aflojada. El diff de la rama son 7 ficheros y ninguno de `_qa/`. | ✅ |
-| CA-11 | ADR-026 §7: reimplementación de 3 líneas de la `appBaseUrl()` anterior en el test; cada valor rechazado la atraviesa (o estalla sin diagnóstico). Centinela: tabla no vacía y con las tres familias | n-a (vive en el test) | `tests/app-base-url.test.ts` — `appBaseUrlAnterior()`, la reimplementación de tres líneas con su porqué y su fecha (2026-08-24) al lado, y el bloque › CA-11: `it.each` sobre la tabla entera (atraviesa la anterior → río abajo estalla sin sujeto o llega vivo → la guardia nueva lo detiene) más el centinela de tabla no vacía y con representante de las tres familias | 13 filas + centinela, verdes. El contraste con `appBaseUrlAnterior` (`:65-69`) es fiel a lo que había: coincide línea a línea con `git show origin/main:src/lib/config/app-url.ts:13-19`. Con el defecto reinyectado el bloque entero se pone rojo, que es justo lo que ADR-026 §7 pide de una guardia nueva. | ✅ |
-| CA-12 | La tabla crece sin tocar aserciones: ni `toHaveLength(` ni `toEqual([` sobre ella (`F-SPEC-048-2`) | n-a (vive en el test) | `tests/app-base-url.test.ts` › CA-12 — lee su propio fuente, recoge todo `toHaveLength(` y `toEqual([` y exige que ninguno mencione `VALORES_RECHAZADOS`; centinela de que la constante existe con ese nombre | Verde. Recorrido comprobado a mano sobre el fuente: no hay ningún `toHaveLength(` ni `toEqual([` que mencione `VALORES_RECHAZADOS`, y el centinela de que la constante existe con ese nombre impide que el caso pase de vacío si alguien la renombra. La tabla se recorre con `it.each` en los cuatro bloques que la usan. | ✅ |
-| CA-13 | Cabecera de `app-url.ts` y comentario de `layout.tsx` dicen la otra mitad; `layout.tsx` cambia **sólo comentario** y `tarjeta-frontera.test.ts:75` sigue verde | `src/lib/config/app-url.ts` (cabecera) y `src/app/layout.tsx` (**sólo el comentario** del bloque `metadata`; la expresión no se toca) | `tests/app-base-url.test.ts` › CA-13 — 2 casos; cada uno exige la frase «lanza si falta o si el valor no es un origen absoluto `http`/`https`», `[SENSITIVE]` y `vercel env pull`, y el del layout comprueba además que `metadataBase: new URL(appBaseUrl())` y el import siguen literales | 2 casos verdes. `src/app/layout.tsx` cambia **sólo comentario**: `git diff origin/main..HEAD -- src/app/layout.tsx` son 10 líneas, todas dentro del bloque `/** … */`; la expresión `metadataBase: new URL(appBaseUrl())` no se toca y `tests/tarjeta-frontera.test.ts` sigue verde sin modificarse. La cabecera de `app-url.ts:10-33` dice la otra mitad y nombra `[SENSITIVE]`, `vercel env pull` y `.env.production.local`. | ✅ |
+| CA-1 | Clave ausente / `'   '` sigue lanzando con `/APP_BASE_URL no definida/` y la firma `appBaseUrl(env)` no cambia — **contrato con SPEC-052 CA-14** | `src/lib/config/app-url.ts` — el literal y la firma **sin tocar**, con el porqué escrito al lado | `tests/app-base-url.test.ts` › CA-1 — 3 casos: clave ausente, `'   '`, y la firma leída del fuente como texto (`export function appBaseUrl(env: NodeJS.ProcessEnv = process.env): string {`) más `appBaseUrl.length === 0` | Verificado en el fuente, no en el relato. `src/lib/config/app-url.ts:87` conserva el literal `APP_BASE_URL no definida (ver .env.example)...` y `:81` la firma `export function appBaseUrl(env: NodeJS.ProcessEnv = process.env): string {`. Contrastado contra la rama hermana (`git show ft/SPEC-052-...:tests/entornos-de-despliegue.test.ts`): sus **dos unicas** invocaciones de runtime son `:712` y `:716`, las dos `toThrow(/APP_BASE_URL no definida/)` -sin la clave y con `'   '`- y las dos llaman `appBaseUrl(env)` con un solo argumento. Las dos siguen satisfechas con el codigo de esta rama. Los 3 casos verdes en la suite. | ✅ |
+| CA-2 | Valor que no parsea (`[SENSITIVE]`, sin esquema, `//evil.com`, comillas dentro) → lanza con diagnóstico; cada fila evalúa su propio «antes» | `src/lib/config/app-url.ts` — `new URL(raw)` en `try`/`catch`, y el `catch` llama a `rechazar()` | `tests/app-base-url.test.ts` › CA-2 — centinela de familia no vacía + 5 filas `it.each`; cada fila EJECUTA `new URL(valor)`, exige `/Invalid URL/` y que ese mensaje no nombre la clave, y después el rechazo nuevo | 5 filas verdes. El «antes» se **ejecuta**, no se narra: cada fila corre `new URL(valor)`, exige `/Invalid URL/` y exige que ese mensaje **no** contenga `APP_BASE_URL` (`tests/app-base-url.test.ts:228-243`). **Mutacion mia:** `git checkout origin/main -- src/lib/config/app-url.ts` -> las 5 se ponen **rojas** (45 rojos en el fichero); restaurado con `git checkout HEAD -- ...`, `git hash-object` vuelve a `29fcd0e5...` y `git status --porcelain` sale vacio. | ✅ |
+| CA-3 | Protocolo distinto de `http:`/`https:` (`ftp:`, `file:`, `javascript:`) → lanza; cada fila demuestra que hoy llega vivo al enlace de correo | `src/lib/config/app-url.ts` — guarda de `url.protocol` distinto de `http:`/`https:`; el motivo interpola el protocolo recibido | `tests/app-base-url.test.ts` › CA-3 — centinela + 3 filas (`ftp:`, `file:`, `javascript:`); cada fila MIDE el río abajo con `buildResetUrl` (llega vivo o estalla sin diagnóstico) antes de exigir el rechazo, y comprueba que el mensaje nombra el protocolo y los dos aceptados | 3 filas verdes. El rio abajo se **mide** con `buildResetUrl` (`:251-272`): `ftp:` y `file:` llegan vivos al enlace del correo conservando su protocolo, `javascript:` estalla alli con `Invalid URL` y sin nombrar la clave. El mensaje nuevo interpola el protocolo recibido y nombra `http:`/`https:` (`app-url.ts:97-101`). Las 3 rojas con el defecto reinyectado. | ✅ |
+| CA-4 | Ruta / query / fragmento / credenciales → lanza; barra final sigue tolerada (`https://a.com/` → `https://a.com`); la fila de la ruta calcula la discrepancia entre los dos consumidores | `src/lib/config/app-url.ts` — guardas de credenciales, `search`, `hash` y `!/^\/+$/.test(url.pathname)`; el recorte de barras finales sigue siendo `raw.replace(/\/+$/, '')` | `tests/app-base-url.test.ts` › CA-4 — centinela + 5 filas de forma, más el caso de la ruta que CALCULA la discrepancia (`new URL('https://a.com/es').pathname === '/es'` frente al enlace de correo, que la pierde) y el caso de la barra final (una y varias) | 5 filas de forma + los 2 casos propios, verdes. La discrepancia entre los dos consumidores se **calcula** (`:285-298`): `new URL('https://a.com/es').pathname === '/es'` frente a `/reset-password/tok` en el correo. La barra final se sigue tolerando y tambien las varias (`:300-305`), que es lo que la Decision 4 registra. Guardas leidas en `app-url.ts:97-126`; el recorte sigue siendo `raw.replace(/\/+$/, '')` (`:128`). | ✅ |
+| CA-5 | Los valores vivos siguen valiendo: los **DOS** que un proceso consume se **leen** de `.github/workflows/ci.yml` y `tests/e2e/server.mjs`, con centinela de extracción no vacía; el origen `https` de producción va **escrito en el test** y **ningún caso lee `.env.example`** (D-7) | sin cambio de código: es la propiedad que la guardia no puede romper | `tests/app-base-url.test.ts` › CA-5 — 4 casos. **Se leen exactamente dos**, y son los vivos: el de CI recorre el YAML de `.github/workflows/ci.yml` y el del e2e resuelve `${APP_PORT}` desde `tests/e2e/server.mjs`, los dos con centinela de extracción no vacía. El tercero, *«y el origen https de producción, escrito aquí y no leído de ningún fichero (D-7)»*, usa el literal `https://stockeiro.tremen.dev` —el mismo que CA-6 ya exige dentro del mensaje, así que no entra ningún valor nuevo al fichero— y comprueba lo de siempre: `appBaseUrl()` lo devuelve sin lanzar y sin recorte. Cuarto caso: `http` y `localhost` valen sin excepción. **Corrección de F1:** eliminado `valorDeEnvExample()` entero con su comentario; `.env.example` ya no se lee en ningún punto del fichero (sólo sobrevive dentro del literal del mensaje de `appBaseUrlAnterior` y en comentarios, que no leen nada). El porqué —se lee lo que un proceso real **consume**, no documentación de otra spec— queda escrito junto al caso y en la cabecera del bloque, citando **D-7**. **No se añadió ninguna guardia sobre qué ficheros lee esta batería** (sería `F-SPEC-048-2`), como pide la §Nota de encuadre de CA-5 | **F1 cerrado, y medido - no heredado.** (a) `.env.example` **no se lee en ningun punto**: las siete llamadas a `fuente()` (`:214, :323, :342, :628, :736, :749, :757`) son `app-url.ts` x3, `ci.yml`, `server.mjs`, `password-reset.ts` y `layout.tsx`; el literal solo sobrevive en el mensaje de `appBaseUrlAnterior` (`:67`) y en tres comentarios. (b) **Prueba fuerte:** puesto en `.env.example` el contenido **real** de la rama de SPEC-052 (`APP_BASE_URL="http://localhost:3000"`, hash `774d8572...`) -> bateria **65/65 verde**; y con el fichero de test anterior al arreglo (`git show 26aeae9:tests/app-base-url.test.ts`) ese mismo contenido **tumbaba** el caso (`.env.example declara «http://localhost:3000», que no es https`). `.env.example` restaurado byte a byte (`7b86eff3796ce4747cc8e0a6370113f102a54255` antes y despues) y `git status --porcelain` vacio. (c) Los **dos** valores vivos se leen de verdad: `.github/workflows/ci.yml:148` (`http://localhost:3200`) y `tests/e2e/server.mjs:69` con `APP_PORT` de `:15`; ninguno de los dos lo toca esta rama **ni ninguna otra en vuelo** (comprobado contra las ramas de SPEC-049, SPEC-052, SPEC-053 y SPEC-054), que es lo que D-7 exige. (d) El liston no se paso de frenada: `APP_BASE_URL=http://localhost:3200 npx next build` -> **exit 0**, 21/21 paginas, 24 rutas. | ✅ |
+| CA-6 | El mensaje nombra clave + valor delimitado + forma esperada con ejemplo + `.env.production.local` manda sobre `.env`; aplicado a **todas** las filas | `src/lib/config/app-url.ts` — `rechazar()` compone las tres partes fijas: clave, valor delimitado con `«»` y recortado, forma esperada con los dos ejemplos, y la precedencia `.env.production.local` sobre `.env` | `tests/app-base-url.test.ts` › CA-6 — centinela + `it.each` sobre **TODAS** las filas de las tres familias, con los cuatro asertos etiquetados (a)(b)(c)(d) | 13 filas verdes, una por valor de las tres familias: los cuatro asertos (a)(b)(c)(d) se aplican a **todas**, no a una de muestra (`:401-409`). Comprobado ademas fuera de la suite, en la salida literal de `npm run build` envenenado (Verificacion de gate, escena 2): el mensaje lleva la clave, `«[SENSITIVE]»`, los dos ejemplos y la precedencia de `.env.production.local` sobre `.env`. | ✅ |
+| CA-7 | `[SENSITIVE]` añade la pista de `vercel env pull` / *Sensitive*; `[REDACTED]` se rechaza igual **sin** pista; valor recortado en el mensaje | `src/lib/config/app-url.ts` — `MARCADOR_DE_VERCEL` y `MAX_VALOR_EN_MENSAJE = 120`; la pista se hace `push` **después** del rechazo genérico, nunca antes | `tests/app-base-url.test.ts` › CA-7 — 3 casos: `[SENSITIVE]` con pista y sin perder nada de CA-6, `[REDACTED]` rechazado igual y **sin** pista, y un valor de 314 caracteres que entra recortado | 3 casos verdes. La pista es **aditiva y no la rama que decide**: `[REDACTED]` se rechaza igual y su mensaje **no** contiene `vercel env pull` (`:422-430`); el `if` de `app-url.ts:70` esta despues de componer el rechazo generico, no antes. El recorte a 120 se recalcula en el test a mano (`:50-52`) en vez de preguntarselo a la implementacion. | ✅ |
+| CA-8 | Con la clave envenenada, recuperación falla **igual** para cuenta existente e inexistente y **sin tocar la BD**; el «antes» (oráculo 200/500 + enlace vivo quemado) se mide en el mismo fichero. `password-reset.ts` **sin modificar** | `src/lib/config/app-url.ts` — nada más: el arreglo es que el valor envenenado ya no sale de la función. `src/lib/auth/password-reset.ts` **sin modificar** (comprobado por el propio test) | `tests/app-base-url.test.ts` › CA-8 — 3 casos sobre un doble de `db` que registra CUALQUIER acceso. El DESPUÉS: las dos direcciones lanzan el mismo error con **cero** accesos. El ANTES, medido en el mismo fichero componiendo con `appBaseUrlAnterior`: la inexistente devuelve el acuse y la existente lanza tras un `update` y un `insert`; la asimetría se calcula. Tercer caso: `password-reset.ts` no gana ninguna guardia | **El apreton principal, y aguanta; no lo heredé, lo repetí.** El «antes» esta medido: con `appBaseUrlAnterior` componiendo, `noexiste@` devuelve el **acuse** y `existe@` **lanza** `Invalid URL` tras `update:passwordResetTokens` e `insert:passwordResetTokens` (`:593-623`); la asimetria se calcula comparando las dos listas de accesos y las dos direcciones (`expect(existe.desenlace.tipo).not.toBe(noExiste.desenlace.tipo)`). El doble de `db` es fiel al camino real (contrastado contra `password-reset.ts:79-107`: `getUserByEmail`, el `count(*)` que devuelve `n:0`, el `update` y el `insert`). **Y no es verde de vacio:** reinyectado `origin/main:src/lib/config/app-url.ts`, la mitad del DESPUES se pone **roja** (junto con otros 44 casos); arbol restaurado al hash `29fcd0e5...`. `src/lib/auth/password-reset.ts` **identico a `origin/main`** por hash. | ✅ |
+| CA-9 | Única fuente del origen absoluto = `appBaseUrl()`; guardia estática sobre `src/` **con centinela** (cero puntos de uso ⇒ rojo) | sin cambio de código: `appBaseUrl()` sigue siendo el único productor (D-2) | `tests/app-base-url.test.ts` › CA-9 — 2 casos con recorrido de `src/` y comentarios fuera. Uno extrae las invocaciones de `requestPasswordReset` con paréntesis balanceados y exige `baseUrl: appBaseUrl()`; el otro exige que el argumento del origen de la tarjeta sea exactamente `new URL(appBaseUrl())`. Los dos con centinela: cero puntos de uso es rojo | 2 casos verdes y sus centinelas son reales (`:691-694`, `:718-721`: cero puntos de uso => el caso falla con mensaje propio). Contrastado a mano sobre `src/`: el **unico** `requestPasswordReset(` es `src/app/(auth)/actions.ts:124`, con `{ baseUrl: appBaseUrl() }` en `:128`; el **unico** `metadataBase` es `src/app/layout.tsx:67`, y vale exactamente `new URL(appBaseUrl())`. | ✅ |
+| CA-10 | Cero claves nuevas: `tests/spec-031-frontera.test.ts` (11, `toHaveLength(11)`) y `tests/tarjeta-frontera.test.ts` verdes **sin tocarse** | ninguna clave nueva: la guardia sólo lee `APP_BASE_URL` | `tests/spec-031-frontera.test.ts` y `tests/tarjeta-frontera.test.ts` verdes **sin una línea modificada** (confirmado con `git diff --name-only origin/main...HEAD`), más `tests/app-base-url.test.ts` › CA-10, que comprueba que `app-url.ts` no lee ninguna otra clave de entorno | Verde. Comprobado que ni una linea de fichero ajeno se toca: `git diff --name-only origin/main..HEAD` restringido a `tests/`, `src/lib/auth/`, `.env.example`, `.github/workflows/` y `docs/` devuelve **solo** `tests/app-base-url.test.ts`. `tests/spec-031-frontera.test.ts` (con su `toHaveLength(11)` en `:149`), `tests/tarjeta-frontera.test.ts`, `tests/tarjeta-guardias-ampliadas.test.ts`, `src/lib/auth/password-reset.ts`, `docs/despliegue.md`, `.github/workflows/ci.yml`, `tests/e2e/server.mjs`, `tests/ci-workflow.test.ts` y `.env.example`: **identicos**. El diff de la rama son **8** ficheros -los ocho del conjunto cerrado, `FOUNDATION.md` incluido- y **cero** `_qa/`. | ✅ |
+| CA-11 | ADR-026 §7: reimplementación de 3 líneas de la `appBaseUrl()` anterior en el test; cada valor rechazado la atraviesa (o estalla sin diagnóstico). Centinela: tabla no vacía y con las tres familias | n-a (vive en el test) | `tests/app-base-url.test.ts` — `appBaseUrlAnterior()`, la reimplementación de tres líneas con su porqué y su fecha (2026-08-24) al lado, y el bloque › CA-11: `it.each` sobre la tabla entera (atraviesa la anterior → río abajo estalla sin sujeto o llega vivo → la guardia nueva lo detiene) más el centinela de tabla no vacía y con representante de las tres familias | 13 filas + centinela de las tres familias, verdes. La reimplementacion de `appBaseUrlAnterior` (`:65-69`) es fiel: coincide linea a linea con `git show origin/main:src/lib/config/app-url.ts:13-19`, que lei. Con el defecto reinyectado el bloque entero se pone rojo, que es lo que ADR-026 §7 pide. | ✅ |
+| CA-12 | La tabla crece sin tocar aserciones: ni `toHaveLength(` ni `toEqual([` sobre ella (`F-SPEC-048-2`) | n-a (vive en el test). **Reescrito entero en la 3.ª pasada** tras `F1` de la 2.ª vuelta: el detector sale del `it` y pasa a ser **función pura de texto** —`asertosQueCongelan(codigo)` y su `congelaLaTabla(fragmento)`—, apoyada en `soloCodigo()` (quita comentarios, vacía cadenas y colapsa expresiones regulares) y `sentenciasDeAserto()` (recorta **del `expect(` a su `;`**, con paréntesis balanceados y atravesando saltos de línea). **El criterio no enumera formas prohibidas** (D-8): un aserto congela cuando las **tres** cosas a la vez — lo observado depende de la tabla, el matcher compara **exacto** y lo esperado es una **magnitud o lista escrita a mano** en vez de derivada. La única lista es la de matchers **tolerantes** (`toBeGreaterThan`, `toBeGreaterThanOrEqual`, `toContain`, `toContainEqual`), y es de lo **permitido** a propósito: un matcher desconocido cuenta como exacto, así que la guardia falla hacia el **rojo**, nunca hacia la ceguera. Nota al lado con el porqué, citando `F1` de la 2.ª vuelta, **D-8**, `F-SPEC-048-2` y ADR-026 §7 | `tests/app-base-url.test.ts` › CA-12 — **13 casos** (antes 1). Dos **centinelas**: el conjunto de especímenes no está vacío **y tiene las dos direcciones**, y la constante sigue existiendo con ese nombre en el fuente. Un caso para el **fuente real**, que debe salir limpio (`asertosQueCongelan(src)` → `[]`). Y la **prueba de eficacia por mutación, sin tocar el disco**, sobre cinco especímenes escritos en el test y en **dos modos** cada uno —el detector suelto, y el espécimen **inyectado en el fuente real en memoria**, que además mide el recorrido a escala de fichero—: **debe cazar** `expect(VALORES_RECHAZADOS).toHaveLength(13);` y `expect(VALORES_RECHAZADOS.length).toBe(13);` —los dos escritos como **regresión de `F1`, 2026-08-24**, que es lo que el verificador inyectó y la guardia dejó pasar— más uno de composición con `toEqual([...])`; y **NO debe cazar** `expect(algo).toHaveLength(VALORES_RECHAZADOS.length);` (derivada) ni `expect(VALORES_RECHAZADOS.length).toBeGreaterThan(0);` (**el centinela de CA-11**, con el porqué escrito al lado: cazarlo es la reparación barata y pondría roja a CA-11) | **La propiedad se cumple hoy; su guardia no puede verla - medido, no supuesto.** La propiedad, verificada a mano: las menciones de `VALORES_RECHAZADOS` (`:90, :91, :172, :395, :401, :442, :445, :451`) son `it.each`, `.filter`, `.some` y `toBeGreaterThan(0)`; **ninguna** fija su longitud ni la compara con una lista literal. La guardia, en cambio, es ciega: el caso (`:471-483`) recoge `/(?:toHaveLength\(|toEqual\(\[)[^\n]*/`, o sea **solo el texto posterior al matcher**, y en una congelacion el nombre de la tabla va **antes** (`expect(VALORES_RECHAZADOS).toHaveLength(13)`). **Mutacion mia, sobre una copia del fichero:** inyectados `expect(VALORES_RECHAZADOS).toHaveLength(13);` y `expect(VALORES_RECHAZADOS.length).toBe(13);` -las dos formas naturales de congelar la tabla-, el caso de CA-12 **sigue verde**. Lo unico que la guardia cazaria es `toHaveLength(VALORES_RECHAZADOS.length)`, que es la forma **dinamica**, la buena. La copia se borro y `git status --porcelain` quedo vacio. Ver **F1** del veredicto. | ⚠️ |
+| CA-13 | Cabecera de `app-url.ts` y comentario de `layout.tsx` dicen la otra mitad; `layout.tsx` cambia **sólo comentario** y `tarjeta-frontera.test.ts:75` sigue verde | `src/lib/config/app-url.ts` (cabecera) y `src/app/layout.tsx` (**sólo el comentario** del bloque `metadata`; la expresión no se toca) | `tests/app-base-url.test.ts` › CA-13 — 2 casos; cada uno exige la frase «lanza si falta o si el valor no es un origen absoluto `http`/`https`», `[SENSITIVE]` y `vercel env pull`, y el del layout comprueba además que `metadataBase: new URL(appBaseUrl())` y el import siguen literales | 2 casos verdes. `src/app/layout.tsx` cambia **solo comentario**: `git diff origin/main..HEAD -- src/app/layout.tsx` cae entero dentro del bloque `/** ... */`, la expresion `metadataBase: new URL(appBaseUrl())` sigue literal en `:67` y `tests/tarjeta-frontera.test.ts` es identico por hash a `origin/main` y verde. La cabecera de `app-url.ts:10-33` dice la otra mitad y nombra `[SENSITIVE]`, `vercel env pull` y `.env.production.local`. | ✅ |
 
 ## Veredicto del verificador
 <!-- GREEN/RED + fecha + resumen. Lo escribe SOLO sdd-verificador. -->
 
-### RED — 2026-08-24, sdd-verificador
+### RED (2.a vuelta) — 2026-08-24, sdd-verificador
+
+**F1 de la primera vuelta esta cerrado, y lo cerre midiendo, no leyendo el relato.** Doce de
+trece CA quedan en verde con evidencia ejecutada. Devuelvo **un solo bloqueante nuevo**, y no
+esta en la guardia ni en el mensaje ni en el oraculo: esta en **CA-12**, cuyo caso es el unico
+de este fichero que **no puede ponerse rojo** cuando su propia propiedad se viola. Lo demostre
+por mutacion. La reparacion vuelve a ser una linea de test y una clausula de la letra.
+
+**No herede ninguna casilla.** Volvi a apretar las dos que el encargo señalaba y las dos
+aguantan: F1 (CA-5) y el oraculo (CA-8). Y volvi a mirar las once restantes desde cero.
+
+Lo que ejecute, y no lo que se me conto:
+
+- `npx vitest run` -> **113 ficheros, 1767 casos, todos verdes**, 183 s, exit 0.
+- `npx tsc --noEmit` -> exit 0. `npx eslint . --max-warnings=0` -> exit 0.
+- `npm run version:check` -> `La version sube de 0.4.0 a 0.4.1`, exit 0, con el arbol limpio,
+  que es la condicion que SPEC-049 le puso a este gate.
+- **Las tres escenas de build**, esta vez con `npm run build` y no con `npx next build`
+  (§Verificacion de gate). La envenenada usa el `.env.production.local` real de esta maquina
+  —`APP_BASE_URL="[SENSITIVE]"`, cubierto por `.gitignore:12`— y **no se toco**.
+- **Prueba fuerte de F1**: el `.env.example` de la rama de SPEC-052 puesto en su sitio y la
+  bateria entera corrida encima; restaurado byte a byte. Detalle en la fila CA-5.
+- **Tres mutaciones**, todas restauradas y comprobadas con `git hash-object` +
+  `git status --porcelain` vacio: el defecto de `origin/main` reinyectado en `app-url.ts`
+  (45 rojos, incluida la mitad del DESPUES de CA-8); el test anterior al arreglo corrido
+  contra el `.env.example` de SPEC-052 (rojo, como F1 midio); y la congelacion de la tabla
+  inyectada en una copia del fichero de test (**verde** — ver F1 de abajo).
+- Comparacion contra `origin/main` de los nueve ficheros ajenos sensibles: **los nueve
+  identicos**. Diff de la rama: **ocho ficheros**, los ocho del conjunto cerrado, cero `_qa/`.
+
+### Findings
+
+**F1 (bloqueante) — la guardia de CA-12 no puede ver la congelacion que dice vigilar; medido
+por mutacion.** `tests/app-base-url.test.ts:471-483` recoge las aserciones sospechosas con
+
+    const congelantes = src.match(/(?:toHaveLength\(|toEqual\(\[)[^\n]*/g) ?? [];
+    for (const uso of congelantes) expect(uso).not.toContain(NOMBRE_DE_LA_TABLA);
+
+El patron empieza **en el matcher**, asi que lo que examina es solo el texto **posterior** a
+`toHaveLength(` / `toEqual([`. En una congelacion real el nombre de la tabla va **antes**, del
+lado del `expect(...)`. Inyectadas en una copia del fichero las dos formas naturales de
+congelarla —
+
+    expect(VALORES_RECHAZADOS).toHaveLength(13);
+    expect(VALORES_RECHAZADOS.length).toBe(13);
+
+— el caso de CA-12 **sigue verde** (`npx vitest run tests/zz-ca12.test.ts -t "CA-12"` ->
+`1 passed`). Lo unico que la guardia cazaria es `toHaveLength(VALORES_RECHAZADOS.length)`, que
+es la forma **dinamica**, justo la que no hay que prohibir. La copia se borro; el arbol quedo
+limpio.
+
+Por que esto es RED y no una salvedad que se acepta:
+
+1. **CA-12 no es una propiedad de hoy: es una guardia de mañana, y su unico entregable es esa
+   guardia.** Que la tabla no este congelada hoy lo verifique yo a mano (fila CA-12), pero eso
+   no es lo que el CA compra. Lo que compra es que la proxima persona que añada una fila no
+   pueda congelarla en silencio — y hoy puede.
+2. **Es exactamente `F-SPEC-048-2` un piso mas arriba**, que es la familia a la que el propio
+   CA-12 se acoge por escrito: una guardia que da por vigilado algo que no vigila. Y es la
+   misma patologia que el ledger ya tiene abierta en `F-SPEC-055-3` —«miden un proxy en vez de
+   la propiedad»—, solo que aqui la guardia es **de esta spec**, no de una vecina.
+3. **El liston se lo pone la spec a si misma.** Todos los demas centinelas de este fichero se
+   ponen rojos cuando su propiedad falla —lo comprobe: CA-2, CA-3, CA-8 y CA-11 con el defecto
+   reinyectado; los de CA-5 y CA-9 fallan con lista vacia— y D-6 lo dice con todas las letras:
+   *«no afirma que un valor es malo: lo demuestra»*. CA-12 es la unica casilla que se queda
+   afirmando.
+4. **La reparacion es barata y no toca la guardia de produccion**: que el recorrido examine la
+   **sentencia** de aserto entera (del `expect(` al `;`) en vez del rabo del matcher. Y la
+   letra de CA-12 tiene que decir *sentencia*, porque hoy dice literalmente «que la constante
+   no aparece **dentro de** un `toHaveLength(`», que es lo que se implemento y por eso el
+   defecto es de la letra otra vez. Lo decide el arquitecto; yo no reparo.
+
+### Salvedades que NO bloquean, y de quien son
+
+**O1 (arquitecto, y es el reverso de F1) — la letra de CA-12 prescribe el test ciego.** Igual
+que O1 de la primera vuelta con CA-5: el implementador cumplio la instruccion al pie de la
+letra y la instruccion era la que estaba mal. Hay que reescribir el *Test:* de CA-12 antes de
+volver a implementarlo, o se implementara ciego otra vez.
+
+**O2 (informativo) — `npm run build` envenenado nombra `/admin` o `/register`, no
+`/_not-found`.** La spec (§Problema, eslabon 5) y las escenas dicen `/_not-found`. Sale la ruta
+del worker que estalla primero y son 15 workers, asi que el nombre varia entre pasadas: lo vi
+con `/admin` y con `/register` en dos corridas de la misma escena. No cambia nada del
+diagnostico —el `[cause]` es el mismo— pero quien compare la salida con la spec al pie de la
+letra se va a extrañar.
+
+**O3 (informativo) — el diagnostico bueno viaja dentro de `[cause]`.** Confirmado tambien con
+`npm run build`: la primera linea es `Error: Failed to collect configuration for /admin` y el
+mensaje de `appBaseUrl()` va en la segunda. Es de Next y no de esta spec.
+
+### Lo que si quedo demostrado, y merece constar
+
+- **F1 de la primera vuelta esta cerrado de verdad.** No basta con que el caso haya cambiado:
+  `.env.example` **no se lee en ningun punto** del fichero de test (las siete llamadas a
+  `fuente()` enumeradas en la fila CA-5), y con el `.env.example` **real** de la rama de
+  SPEC-052 dentro del arbol la bateria da **65/65**. Con el fichero de test de `26aeae9` —el
+  anterior al arreglo— ese mismo contenido la **tumbaba**. La mina estaba y ya no esta.
+- **CA-8 no es un verde de vacio, y lo volvi a medir yo.** Con el defecto reinyectado, la
+  mitad del DESPUES se pone **roja**. La mitad del ANTES distingue las dos direcciones
+  calculandolas: acuse para la cuenta que no existe, `Invalid URL` tras `update` e `insert`
+  para la que si. Un test de seguridad que se puede poner rojo protege algo.
+- **El contrato con SPEC-052 CA-14 esta intacto**, leido en las dos ramas: literal en
+  `app-url.ts:87`, firma en `:81`, y las dos unicas aserciones de runtime de SPEC-052
+  (`:712`, `:716`) siguen satisfechas.
+- **El liston no se paso de frenada**: `APP_BASE_URL=http://localhost:3200 npm run build`
+  termina en **exit 0** con sus 21 paginas y 24 rutas. `http` y `localhost` siguen valiendo.
+- **La severidad, ahora que esta escrita, esta bien contada.** Los dos apoyos se sostienen y
+  los verifique por separado: (1) el razonamiento —reinyecte el defecto y el build envenenado
+  **cae con exit 1**, luego un despliegue de produccion con la clave envenenada no llega a
+  existir—; y (2) la medida contra produccion, que **repeti yo**:
+  `curl -s https://stockeiro.tremen.dev/login` devuelve
+  `<meta property="og:url" content="https://stockeiro.tremen.dev"/>`, y ese `og:url` sale de
+  `metadataBase` <- `appBaseUrl()` (`src/app/layout.tsx:67`), luego la clave viva es valida.
+  El texto de §*La otra mitad de la frase* no exagera —dice «victimas potenciales, no
+  victimas» y «no hay incidente que investigar»— ni rebaja lo que se arregla: mantiene que el
+  200/500 es real en cuanto la clave se envenena, que es un `vercel env pull` de distancia.
+  Lo doy por bien contado.
+- **`FOUNDATION.md` dice algo cierto, y el resto de artefactos lo respetan.** El corolario es
+  verificable y lo verifique: `ci.yml:148` y `server.mjs:69` son valores que un proceso
+  consume, `.env.example` no lo lee ningun proceso, y **ninguna rama en vuelo** (SPEC-049,
+  SPEC-052, SPEC-053, SPEC-054) toca `ci.yml` ni `server.mjs`, con lo que las dos lecturas que
+  CA-5 conserva cumplen la regla que el corolario fija. No lo cuento como hallazgo: el humano
+  autorizo que viaje en esta rama el 2026-08-24.
+
+### Verificacion de gate (2.a vuelta, fuera de la suite)
+
+| Escena | Que se espera | Salida |
+|---|---|---|
+| `npm run build` con `APP_BASE_URL='[SENSITIVE]'` (el `.env.production.local` real), **antes** del arreglo — medido reinyectando `origin/main:src/lib/config/app-url.ts` y restaurado despues | `Invalid URL` sin nombrar clave ni fichero | `Error: Failed to collect configuration for /register` · `[cause]: TypeError: Invalid URL` — **exit 1**. Ni `APP_BASE_URL`, ni el valor, ni fichero alguno. |
+| `npm run build` con `APP_BASE_URL='[SENSITIVE]'`, **despues** | falla nombrando la clave, el valor, la forma y `.env.production.local`, con la pista de `vercel env pull` | `Error: Failed to collect configuration for /admin` · `[cause]: Error: APP_BASE_URL no es un origen absoluto usable: «[SENSITIVE]» — no es una URL absoluta, \`new URL()\` la rechaza. Se espera un origen \`http\` o \`https\` sin ruta, query, fragmento ni credenciales; por ejemplo http://localhost:3200 o https://stockeiro.tremen.dev. Donde mirar: en un build de produccion \`.env.production.local\` manda sobre \`.env\`, asi que el valor puede venir de ahi aunque \`.env\` ni siquiera declare la clave. Pista: «[SENSITIVE]» es lo que escribe \`vercel env pull\` cuando la variable esta marcada como Sensitive en Vercel: la CLI no revela el valor y deja ese marcador en \`.env.production.local\`. Escribe ahi el origen real, o desmarca la variable en Vercel.` — **exit 1**. Las cuatro partes de CA-6 y la pista de CA-7. |
+| `APP_BASE_URL=http://localhost:3200 npm run build` | verde | `✓ Compiled successfully` · `✓ Generating static pages using 15 workers (21/21) in 700ms` · tabla de 24 rutas — **exit 0**. |
+| `npx vitest run` / `npx tsc --noEmit` / `npx eslint . --max-warnings=0` | verdes | `Test Files 113 passed (113)` · `Tests 1767 passed (1767)`, 183.50 s — **exit 0**. Typecheck y lint, **exit 0** y sin salida. |
+| `npm run version:check` | la version sube y el arbol esta limpio (SPEC-049) | `[check-version-bump] Base: origin/main.` · `[check-version-bump] La version sube de 0.4.0 a 0.4.1.` — **exit 0**. `package.json` y `package-lock.json` los dos en `0.4.1` (ADR-033). |
+| `git diff --name-only origin/main..HEAD` | el conjunto cerrado de **ocho** ficheros, cero `_qa/` | `FOUNDATION.md`, la spec, este ledger, `package-lock.json`, `package.json`, `src/app/layout.tsx`, `src/lib/config/app-url.ts`, `tests/app-base-url.test.ts` — **8 ficheros**, cero `_qa/`. |
+| Ficheros ajenos, contra `origin/main` | identicos | `tests/spec-031-frontera.test.ts` (`toHaveLength(11)` en `:149`), `tests/tarjeta-frontera.test.ts`, `tests/tarjeta-guardias-ampliadas.test.ts`, `src/lib/auth/password-reset.ts`, `.env.example`, `docs/despliegue.md`, `.github/workflows/ci.yml`, `tests/e2e/server.mjs`, `tests/ci-workflow.test.ts` — **los nueve identicos**. |
+| Mutacion 1 (guardia) | reinyectar el defecto pone roja la mitad del DESPUES de CA-8 | `npx vitest run tests/app-base-url.test.ts` con `origin/main:src/lib/config/app-url.ts` -> **45 rojos / 20 verdes**, incluido `CA-8 › el DESPUES…`. Restaurado: `git hash-object` = `29fcd0e53f918067fca2461477b774e6fa104e0e`, `git status --porcelain` vacio. |
+| Mutacion 2 (F1) | el `.env.example` de SPEC-052 ya no tumba nada, y antes si | Con `APP_BASE_URL="http://localhost:3000"` (hash `774d8572…`): bateria **65/65 verde**. Con el test de `26aeae9` y ese mismo fichero: **1 rojo** — `.env.example declara «http://localhost:3000», que no es https`. `.env.example` restaurado: hash `7b86eff3796ce4747cc8e0a6370113f102a54255`, `git status --porcelain` vacio. |
+| Mutacion 3 (CA-12) | congelar la tabla tiene que poner **rojo** el caso de CA-12 | Inyectados `expect(VALORES_RECHAZADOS).toHaveLength(13);` y `expect(VALORES_RECHAZADOS.length).toBe(13);` en una copia del fichero: **`1 passed`, verde**. La guardia no lo ve. **Es F1 de esta vuelta.** Copia borrada, arbol limpio. |
+| `curl -s https://stockeiro.tremen.dev/login` | comprobar el segundo apoyo de la latencia | `<meta property="og:url" content="https://stockeiro.tremen.dev"/>` — la `APP_BASE_URL` viva de produccion es un origen valido. |
+
+### Primera vuelta (historico)
+
+
+#### RED (1.a vuelta) — 2026-08-24, sdd-verificador
 
 **Doce de trece CA cerrados con evidencia ejecutada. CA-5 queda con salvedad NO aceptada, y
 esa salvedad es un rojo futuro garantizado en una spec hermana.** No encontré ningún defecto
@@ -79,9 +227,9 @@ Lo que ejecuté, y no lo que se me contó:
   `.github/workflows/ci.yml`, `tests/e2e/server.mjs` y `tests/ci-workflow.test.ts`:
   **los nueve idénticos**. Cero `_qa/` en el diff, como corresponde a una spec sin UI.
 
-### Findings
+#### Findings (1.a vuelta)
 
-**F1 (bloqueante) — CA-5 planta una mina roja bajo SPEC-052, y en el fichero que esta spec
+**F1 (bloqueante, CERRADO en la 2.a vuelta) — CA-5 planta una mina roja bajo SPEC-052, y en el fichero que esta spec
 declaró territorio ajeno.** `tests/app-base-url.test.ts:375-379` extrae el origen `https` de
 `.env.example` y **exige que empiece por `https://`**:
 
@@ -119,7 +267,7 @@ Por qué esto es RED y no una salvedad que se acepta:
    esquema, comprobando únicamente que `appBaseUrl()` devuelve lo que ese fichero declare.
    Lo decide quien implemente; yo no reparo.
 
-### Salvedades que NO bloquean, y de quién son
+#### Salvedades de la 1.a vuelta
 
 **O1 (arquitecto) — CA-5 está mal redactado y es el origen de F1.** «Más un origen `https` de
 producción **de la misma forma**» admite las dos lecturas: «también extraído de un fichero» y
@@ -153,7 +301,7 @@ el defecto entero.
 `appBaseUrl()` en la segunda. Es de Next y no de esta spec, y el texto aparece completo; lo
 anoto porque quien lea sólo la primera línea seguirá igual de perdido que antes.
 
-### Lo que sí quedó demostrado, y merece constar
+#### Lo que quedó demostrado en la 1.a vuelta
 
 - **CA-8 no es un verde de vacío.** Es lo que más apreté. El «antes» se ejecuta con un doble
   de `db` fiel al camino real de `password-reset.ts:79-107`, y la asimetría 200/500 se
@@ -164,7 +312,7 @@ anoto porque quien lea sólo la primera línea seguirá igual de perdido que ant
 - **El listón de «válido» no se pasó de frenada**: `http` y `localhost` siguen valiendo, y no
   de palabra — un `next build` completo con `http://localhost:3200` termina en **verde**.
 
-### Verificación de gate (fuera de la suite, a pegar aquí)
+#### Verificación de gate (1.a vuelta)
 
 No cabe en la batería y se hace una vez, con la salida literal pegada (mismo tratamiento que
 SPEC-052 CA-16):
@@ -415,3 +563,159 @@ ficheros, 1767 casos**, los mismos totales que antes porque un caso sustituye a 
 puntos —el tercero es la guardia de que el ejemplo de `.env.example` pasa `appBaseUrl()`, que
 vive con el dueño del fichero (D-7)—. Y el gate de build/versión, que es del verificador: la
 versión no se movió porque este cambio no toca `src/`, y `FOUNDATION.md` no está vigilado.
+
+### Vuelta del 2.º RED — qué cambió la spec y qué toca al implementador (2026-08-24, sdd-arquitecto)
+
+El verificador devolvió **RED** por segunda vez, con **un solo bloqueante (F1) y ningún defecto
+de código ni de test**. Y por segunda vez el defecto era **de la letra**, así que esta pasada
+mía **no toca ni código ni tests**: sólo la spec, este ledger y `FOUNDATION.md`. El humano
+decidió el **2026-08-24** que **se arregla** — no se acepta como salvedad.
+
+**El diagnóstico, con las palabras del verificador y no con las mías.** CA-12 **no es una
+propiedad de hoy —ésa se cumple, la verificó a mano— sino una guardia de mañana, y su único
+entregable es esa guardia.** Una guardia contra listas congeladas que no puede ver una lista
+congelada es `F-SPEC-048-2` un piso más arriba, y el listón se lo pone la spec a sí misma:
+todos los demás centinelas de este fichero **sí** se ponen rojos cuando su propiedad falla.
+Coincido entero, y **acepto O1**: la letra prescribía el test ciego.
+
+#### Lo que cambió en la spec, para que se pueda releer sin diff
+
+- **CA-12, reescrito de arriba abajo, con criterio distinto.** Ya no describe una forma
+  prohibida: enuncia la propiedad con un discriminante que no menciona sintaxis —**«si añadir
+  una fila obligara a actualizar ese aserto, ese aserto congela»**—, **prohíbe expresamente
+  enumerar matchers** (y dice por qué: la enumeración caduca igual escrita en la spec que
+  escrita en el test), deja **el mecanismo al implementador**, y exige la **prueba de eficacia
+  por mutación en los dos sentidos** (ADR-026 §7) con especímenes mínimos nombrados: **tres que
+  la guardia debe cazar** —los dos que el verificador inyectó, más uno de composición— y **dos
+  que NO debe cazar** —la forma derivada y el suelo de CA-11—, más el fuente real, que debe
+  salir limpio.
+- **D-8 nuevo**, con la lección general y la **tabla de los cuatro casos** (SPEC-054 CA-15 y
+  CA-16, SPEC-055 CA-5 y CA-12): cada uno nombró una forma y quería una propiedad.
+- **`FOUNDATION.md`, segundo corolario.** Subo D-8 a la constitución, apoyándome en el
+  precedente que el humano autorizó el 2026-08-24 para el corolario de D-7. **Criterio para
+  subirlo:** cuatro casos, dos specs, dos épicas, una ronda roja cada uno, y encaja como
+  generalización del corolario que ya vive ahí — aquél dice que **el test** fija una propiedad
+  y no un estado; éste dice que **el CA** pide una propiedad y no una forma. Es la misma
+  doctrina aplicada al autor en vez de al implementador. Queda marcado en §Notas pto. 8 como lo
+  primero que el humano debe mirar, y es lo único de este lote que sale del territorio de la
+  spec: si prefiere que espere a su propio gate, se saca y CA-12 se sostiene con D-8 dentro.
+- **O2 corregido en §Problema** (párrafo de cabecera y eslabón 5). **No se sustituyó un literal
+  por otro**: se escribe que **la ruta es variable** —Next nombra la del worker que estalla
+  primero, de quince, y se midieron `/register` y `/admin` en dos corridas de la misma escena—
+  y que la comparación se hace contra el diagnóstico, no contra la ruta. **O3** entra en el
+  mismo sitio: el diagnóstico bueno viaja dentro de **`[cause]`, en la segunda línea**.
+- **§Entidades**, la tabla de ficheros y §Notas pto. 7/8, puestas al día.
+
+**Lo que NO cambia: el conjunto cerrado sigue siendo de ocho ficheros.** `FOUNDATION.md` ya
+estaba dentro; no es código de aplicación, así que **la versión sigue en `0.4.1`**. Ni el
+estado de la spec, ni ninguna columna de esta matriz, ni ningún otro CA.
+
+**Deuda menor que dejo anotada y NO toco, porque no son míos:** el literal caduco
+`/_not-found` sobrevive en `docs/roadmap.md:153` (territorio de sdd-producto) y en
+`docs/epicas/EPIC-007-…/SPEC-054-….ledger.md:387, :397, :749` (territorio de SPEC-054).
+Ninguno de los dos afecta a ningún CA de esta spec; quien gobierne esos documentos decide.
+
+#### Lo que tiene que cambiar el implementador, y es todo lo que tiene que cambiar
+
+En `tests/app-base-url.test.ts`, en el bloque de **CA-12** y **sólo ahí**:
+
+1. **Extraer el detector a una función pura de texto**, del tipo
+   `congelaLaTabla(fragmento: string): boolean` (o el nombre que prefiera), para que se le
+   pueda pasar **un espécimen escrito en el test** y no sólo el fuente del fichero. Hoy el
+   recorrido está incrustado en el `it` y por eso no hay forma de probarlo.
+2. **Arreglar la ceguera.** La reparación que el verificador apunta —y que es una sugerencia,
+   no un mandato: el mecanismo lo eliges tú— es que el recorrido examine **la sentencia de
+   aserto entera, del `expect(` al `;`**, en vez del rabo del matcher. El patrón de hoy
+   (`/(?:toHaveLength\(|toEqual\(\[)[^\n]*/g`) empieza **en el matcher**, así que sólo ve el
+   texto **posterior** a él, y en una congelación real el nombre de la tabla va **antes**.
+   **Cualquier mecanismo vale si pasa el punto 3 en los dos sentidos.**
+3. **Añadir la prueba de eficacia, en los dos sentidos, con especímenes escritos en el test y
+   sin tocar el disco** (nada de copias de fichero: eso es del verificador, no de la suite):
+   - **debe cazar**: `expect(VALORES_RECHAZADOS).toHaveLength(13);`,
+     `expect(VALORES_RECHAZADOS.length).toBe(13);` y una de composición, del tipo
+     `expect(VALORES_RECHAZADOS.map((f) => f.nombre)).toEqual(['…']);`
+   - **NO debe cazar**: `expect(algo).toHaveLength(VALORES_RECHAZADOS.length);` y
+     `expect(VALORES_RECHAZADOS.length).toBeGreaterThan(0);`
+   - **el fuente real** del fichero: **limpio**.
+   Los dos primeros de la lista de «debe cazar» son literalmente los que el verificador inyectó
+   el 2026-08-24 y que la guardia dejó pasar en verde: **son la regresión de F1**, y deben
+   quedar escritos como tales, con la fecha al lado.
+4. **Conservar los centinelas y añadir el que falta:** el de que la constante existe con ese
+   nombre en el fuente **se queda**; se añade que **el conjunto de especímenes no está vacío y
+   tiene las dos direcciones**. Si falta cualquiera, el caso **falla** en vez de pasar de vacío.
+5. **Dejar escrito al lado el porqué**, citando **F1 de la 2.ª vuelta** y **D-8**: que la letra
+   vieja pedía una forma, que por eso la guardia era ciega, y que la mitad de «NO debe cazar»
+   existe para que nadie repare esto cazando cualquier mención de la constante —eso pondría
+   roja a CA-11 y acabaría con la guardia aflojada. Sin esa nota, el próximo lo «simplifica».
+6. **No tocar nada más.** Ni `src/lib/config/app-url.ts` —la guardia de producción pasó el gate
+   entera—, ni los otros doce CA, ni `.env.example`, ni `docs/despliegue.md`, ni
+   `tests/ci-workflow.test.ts`, ni `tests/spec-031-frontera.test.ts`, ni las guardias de
+   SPEC-051, ni la versión: **`0.4.1` se queda**, este cambio no toca `src/`.
+
+**Qué hay que re-verificar y qué no.** El cambio está **contenido en el bloque de CA-12**, que
+no comparte estado con ningún otro: no toca la tabla `VALORES_RECHAZADOS`, ni `appBaseUrlAnterior`,
+ni el doble de `db`, ni el fuente de `src/`. **Ningún CA que ya estaba ✅ necesita re-verificarse
+por este cambio** — pero sí hay dos consecuencias mecánicas que el verificador debe mirar:
+**(a) CA-11**, porque uno de los especímenes de «NO debe cazar» es literalmente su centinela y
+la reparación mal hecha lo tumbaría; y **(b)** el recuento del fichero (**65 casos hoy**) y el
+de la suite (**1767**) suben, porque esto **añade** casos en vez de sustituir uno. Esa es la
+única diferencia con la vuelta anterior, donde los totales no se movían.
+
+### Respuesta al 2.º RED — qué hizo el implementador (2026-08-24, sdd-implementador)
+
+**Un solo fichero y un solo bloque, como pedía la vuelta: `tests/app-base-url.test.ts`, CA-12.**
+Ni `src/`, ni los otros doce CA, ni `.env.example`, ni `docs/despliegue.md`, ni ninguna guardia
+ajena. La versión sigue en **0.4.1** porque esto no toca `src/`.
+
+**El mecanismo que elegí, y por qué ése.** El detector sale del `it` y pasa a ser función pura
+de texto (`asertosQueCongelan(codigo)`, con `congelaLaTabla(fragmento)` encima), así que se le
+puede dar un espécimen escrito en el test y no sólo el fuente. Recorta **la sentencia entera,
+del `expect(` a su `;`** —con paréntesis balanceados y atravesando saltos de línea—, que es la
+sugerencia del verificador; el patrón viejo empezaba en el matcher y por eso no veía el lado
+del `expect(`. Sobre esa sentencia el criterio **no enumera formas prohibidas** (D-8): congela
+cuando se dan **las tres** a la vez —lo **observado** depende de la tabla, el matcher compara
+**exacto**, y lo **esperado** es una magnitud o una lista **escrita a mano** en vez de derivada
+de la propia tabla—. Si falta cualquiera de las tres, añadir una fila no obliga a tocar ese
+aserto, que es el discriminante que la spec pide.
+
+**La única lista que hay es la de matchers TOLERANTES, y es deliberadamente de lo permitido**
+(`toBeGreaterThan`, `toBeGreaterThanOrEqual`, `toContain`, `toContainEqual`): un matcher que no
+esté ahí cuenta como exacto, así que un matcher nuevo hace que la guardia falle hacia el
+**rojo** —visible— y nunca hacia la ceguera, que es exactamente el defecto de `F1`. Un techo
+(`toBeLessThan(13)`) **sí** se caza, y a propósito: un techo sobre el tamaño también congela la
+tabla en la dirección en la que crece.
+
+**Dos piezas de fontanería que no son adorno.** (1) `soloCodigo()` quita comentarios, **vacía**
+las cadenas y colapsa las expresiones regulares. Sin vaciar cadenas, los propios especímenes
+—que llevan el nombre de la tabla dentro— se contarían como asertos del fichero; sin tratar las
+regex, `.replace(/^['"`]|['"`]$/g, '')` de `valoresDeCi()` descarrila el analizador y lo deja
+ciego de ahí al final del fichero, o sea el mismo defecto por otra puerta. (2) La prueba de
+mutación se hace en **dos modos** por espécimen: el detector suelto **y el espécimen inyectado
+en el fuente real, en memoria**. El segundo modo es el que demuestra que el recorrido llega
+entero hasta el final del fichero: si `soloCodigo()` se descarrilara a media altura, los
+especímenes inyectados dejarían de verse y esos casos se pondrían rojos.
+
+**Las dos direcciones, medidas y no afirmadas.** Aparte de los 10 casos de mutación que ya
+viven en la suite, aflojé la guardia a mano dos veces y restauré el fichero al hash
+`6f5704a3a19b0cf60e9e64dd1d137144019fcacb` las dos veces (comprobado con `git hash-object`, y
+`git status --porcelain` sin residuos):
+
+1. **Congelación real inyectada a media altura** —`expect(VALORES_RECHAZADOS).toHaveLength(13);`
+   metido dentro del centinela de CA-6, en la línea 396, lejos del final—: el bloque de CA-12 se
+   pone **rojo, 6 de 13 casos**, empezando por «el fuente real no congela la tabla». Es
+   literalmente la mutación que la guardia anterior dejaba pasar en verde.
+2. **La reparación barata**, o sea quitar los dos filtros y cazar cualquier mención de la tabla:
+   **rojo, 7 de 13**, y entre ellos «el detector, sobre *un suelo sin techo — el centinela de
+   CA-11*». Esa es la mitad que el CA exige y la razón de que exista: sin ella, esta reparación
+   habría pasado y CA-11 se habría caído después.
+
+**Recuentos, que suben como el arquitecto anticipó.** `tests/app-base-url.test.ts`: **65 → 77**
+casos (el caso ciego se sustituye por 13). Suite completa: **1767 → 1779**, `113/113` ficheros
+verdes. `npm run typecheck` y `npm run lint` (`--max-warnings=0`) limpios. **CA-11 verde**, sus
+14 casos, sin tocar una línea. El diff de la rama sigue dentro del conjunto cerrado de ocho
+ficheros y **cero `_qa/`**: esta spec no genera evidencia visual.
+
+**Lo que NO toqué y dejo señalado, porque no es mío.** La columna *Qué exige* de la fila CA-12
+de la matriz sigue diciendo la letra **vieja** —*«ni `toHaveLength(` ni `toEqual([` sobre
+ella»*—, que es justo la enumeración de formas que **D-8** prohíbe. No es una columna de las
+mías y no la edito; queda para el arquitecto, que la puso al día en la spec pero no aquí.
