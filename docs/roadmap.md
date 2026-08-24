@@ -144,6 +144,20 @@ tipo: roadmap
   horizontal) y nunca comprobó su posición **respecto a la fila que lo abrió** — justo el
   tipo de ceguera que SPEC-040 dijo haber curado. Va a spec propia de EPIC-FIX; es lo
   primero de la tanda del 2026-08-22.
+  ⚠️ **Caso hermano del de SPEC-052, observado el 2026-08-24 y NO cubierto por ella.**
+  SPEC-052 (en vuelo, `en-revision`) ataca el `APP_BASE_URL` **ausente**: sin la clave, el
+  build revienta desde que SPEC-051 metió `metadataBase: new URL(appBaseUrl())` en el layout.
+  Lo que se topó el implementador de SPEC-054 es el caso **contrario y peor**: la clave
+  **está**, pero **envenenada**. `.env.production.local` —que Next carga **por encima** de
+  `.env`— trae `APP_BASE_URL=[SENSITIVE]`, el literal, de un `vercel env pull`. El build
+  muere con `Invalid URL` en `/_not-found`, un mensaje que **no nombra ni la clave ni el
+  fichero**, y que aparece justo cuando el desarrollador cree haber hecho lo correcto
+  (definir `DATABASE_URL`). Se arranca con `APP_BASE_URL=http://localhost:3200 npm run build`.
+  Comprobado que SPEC-052 **no lo menciona**: su texto no cita `.env.production.local`, ni
+  `vercel env pull`, ni el marcador `[SENSITIVE]`, ni la precedencia entre ficheros de
+  entorno. Es la misma superficie y merece entrar por la misma puerta —probablemente ampliando
+  SPEC-052 antes de que cierre, que sale más barato que una spec nueva—, pero **la decisión es
+  de quien gobierne SPEC-052**, que va en otra sesión. Sin spec asignada todavía.
 
 - **EPIC-003 — Recuperación y cambio de contraseña** (estado: borrador).
   **Por qué está aquí y no en "Después", pese al criterio de corte.** El criterio dice

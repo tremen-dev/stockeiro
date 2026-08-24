@@ -131,7 +131,10 @@ Medibles, verificables por spec. La épica no se cumple pantalla a pantalla: se 
 >    medidor de área táctil, que es infraestructura de la que viven las demás.
 > 2. **La navegación en el teléfono** (CE-1, CE-3). Va **detrás de SPEC-054** a propósito: el
 >    medidor de área táctil nace allí, y la navegación es el primer sitio donde se va a poner
->    roja.
+>    roja. **Tiene una precondición de orden, `F-ADR-035-1`**: el suelo sin holgura de ADR-035
+>    debe estar implementado **antes** de que esta spec escriba guardias nuevas de M5. El motivo
+>    es que la navegación es donde M5 decide qué se agranda, y decidirlo contra un suelo efectivo
+>    de 43 sería decidirlo mal — SPEC-054 ya pagó ese error una vez.
 > 3. **El resto de rutas y el cierre de la guardia** (CE-2 completo, CE-1, CE-3). Puede ser una
 >    spec o dos; lo decide el arquitecto según lo que el barrido encuentre. **No se especifica
 >    a ciegas**: primero se mide, luego se escribe — la misma disciplina que EPIC-MEJORA se
@@ -178,10 +181,15 @@ Medibles, verificables por spec. La épica no se cumple pantalla a pantalla: se 
   ojos frescos aparecerá "ya que estamos". La lista de "fuera" es larga a propósito y la frontera
   es CE-5: **esta épica adapta lo que hay, no lo mejora**. Lo que sea mejora va a EPIC-MEJORA con
   su "dónde se vio".
-- **R-6 — La etiqueta `<meta name="viewport">` no está declarada en el proyecto.**
-  `src/app/layout.tsx` exporta `metadata` pero no `viewport`; Next.js 16 inyecta por defecto
-  `width=device-width, initial-scale=1`, así que **muy probablemente no hay defecto** — pero
-  toda esta épica descansa sobre esa etiqueta, y descansa sobre un valor por defecto de un
-  framework que ya se migró una vez (SPEC-009). La primera spec que toque el tema debe
-  **comprobarlo en el HTML servido**, no darlo por bueno. Se anota como verificación, no como
-  hallazgo.
+- ✅ **R-6 — La etiqueta `<meta name="viewport">`: CERRADO el 2026-08-24, verificado en el HTML
+  servido.** `src/app/layout.tsx` exporta `metadata` pero **no** `viewport`, así que la etiqueta
+  depende enteramente del valor por defecto de Next.js 16 — y toda esta épica descansa sobre
+  ella: sin `width=device-width`, un navegador móvil compone a ~980 px y escala, con lo que todo
+  lo que la guardia mide a 360 y 390 px sería cierto en Playwright y **falso en un teléfono**.
+  Comprobado contra producción, no contra la documentación:
+  `curl https://stockeiro.tremen.dev/login` devuelve
+  `<meta name="viewport" content="width=device-width, initial-scale=1"/>`.
+  Queda escrito **con su porqué** y no simplemente tachado: el día que se migre de mayor de
+  Next —ya pasó una vez, SPEC-009— esta comprobación hay que repetirla, porque lo que la sostiene
+  es un valor por defecto del framework y no una línea de este proyecto. Si alguna vez conviene
+  dejar de depender de él, la salida es exportar `viewport` en `layout.tsx`; hoy no hace falta.
