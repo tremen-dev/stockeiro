@@ -90,7 +90,11 @@ for (const [nombre, correo] of CORREOS) {
 // La paleta, derivada del sistema de diseño en cada ejecución (CA-11).
 // ---------------------------------------------------------------------------
 
-/** Lee un token resolviendo los alias `var(--otro)`. Misma lectura que SPEC-051. */
+/**
+ * Lee un token del sistema de diseño resolviendo los alias `var(--otro)`. Misma lectura
+ * que hace `tests/tarjeta-imagen.test.ts`, reimplementada aquí en vez de importada: aquel
+ * fichero es de otra spec y CA-18 no autoriza tocarlo, ni siquiera para exportar algo.
+ */
 function token(selector: string, nombre: string): string {
   const css = readFileSync(cssPath, 'utf8');
   const leer = (sel: string, tok: string): string => {

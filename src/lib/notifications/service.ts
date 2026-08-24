@@ -2,6 +2,7 @@ import { and, desc, eq, isNull, max } from 'drizzle-orm';
 import type { PgDatabase } from 'drizzle-orm/pg-core';
 import { notifications, zoneTriggers, symbols, quotes, users, type Notification } from '@/db/schema';
 import { findByIdForOwner } from '@/lib/data/ownership';
+import { correoDeEntradaEnZona, correoDeResumen, type CorreoCompuesto } from './templates';
 import type { NotificationSender, NotificationMessage } from './sender';
 
 type Db = PgDatabase<any, any, any>;
@@ -23,6 +24,18 @@ function dateOf(d: Date): string {
 }
 
 const zoneEs = (kind: string) => (kind === 'buy' ? 'compra' : 'venta');
+
+/**
+ * Pone el correo compuesto (SPEC-056) en la forma del puerto. El texto sigue siendo
+ * `body` —ADR-036 no lo renombra, y ese renombrado va aparte como F-SPEC-056-3— y el
+ * HTML viaja junto a él, nunca en su lugar.
+ */
+const mensaje = (to: string, correo: CorreoCompuesto): NotificationMessage => ({
+  to,
+  subject: correo.subject,
+  body: correo.text,
+  html: correo.html,
+});
 
 export interface NotifyResult {
   /** Avisos de entrada emitidos EN ESTA pasada (los ya notificados no se repiten). */
@@ -95,11 +108,18 @@ export async function notifyCycle(
       .limit(1);
     if (already) continue; // ya notificado -> no se repite (CA-2)
 
-    const status = await deliver(sender, {
-      to: ep.email,
-      subject: `${ep.ticker} entró en tu zona de ${zoneEs(ep.zoneKind)}`,
-      body: `${ep.ticker} a ${ep.price} entró en tu zona de ${zoneEs(ep.zoneKind)} (asOf ${dateOf(ep.asOf)}).`,
-    });
+    const status = await deliver(
+      sender,
+      mensaje(
+        ep.email,
+        correoDeEntradaEnZona({
+          ticker: ep.ticker,
+          precio: ep.price,
+          zona: zoneEs(ep.zoneKind),
+          asOf: dateOf(ep.asOf),
+        }),
+      ),
+    );
     await db
       .insert(notifications)
       .values({
@@ -134,11 +154,16 @@ export async function notifyCycle(
 
     const lista = eps.map((e) => `${e.ticker} (${zoneEs(e.zoneKind)})`).join(', ');
     const digestAsOf = eps.reduce((m, e) => (e.asOf > m ? e.asOf : m), eps[0].asOf);
-    const status = await deliver(sender, {
-      to: eps[0].email,
-      subject: `Resumen: ${eps.length} acción(es) en zona`,
-      body: `Siguen en zona: ${lista}. (asOf ${cycleRef})`,
-    });
+    const status = await deliver(
+      sender,
+      mensaje(
+        eps[0].email,
+        correoDeResumen({
+          posiciones: eps.map((e) => ({ ticker: e.ticker, zona: zoneEs(e.zoneKind) })),
+          asOf: cycleRef,
+        }),
+      ),
+    );
     await db
       .insert(notifications)
       .values({

@@ -3,11 +3,13 @@ import type { PgDatabase } from 'drizzle-orm/pg-core';
 import { passwordResetTokens, users } from '@/db/schema';
 import { buildResetUrl } from '@/lib/config/app-url';
 import type { NotificationSender } from '@/lib/notifications/sender';
+import { correoDeRecuperacion } from '@/lib/notifications/templates';
 import { hashPassword } from './passwords';
 import { getUserByEmail } from './users';
 import {
   RESET_REQUEST_LIMIT,
   RESET_REQUEST_WINDOW_MINUTES,
+  RESET_TOKEN_TTL_MINUTES,
   generateResetToken,
   hashResetToken,
   resetTokenExpiry,
@@ -43,19 +45,23 @@ function defer(work: () => Promise<unknown>): Promise<void> {
   });
 }
 
-const SUBJECT = 'Recupera tu contraseña de Stockeiro';
-
-function resetEmailBody(url: string): string {
-  return [
-    'Has pedido recuperar tu contraseña de Stockeiro.',
-    '',
-    'Abre este enlace para establecer una contraseña nueva:',
-    url,
-    '',
-    'El enlace caduca en 30 minutos y solo sirve una vez.',
-    'Si no has sido tú, no hace falta que hagas nada: nadie ha cambiado tu contraseña.',
-  ].join('\n');
-}
+/**
+ * El correo de recuperación, compuesto por la plantilla de SPEC-056 (ADR-036 pto. 4):
+ * mismo asunto y mismas frases que antes, ahora con un cuerpo HTML al lado.
+ *
+ * Dos cosas que NO cambian, y las dos son de seguridad y no de estilo:
+ *
+ *   - **El texto sigue mandando.** El enlace viaja como URL desnuda y sigue siendo la
+ *     PRIMERA URL absoluta del cuerpo; la línea de marca va detrás (SPEC-056 D-6). Es lo
+ *     que leen `tests/password-reset.test.ts` y `tests/e2e/recuperacion.spec.ts` para
+ *     observar lo que enviamos, y es también lo único que le llega a quien no ve HTML.
+ *     Un correo de reset roto deja a alguien fuera de su cuenta, y esa persona no puede
+ *     entrar a quejarse.
+ *   - **El plazo se lee de su constante** (ADR-015 pto. 4) en vez de repetirse en la
+ *     frase, para que cambiar la ventana sea cambiar un número y no perseguir literales.
+ */
+const resetEmail = (url: string) =>
+  correoDeRecuperacion({ url, minutosDeCaducidad: RESET_TOKEN_TTL_MINUTES });
 
 /**
  * CA-1/CA-2/CA-3/CA-11/CA-12: solicitud de recuperación.
@@ -106,8 +112,11 @@ export async function requestPasswordReset(
 
   const url = buildResetUrl(opts.baseUrl, token);
   const to = user.email; // el email ALMACENADO, no el tecleado (CA-3)
+  const correo = resetEmail(url);
   return {
-    delivery: defer(() => sender.send({ to, subject: SUBJECT, body: resetEmailBody(url) })),
+    delivery: defer(() =>
+      sender.send({ to, subject: correo.subject, body: correo.text, html: correo.html }),
+    ),
   };
 }
 
