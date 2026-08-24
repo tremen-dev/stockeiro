@@ -4,6 +4,7 @@ import {
   ANCHOS_TABLA,
   ANCHOS_TELEFONO,
   DEFECTO_AREA_TACTIL,
+  SELECTOR_INTERACTIVO,
   SUELO_TACTIL_PX,
   TOLERANCIA_PX,
   describirAreaTactil,
@@ -317,67 +318,118 @@ const m1Ventana = (ancho: number) => ancho + TOLERANCIA_PX;
    ──────────────────────────────────────────────────────────────────────────── */
 
 /**
- * Los campos de formulario que CA-13 y CA-17 alcanzan, en las tres superficies donde
- * viven: los de compra y venta de `/cartera`, los del alta plegable de `/vigiladas` y los
- * de la capa de edición —que son los mismos, porque la capa monta `WatchForm`—.
+ * Los controles en alcance, **todos**, dentro de cada raíz.
+ *
+ * `SELECTOR_INTERACTIVO` es la lista de ADR-034 §6 y viene del módulo: aquí no se enumera
+ * ningún tipo de control por segunda vez, que es como una medida se queda ciega el día que
+ * alguien pinta un botón con otra etiqueta.
+ *
+ * Y misma trampa que en `avisosDentroDe`: en CSS, `A B, C` se lee `(A B), (C)`, así que la
+ * raíz sólo acotaría al primero. Se reparte el prefijo a mano. (La lista no tiene comas
+ * dentro de corchetes —`[role="button"]` no lleva ninguna—, así que partirla por comas es
+ * exacto.)
  */
-const CAMPOS_DE_FORMULARIO = [
-  '.auth-form input',
-  '.auth-form select',
-  '.auth-form textarea',
-  '.symbol-search-input',
-];
-
-/** Misma trampa que en `avisosDentroDe`: `A B, C` se lee `(A B), (C)`. Se reparte a mano. */
-const camposDentroDe = (raices: string) =>
+const controlesDentroDe = (raices: string) =>
   raices
     .split(',')
-    .flatMap((raiz) => CAMPOS_DE_FORMULARIO.map((campo) => `${raiz.trim()} ${campo}`))
+    .flatMap((raiz) =>
+      SELECTOR_INTERACTIVO.split(',').map((control) => `${raiz.trim()} ${control.trim()}`),
+    )
     .join(', ');
 
 /**
- * **Los campos, medidos SIN tolerancia ninguna** (F-VERIF-054-1).
+ * **Todo control en alcance, medido SIN tolerancia ninguna y en los DOS ejes** (CA-13,
+ * F-VERIF-054-1).
  *
  * `medirAreaTactil` filtra con `alto < suelo − TOLERANCIA_PX`, y el módulo dice para qué
  * existe esa resta: *«tolerancia de redondeo del motor… NO es una holgura de diseño: es
  * que `getBoundingClientRect()` devuelve fracciones y `clientWidth` enteros»*. O sea, vale
  * para un 43,6 que en realidad quería ser 44 — **para fracciones y sólo para fracciones**.
  *
- * Y estos campos no eran una fracción. Median **43,000 px exactos** —`padding: 10px`
- * arriba y abajo, `border: 1px` y 21 de línea— en los formularios de compra y venta de
- * `/cartera` (8), en el alta desplegada de `/vigiladas` (5) y en la capa de edición (4):
- * un píxel entero por debajo del suelo, colándose por la puerta que existe para el
- * redondeo. Con la tolerancia haciendo de holgura del suelo, el umbral efectivo de M5 era
- * **43 y no 44** — la versión suave de lo que `F-ADR-026-1` prohíbe por escrito.
+ * Y los campos que devolvieron esta spec del verificador no eran una fracción. Medían
+ * **43,000 px exactos** —`padding: 10px` arriba y abajo, `border: 1px` y 21 de línea— en
+ * los formularios de compra y venta de `/cartera` (8), en el alta desplegada de
+ * `/vigiladas` (5) y en la capa de edición (4): un píxel entero por debajo del suelo,
+ * colándose por la puerta que existe para el redondeo. Con la tolerancia haciendo de
+ * holgura del suelo, el umbral efectivo de M5 era **43 y no 44** — la versión suave de lo
+ * que `F-ADR-026-1` prohíbe por escrito.
  *
- * Esta guardia **no toca `medirAreaTactil`, ni `TOLERANCIA_PX`, ni el suelo**: añade al
+ * **Por qué recorre TODOS los controles y no sólo los campos.** La versión anterior de
+ * esta comprobación miraba `input`/`select`/`textarea`, que era donde estaba el defecto
+ * medido. Pero eso dejaba el suelo efectivo en 43 para el resto —botones, enlaces,
+ * `summary`—, y CA-13 no acota por tipo de control: dice *«todo elemento interactivo
+ * visible … tiene caja de al menos 44 × 44 px CSS»*. Así que se mide la lista entera de
+ * ADR-034 §6, y **en los dos ejes**, que es como el CA escribe el suelo.
+ *
+ * **Esta guardia no toca `medirAreaTactil`, ni `TOLERANCIA_PX`, ni el suelo.** Añade al
  * lado una afirmación más estricta, con el mismo primitivo de medida (`medirCajas`) y con
- * el número tal y como lo escribe CA-13 —*«caja de al menos 44 × 44 px CSS»*—. Aflojar un
- * suelo está prohibido; apretar la afirmación hasta el suelo que el CA declara, no.
+ * el número tal y como lo escribe CA-13. Aflojar un suelo está prohibido; apretar la
+ * afirmación hasta el suelo que el CA declara, no. Arreglar la resta **en el módulo** está
+ * decidido y no es de esta spec: es ADR-035 §2, y su follow-up `F-ADR-035-1`.
+ *
+ * **Dos diferencias con M5, las dos por el lado seguro y las dos deliberadas:**
+ *
+ * - **No cuenta el área ampliada por pseudoelemento.** M5 sí (ADR-034 §6). Un control que
+ *   agrandara su diana con un `::after` absoluto saldría aquí como pequeño aunque el dedo
+ *   llegue. Hoy no hay ninguno en alcance —está medido, no supuesto: con los controles a
+ *   su tamaño real esta comprobación da cero— y el día que lo haya, la queja es de más y
+ *   no de menos, que es el lado por el que una medida se puede equivocar sin aprobar nada
+ *   en falso.
+ * - **Descarta lo no pintado por la caja 0 × 0**, no por `checkVisibility()`. Es la misma
+ *   regla que M1 y basta para los dos árboles de CA-1, que se apagan con `display: none`.
  */
-async function camposBajoElSuelo(page: Page, raices: string): Promise<string[]> {
-  const cajas = await medirCajas(page, camposDentroDe(raices));
-  return (
-    cajas
-      // Caja 0 × 0 = no está pintado (el alta plegada, la representación oculta). Misma
-      // regla que M1 y que M5.
-      .filter((c) => c.ancho > 0 || c.alto > 0)
-      .filter((c) => c.alto < SUELO_TACTIL_PX)
-      .map((c) => `${c.selector} «${c.texto}» ${c.ancho.toFixed(2)}x${c.alto.toFixed(2)}`)
-  );
+async function controlesBajoElSuelo(
+  page: Page,
+  raices: string,
+): Promise<{ medidos: number; rasos: string[] }> {
+  const cajas = await medirCajas(page, controlesDentroDe(raices));
+  // Caja 0 × 0 = no está pintado (el alta plegada, la representación oculta). Misma regla
+  // que M1 y que M5.
+  const pintados = cajas.filter((c) => c.ancho > 0 || c.alto > 0);
+  return {
+    // **Se devuelve cuántos se midieron, y quien afirme tiene que exigir que no sean cero.**
+    // Una lista de rojos vacía tiene dos causas —que no haya rojos, o que el selector no
+    // case con nada— y sin este número no se distinguen. Es la misma constancia que M5
+    // lleva en `medidos` y M1 en sus testigos (ADR-026 §7).
+    medidos: pintados.length,
+    rasos: pintados
+      .filter((c) => c.ancho < SUELO_TACTIL_PX || c.alto < SUELO_TACTIL_PX)
+      .map((c) => `${c.selector} «${c.texto}» ${c.ancho.toFixed(2)}x${c.alto.toFixed(2)}`),
+  };
 }
 
 /** El porqué, entero, en el mensaje del fallo: quien lo lea no tiene que venir hasta aquí. */
 const porQueSinTolerancia = (donde: string) =>
-  `${donde}: hay campos de formulario cuya caja NO llega a ${SUELO_TACTIL_PX} px de alto, ` +
-  `medida sin tolerancia. Ojo con la salida fácil: M5 los da por buenos porque compara ` +
-  `contra \`suelo − TOLERANCIA_PX\`, y esa resta existe para las FRACCIONES que devuelve ` +
-  `\`getBoundingClientRect()\`, no para regalar un píxel de holgura. Un campo de 43,00 ` +
-  `exactos no es un ${SUELO_TACTIL_PX} mal redondeado: es un 43. La salida legítima es ` +
-  `AGRANDARLO —bajo el canto, que CE-5 dice que el escritorio no paga la factura del ` +
-  `móvil—; subir la ` +
+  `${donde}: hay controles cuya caja NO llega a ${SUELO_TACTIL_PX} × ${SUELO_TACTIL_PX} px, ` +
+  `medida sin tolerancia y en los dos ejes. Ojo con la salida fácil: M5 los da por buenos ` +
+  `porque compara contra \`suelo − TOLERANCIA_PX\`, y esa resta existe para las FRACCIONES ` +
+  `que devuelve \`getBoundingClientRect()\`, no para regalar un píxel de holgura. Un ` +
+  `control de 43,00 exactos no es un ${SUELO_TACTIL_PX} mal redondeado: es un 43 ` +
+  `(ADR-035 §1). La salida legítima es AGRANDARLO —bajo el canto, que CE-5 dice que el ` +
+  `escritorio no paga la factura del móvil—, y apilarlo si dos no caben en una línea; ` +
+  `subir la ` +
   `tolerancia o bajar el suelo sería F-ADR-026-1 cumpliéndose por escrito (ADR-026 §4, ` +
   `ADR-034 §6).`;
+
+/**
+ * **El defecto de la afirmación estricta, escrito como CSS que lo devuelve** (ADR-026 §7).
+ *
+ * No es «un CSS que encoja algo»: es **el defecto real de `F-VERIF-054-1`**, el relleno
+ * que estos campos tenían el día que el verificador los midió. Devuelve la caja a
+ * **43,00 px exactos** — 10 + 10 de relleno + 1 + 1 de borde + 21 de línea.
+ *
+ * Y es exactamente el defecto que **M5 no ve y esta comprobación sí**: 43 no es menor que
+ * `44 − TOLERANCIA_PX`, así que `medirAreaTactil` lo aprueba en silencio. Si algún día las
+ * dos cifras se movieran juntas, esta guardia habría dejado de aportar nada sobre M5 y
+ * conviene enterarse por un rojo y no por una lectura.
+ *
+ * Va sin `!important` y sin `@media` a propósito: entra como `<style>` al final del
+ * `<head>`, así que le basta el orden de fuente para ganarle al `padding-block: 11px` del
+ * bloque de 720 px, que tiene su misma especificidad.
+ */
+const DEFECTO_UN_PIXEL_POR_DEBAJO =
+  `.auth-form input, .auth-form select, .auth-form textarea, .symbol-search-input ` +
+  `{ padding-block: 10px }`;
 
 /* ────────────────────────────────────────────────────────────────────────────
    CA-13 — M5, el área táctil, con su prueba de eficacia
@@ -429,13 +481,20 @@ test('SPEC-054 CA-13: todo control llega al suelo táctil, y la medida ve el def
           `se sabe qué se está pulsando`,
       ).toEqual([]);
 
-      // Y el mismo suelo, otra vez, contra el 44 pelado (F-VERIF-054-1).
-      const rasos = await camposBajoElSuelo(page, RAICES_EN_ALCANCE);
+      // Y el mismo suelo, otra vez, contra el suelo pelado y sobre TODOS los controles en
+      // alcance —no sólo los campos— tal y como lo escribe CA-13 (F-VERIF-054-1, ADR-035 §1).
+      const estricto = await controlesBajoElSuelo(page, RAICES_EN_ALCANCE);
       lineas.push(
-        `${pantalla.ruta} · ancho ${ancho} · campos por debajo de ${SUELO_TACTIL_PX} sin ` +
-          `tolerancia=${rasos.length}${rasos.length > 0 ? `\n  ${rasos.join('\n  ')}` : ''}`,
+        `${pantalla.ruta} · ancho ${ancho} · controles medidos sin tolerancia=` +
+          `${estricto.medidos} · por debajo de ${SUELO_TACTIL_PX}=${estricto.rasos.length}` +
+          `${estricto.rasos.length > 0 ? `\n  ${estricto.rasos.join('\n  ')}` : ''}`,
       );
-      expect(rasos, porQueSinTolerancia(`${pantalla.ruta} a ${ancho} px`)).toEqual([]);
+      expect(
+        estricto.medidos,
+        `${pantalla.ruta} a ${ancho} px la afirmación sin holgura no midió ni un control: un ` +
+          `cero de rojos que sale de una lista vacía no aprueba nada`,
+      ).toBeGreaterThan(2);
+      expect(estricto.rasos, porQueSinTolerancia(`${pantalla.ruta} a ${ancho} px`)).toEqual([]);
     }
   }
 
@@ -457,11 +516,12 @@ test('SPEC-054 CA-13: todo control llega al suelo táctil, y la medida ve el def
   await page.locator('dialog.editar-vigilada').waitFor({ state: 'visible' });
 
   const m5Capa = await medirAreaTactil(page, { raices: 'dialog.editar-vigilada' });
-  const rasosCapa = await camposBajoElSuelo(page, 'dialog.editar-vigilada');
+  const estrictoCapa = await controlesBajoElSuelo(page, 'dialog.editar-vigilada');
   lineas.push(
-    `capa de edición · ancho ${ANCHOS_TELEFONO[0]} · ${describirAreaTactil(m5Capa)} · campos ` +
-      `por debajo de ${SUELO_TACTIL_PX} sin tolerancia=${rasosCapa.length}` +
-      `${rasosCapa.length > 0 ? `\n  ${rasosCapa.join('\n  ')}` : ''}`,
+    `capa de edición · ancho ${ANCHOS_TELEFONO[0]} · ${describirAreaTactil(m5Capa)} · sin ` +
+      `tolerancia: medidos=${estrictoCapa.medidos} · por debajo de ${SUELO_TACTIL_PX}=` +
+      `${estrictoCapa.rasos.length}` +
+      `${estrictoCapa.rasos.length > 0 ? `\n  ${estrictoCapa.rasos.join('\n  ')}` : ''}`,
   );
   expect(
     m5Capa.medidos,
@@ -472,7 +532,12 @@ test('SPEC-054 CA-13: todo control llega al suelo táctil, y la medida ve el def
     m5Capa.pequenos.map((c) => `${c.selector} «${c.rotulo}»`),
     `la capa de edición tiene controles por debajo del suelo táctil.\n${describirAreaTactil(m5Capa)}`,
   ).toEqual([]);
-  expect(rasosCapa, porQueSinTolerancia('la capa de edición')).toEqual([]);
+  expect(
+    estrictoCapa.medidos,
+    'la capa de edición no aportó ni un control a la afirmación sin holgura: se abrió mal, o ' +
+      'el selector no casa con nada',
+  ).toBeGreaterThan(2);
+  expect(estrictoCapa.rasos, porQueSinTolerancia('la capa de edición')).toEqual([]);
   await page.getByTestId('editar-cancelar').click();
   await expect(page.locator('dialog.editar-vigilada')).toHaveCount(0);
 
@@ -517,6 +582,64 @@ test('SPEC-054 CA-13: todo control llega al suelo táctil, y la medida ve el def
     despues.pequenos.length,
     'al quitar la reinyección la medida se queda roja: el defecto no era el inyectado',
   ).toBe(0);
+
+  /*
+    ── La segunda prueba de eficacia: la del suelo SIN HOLGURA ───────────────────────
+
+    La de arriba demuestra que M5 ve un control aplastado. Ésta demuestra otra cosa, y es
+    la que justifica que esta guardia afirme el suelo por su cuenta: que **hay un defecto
+    real que M5 no ve y esta comprobación sí**.
+
+    El defecto es el de `F-VERIF-054-1`, tal cual: el relleno que los campos tenían el día
+    que el verificador los midió, que devuelve la caja a **43,00 px exactos**. Un píxel
+    entero por debajo del suelo — y sin embargo `43 < suelo − TOLERANCIA_PX` es falso, así que
+    `medirAreaTactil` lo aprueba en silencio. Si esta comprobación no se pusiera roja aquí,
+    no estaría comprando nada sobre M5 y sobraría.
+
+    Se hace en `/cartera` porque es donde los campos están pintados sin desplegar nada: los
+    ocho de los formularios de compra y venta. En `/vigiladas` el alta nace plegada.
+
+    ⚠️ **La cifra de M5 sobre el mismo defecto se escribe en la evidencia pero NO se
+    afirma.** Hoy es 0 —M5 es ciega a este píxel— y eso es exactamente lo que arregla
+    ADR-035 §2 en el módulo, que es trabajo de `F-ADR-035-1` y no de esta spec. El día que
+    entre, esa cifra dejará de ser 0 y **no debe hacer roja a esta guardia por ello**: lo
+    que aquí se afirma es la propiedad del producto (la caja llega al suelo), no el defecto
+    del módulo.
+  */
+  await abrirAncha(page, PANTALLAS[1]);
+  await ponerVentana(page, ANCHOS_TELEFONO[0]);
+  const estrictoSano = await controlesBajoElSuelo(page, RAICES_EN_ALCANCE);
+  const quitarElPixel = await inyectarDefecto(page, DEFECTO_UN_PIXEL_POR_DEBAJO);
+  const estrictoConDefecto = await controlesBajoElSuelo(page, RAICES_EN_ALCANCE);
+  const m5AnteElMismoDefecto = await medirAreaTactil(page, { raices: RAICES_EN_ALCANCE });
+  await quitarElPixel();
+  const estrictoDespues = await controlesBajoElSuelo(page, RAICES_EN_ALCANCE);
+
+  lineas.push(
+    `── prueba de eficacia del suelo SIN HOLGURA en ${PANTALLAS[1].ruta} a ` +
+      `${ANCHOS_TELEFONO[0]} px · sano=${estrictoSano.rasos.length} · con el defecto=` +
+      `${estrictoConDefecto.rasos.length} · al quitarlo=${estrictoDespues.rasos.length}` +
+      `\n   y M5, con su tolerancia, ante el MISMO defecto=${m5AnteElMismoDefecto.pequenos.length} ` +
+      `(cifra medida, no afirmada: es el hueco que cierra ADR-035 §2 / F-ADR-035-1)` +
+      (estrictoConDefecto.rasos.length > 0 ? `\n   ${estrictoConDefecto.rasos.join('\n   ')}` : ''),
+  );
+  expect(
+    estrictoSano.rasos,
+    `el caso de control no vale: ${PANTALLAS[1].ruta} ya tiene controles por debajo del ` +
+      `suelo sin reinyectar nada`,
+  ).toEqual([]);
+  expect(
+    estrictoConDefecto.rasos.length,
+    `la afirmación sin holgura NO ve el defecto reinyectado. Con ` +
+      `\`${DEFECTO_UN_PIXEL_POR_DEBAJO}\` puesto, los campos vuelven a medir los 43,00 px ` +
+      `exactos de F-VERIF-054-1 y esta comprobación sigue en verde: entonces no está ` +
+      `midiendo lo que dice medir, y como M5 tampoco ve ese píxel, el suelo de ` +
+      `${SUELO_TACTIL_PX} no lo estaría afirmando nadie (ADR-026 §7, ADR-035 §1)`,
+  ).toBeGreaterThan(0);
+  expect(
+    estrictoDespues.rasos,
+    'al quitar la reinyección la comprobación se queda roja: el defecto no era el inyectado',
+  ).toEqual([]);
 
   guardar('m5-area-tactil.txt', 'SPEC-054 CA-13 — M5 en las dos pantallas, con su prueba de eficacia', lineas.join('\n'));
 });
@@ -755,11 +878,12 @@ test('SPEC-054 CA-17: cabecera, orden, alta plegable y formularios de cartera', 
             `${s.nombre} a ${ancho} px tiene controles por debajo del suelo táctil`,
           ).toEqual([]);
 
-          // El mismo suelo contra el 44 pelado. Aquí importa más que en ningún otro sitio:
-          // estas son EXACTAMENTE las superficies donde vivían los 43,00 (F-VERIF-054-1).
-          const rasos = await camposBajoElSuelo(page, s.selector);
+          // El mismo suelo, pelado y sobre TODOS los controles de la superficie. Aquí
+          // importa más que en ningún otro sitio: éstas son EXACTAMENTE las superficies
+          // donde vivían los 43,00 (F-VERIF-054-1).
+          const estricto = await controlesBajoElSuelo(page, s.selector);
           expect(
-            rasos,
+            estricto.rasos,
             porQueSinTolerancia(
               `${s.nombre} a ${ancho} px (alta ${plegado ? 'plegada' : 'desplegada'})`,
             ),
@@ -778,7 +902,7 @@ test('SPEC-054 CA-17: cabecera, orden, alta plegable y formularios de cartera', 
           lineas.push(
             `${s.nombre} · ancho ${ancho} · alta ${plegado ? 'plegada' : 'desplegada'} · ` +
               `M1 ${m1.violaciones.length}/${m1.medidos} · M5 ${m5.pequenos.length}/${m5.medidos} · ` +
-              `campos bajo ${SUELO_TACTIL_PX} sin tolerancia ${rasos.length}`,
+              `sin tolerancia ${estricto.rasos.length}/${estricto.medidos}`,
           );
         }
 

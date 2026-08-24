@@ -1,11 +1,21 @@
 SPEC-054 CA-13 — M5 en las dos pantallas, con su prueba de eficacia
 /vigiladas · ancho 360 · suelo 44x44 · controles medidos=17 · por debajo=0 · solapes=0
-/vigiladas · ancho 360 · campos por debajo de 44 sin tolerancia=0
+/vigiladas · ancho 360 · controles medidos sin tolerancia=17 · por debajo de 44=0
 /vigiladas · ancho 390 · suelo 44x44 · controles medidos=17 · por debajo=0 · solapes=0
-/vigiladas · ancho 390 · campos por debajo de 44 sin tolerancia=0
+/vigiladas · ancho 390 · controles medidos sin tolerancia=17 · por debajo de 44=0
 /cartera · ancho 360 · suelo 44x44 · controles medidos=13 · por debajo=0 · solapes=0
-/cartera · ancho 360 · campos por debajo de 44 sin tolerancia=0
+/cartera · ancho 360 · controles medidos sin tolerancia=13 · por debajo de 44=0
 /cartera · ancho 390 · suelo 44x44 · controles medidos=13 · por debajo=0 · solapes=0
-/cartera · ancho 390 · campos por debajo de 44 sin tolerancia=0
-capa de edición · ancho 360 · suelo 44x44 · controles medidos=6 · por debajo=0 · solapes=0 · campos por debajo de 44 sin tolerancia=0
+/cartera · ancho 390 · controles medidos sin tolerancia=13 · por debajo de 44=0
+capa de edición · ancho 360 · suelo 44x44 · controles medidos=6 · por debajo=0 · solapes=0 · sin tolerancia: medidos=6 · por debajo de 44=0
 ── prueba de eficacia a 360 px · sano=0 · con el defecto=15 · al quitarlo=0
+── prueba de eficacia del suelo SIN HOLGURA en /cartera a 360 px · sano=0 · con el defecto=8 · al quitarlo=0
+   y M5, con su tolerancia, ante el MISMO defecto=0 (cifra medida, no afirmada: es el hueco que cierra ADR-035 §2 / F-ADR-035-1)
+   input.symbol-search-input «» 278.00x43.00
+   input «» 278.00x43.00
+   input «» 278.00x43.00
+   input «» 278.00x43.00
+   select «Z7BOTH · BMEX (EUR) — 10 uds.Z7BUY · BME» 278.00x43.00
+   input «» 278.00x43.00
+   input «» 278.00x43.00
+   input «» 278.00x43.00
