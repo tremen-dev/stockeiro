@@ -694,6 +694,116 @@ describe('SPEC-052 CA-17: el valor de ejemplo es el de desarrollo', () => {
 });
 
 // ---------------------------------------------------------------------------
+// CA-17 (c) — la HERMANA del literal: el valor de ejemplo no solo es el correcto,
+// además SIRVE. Enmienda del 2026-08-25, viene de `D-SPEC-055-1`.
+//
+// Lo de arriba congela **un literal**; esto mide **la propiedad que ese literal
+// representa**, que es la parte que sobrevive a que un día se cambie el valor con
+// autorización. Es el patrón *hermana* que este repositorio ya nombra, y que esta
+// misma entrega acaba de formalizar en CA-18: un literal congelado sin su hermana
+// es una foto del árbol. Escribirlo aquí sin ella sería predicar y no aplicar.
+//
+// Dejó de ser una comprobación vacua el **2026-08-24**: hasta entonces
+// `appBaseUrl()` solo miraba la PRESENCIA y habría aceptado cualquier cadena no
+// vacía. **SPEC-055** le puso cuatro condiciones reales —protocolo `http`/`https`,
+// sin credenciales, sin query, sin fragmento y sin ruta—, así que *«el ejemplo
+// sirve»* pasó a afirmar algo.
+// ---------------------------------------------------------------------------
+
+/** Un entorno con —o sin— la clave, sin arrastrar la del proceso que corre los tests. */
+function entornoConAppBaseUrl(valor?: string): NodeJS.ProcessEnv {
+  const env: NodeJS.ProcessEnv = { ...process.env };
+  delete env.APP_BASE_URL;
+  if (valor !== undefined) env.APP_BASE_URL = valor;
+  return env;
+}
+
+/**
+ * Lee el valor que `.env.example` propone para `APP_BASE_URL`.
+ *
+ * **Falla de forma reconocible si no lo encuentra**, y eso es CA-17 (c) condición 2, no
+ * aseo: devolver `undefined` —o una cadena vacía— dejaría que el consumidor lo tratase
+ * como *«no hay nada que comprobar»* y el caso de abajo pasaría **en verde sin haber
+ * mirado**. Un lector que no casa tiene que doler, porque su silencio es indistinguible
+ * de un éxito.
+ */
+function valorDeAppBaseUrlEn(plantilla: string): string {
+  const m = /^APP_BASE_URL="([^"]*)"$/m.exec(plantilla);
+  if (m === null) {
+    throw new Error(
+      'el lector de `.env.example` no encuentra APP_BASE_URL: o la línea cambió de forma, ' +
+        'o la clave desapareció. En cualquiera de los dos casos, esta guardia ha dejado de ' +
+        'mirar lo que dice que mira.',
+    );
+  }
+  return m[1];
+}
+
+/**
+ * **La comprobación entera: el ejemplo que propone la plantilla, ¿lo acepta la función?**
+ *
+ * Se **INVOCA** `appBaseUrl()`. Queda prohibido replicar aquí su criterio con una
+ * expresión regular o una lista de comprobaciones propias, y el motivo no es de estilo:
+ * **SPEC-055 es la única dueña** de qué es un origen usable. Restatear sus cuatro
+ * condiciones aquí convertiría a SPEC-052 en **segunda dueña del mismo contrato**, que es
+ * exactamente lo que SPEC-055 evitó al aflojar a propósito su propia aserción sobre el
+ * mensaje de error para que **CA-14** fuese el dueño único de aquel literal. Un contrato
+ * con dos dueños diverge en silencio; la forma de tener uno solo es **ejecutarlo**.
+ */
+function elEjemploSirve(plantilla: string): string {
+  return appBaseUrl(entornoConAppBaseUrl(valorDeAppBaseUrlEn(plantilla)));
+}
+
+describe('SPEC-052 CA-17 (c): el valor de ejemplo además SIRVE', () => {
+  it('`appBaseUrl()` acepta el valor de `.env.example` y devuelve ese mismo origen', () => {
+    // Un `.env.example` se copia a `.env` y se usa tal cual en local (D-6). Que el valor
+    // sea el correcto lo dice el literal de arriba; que además **funcione** solo lo puede
+    // decir la función que va a leerlo.
+    const valor = valorDeAppBaseUrlEn(envExample());
+    expect(elEjemploSirve(envExample())).toBe(valor);
+  });
+
+  it('centinela: el lector devuelve el valor que congela CA-17 (a), no una cadena vacía', () => {
+    const valor = valorDeAppBaseUrlEn(envExample());
+    expect(valor.trim(), 'el lector devuelve algo vacío: no está leyendo nada').not.toBe('');
+    expect(valor, 'el lector y el literal congelado se han separado').toBe('http://localhost:3000');
+  });
+
+  it('centinela: sin la clave, el lector FALLA en vez de devolver algo', () => {
+    // La otra mitad del centinela. Con una plantilla sintética que no lleva la clave, el
+    // lector tiene que romperse: si devolviera `undefined` o `''`, la comprobación de
+    // arriba pasaría sin haber comprobado nada, que es el verde vacío de ADR-031.
+    const sinLaClave = '# plantilla sintética\nAUTH_SECRET="x"\nRESEND_API_KEY=""\n';
+    expect(() => valorDeAppBaseUrlEn(sinLaClave)).toThrow(/no encuentra APP_BASE_URL/);
+  });
+
+  it('y se prueba en ROJO: un ejemplo con RUTA no pasa, y el control dice que es la ruta', () => {
+    // El caso con ruta es el que **SPEC-055 documenta** como el que significaría dos cosas
+    // distintas según quién lo lea: `metadataBase` la conservaría y el enlace de
+    // recuperación la tiraría. Aquí no se afirma ese razonamiento —es de SPEC-055—, se
+    // afirma que la función lo rechaza y que esta guardia se entera.
+    const conRuta = envExample().replace(
+      /^APP_BASE_URL="[^"]*"$/m,
+      'APP_BASE_URL="http://localhost:3000/app"',
+    );
+    expect(conRuta, 'la mutación no se aplicó: la comprobación no probaría nada').not.toBe(
+      envExample(),
+    );
+    // El lector SÍ lo lee: lo que falla es la validación, no la lectura.
+    expect(valorDeAppBaseUrlEn(conRuta)).toBe('http://localhost:3000/app');
+    expect(
+      () => elEjemploSirve(conRuta),
+      'un `.env.example` que propusiera un valor con ruta pasaría esta guardia',
+    ).toThrow(/APP_BASE_URL/);
+
+    // Y el control, que es lo que hace que el rojo signifique «por la ruta» y no «por
+    // cualquier cosa»: la MISMA plantilla, quitándole solo la ruta, pasa.
+    const sinRuta = conRuta.replace('http://localhost:3000/app', 'http://localhost:3000');
+    expect(() => elEjemploSirve(sinRuta)).not.toThrow();
+  });
+});
+
+// ---------------------------------------------------------------------------
 // CA-14 — la conducta que causó el incidente se conserva A PROPÓSITO
 // ---------------------------------------------------------------------------
 

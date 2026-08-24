@@ -59,7 +59,7 @@ epica: EPIC-FIX
 | CA-14 — `appBaseUrl()` sigue lanzando, con la nota de que es deliberado; **y su primer test propio** (premisa del CA corregida el 2026-08-24, F-SPEC-052-8) | **Nada**: `src/lib/config/app-url.ts` intacto (ver **F-SPEC-052-8**) | `G` › *CA-14* — **2 casos**: lanza con la clave ausente **y** con una cadena de espacios, en ambos con el **mensaje literal entero** (`APP_BASE_URL no definida (ver .env.example): sin ella no hay enlaces válidos.`) — el mismo del log del PR #58 —, y **la misma cadena se exige presente en el aviso de §0**, que es lo que ata documento y código; y el propio caso **contiene la nota** (SPEC-051 · D-4 · deliberado · *SPEC-052 NO revisa esta conducta*), leída de la fuente del fichero, sin `git` | | |
 | CA-15 — la entrega no toca `src/` ni `drizzle/` | — (criterio sobre el delta) | **n-a — ver nota N-1** | gate | n-a |
 | CA-16 — `npm run build` sin `APP_BASE_URL` falla | — (verificación empírica única) | **n-a — ver nota N-2** | gate | n-a |
-| CA-17 — `.env.example`: `APP_BASE_URL` → `http://localhost:3000`, y §0 retira el desmentido; **(c) enmienda 2026-08-25 (`D-SPEC-055-1`): el valor de ejemplo pasa `appBaseUrl()`** — invocando la función, con centinela y rojo probado | `.env.example` (valor + comentario) y `docs/despliegue.md` §0 (desmentido retirado) | `G` › *CA-17: el valor de ejemplo es el de desarrollo* — **3 casos** (valor literal · `stockeiro.app` ya no es su valor · `RESEND_FROM` **conserva** el suyo) y *CA-17: §0 retira el desmentido* — **2 casos** (`stockeiro.app` fuera del aviso, pero *origen REAL del despliegue* sigue) | | |
+| CA-17 — `.env.example`: `APP_BASE_URL` → `http://localhost:3000`, y §0 retira el desmentido; **(c) enmienda 2026-08-25 (`D-SPEC-055-1`): el valor de ejemplo pasa `appBaseUrl()`** — invocando la función, con centinela y rojo probado | `.env.example` (valor + comentario) y `docs/despliegue.md` §0 (desmentido retirado) | `G` › *CA-17: el valor de ejemplo es el de desarrollo* — **3 casos** (valor literal · `stockeiro.app` ya no es su valor · `RESEND_FROM` **conserva** el suyo) y *CA-17: §0 retira el desmentido* — **2 casos** (`stockeiro.app` fuera del aviso, pero *origen REAL del despliegue* sigue). **(c)** `G` › *CA-17 (c): el valor de ejemplo además SIRVE* — **4 casos**: `appBaseUrl()` **invocada** acepta el valor y devuelve ese origen · centinela 1 (el lector devuelve el literal congelado, no vacío) · centinela 2 (sin la clave, el lector **lanza** en vez de devolver algo) · **rojo probado** con un ejemplo con ruta, más el **control** que aísla la ruta como causa. Helpers: `valorDeAppBaseUrlEn()` y `elEjemploSirve()` | | |
 
 | CA-18 — re-encuadre autorizado de `tests/tarjeta-guardias-ampliadas.test.ts:118-126`: **(a)** firma en vez de mención · **(b)** autoexclusión probada · **(c)** rojo en los dos sentidos · **(d)** el porqué al lado · **(e)** nada más del fichero aflojado · **(f)** sin atajo del literal | **(a)–(d)** `tests/tarjeta-guardias-ampliadas.test.ts`: `FIRMA_DE_REENCUADRE` (6 marcas), `EXCLUIDOS_DE_LA_DETECCION` (1 elemento, con motivo), `cuerposDeCasos()` **nuevo** —`casos()` NO se toca—, `llevaFirmaDeReencuadre(ruta, fuente)` pura, y el porqué de 40 líneas junto a la comparación. **`PROPIOS` retirado**, con su motivo escrito ahí mismo. **(e)–(f)** `tests/entornos-de-despliegue.test.ts` | **(a)** `tarjeta-guardias-ampliadas` › *los ficheros de tests/ re-encuadrados bajo la autorización de esta spec son esos dos* — **1 caso** · **(b)** *la exclusión de este fichero es NECESARIA, y es exactamente una* — **1 caso**, las dos mitades · **(c)** *la detección se prueba en rojo: firma completa sí, mención en prosa NO* (**3 sentidos**: firma→`true`, cita→`false`, firma incompleta→`false`) y *un TERCER fichero con firma rompería la igualdad* — **2 casos** · **(d)** el porqué es prosa, se verifica leyéndolo · **(e)** `G` › *CA-18 (e)* — **3 casos** (nada apagado · los cuatro bloques en pie · solo cambió el caso nombrado) · **(f)** `G` › *CA-18 (f)* — **2 casos** (barrido de `tests/**/*.ts` + centinela de las 6 formas y 3 inocentes) | | |
 
@@ -67,9 +67,9 @@ epica: EPIC-FIX
 > Las columnas *Implementado* y *Test* las rellena sdd-implementador; *Verif.* y *Estado*,
 > sdd-verificador. El arquitecto no las toca.
 
-**Estado de la suite tras la entrega:** `tests/entornos-de-despliegue.test.ts` → **43/43 verde**;
+**Estado de la suite tras la entrega:** `tests/entornos-de-despliegue.test.ts` → **47/47 verde**;
 `tests/tarjeta-guardias-ampliadas.test.ts` (re-encuadrada) → **15/15 verde**. `npm run typecheck`
-y `npm run lint` limpios. **Suite completa: 1825/1825 en verde, 114/114 ficheros**, sobre la
+y `npm run lint` limpios. **Suite completa: 1829/1829 en verde, 114/114 ficheros**, sobre la
 base vigente `497eccf` (con SPEC-053, SPEC-054 y SPEC-055 ya dentro).
 
 > Antes del re-encuadre de CA-18 la suite estaba en **1702/1703**, con el único rojo de
@@ -402,7 +402,7 @@ No aplica: esta spec no cambia ninguna superficie de UI. La evidencia es textual
 
   ↳ **APLICADO y CERRADO el 2026-08-24 por sdd-implementador.** Las seis partes están
   implementadas y probadas; el fichero ajeno queda en **15/15 verde** y la suite completa en
-  **1825/1825** sobre la base `497eccf`. Lo que se hizo, y la evidencia de que no es un verde de conveniencia:
+  **1829/1829** sobre la base `497eccf`. Lo que se hizo, y la evidencia de que no es un verde de conveniencia:
 
   **1. El criterio cambió de verdad, y se puede medir.** Ejecutando **el criterio viejo** (la
   cadena) sobre el árbol de hoy salen **nueve** ficheros; el nuevo (la firma) devuelve
@@ -587,19 +587,84 @@ No aplica: esta spec no cambia ninguna superficie de UI. La evidencia es textual
      cosas distintas según quién lo lea— la comprobación **falla**. Misma exigencia que CA-11 y
      CA-18 (c).
 
+  ---
+
+  ↳ **IMPLEMENTADO y CERRADO el 2026-08-25 por sdd-implementador.** Cuatro casos nuevos en
+  `tests/entornos-de-despliegue.test.ts`, bloque *«SPEC-052 CA-17 (c): el valor de ejemplo
+  además SIRVE»*. Las tres condiciones, una a una:
+
+  **1. Se invoca la función.** Dos helpers y ni un regex que replique criterio ajeno:
+  `valorDeAppBaseUrlEn(plantilla)` **lee** el valor de la plantilla, y `elEjemploSirve(plantilla)`
+  se lo pasa a **`appBaseUrl()`**. Todo lo que esta guardia sabe sobre qué es un origen usable lo
+  sabe **ejecutando** a SPEC-055; aquí no hay lista de protocolos, ni comprobación de query, ni
+  nada que pueda divergir de su dueña. El único regex del bloque es el que **localiza la línea**
+  en `.env.example` — lectura, no criterio.
+
+  **2. Centinela, en sus dos mitades.** Un caso afirma que el valor leído **no está vacío** y es
+  **el mismo literal que congela CA-17 (a)**; otro, que sobre una plantilla sintética **sin** la
+  clave el lector **lanza** en vez de devolver algo. Esa segunda mitad es la que importa y por eso
+  el lector se escribió lanzando: si devolviera `undefined` o `''`, el caso principal pasaría en
+  verde sin haber comprobado nada — el verde vacío de ADR-031, entrando por la puerta del lector
+  en vez de por la de la aserción.
+
+  **3. Rojo probado, y además demostrado sobre el fichero real.** El caso permanente muta una
+  copia de la plantilla para darle **ruta** y exige que la comprobación falle, con un **control**
+  que aísla la causa: la misma cadena sin la ruta pasa. Y para no fiarse de una plantilla
+  sintética, se rompió el `.env.example` **de verdad** —`APP_BASE_URL="http://localhost:3000/app"`—
+  y se volvió a correr. Salida literal:
+
+  ```
+   ❯ tests/entornos-de-despliegue.test.ts (47 tests | 3 failed | 43 skipped)
+     × CA-17 (c) … `appBaseUrl()` acepta el valor de `.env.example` y devuelve ese mismo origen
+       → APP_BASE_URL no es un origen absoluto usable: «http://localhost:3000/app» — lleva ruta
+         (`/app`): la tarjeta de enlace la conservaría y el enlace de recuperación la perdería,
+         así que el mismo valor significaría dos cosas. Se espera un origen `http` o `https` sin
+         ruta, query, fragmento ni credenciales; por ejemplo http://localhost:3200 o
+         https://stockeiro.tremen.dev. …
+       ❯ rechazar src/lib/config/app-url.ts:78:9
+       ❯ Module.appBaseUrl src/lib/config/app-url.ts:121:5
+       ❯ elEjemploSirve tests/entornos-de-despliegue.test.ts:754:10
+     × CA-17 (c) … centinela: el lector devuelve el valor que congela CA-17 (a), no una cadena vacía
+       → el lector y el literal congelado se han separado:
+         expected 'http://localhost:3000/app' to be 'http://localhost:3000'
+     × CA-17 (c) … y se prueba en ROJO: un ejemplo con RUTA no pasa, y el control dice que es la ruta
+       → la mutación no se aplicó: la comprobación no probaría nada
+  ```
+
+  Nótese la **traza**: el rojo entra por `rechazar` → `appBaseUrl` → `elEjemploSirve`. Es la
+  prueba de que la condición 1 se cumple de verdad — la que decide es **la función de SPEC-055**,
+  no una réplica local de sus reglas. Y el tercer fallo es el centinela de mutación haciendo su
+  trabajo: con el fichero real ya con ruta, la mutación no cambiaba nada y el caso lo dijo en vez
+  de pasar.
+
+  **Segunda demostración, la del lector.** Se quitó la clave entera del `.env.example` real y el
+  centinela habló con su propio mensaje, en vez de dejar pasar un valor vacío:
+
+  ```
+     × CA-17 (c) … `appBaseUrl()` acepta el valor de `.env.example` y devuelve ese mismo origen
+       → el lector de `.env.example` no encuentra APP_BASE_URL: o la línea cambió de forma, o la
+         clave desapareció. En cualquiera de los dos casos, esta guardia ha dejado de mirar lo
+         que dice que mira.
+  ```
+
+  `.env.example` restaurado con `git checkout --` en ambos casos; **no queda ninguna mutación en
+  la rama**. Con el fichero íntegro: `tests/entornos-de-despliegue.test.ts` **47/47**.
+
 
 ## Cómo retomar (handoff)
 
 **Estado real (2026-08-24)**: **implementación TERMINADA, con CA-18 incluido**; spec en
 `en-revision`; rama `ft/SPEC-052-sin-app-base-url-el-build-ya-no-sale-verde` sobre `origin/main`
 en **`497eccf`** (rebasada **dos veces**: tras SPEC-053 + SPEC-054, y luego tras SPEC-055).
-**Suite completa en verde: 1825/1825**, y `version:check` en verde con el árbol limpio. **Sin PR
+**Suite completa en verde: 1829/1829**, y `version:check` en verde con el árbol limpio. **Sin PR
 y sin merge** — eso es del orquestador.
 
-**Lo único abierto que necesita a alguien: `F-SPEC-052-9`.** SPEC-055 le pide a esta spec una
-guardia (`D-SPEC-055-1`: que el valor de ejemplo de `.env.example` pase `appBaseUrl()`). Es una
-línea y cae al lado de CA-17, pero **ningún CA la pide** y no se ha escrito. Decide el arquitecto:
-enmienda a CA-17 aquí, o residual con destino propio.
+**No queda nada abierto que necesite a nadie.** Los tres follow-ups que nacieron durante la
+implementación están **cerrados**: `F-SPEC-052-7` (la guardia ajena → re-encuadrada bajo
+**CA-18**), `F-SPEC-052-8` (la premisa falsa de CA-14 → corregida, y el test propio creado) y
+`F-SPEC-052-9` (`D-SPEC-055-1` → entra como **CA-17 (c)**, implementado). Los seis restantes
+—`F-SPEC-052-1` … `F-SPEC-052-6`— son declaraciones de alcance de la propia spec, no deuda de la
+entrega.
 
 **`F-SPEC-052-7` está CERRADO, y conviene leer su cierre antes que nada.** El rojo de la guardia
 ajena de SPEC-051 CA-17.1 **ya no existe, y no porque se haya callado**: el humano autorizó
@@ -612,12 +677,12 @@ el cierre de ese follow-up, junto con la medida del criterio viejo (9 ficheros) 
 
 **Cómo se verifica esta entrega, en orden y sin sorpresas:**
 
-1. `npx vitest run tests/entornos-de-despliegue.test.ts` → **43/43**. Todo lo testable de
-   CA-1..CA-14, CA-17 y las partes (e)/(f) de CA-18.
+1. `npx vitest run tests/entornos-de-despliegue.test.ts` → **47/47**. Todo lo testable de
+   CA-1..CA-14, CA-17 **(a)(b)(c)** y las partes (e)/(f) de CA-18.
 2. `npx vitest run tests/tarjeta-guardias-ampliadas.test.ts` → **15/15**. La guardia ajena
    re-encuadrada, con las partes (a)…(d) de CA-18.
 3. `npm run typecheck` y `npm run lint` → limpios.
-4. `npm run test` → **1825/1825**, 114/114 ficheros. **Sin excepciones ni rojos declarados.**
+4. `npm run test` → **1829/1829**, 114/114 ficheros. **Sin excepciones ni rojos declarados.**
 5. Los dos `n-a` **ya están ejecutados y con su salida literal pegada** en N-1 y N-2 de arriba
    (incluido el **control** del build en verde con las cuatro claves de la CI, que es lo que
    hace que el rojo de N-2 signifique algo).
@@ -628,7 +693,7 @@ el cierre de ese follow-up, junto con la medida del criterio viejo (9 ficheros) 
    **rebasar**, nunca subir la versión: subirla afirmaría que esta entrega toca producto, que
    es exactamente lo que CA-15 niega. Está contado en N-1.
 
-**Para comprobar que las dos guardias no son decoración, sin creerse el ledger:**
+**Para comprobar que las tres guardias no son decoración, sin creerse el ledger:**
 
 - **CA-8** — cambia a mano la celda de `APP_BASE_URL` en la tabla de §0 de `docs/despliegue.md`
   de `Preview + Production` a `Production` y vuelve a correr el fichero. Tiene que ponerse roja
@@ -638,8 +703,13 @@ el cierre de ese follow-up, junto con la medida del criterio viejo (9 ficheros) 
   *Qué vigila ahora*) y corre `tests/tarjeta-guardias-ampliadas.test.ts`: **rojo**, listando el
   tercero. Quítale una sola marca —la fecha, por ejemplo— y vuelve: **verde**. Ese par es la
   diferencia entre la guardia y su decoración.
+- **CA-17 (c)** — pon `APP_BASE_URL="http://localhost:3000/app"` en `.env.example` y corre el
+  fichero: **rojo**, y la traza tiene que entrar por `rechazar` → `appBaseUrl` en
+  `src/lib/config/app-url.ts`. Que el rojo venga de **ahí** y no de un regex local es la prueba
+  de que SPEC-055 sigue siendo dueña única del criterio. Borra luego la línea entera de la
+  clave: el rojo cambia y pasa a ser el del **lector**, con su propio mensaje.
 
-Deshaz los dos cambios después.
+Deshaz los cambios después (`git checkout -- <fichero>`).
 
 **Trampas que siguen vivas para quien toque esto:**
 
@@ -672,3 +742,13 @@ Y tres más que estrena **CA-18**, para quien vuelva a tocar la guardia ajena:
   CA-18 (f) se componen en tiempo de ejecución y usan comillas angulares, porque escribir el
   fragmento prohibido tal cual haría que el barrido se marcara a sí mismo. Si añades una forma,
   añade su espectro **y** compruébalo contra los tres inocentes.
+
+Y una que estrena **CA-17 (c)**:
+
+- **SPEC-055 es la dueña única de qué es un origen usable, y esta guardia la EJECUTA.** Si
+  mañana falla CA-17 (c) y la tentación es «arreglarlo» aflojando la comprobación, mira antes la
+  traza: si entra por `rechazar` → `appBaseUrl` en `src/lib/config/app-url.ts`, lo que falla es
+  el **valor de ejemplo**, no la guardia. Y **nunca** se replican aquí sus cuatro condiciones con
+  un regex propio para «no depender de ella»: eso crearía un contrato con dos dueños, que es la
+  forma exacta en que dos ficheros acaban diciendo cosas distintas sobre lo mismo. La única
+  manera de tener un solo dueño es llamarlo.
