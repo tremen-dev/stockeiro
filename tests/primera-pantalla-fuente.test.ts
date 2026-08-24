@@ -22,7 +22,9 @@ import { describe, expect, it } from 'vitest';
  *          segundo literal que la parafrasee
  *   CA-15  el pie sigue sin saber en qué ruta está: ni `usePathname`, ni `headers`, ni
  *          prop, ni la palabra `landing`
- *   CA-20  ni una dependencia nueva, ni un script nuevo, ni un ADR nuevo
+ *   CA-20  ni una dependencia nueva y ni un script nuevo (el tercer caso, «ni un ADR
+ *          nuevo», lo retiró SPEC-053 CA-13 el 2026-08-24; el porqué, en el hueco
+ *          que dejó)
  *   CA-22  las condiciones 2, 3 y 4 de la ÚNICA guardia ajena que esta spec estrecha,
  *          que son propiedades de `tests/e2e/ayuda.spec.ts` y se comprueban aquí
  *          (la condición 1 —«y ningún otro fichero»— es de acotación y va al gate,
@@ -231,7 +233,8 @@ describe('SPEC-050 CA-15: el pie sigue sin saber nada', () => {
 });
 
 /* ────────────────────────────────────────────────────────────────────────────
-   CA-20 — sin dependencia nueva, sin script nuevo, sin ADR nuevo
+   CA-20 — sin dependencia nueva y sin script nuevo
+   (el «sin ADR nuevo» lo retiró SPEC-053 CA-13 el 2026-08-24; el porqué, más abajo)
    ──────────────────────────────────────────────────────────────────────────── */
 
 describe('SPEC-050 CA-20: esto es presentación pura', () => {
