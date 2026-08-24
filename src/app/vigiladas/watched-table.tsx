@@ -1,11 +1,8 @@
 'use client';
 
 import { useEffect, useMemo, useRef, useState } from 'react';
-import { failReasonText } from '@/lib/market/fail-reason-text';
-import { instrumentTypeText } from '@/lib/market/instrument-type-text';
 import { marketName } from '@/lib/market/market-name';
-import { marcaSinRefrescar } from '@/lib/market/sin-refrescar';
-import type { ZoneStatusView, ZoneState } from '@/lib/watchlist/zone-status';
+import type { ZoneStatusView } from '@/lib/watchlist/zone-status';
 import {
   CRITERIOS_ORDEN,
   ordenarVigiladas,
@@ -13,11 +10,13 @@ import {
   type DireccionOrden,
 } from '@/lib/watchlist/sort';
 import { CADENCIA_LINEA } from '@/lib/help/content';
-import { removeAction } from './actions';
+import { columnaEn, paresDeLaTarjeta } from '../columnas';
+import { columnasDeVigiladas } from './columnas-vigiladas';
 import { WatchForm } from './watch-form';
 
 /**
- * SPEC-041 — **la tabla de acciones vigiladas, ahora legible y ordenable**.
+ * SPEC-041 / SPEC-054 — **la tabla de acciones vigiladas, que en un teléfono se lee como
+ * tarjetas**.
  *
  * ## Por qué es componente de cliente (y qué se pierde con ello)
  *
@@ -34,34 +33,27 @@ import { WatchForm } from './watch-form';
  *
  * ## Y por qué el control de orden va ENCIMA de la tabla, no en las cabeceras
  *
- * Porque las cabeceras viven dentro de `.table-scroll`, que en móvil desborda: la
- * cabecera `Estado` está fuera de la pantalla hasta que arrastras la tabla, así que el
- * gesto para ordenar exigiría un gesto para encontrarlo, justo donde menos sitio hay
- * (CA-11). Las cabeceras se marcan con `aria-sort` para que el lector de pantalla lo
- * cuente igual.
+ * Porque las cabeceras viven dentro de `.table-scroll`, que en la vista ancha desborda:
+ * la cabecera `Estado` está fuera de la pantalla hasta que arrastras la tabla, así que el
+ * gesto para ordenar exigiría un gesto para encontrarlo (SPEC-041 CA-11). Las cabeceras
+ * se marcan con `aria-sort` para que el lector de pantalla lo cuente igual.
+ *
+ * **SPEC-054 confirma ese motivo en vez de invalidarlo, y lo amplía**: por debajo de
+ * 720 px la tabla no está en el árbol de accesibilidad, así que `aria-sort` no está —
+ * anunciar el orden de una tabla que quien escucha no puede alcanzar es informar sobre
+ * nada (ADR-034 §4). El estado de orden lo sigue diciendo `.orden-control`, que es
+ * visible **a todos los anchos**.
+ *
+ * ## Los dos árboles (ADR-034 §3)
+ *
+ * Esta pantalla monta la fila **dos veces** —`<table>` y `<ul>` de tarjetas— y el
+ * `@media (max-width: 720px)` de `globals.css` oculta la que no toca con `display: none`.
+ * Las dos salen de **una sola descripción de columnas** (`columnas-vigiladas.tsx`), que
+ * es lo único que impide que se separen cuando alguien añada una columna. `display: none`
+ * importa por dos motivos a la vez: retira del árbol de accesibilidad —así que en cada
+ * ancho hay UNA representación, no dos— y deja la caja a 0 × 0, con lo que M1 la salta y
+ * la representación oculta no ensucia el recuento (`tests/e2e/geometria.ts`).
  */
-
-const LABEL: Record<ZoneState, string> = {
-  buy: 'En zona de compra',
-  sell: 'En zona de venta',
-  both: 'En compra y venta',
-  out: 'Fuera de zona',
-  none: 'Sin cotización',
-};
-
-// SPEC-016 (CE-F2): "sin cotización" ya no es mudo. Si el símbolo NO se puede cotizar, se
-// dice y se explica por qué; si simplemente no ha corrido el ciclo, se dice eso otro. Antes
-// ambos casos se veían igual — por eso el defecto de cobertura pasó semanas sin detectarse.
-const SIN_DATO_AUN = 'Aún sin datos: se ingiere en el próximo ciclo diario';
-
-const zona = (min: string | null, max: string | null) =>
-  min !== null && max !== null ? `${min} – ${max}` : '—';
-
-/** `aria-sort` del `<th>`: sólo la columna por la que se ordena AHORA lo declara. */
-const ariaSort = (
-  activa: boolean,
-  direccion: DireccionOrden,
-): 'ascending' | 'descending' | 'none' => (activa ? (direccion === 'asc' ? 'ascending' : 'descending') : 'none');
 
 export function WatchedTable({ filas }: { filas: ZoneStatusView[] }) {
   const [clave, setClave] = useState<ClaveOrden>('ticker');
@@ -84,7 +76,10 @@ export function WatchedTable({ filas }: { filas: ZoneStatusView[] }) {
   */
   const [guardada, setGuardada] = useState(false);
 
-  const ordenadas = useMemo(() => ordenarVigiladas(filas, clave, direccion), [filas, clave, direccion]);
+  const ordenadas = useMemo(
+    () => ordenarVigiladas(filas, clave, direccion),
+    [filas, clave, direccion],
+  );
   const enEdicion = filas.find((f) => f.id === editandoId) ?? null;
 
   /*
@@ -96,7 +91,9 @@ export function WatchedTable({ filas }: { filas: ZoneStatusView[] }) {
 
     Lo que la plataforma NO da y aquí se añade: el nombre accesible que nombra al activo,
     y el foco que **vuelve al control que la abrió**. Ese retorno es lo que reubica al
-    usuario en su fila sin que nadie desplace nada — que es media medida de M4.
+    usuario en su fila sin que nadie desplace nada — que es media medida de M4. Y desde
+    SPEC-054 vale igual sobre una tarjeta que sobre una fila: la capa no se mueve, lo
+    único que cambia es sobre qué se abre (ADR-034, «no toca ADR-030»).
   */
   const dialogo = useRef<HTMLDialogElement>(null);
   const disparador = useRef<HTMLButtonElement | null>(null);
@@ -134,7 +131,16 @@ export function WatchedTable({ filas }: { filas: ZoneStatusView[] }) {
 
   // «Ticker» y «Nombre» ordenan por la MISMA columna de la tabla —el nombre vive bajo el
   // ticker, en la celda «Activo» (CA-2)—, así que las dos marcan ese `<th>`.
-  const activoOrdenado = clave === 'ticker' || clave === 'name';
+  const columnas = columnasDeVigiladas({
+    activoOrdenado: clave === 'ticker' || clave === 'name',
+    estadoOrdenado: clave === 'state',
+    direccion,
+    abrir,
+  });
+  const cabecera = columnaEn(columnas, 'cabecera');
+  const estado = columnaEn(columnas, 'estado');
+  const acciones = columnaEn(columnas, 'acciones');
+  const pares = paresDeLaTarjeta(columnas);
 
   return (
     <>
@@ -164,157 +170,88 @@ export function WatchedTable({ filas }: { filas: ZoneStatusView[] }) {
         </button>
       </div>
 
+      {/* ── La tabla: la representación de 721 px para arriba ─────────────────── */}
       <div className="table-scroll">
         <table className="data-table">
           <thead>
             <tr>
-              {/* SPEC-041 CA-2: el ticker sigue siendo el ancla y el nombre va DEBAJO,
-                  en la misma celda. Ninguna columna nueva: la tabla ya tiene nueve y se
-                  desborda en móvil, así que una décima empeoraría lo que venimos a
-                  mejorar. La cabecera es «Activo» y no «Valor» (que junto a «Precio» se
-                  lee como *value*) ni «Acción» (mentira desde ADR-020: hay REIT, ADR y
-                  ETF). */}
-              <th className="col-activo" aria-sort={ariaSort(activoOrdenado, direccion)}>
-                Activo
-              </th>
-              {/* SPEC-029: tipo (CA-13) y mercado (CA-14). El mercado sale de
-                  `micCode` —la mitad de la identidad, ADR-012— y no de `exchange`,
-                  que es texto libre del proveedor: con el mismo ticker en dos
-                  mercados, esta celda es lo unico que distingue las dos filas
-                  (cierra F-SPEC-024-1). Celda VACIA cuando no se sabe: ni «—» ni
-                  un mercado inventado. */}
-              <th>Tipo</th>
-              <th>Mercado</th>
-              <th className="col-estado" aria-sort={ariaSort(clave === 'state', direccion)}>
-                Estado
-              </th>
-              <th>Precio</th>
-              <th>A fecha</th>
-              <th>Zona compra</th>
-              <th>Zona venta</th>
-              <th aria-label="acciones"></th>
+              {columnas.map((c) => (
+                <th
+                  key={c.clave}
+                  className={c.claseCabecera}
+                  aria-label={c.rotulo === '' ? c.ariaLabel : undefined}
+                  aria-sort={c.ariaSort}
+                >
+                  {c.rotulo}
+                </th>
+              ))}
             </tr>
           </thead>
           <tbody>
-            {ordenadas.map((r) => {
-              // CA-3: sin nombre NO se inventa un nombre. Ni «—», ni «Sin nombre», ni el
-              // `exchange`, ni el ticker repetido: el elemento simplemente no se pinta.
-              const nombre = (r.name ?? '').trim();
-              return (
-                /*
-                  SPEC-046 CA-3 — la fila que se está editando queda MARCADA mientras la
-                  capa está abierta. La capa se ancla a la ventana, así que ya no está
-                  pegada a su fila: detrás del velo hay que poder encontrar de cuál se
-                  está hablando, y encontrarla sola al cerrar. Se dice en el árbol
-                  (`data-editando`) y se ve en pantalla (`.fila-editando`).
-                */
-                <tr
-                  key={r.id}
-                  className={`zone-${r.state}${editandoId === r.id ? ' fila-editando' : ''}`}
-                  data-editando={editandoId === r.id ? 'true' : undefined}
-                >
-                  <td>
-                    <div className="activo-caja">
-                      <span className="ticker">{r.ticker}</span>
-                      {nombre !== '' && (
-                        <span className="activo-nombre" data-testid="row-name">
-                          {nombre}
-                        </span>
-                      )}
-                    </div>
+            {ordenadas.map((r) => (
+              /*
+                SPEC-046 CA-3 — la fila que se está editando queda MARCADA mientras la
+                capa está abierta. La capa se ancla a la ventana, así que ya no está
+                pegada a su fila: detrás del velo hay que poder encontrar de cuál se
+                está hablando, y encontrarla sola al cerrar. Se dice en el árbol
+                (`data-editando`) y se ve en pantalla (`.fila-editando`).
+              */
+              <tr
+                key={r.id}
+                className={`zone-${r.state}${editandoId === r.id ? ' fila-editando' : ''}`}
+                data-editando={editandoId === r.id ? 'true' : undefined}
+              >
+                {columnas.map((c) => (
+                  <td key={c.clave} className={c.claseCelda}>
+                    {c.valor(r, 'tabla')}
                   </td>
-                  <td className="muted" data-testid="row-type">
-                    {instrumentTypeText(r.instrumentType)}
-                  </td>
-                  <td className="muted" data-testid="row-market">
-                    {marketName(r.micCode)}
-                  </td>
-                  <td>
-                    {/* CA-4: la celda de estado deja de estirar la tabla. El culpable no
-                        era la etiqueta —la más larga, «En compra y venta», cabe en una
-                        línea— sino el párrafo del motivo de SPEC-016, que se extendía en
-                        vez de envolverse. Ahora se envuelve DENTRO de su caja y no se
-                        pierde ni una palabra. */}
-                    <div className="estado-caja">
-                      <span className={`zone-label is-${r.state}`} data-state={r.state}>
-                        <span className="dot" aria-hidden="true" />
-                        {LABEL[r.state]}
-                      </span>
-                      {r.state === 'none' && (
-                        <p
-                          className={r.failReason ? 'quote-fail' : 'quote-pending'}
-                          data-testid={r.failReason ? 'fail-reason' : 'sin-datos-aun'}
-                          data-reason={r.failReason ?? undefined}
-                        >
-                          {r.failReason
-                            ? `⚠ No se vigila: ${failReasonText(r.failReason)}`
-                            : SIN_DATO_AUN}
-                        </p>
-                      )}
-                      {/* SPEC-043 CA-8 — **el defecto de esta spec vivía justo aquí**.
-                          El aviso de SPEC-016 estaba condicionado a `r.state === 'none'`,
-                          y una cotización que dejó de refrescarse SÍ tiene precio y SÍ
-                          tiene estado de zona: decía «Fuera de zona» sobre un precio de
-                          hace tres días y no lo advertía. La marca es INDEPENDIENTE del
-                          estado — ésa es literalmente la corrección (RN-16, D-2).
-
-                          Y sigue siendo excluyente con el bloque de arriba sin necesidad
-                          de decirlo: sin cotización no hay `updatedAt`, y sin `updatedAt`
-                          no se puede haber dejado de refrescar nada. */}
-                      {r.sinRefrescar && r.updatedAt && (
-                        <p
-                          className="quote-stale"
-                          data-testid="sin-refrescar"
-                          data-reason={r.failReason ?? undefined}
-                        >
-                          {marcaSinRefrescar(r.updatedAt, r.failReason)}
-                        </p>
-                      )}
-                    </div>
-                  </td>
-                  <td className="num">{r.price ?? <span className="muted">—</span>}</td>
-                  <td className="num muted">{r.asOf ? r.asOf.toISOString().slice(0, 10) : '—'}</td>
-                  <td className="num">{zona(r.buyMin, r.buyMax)}</td>
-                  <td className="num">{zona(r.sellMin, r.sellMax)}</td>
-                  <td>
-                    <div className="fila-acciones">
-                      {/* SPEC-044 CA-19: el control de edición vive EN SU FILA y lleva el
-                          id de esa fila. Reordenar no lo afecta, por el mismo motivo que
-                          no afecta a «Quitar». */}
-                      {/* SPEC-046 / ADR-030 §2: declara `aria-haspopup="dialog"` y NO
-                          `aria-expanded`. Ya no es un desplegable en flujo, y decir que
-                          lo es engaña al lector de pantalla sobre dónde va a aparecer el
-                          contenido. El elemento que se pasa a `abrir` es ESTE botón: es
-                          al que vuelve el foco al cerrar la capa (CA-5). */}
-                      <button
-                        className="btn-sm"
-                        type="button"
-                        data-testid="editar-zonas"
-                        data-watched-id={r.id}
-                        aria-haspopup="dialog"
-                        onClick={(e) => abrir(r.id, e.currentTarget)}
-                      >
-                        Editar
-                      </button>
-                      <form action={removeAction}>
-                        {/* SPEC-024: viaja el id de la ACCIÓN VIGILADA (el mismo que la
-                            fila usa como key), no el ticker: dos mercados del mismo ticker
-                            son dos vigiladas distintas (ADR-007). Y por eso reordenar no lo
-                            afecta (CA-18): lo que viaja es la identidad de SU fila, no su
-                            posición en la lista. */}
-                        <input type="hidden" name="watchedId" value={r.id} />
-                        <button className="btn-sm" type="submit">
-                          Quitar
-                        </button>
-                      </form>
-                    </div>
-                  </td>
-                </tr>
-              );
-            })}
+                ))}
+              </tr>
+            ))}
           </tbody>
         </table>
       </div>
+
+      {/* ── Las tarjetas: la representación de 720 px para abajo ──────────────────
+
+          Mismo contenido, mismo orden de filas y los mismos rótulos; lo que cambia es el
+          marcado, que aquí es el nativamente correcto para lo que hay: una LISTA de
+          fichas, no una tabla. Los pares van en un `<dl>` con un `<dt>` por `<dd>`, que
+          es lo que sustituye a la asociación cabecera-celda sin una sola línea de ARIA
+          (ADR-034 §4).
+
+          El orden del DOM es el del boceto —identidad → estado → pares → acciones— y no
+          hay ni una propiedad de CSS reordenando nada dentro de la tarjeta, así que el
+          orden visual, el del lector de pantalla y el del tabulador son el mismo
+          (SPEC-054 CA-9). */}
+      <ul
+        className="tarjetas tarjetas-vigiladas"
+        data-testid="tarjetas-vigiladas"
+        aria-label="Acciones vigiladas"
+      >
+        {ordenadas.map((r) => (
+          <li
+            key={r.id}
+            className={`tarjeta zone-${r.state}${editandoId === r.id ? ' fila-editando' : ''}`}
+            data-editando={editandoId === r.id ? 'true' : undefined}
+          >
+            {/* El estado de zona ES el fondo de la tarjeta, con la MISMA clase
+                `zone-${state}` y por tanto el mismo color computado que el `<tr>`
+                (SPEC-007: color de fondo, no distintivo; ADR-034 §5). */}
+            {cabecera && <div className="tarjeta-cabecera">{cabecera.valor(r, 'tarjeta')}</div>}
+            {estado && <div className="tarjeta-estado">{estado.valor(r, 'tarjeta')}</div>}
+            <dl className="tarjeta-datos">
+              {pares.map((c) => (
+                <div key={c.clave} className="tarjeta-par">
+                  <dt>{c.rotulo}</dt>
+                  <dd className={c.claseCelda}>{c.valor(r, 'tarjeta')}</dd>
+                </div>
+              ))}
+            </dl>
+            {acciones && acciones.valor(r, 'tarjeta')}
+          </li>
+        ))}
+      </ul>
 
       {/*
         SPEC-046 / ADR-030 §1 — **la capa vive anclada a la VENTANA, no en el flujo detrás
@@ -331,8 +268,8 @@ export function WatchedTable({ filas }: { filas: ZoneStatusView[] }) {
 
         Con la caja definida respecto al viewport, «lista larga», «fila de arriba» y
         «página desplazada» dejan de ser variables: no hay un tamaño de lista a partir del
-        cual el defecto vuelva. Y sigue **fuera de `.table-scroll`**, así que lo que
-        SPEC-044 protegía no se toca (CA-4b).
+        cual el defecto vuelva. Y sigue **fuera de `.table-scroll`** y fuera de la lista de
+        tarjetas, así que lo que SPEC-044 protegía no se toca (CA-4b).
 
         Se ancla ABAJO y no al centro: el pulgar está abajo, una hoja inferior crece en una
         sola dirección —así que «no cabe a lo alto» se resuelve acotándola y desplazándola

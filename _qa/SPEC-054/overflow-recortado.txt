@@ -1,0 +1,5 @@
+SPEC-054 CA-21 — quién recorta a lo ancho, y desde cuándo
+/vigiladas · ancho 360 · recortan: html.geist_22e2a02c-module__MwEO2a__variable.geist_mono_42eec60-module__Gb1_vG__variable, body.v-tremendo, table.data-table
+/vigiladas · ancho 390 · recortan: html.geist_22e2a02c-module__MwEO2a__variable.geist_mono_42eec60-module__Gb1_vG__variable, body.v-tremendo, table.data-table
+/cartera · ancho 360 · recortan: html.geist_22e2a02c-module__MwEO2a__variable.geist_mono_42eec60-module__Gb1_vG__variable, body.v-tremendo, table.data-table, form.card.auth-form, form.card.auth-form
+/cartera · ancho 390 · recortan: html.geist_22e2a02c-module__MwEO2a__variable.geist_mono_42eec60-module__Gb1_vG__variable, body.v-tremendo, table.data-table, form.card.auth-form, form.card.auth-form

@@ -1608,3 +1608,283 @@ td.num .quote-fail, td.num .quote-stale { text-align: right; }
 }
 .alta-vigilada > * { min-width: 0; }
 .alta-toggle { justify-self: start; max-width: 100%; }
+
+/* ============================================================
+   SPEC-054 / ADR-034 — La tabla de datos se lee como TARJETAS
+   por debajo de 720 px, y todo control se puede pulsar
+   ============================================================ */
+
+/* --- Las dos representaciones, y el único breakpoint de MODO del producto ---
+
+   ADR-034 §1: **720 px es el breakpoint de modo**. Por debajo, la tabla de datos se
+   presenta como tarjetas; por encima, como tabla. Es el único ancho de todo el árbol que
+   puede hacer aparecer o desaparecer una representación; 599/600 (el reparto de `.cards`)
+   es de DENSIDAD y se queda como está.
+
+   Se eligió 720 y no 599/600 por tres motivos, y el que decide es el tercero: es el único
+   candidato cuyo canto queda entre **dos anchos medidos adyacentes** —700 (última tarjeta)
+   y 730 (primera tabla)—, mientras que con 600 caería en el hueco 390 → 640: doscientos
+   cincuenta píxeles que nadie mide, con el cambio de representación dentro. Es ADR-026 §3
+   aplicado a una decisión nueva en vez de recordado después.
+
+   **Las dos caras del canto se escriben aquí y sólo aquí** (SPEC-054 CA-18): todas las
+   reglas que ponen o quitan `display` a `table.data-table` o a la lista de tarjetas viven
+   en estos dos bloques, que son los dos lados del MISMO ancho — `max-width: 720px` es
+   móvil y `min-width: 721px` es tabla, tal cual lo escribe ADR-034 §1.
+
+   Y `display: none` no es una elección estética: es lo que **retira del árbol de
+   accesibilidad** —así que en cada ancho hay UNA representación y no dos— y lo que deja la
+   caja a 0 × 0, con lo que M1 salta la representación oculta y no ensucia el recuento
+   (`tests/e2e/geometria.ts`, «Invisible: ni ocupa ni se ve»). */
+
+/* Lo que no es `display` va fuera de los bloques: es la misma lista en los dos modos. */
+.tarjetas {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+  min-width: 0;
+  gap: 12px;
+  /* Una sola columna en TODA la franja móvil, también a 640 y 700 px. Lo decidió el
+     humano el 2026-08-24 frente a la alternativa de dos columnas entre 600 y 720: el
+     rango es minoritario en un producto que se prueba en móvil y en escritorio. Si algún
+     día molesta, la salida es tocar ESTE valor —no añadir un breakpoint— y está en el
+     «fuera de alcance» de EPIC-007 (SPEC-054 CA-3). */
+  grid-template-columns: 1fr;
+}
+
+@media (min-width: 721px) {
+  .tarjetas { display: none; }
+}
+
+@media (max-width: 720px) {
+  /* La caja de desplazamiento se va con su tabla: por debajo del canto no hay tabla que
+     desplazar, y dejarla puesta pintaría un hueco de rejilla vacío. Lo que NO cambia es
+     su declaración —`overflow-x: auto` sigue viva a todos los anchos, SPEC-040 CA-5— ni
+     su comportamiento por encima de 720 px, que es donde tiene su motivo. */
+  .table-scroll { display: none; }
+  table.data-table { display: none; }
+  .tarjetas { display: grid; }
+}
+
+/* --- La tarjeta ---
+
+   Sin `background` propio A PROPÓSITO: el fondo de la tarjeta **es** el estado de zona
+   (`zone-${state}`, SPEC-007 y ADR-034 §5), con el mismo color computado que el `<tr>` de
+   la vista ancha. Declarar aquí un fondo lo taparía —estas reglas van después en el
+   fichero y ganarían por orden de fuente— y convertiría el estado en un distintivo, que es
+   exactamente lo que SPEC-007 decidió no hacer. */
+.tarjeta {
+  display: grid;
+  gap: 10px;
+  padding: 14px 16px;
+  border: 1px solid var(--line);
+  border-radius: var(--radius-card);
+  min-width: 0;
+}
+.tarjeta > * { min-width: 0; }
+
+/* SPEC-046 CA-3 trasladado a la tarjeta: la que se está editando queda distinguida detrás
+   del velo, y deja de estarlo al cerrar. `outline` no participa en la maquetación, así que
+   el fondo sigue siendo el estado de zona y ninguna medida de geometría cambia por esto. */
+.tarjeta.fila-editando {
+  outline: 2px solid var(--ember);
+  outline-offset: -2px;
+}
+
+/* La cabecera: la columna «Activo» de vigiladas y el «Ticker» de cartera. Es el ancla de
+   la ficha, así que se lee primero y pesa más. */
+.tarjeta-cabecera {
+  font: 600 var(--t-body)/1.25 var(--font-sans);
+  color: var(--fg);
+  min-width: 0;
+  overflow-wrap: anywhere;
+}
+.tarjeta-cabecera .activo-caja {
+  display: grid;
+  gap: 2px;
+  min-width: 0;
+}
+/* El nombre del activo, bajo el ticker, en tono secundario (SPEC-041 CA-2). Aquí sube de
+   12 a 14 px porque en la tarjeta hay ancho de sobra y el suelo de legibilidad de ADR-034
+   §7 es un suelo, no un objetivo. */
+.tarjeta-cabecera .activo-nombre {
+  font: 400 var(--t-body-sm)/1.3 var(--font-sans);
+  color: var(--fg-dim);
+}
+
+/* El estado, con sus avisos de diagnóstico debajo — que es donde ya estaban dentro de
+   `.estado-caja`. Los `.quote-*` conservan intacta su caja de `max-width: 34ch` y su
+   envoltura: esta tabla YA se rompió una vez por un párrafo de motivo que se extendía en
+   vez de envolverse (SPEC-016 → SPEC-040 CA-4), y el formato tarjeta no es excusa para
+   repetirlo (SPEC-054 CA-15). Nótese que aquí NO se sobrescribe ese `34ch`, al revés de lo
+   que hace `.data-table .estado-caja`, que lo lleva al 100 % de una celda de 170 px. */
+.tarjeta-estado .estado-caja {
+  display: grid;
+  gap: 4px;
+  min-width: 0;
+}
+
+/* Los pares etiqueta-valor. Un `<dl>` con un `<dt>` por `<dd>`: es lo que sustituye a la
+   asociación cabecera-celda que daba la tabla, y es nativo — sin una línea de ARIA
+   (ADR-034 §4).
+
+   La rejilla es de dos pistas con colocación AUTOMÁTICA: ni `order`, ni `grid-row` o
+   `grid-column` explícitos, ni `direction`. El orden visual es el del DOM, que es el del
+   boceto, que es el que recorren el lector de pantalla y el tabulador (SPEC-054 CA-9). */
+.tarjeta-datos {
+  display: grid;
+  gap: 6px;
+  margin: 0;
+  min-width: 0;
+}
+.tarjeta-par {
+  display: grid;
+  grid-template-columns: auto 1fr;
+  gap: 12px;
+  align-items: baseline;
+  min-width: 0;
+}
+.tarjeta-datos dt {
+  font: 500 var(--t-caption)/1.3 var(--font-mono);
+  letter-spacing: .06em;
+  color: var(--fg-dim);
+  min-width: 0;
+}
+.tarjeta-datos dd {
+  margin: 0;
+  color: var(--fg);
+  font-size: var(--t-body-sm);
+  text-align: right;
+  min-width: 0;
+  overflow-wrap: anywhere;
+}
+/* Los mismos ganchos de presentación que en la tabla, y por eso los pinta el mismo nombre
+   de clase: la descripción de columnas dice `num` o `muted` una sola vez y las dos formas
+   lo obedecen. */
+.tarjeta-datos dd.num { font-family: var(--font-mono); }
+.tarjeta-datos dd.muted { color: var(--fg-dim); }
+.tarjeta-datos dd .quote-fail,
+.tarjeta-datos dd .quote-stale { text-align: right; }
+
+/* --- El pie de la tarjeta: dos controles al 50 %, en UNA fila (ADR-034 §10) ---
+
+   Lo decidió el humano en el gate del 2026-08-24 frente a la alternativa de apilarlos, y
+   el motivo es de lectura, no de estética: **mantiene la tarjeta corta**, y con cuarenta
+   vigiladas el alto de la tarjeta es el coste que paga el usuario en cada recorrido de la
+   lista.
+
+   ⚠️ **Y aquí está escrito lo que le pasa a la tercera acción**, para que SPEC-045
+   (silenciar) no lo redescubra: a 360 px, descontados el margen de página y el relleno de
+   la tarjeta, el ancho útil del pie ronda los 300 px. Con dos controles al 50 % salen
+   ~146 px cada uno, cómodos. **Con tres salen ~95**, y un botón de 95 px con un rótulo
+   como «Silenciar» queda al filo de partir palabra (M3) aunque M5 dé la caja por buena —
+   porque M5 mide la caja y M3 mide el rótulo. La salida cuando llegue la tercera acción es
+   **apilar** (dos arriba y una abajo, o las tres en columna), nunca encoger los tres ni
+   esconder ninguno detrás de un menú (ADR-026 §4, ADR-034 §10).
+
+   El `grid-template-columns` con `flex-wrap` heredado de `.fila-acciones` no pelea: al
+   declarar `display: grid` el `flex-wrap` deja de aplicar, y un tercer control simulado
+   cae a una segunda fila en vez de encoger a los tres. */
+.tarjeta-pie {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 8px;
+  align-items: stretch;
+}
+.tarjeta-pie > * { min-width: 0; }
+.tarjeta-pie form { display: grid; margin: 0; }
+.tarjeta-pie .btn-sm { width: 100%; }
+
+/* --- M5: los controles se pueden pulsar con el pulgar (CE-3, ADR-034 §6) ---
+
+   `.btn-sm` era `padding: 8px 14px` con `font: 600 13px/1`: una caja de **≈31 px de
+   alto**, por debajo de cualquier suelo táctil publicado, en *Editar*, *Quitar* y el botón
+   de dirección del orden — y con la suite entera en verde, porque ninguna de las cuatro
+   medidas de geometría preguntaba si el dedo llega. M5 lo pregunta desde SPEC-054.
+
+   El arreglo es **agrandar**, que es la salida legítima de ADR-026 §4; bajar el suelo de
+   M5 hasta que pase sería `F-ADR-026-1` cumpliéndose por escrito. Y se agranda **sólo por
+   debajo del breakpoint de modo**, porque CE-5 de EPIC-007 dice que el escritorio no paga
+   la factura del móvil: a 1280 px estos controles se ven exactamente como se veían.
+
+   ⚠️ **Va sobre `.btn-sm` a pelo, sin `min-height` y sin subir la especificidad, y eso es
+   deliberado.** La prueba de eficacia de SPEC-054 CA-13 reinyecta
+   `.btn-sm { padding: 2px 6px; font-size: 10px }` y exige que M5 se ponga roja. Con un
+   `min-height: 44px` la altura no bajaría y la reinyección dejaría de reproducir el
+   defecto; con `.tarjeta-pie .btn-sm` ganaría la especificidad y pasaría lo mismo. El
+   arreglo se escribe donde la reinyección lo puede deshacer: eso es lo que hace que la
+   guardia demuestre algo. 14 px de texto + 15 de relleno arriba y abajo + 1 de borde
+   arriba y abajo = 46 px. */
+@media (max-width: 720px) {
+  .btn-sm {
+    padding: 15px 14px;
+    font-size: 14px;
+  }
+
+  /* El segundo suelo de ADR-034 §7: **ningún texto baja de 12 px**. `.eyebrow` del
+     sistema de diseño es `font: 600 11px/1` a todos los anchos
+     (`design/tremen-ds/components/eyebrows.css:22`, que pisa el `--t-caption` de 12 px
+     que declara `colors_and_type.css`). En una portada de escritorio, once píxeles de
+     mono en versales es una decisión tipográfica; en un teléfono a 360 px es texto que
+     no se lee.
+
+     Se sube **sólo por debajo del canto** y **sólo en la cabecera de estas páginas**:
+     CE-5 de EPIC-007 dice que el escritorio no paga la factura del móvil, y ADR-026 §5
+     dice que la app no muta el sistema de diseño —`tremen-ds` lo comparte el sitio de
+     tremen.dev—. `globals.css` importa el sistema en su primera línea, así que basta el
+     orden de fuente y la especificidad del descendiente: sin `!important`. */
+  .page-head .eyebrow {
+    font-size: var(--t-caption);
+  }
+
+  /* El selector de criterio de orden: mismo suelo táctil y, además, el suelo de 16 px de
+     ADR-034 §7 — por debajo de 16 px Safari en iOS **amplía la página al enfocar el
+     campo** y no la devuelve. 16 x 1.2 de interlineado + 24 de relleno + 2 de borde = 45. */
+  .orden-control select {
+    padding: 12px 34px 12px 12px;
+    font-size: 16px;
+  }
+
+  /* Los campos de los formularios de alta, edición, compra y venta, con SUS DOS suelos.
+
+     El de 16 px es el de ADR-034 §7: con `font: inherit` dependía de que nadie tocara el
+     tamaño del cuerpo, y por debajo de 16 Safari en iOS amplía la página al enfocar el
+     campo y no la devuelve.
+
+     El de 44 px es el táctil, y aquí estaba **la mentira medible** que devolvió esta spec
+     del verificador (F-VERIF-054-1): estos campos NO llegaban al suelo por su relleno. Con
+     `padding: 10px` arriba y abajo, `border: 1px` y 21 px de línea, la caja medía **43,000
+     px exactos** — 8 campos en los formularios de compra y venta de `/cartera`, 5 en el
+     alta desplegada de `/vigiladas` y 4 en la capa de edición. Y M5 los daba por buenos
+     porque compara contra `suelo − TOLERANCIA_PX`, una resta que existe para las
+     fracciones que devuelve `getBoundingClientRect()`, no para regalar un píxel: el umbral
+     efectivo era 43. Un píxel entero de holgura colado por la puerta del redondeo es la
+     versión suave de lo que `F-ADR-026-1` prohíbe.
+
+     El arreglo es **agrandar**, como manda ADR-026 §4: 11 + 11 de relleno + 1 + 1 de borde
+     + 21 de línea = **45**. Un píxel por encima del suelo, no uno por debajo.
+
+     Y se agranda con `padding-block`, no con `padding` ni con `min-height`, por dos
+     razones que conviene no redescubrir:
+
+     - **Un `padding` de dos valores rompería el cheurón.** `.auth-form select` declara
+       `padding-right: 34px` para hacerle sitio al desplegable dibujado; este bloque va
+       DESPUÉS en el fichero, así que un `padding: 11px 12px` le ganaría por orden de
+       fuente y el cheurón se comería el texto. `padding-block` toca sólo el eje vertical.
+     - **Un `min-height` convertiría la medida en decorativa.** Es la misma cautela que
+       está escrita arriba para `.btn-sm` y la razón por la que la prueba de eficacia de
+       CA-13 demuestra algo: una altura sostenida por un suelo declarado ya no depende de
+       la caja, así que un defecto futuro en el relleno o en el tamaño de letra no bajaría
+       el alto y ninguna guardia lo vería (ADR-026 §7). La altura se sigue derivando de la
+       caja, que es lo que se puede medir y lo que se puede romper.
+
+     Sólo por debajo del canto: CE-5 de EPIC-007 dice que el escritorio no paga la factura
+     del móvil, y a 1280 px estos campos se ven exactamente como se veían. */
+  .auth-form input,
+  .auth-form select,
+  .auth-form textarea,
+  .symbol-search-input {
+    padding-block: 11px;
+    font-size: 16px;
+  }
+}

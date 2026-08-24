@@ -130,11 +130,35 @@ describe('SPEC-043 CA-7: qué es una cotización sin refrescar', () => {
 describe('SPEC-043 CA-12: una sola definición, y las dos pantallas la comparten', () => {
   const fuente = (...ruta: string[]) => readFileSync(ruta.join('/'), 'utf8');
 
+  /*
+    ── RE-ENCUADRE DE SPEC-054 (dónde MIRA CA-12, no qué exige) ────────────────────
+
+    SPEC-054 / ADR-034 §3 partió cada pantalla en dos ficheros: la **descripción de
+    columnas**, de la que salen las DOS representaciones —la tabla y la lista de
+    tarjetas—, y el componente o la página, que sigue cargando los datos. La marca de
+    «sin refrescar» se pinta en una celda, así que se fue con la descripción.
+
+    Lo que CA-12 vigila no cambia: **una sola definición del umbral y una sola redacción
+    de la marca**, compartidas por las dos pantallas. Lo que cambia es dónde está escrito,
+    así que la guardia mira **la superficie entera** de cada pantalla en vez de un solo
+    fichero — y de paso mide más de lo que medía: si el número reapareciera en la
+    descripción de columnas, antes no lo habría visto nadie. No se afloja nada.
+  */
+  const PANTALLA_VIGILADAS = [
+    ['src', 'app', 'vigiladas', 'watched-table.tsx'],
+    ['src', 'app', 'vigiladas', 'columnas-vigiladas.tsx'],
+  ];
+  const PANTALLA_CARTERA = [
+    ['src', 'app', 'cartera', 'page.tsx'],
+    ['src', 'app', 'cartera', 'columnas-cartera.tsx'],
+  ];
+  const superficie = (ficheros: string[][]) => ficheros.map((r) => fuente(...r)).join('\n');
+
   it('el umbral vive en UN solo sitio: nadie más escribe el número', () => {
     const consumidores = [
       fuente('src', 'lib', 'watchlist', 'zone-status.ts'),
-      fuente('src', 'app', 'vigiladas', 'watched-table.tsx'),
-      fuente('src', 'app', 'cartera', 'page.tsx'),
+      ...PANTALLA_VIGILADAS.map((r) => fuente(...r)),
+      ...PANTALLA_CARTERA.map((r) => fuente(...r)),
     ];
     for (const texto of consumidores) {
       // Ni el 36 ni la aritmética que lo reconstruye. Un segundo literal es la forma más
@@ -158,8 +182,8 @@ describe('SPEC-043 CA-12: una sola definición, y las dos pantallas la comparten
     expect(marcaSinRefrescar(desde, null)).toBe(marcaSinRefrescar(desde, null));
     expect(marcaSinRefrescar(desde, null)).toMatch(/no se est[áa] actualizando/i);
     expect(marcaSinRefrescar(desde, null)).toContain('2026-08-18');
-    expect(fuente('src', 'app', 'vigiladas', 'watched-table.tsx')).toMatch(/marcaSinRefrescar/);
-    expect(fuente('src', 'app', 'cartera', 'page.tsx')).toMatch(/marcaSinRefrescar/);
+    expect(superficie(PANTALLA_VIGILADAS)).toMatch(/marcaSinRefrescar/);
+    expect(superficie(PANTALLA_CARTERA)).toMatch(/marcaSinRefrescar/);
   });
 
   it('el módulo es el que RN-16 describe en prosa: código y regla apuntan al mismo número', () => {

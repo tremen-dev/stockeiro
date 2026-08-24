@@ -32,9 +32,28 @@ const sinComentarios = (src: string) =>
     .join('\n');
 
 const TABLA = 'src/app/vigiladas/watched-table.tsx';
+const COLUMNAS = 'src/app/vigiladas/columnas-vigiladas.tsx';
 const FORM = 'src/app/vigiladas/watch-form.tsx';
 const ALTA = 'src/app/vigiladas/alta-vigilada.tsx';
 const CSS = 'src/app/globals.css';
+
+/*
+  ── RE-ENCUADRE DE SPEC-054 (dónde MIRA CA-24, no qué exige) ──────────────────────
+
+  SPEC-054 / ADR-034 §3 partió la pantalla de vigiladas en dos ficheros: la **descripción
+  de columnas** (`columnas-vigiladas.tsx`), de la que salen las DOS representaciones —la
+  tabla y la lista de tarjetas—, y el **componente** (`watched-table.tsx`), que sigue
+  llevando el estado y la capa de edición. El control «Editar» y el `hidden` de «Quitar»
+  se fueron con la descripción, porque los pinta ella.
+
+  Lo que CA-24 vigila no ha cambiado ni un ápice: **el id viaja con su fila, nunca con su
+  posición**. Lo que cambia es dónde está escrito, así que la guardia mira la superficie
+  entera de la pantalla en vez de un solo fichero. Las cuatro aserciones —las dos
+  positivas y las dos negativas, que son la mitad que de verdad protege— se conservan
+  literales; ninguna se afloja. Si el id volviera a viajar por índice, esto sigue rojo.
+*/
+const PANTALLA_DE_VIGILADAS = [TABLA, COLUMNAS];
+const superficie = (ficheros: string[]) => ficheros.map(raiz).join('\n');
 
 describe('SPEC-044 CA-19/CA-20: el panel de edición reutiliza el formulario del alta', () => {
   it('la tabla monta `WatchForm`, no un formulario propio', () => {
@@ -142,7 +161,7 @@ describe('SPEC-044 CA-22: la app dice cuándo llegará el aviso, con la frase de
 
 describe('SPEC-044 CA-24: el id viaja con su fila, no con su posición', () => {
   it('el control de editar lleva `r.id`, igual que el de quitar (SPEC-024)', () => {
-    const src = raiz(TABLA);
+    const src = superficie(PANTALLA_DE_VIGILADAS);
     // El estado de edición se guarda por ID, nunca por índice del array ordenado: al
     // reordenar, un índice señalaría a otra vigilada.
     const codigo = sinComentarios(src);

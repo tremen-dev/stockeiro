@@ -54,6 +54,12 @@ Actualizado: 2026-08-24
 | Spec | Estado | Último cambio |
 |---|---|---|
 
+## EPIC-007 — la-app-en-el-telefono (borrador)
+
+| Spec | Estado | Último cambio |
+|---|---|---|
+| SPEC-054 — la-interfaz-en-el-telefono-la-tabla-se-lee-como-tarjetas-por-debajo-de-720-px | hecho | 2026-08-24 (sdd-verificador) |
+
 ## EPIC-FIX (aprobada)
 
 | Spec | Estado | Último cambio |
@@ -72,7 +78,6 @@ Actualizado: 2026-08-24
 | SPEC-046 — el-panel-de-edicion-se-abre-donde-el-usuario-mira-y-la-guardia-lo-mide | hecho | 2026-08-22 (sdd-verificador) |
 | SPEC-048 — guardias-por-diff-que-caducan-al-mergear | hecho | 2026-08-23 (sdd-verificador) |
 | SPEC-049 — el-gate-de-version-no-dice-verde-sobre-un-arbol-sucio-si-lo-que-juzga-no-esta-commiteado-se-abstiene | hecho | 2026-08-23 (sdd-verificador) |
-| SPEC-052 — sin-app-base-url-el-build-ya-no-sale-verde-el-runbook-deja-de-decir-lo-contrario-y-la-asimetria-preview-production-se-escribe | aprobada | 2026-08-23 (humano (Alberto Fojo)) |
 
 ## EPIC-INFRA (aprobada)
 
@@ -133,8 +138,10 @@ Actualizado: 2026-08-24
 | ADR-031 | aprobada | la-guardia-por-diff-nace-anclada-a-una-ventana-fija | 2026-08-22 (humano (Alberto Fojo)) |
 | ADR-032 | aprobada | el-proveedor-de-precios-pasa-a-plan-de-pago-basic-10-000-mes-con-cuenta-propia-y-la-misma-clave | 2026-08-23 (humano (Alberto Fojo)) |
 | ADR-033 | aprobada | el-package-lock-json-lleva-la-version-de-producto-el-bump-commitea-los-dos-ficheros-y-una-propiedad-lo-vigila-enmienda-pto-8-de-adr-024 | 2026-08-23 (humano (Alberto Fojo)) |
+| ADR-034 | aprobada | la-tabla-de-datos-conmuta-a-tarjetas-por-debajo-de-720-px-que-es-el-unico-breakpoint-de-modo-del-producto-y-el-area-tactil-se-mide | 2026-08-24 (humano (Alberto Fojo)) |
+| ADR-035 | aprobada | un-suelo-declarado-se-afirma-sin-holgura-la-tolerancia-de-redondeo-compara-dos-medidas-nunca-una-medida-contra-un-umbral-precisa-adr-026-y-adr-034-6 | 2026-08-24 (humano (Alberto Fojo)) |
 
 ## Resumen
 
-- hecho: 47
-- aprobada: 2
+- hecho: 48
+- aprobada: 1

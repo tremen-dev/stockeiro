@@ -195,7 +195,22 @@ test('SPEC-040 CA-2: CE-1 entero en un teléfono de 360 px, sin desplazar la pá
 
   await pulsarSinDesplazar(page, form.locator('button[type="submit"]'), 'el botón Vigilar');
 
-  const fila = page.locator('tr', { hasText: 'ITX' });
+  /*
+    ── RE-ENCUADRE DE SPEC-054 (dónde se lee la fila, no qué se exige) ─────────────────
+
+    Este caso recorre CE-1 entero **a 360 px**, y desde SPEC-054 / ADR-034 §1 a ese ancho
+    `/vigiladas` no se presenta como tabla sino como **tarjetas**: la fila recién dada de
+    alta existe, está a la vista y dice su zona, pero no es un `<tr>` — el `<tr>` está en
+    el DOM con `display: none`, que es lo que lo retira del árbol de accesibilidad.
+
+    Lo que CA-2 afirma no cambia: **el alta se completa en un teléfono y su resultado se
+    ve, con su zona, sin desplazar la página**. Se busca en la representación que está
+    viva, que es exactamente donde la buscaría una persona con el teléfono en la mano.
+  */
+  const fila = page
+    .locator('tr, ul[data-testid="tarjetas-vigiladas"] > li')
+    .filter({ visible: true })
+    .filter({ hasText: 'ITX' });
   await expect(fila).toBeVisible();
   await expect(fila).toContainText('20 – 25');
 

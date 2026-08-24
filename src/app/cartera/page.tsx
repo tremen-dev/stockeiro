@@ -3,9 +3,10 @@ import { requireSectionUser } from '@/lib/auth/session';
 import { db } from '@/db/client';
 import { portfolioSummary } from '@/lib/portfolio/service';
 import { getDiagnosticMap, getPriceMap, getQuoteViews } from '@/lib/market/quotes';
-import { failReasonText } from '@/lib/market/fail-reason-text';
-import { estaSinRefrescar, marcaSinRefrescar } from '@/lib/market/sin-refrescar';
+import { estaSinRefrescar } from '@/lib/market/sin-refrescar';
 import { AppNav } from '../app-nav';
+import { columnaEn, paresDeLaTarjeta } from '../columnas';
+import { columnasDeCartera } from './columnas-cartera';
 import { BuyForm, SellForm } from './portfolio-forms';
 
 // Exposición de la cartera (SPEC-002) alimentada por la Ingesta (SPEC-004): el P/L
@@ -24,6 +25,8 @@ export default async function CarteraPage() {
   const asOf = quotes.length
     ? new Date(Math.max(...quotes.map((q) => q.asOf.getTime()))).toISOString().slice(0, 10)
     : null;
+  // RN-06 / D-6: sin dato no se inventa un número. Aquí, para el total de la entradilla;
+  // en las celdas, la MISMA regla vive en la descripción de columnas.
   const dash = (v: string | null) => (v === null ? '—' : v);
   // SPEC-016: el P/L actual sigue siendo "—" cuando no hay precio (RN-06: no se inventa),
   // pero deja de ser un guion MUDO — se acompaña del motivo si el símbolo no se puede cotizar.
@@ -35,6 +38,20 @@ export default async function CarteraPage() {
   for (const q of quotes) {
     if (estaSinRefrescar(q.updatedAt)) escritaHace[q.symbolId] = q.updatedAt;
   }
+
+  /*
+    SPEC-054 / ADR-034 §3 — **las dos representaciones salen de una sola descripción de
+    columnas**. La `<table>` de siempre por encima de 720 px y una lista de tarjetas por
+    debajo, alternadas por CSS con `display: none`. Ni un rótulo ni un valor se escriben
+    dos veces: es lo único que impide que las dos formas se separen (F-ADR-034-2).
+
+    Y `/cartera` **sigue siendo Server Component**: la conmutación es CSS, no `matchMedia`,
+    así que esta pantalla se sigue pintando sin una línea de JavaScript (ADR-034 §3,
+    alternativa rechazada).
+  */
+  const columnas = columnasDeCartera({ diagnosticos, escritaHace });
+  const cabecera = columnaEn(columnas, 'cabecera');
+  const pares = paresDeLaTarjeta(columnas);
 
   return (
     <>
@@ -68,56 +85,52 @@ export default async function CarteraPage() {
             <p>Registra una compra abajo para ver tu posición y tu P/L.</p>
           </div>
         ) : (
-          <div className="table-scroll">
-            <table className="data-table">
-              <thead>
-                <tr>
-                  <th>Ticker</th>
-                  <th>Cantidad viva</th>
-                  <th>Coste medio</th>
-                  <th>P/L realizado</th>
-                  <th>P/L actual</th>
-                </tr>
-              </thead>
-              <tbody>
-                {summary.positions.map((p) => (
-                  <tr key={p.symbolId}>
-                    <td className="ticker">{p.ticker}</td>
-                    <td className="num">{p.cantidadViva}</td>
-                    <td className="num">{dash(p.costeMedio)}</td>
-                    <td className="num">{p.realizadoPL}</td>
-                    <td className="num">
-                      {dash(p.plActual)}
-                      {p.plActual === null && diagnosticos[p.symbolId] && (
-                        <span
-                          className="quote-fail"
-                          data-testid="fail-reason"
-                          data-reason={diagnosticos[p.symbolId].reason}
-                        >
-                          ⚠ {failReasonText(diagnosticos[p.symbolId].reason)}
-                        </span>
-                      )}
-                      {/* SPEC-043 CA-9 — la otra mitad del defecto. El motivo estaba
-                          condicionado a `p.plActual === null`, y con una cotización que
-                          dejó de refrescarse el P/L actual TIENE número: se calcula
-                          igual (RN-06 no cambia, CA-13) sobre un precio de hace días.
-                          La marca no depende de que el P/L falte — depende de que el
-                          precio no se esté actualizando. */}
-                      {escritaHace[p.symbolId] && (
-                        <span
-                          className="quote-stale"
-                          data-testid="sin-refrescar"
-                          data-reason={diagnosticos[p.symbolId]?.reason}
-                        >
-                          {marcaSinRefrescar(escritaHace[p.symbolId], diagnosticos[p.symbolId]?.reason)}
-                        </span>
-                      )}
-                    </td>
+          <>
+            <div className="table-scroll">
+              <table className="data-table">
+                <thead>
+                  <tr>
+                    {columnas.map((c) => (
+                      <th key={c.clave}>{c.rotulo}</th>
+                    ))}
                   </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
+                </thead>
+                <tbody>
+                  {summary.positions.map((p) => (
+                    <tr key={p.symbolId}>
+                      {columnas.map((c) => (
+                        <td key={c.clave} className={c.claseCelda}>
+                          {c.valor(p, 'tabla')}
+                        </td>
+                      ))}
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+
+            {/* La misma fila, leída como ficha. Sin fondo de estado —la cartera no tiene
+                zonas— y sin pie de acciones: estas filas no tienen controles. */}
+            <ul
+              className="tarjetas tarjetas-cartera"
+              data-testid="tarjetas-cartera"
+              aria-label="Posiciones de la cartera"
+            >
+              {summary.positions.map((p) => (
+                <li key={p.symbolId} className="tarjeta">
+                  {cabecera && <div className="tarjeta-cabecera">{cabecera.valor(p, 'tarjeta')}</div>}
+                  <dl className="tarjeta-datos">
+                    {pares.map((c) => (
+                      <div key={c.clave} className="tarjeta-par">
+                        <dt>{c.rotulo}</dt>
+                        <dd className={c.claseCelda}>{c.valor(p, 'tarjeta')}</dd>
+                      </div>
+                    ))}
+                  </dl>
+                </li>
+              ))}
+            </ul>
+          </>
         )}
 
         <div style={{ display: 'flex', gap: 20, flexWrap: 'wrap' }}>

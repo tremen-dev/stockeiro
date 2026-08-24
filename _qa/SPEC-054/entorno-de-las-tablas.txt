@@ -1,0 +1,17 @@
+SPEC-054 CA-17 — lo que rodea a las dos tablas
+cabecera de vigiladas · ancho 360 · alta plegada · M1 0/4 · M5 0/0 · sin tolerancia 0/0
+control de orden · ancho 360 · alta plegada · M1 0/4 · M5 0/2 · sin tolerancia 0/2
+alta plegable · ancho 360 · alta plegada · M1 0/2 · M5 0/1 · sin tolerancia 0/1
+cabecera de vigiladas · ancho 360 · alta desplegada · M1 0/4 · M5 0/0 · sin tolerancia 0/0
+control de orden · ancho 360 · alta desplegada · M1 0/4 · M5 0/2 · sin tolerancia 0/2
+alta plegable · ancho 360 · alta desplegada · M1 0/19 · M5 0/7 · sin tolerancia 0/7
+cabecera de vigiladas · ancho 390 · alta plegada · M1 0/4 · M5 0/0 · sin tolerancia 0/0
+control de orden · ancho 390 · alta plegada · M1 0/4 · M5 0/2 · sin tolerancia 0/2
+alta plegable · ancho 390 · alta plegada · M1 0/2 · M5 0/1 · sin tolerancia 0/1
+cabecera de vigiladas · ancho 390 · alta desplegada · M1 0/4 · M5 0/0 · sin tolerancia 0/0
+control de orden · ancho 390 · alta desplegada · M1 0/4 · M5 0/2 · sin tolerancia 0/2
+alta plegable · ancho 390 · alta desplegada · M1 0/19 · M5 0/7 · sin tolerancia 0/7
+cabecera de cartera · ancho 360 · alta plegada · M1 0/5 · M5 0/1 · sin tolerancia 0/1
+formularios de compra y venta · ancho 360 · alta plegada · M1 0/29 · M5 0/12 · sin tolerancia 0/12
+cabecera de cartera · ancho 390 · alta plegada · M1 0/5 · M5 0/1 · sin tolerancia 0/1
+formularios de compra y venta · ancho 390 · alta plegada · M1 0/29 · M5 0/12 · sin tolerancia 0/12

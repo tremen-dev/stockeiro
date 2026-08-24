@@ -7,6 +7,47 @@ tipo: roadmap
 > El estado fino por spec vive en el tablero; aquí vive la INTENCIÓN.
 
 ## Ahora (en curso)
+- **EPIC-007 — La app en el teléfono** (estado: borrador; nace el 2026-08-24 por decisión
+  del humano, con su primera spec **ya aprobada**).
+  **Qué entrega.** Que Stockeiro se pueda **usar** desde un móvil, no solo abrir. Hoy la
+  única adaptación al ancho son cinco bloques `@media (max-width: 720px)` en `globals.css`
+  que **aprietan separaciones** (`.app-nav { gap: 12px }`, `:516`) — **ningún elemento
+  cambia de forma en ningún ancho**. La tabla de `/vigiladas`, nueve columnas, se resuelve
+  arrastrándola de lado dentro de `.table-scroll`: fue la salida correcta al defecto de
+  SPEC-040, pero no es una interfaz móvil.
+  **Por qué manda ahora.** EPIC-004 abrió la app a testers externos y el enlace se comparte
+  en un **foro de bolsa**. Un enlace en un foro se abre en el teléfono: el móvil es **el
+  camino de entrada por defecto**, no un extra. Y el trabajo empieza hoy — SPEC-054 está
+  aprobada y entra a implementación.
+  **No desplaza a EPIC-005**, que sigue siendo lo comprometido y sin entregar. Tampoco es
+  alcance nuevo saltándose el criterio de corte: es alcance **ya aprobado** que cambia de
+  dirección, no que se cuele.
+  **Por qué épica propia.** Nació en EPIC-MEJORA —SPEC-054 se escribió allí— y la sacó **su
+  propio CE-M3**: la spec necesita **ADR-034**, y eso obliga a replantear el encaje. El
+  replanteo (humano, 2026-08-24) concluyó que EPIC-MEJORA es un *bucket* de roces sueltos y
+  esto es una **superficie entera del producto** con un breakpoint de modo, una regla de
+  conmutación y un medidor nuevo detrás.
+  ⚠️ **Destapa un agujero de instrumentación, y es el hallazgo serio**: la guardia de
+  geometría mide 360 y 390 desde SPEC-040 (`tests/e2e/geometria.ts:66`) pero cubre **nueve
+  rutas de dieciséis** (`geometria-rutas.spec.ts:49,52`). **`/cartera` no se mide a ningún
+  ancho**, y lleva así desde SPEC-002: una de las dos tablas del producto está fuera del
+  radar. CE-2 lo cierra.
+  ⚠️ **El medidor de área táctil nace rojo** (R-1): `.btn-sm` mide ≈31 px de alto contra un
+  suelo de 44, y lo usan *Editar*, *Quitar* y el control de orden. Es deuda que llevaba
+  oculta por no tener quien la mirase; la épica **descubre trabajo a medida que avanza**.
+  ⚠️ **Colisiona con SPEC-045** (R-3), aprobada y sin implementar sobre `/vigiladas`, que
+  añade una tercera acción a la fila. **Decidido: SPEC-054 primero**; SPEC-045 hereda el pie
+  de tarjeta y quien la implemente debe leer ADR-034 §10, que ya deja resuelta la aritmética:
+  a 360 px caben dos controles a ~146 px, **tres a ~95** — así que cuando el pie pase de dos,
+  se **apila**; nunca se encoge ni se esconde.
+  ⚠️ **La salida que ADR-026 prohíbe está viva en el CSS servido** (R-2): la app carga
+  `design/tremen-ds/responsive.css` por una cadena de tres `@import` desde `globals.css:3`, y
+  ese fichero declara `html, body { overflow-x: hidden }` bajo 720 px. Hoy, en producción, el
+  desbordamiento horizontal del documento está tapado — que es justo por lo que ADR-026 exige
+  medir **elemento a elemento** y no fiarse del `scrollWidth` de `body`.
+  ⚠️ **Cero esquema y cero capacidad nueva**: esta épica no enseña nada que la app no sepa
+  hacer ya. App nativa, push y manifiesto PWA quedan **fuera** y siguen en "Más adelante".
+
 - **EPIC-005 — Gobernar la vigilada que ya existe: ajustar sus zonas y silenciarla sin
   destruirla** (estado: aprobada; gate humano el 2026-08-22, Alberto Fojo).
   **Qué falta.** Una vigilada es hoy **inmutable**: `src/app/vigiladas/actions.ts` solo
@@ -103,6 +144,20 @@ tipo: roadmap
   horizontal) y nunca comprobó su posición **respecto a la fila que lo abrió** — justo el
   tipo de ceguera que SPEC-040 dijo haber curado. Va a spec propia de EPIC-FIX; es lo
   primero de la tanda del 2026-08-22.
+  ⚠️ **Caso hermano del de SPEC-052, observado el 2026-08-24 y NO cubierto por ella.**
+  SPEC-052 (en vuelo, `en-revision`) ataca el `APP_BASE_URL` **ausente**: sin la clave, el
+  build revienta desde que SPEC-051 metió `metadataBase: new URL(appBaseUrl())` en el layout.
+  Lo que se topó el implementador de SPEC-054 es el caso **contrario y peor**: la clave
+  **está**, pero **envenenada**. `.env.production.local` —que Next carga **por encima** de
+  `.env`— trae `APP_BASE_URL=[SENSITIVE]`, el literal, de un `vercel env pull`. El build
+  muere con `Invalid URL` en `/_not-found`, un mensaje que **no nombra ni la clave ni el
+  fichero**, y que aparece justo cuando el desarrollador cree haber hecho lo correcto
+  (definir `DATABASE_URL`). Se arranca con `APP_BASE_URL=http://localhost:3200 npm run build`.
+  Comprobado que SPEC-052 **no lo menciona**: su texto no cita `.env.production.local`, ni
+  `vercel env pull`, ni el marcador `[SENSITIVE]`, ni la precedencia entre ficheros de
+  entorno. Es la misma superficie y merece entrar por la misma puerta —probablemente ampliando
+  SPEC-052 antes de que cierre, que sale más barato que una spec nueva—, pero **la decisión es
+  de quien gobierne SPEC-052**, que va en otra sesión. Sin spec asignada todavía.
 
 - **EPIC-003 — Recuperación y cambio de contraseña** (estado: borrador).
   **Por qué está aquí y no en "Después", pese al criterio de corte.** El criterio dice
@@ -151,6 +206,12 @@ tipo: roadmap
   redactar una spec de "mejorar el diseño" antes de mirar las pantallas sería exactamente
   lo que CE-M2 prohíbe, imaginar roces. Su salida es una **lista de roces observados** que
   entra aquí caso a caso, cada uno con dónde se vio.
+  ↳ **CE-M3 se ejerció por primera vez, 2026-08-24 — y expulsó una spec.** El humano pidió
+  adaptar la vista a móvil; el arquitecto escribió **SPEC-054** aquí y con ella **ADR-034**.
+  CE-M3 dice que si una spec necesita ADR nuevo hay que replantear su encaje, y el replanteo
+  concluyó que no encaja: **se fue a EPIC-007**, con su ADR. Vale la pena anotarlo porque el
+  criterio funcionó **como red, no como trámite** — la spec ya estaba escrita y aprobada
+  cuando saltó, y aun así movió la carpeta en vez de mirar hacia otro lado.
   ⚠️ **No adelanta a EPIC-004** (R-M4): EPIC-004 sigue siendo lo único que separa el
   producto de su primer usuario real. Si esta mejora entra antes es porque es barata y
   toca esa misma pantalla, no porque haya cambiado la prioridad.

@@ -970,3 +970,633 @@ export async function inyectarBloqueAncho(
     await page.evaluate((marca) => document.querySelector(`.${marca}`)?.remove(), marca);
   };
 }
+
+/* ────────────────────────────────────────────────────────────────────────────
+   M5 — el área táctil (SPEC-054, ADR-034 §6)
+   ──────────────────────────────────────────────────────────────────────────── */
+
+/**
+ * El suelo de área táctil del producto, en px CSS.
+ *
+ * **La fuente, citada con precisión, que es la mitad del valor de escribirlo:** 44 × 44
+ * es **WCAG 2.2 SC 2.5.5 *Target Size (Enhanced)*, nivel AAA**, y coincide con los 44 pt
+ * de las *Apple Human Interface Guidelines*. El mínimo de **nivel AA** es
+ * **SC 2.5.8 *Target Size (Minimum)*, 24 × 24 px**; Material Design pide 48 dp. El
+ * proyecto adopta **44 y no 24** porque lo pidió el humano y porque la superficie es un
+ * teléfono sostenido con una mano mientras se mira un precio — pero se adopta **sabiendo
+ * que es el listón AAA**, no vendiendo un AAA como si fuera el mínimo legal (ADR-034 §6).
+ *
+ * ⚠️ **Bajarlo hasta que la suite pase es `F-ADR-026-1` cumpliéndose por escrito.** La
+ * salida legítima ante un control que no llega es **agrandarlo**, y si dos de 44 no caben
+ * en una línea, **apilarlos** — nunca encogerlos ni esconderlos (ADR-026 §4).
+ */
+export const SUELO_TACTIL_PX = 44;
+
+/**
+ * Qué cuenta como control interactivo, tal y como lo enumera ADR-034 §6.
+ *
+ * Es una lista de **elementos**, no de clases: una medida que preguntara por `.btn` se
+ * quedaría ciega el día que alguien pinte un control con otra clase, que es justo el modo
+ * de fallo que ADR-026 existe para acabar.
+ */
+export const SELECTOR_INTERACTIVO =
+  'a[href], button, input, select, textarea, [role="button"], summary';
+
+/** Un control medido por M5, con su caja ya ampliada por pseudoelementos si los tiene. */
+export interface ControlTactil {
+  /** `tag.clase[data-testid]`, suficiente para ir al sitio sin buscar. */
+  selector: string;
+  /** El rótulo visible o el nombre accesible, recortado: para leer el fallo sin abrir nada. */
+  rotulo: string;
+  ancho: number;
+  alto: number;
+  top: number;
+  left: number;
+  right: number;
+  bottom: number;
+  /** `true` si un `::before`/`::after` absoluto amplió la caja que se juzga. */
+  ampliadoPorPseudo: boolean;
+}
+
+/** Dos controles cuyas dianas se pisan: no son dos dianas, es una zona ambigua. */
+export interface SolapeTactil {
+  a: string;
+  b: string;
+  ancho: number;
+  alto: number;
+}
+
+export interface MedidaM5 {
+  /** El suelo con el que se juzgó. Se devuelve para que el informe lo diga. */
+  suelo: number;
+  ventana: number;
+  /** Cuántos controles se llegaron a medir. Si es 0, la medida no midió nada. */
+  medidos: number;
+  /** Los que no llegan al suelo en alguno de los dos ejes, de peor a mejor. */
+  pequenos: ControlTactil[];
+  /** Los pares que se pisan. */
+  solapes: SolapeTactil[];
+  /** Constancia de que ESTOS elementos entraron en la medida (misma idea que M1). */
+  testigos: string[];
+}
+
+/**
+ * **M5 — el área táctil.** La quinta medida de la geometría del proyecto y la primera que
+ * pregunta *«¿se puede pulsar?»*.
+ *
+ * ## Por qué existe (ADR-026 §2, ejercido por segunda vez)
+ *
+ * M1, M2 y M3 preguntan *«¿cabe a lo ancho?»*; M4 pregunta *«¿lo ve quien acaba de
+ * pulsar?»*. **Ninguna pregunta si el dedo llega.** Y el árbol daba un número concreto el
+ * día que esta medida nació: `.btn-sm` era `padding: 8px 14px` con `font: 600 13px/1`, o
+ * sea **≈31 px de alto**, en las dos acciones de cada fila de `/vigiladas` y en el botón
+ * de dirección del orden — con la suite entera en verde (ADR-034 §6, R-1 de EPIC-007).
+ *
+ * ## La forma, tal y como la fija ADR-034 §6
+ *
+ * > Por debajo del breakpoint de modo, todo elemento interactivo visible (`a[href]`,
+ * > `button`, `input`, `select`, `textarea`, `[role="button"]`, `summary`) tiene una caja
+ * > de al menos **44 × 44 px CSS**, contando el área ampliada por pseudoelementos si la
+ * > hay, y **no se solapa** con la de otro control.
+ *
+ * **Las dos mitades hacen falta.** Sin la del solape, dos dianas de 44 px que se pisan
+ * pasarían la medida, y para el dedo eso no son dos dianas: es una zona en la que no se
+ * sabe qué se está pulsando.
+ *
+ * ## El área ampliada por pseudoelemento, y hasta dónde llega esta medida
+ *
+ * Agrandar la diana sin engordar la caja visible es una técnica legítima y muy usada: un
+ * `::after` con `position: absolute` e `inset` negativos. Los pseudoelementos **no están
+ * en el DOM**, así que no tienen `getBoundingClientRect()`; lo que sí se puede leer es su
+ * estilo computado. Esta medida cubre **ese idioma y sólo ése**: pseudoelemento con
+ * `content` distinto de `none`, `position: absolute|fixed`, y desplazamientos en px que
+ * amplían la caja del control. Cualquier otra forma de ampliar la diana (una capa
+ * hermana, un `padding` en un envoltorio) queda fuera y se vería como control pequeño —
+ * lo cual es **el lado seguro** del error: la medida se queja de más, no de menos.
+ *
+ * ## M5 es complementaria, nunca sustituta
+ *
+ * Un control de 44 × 44 también tiene que **caber** a lo ancho (M1) y **no partir su
+ * rótulo** (M3). ADR-034 §6 lo dice y conviene repetirlo aquí: M5 mide la caja, M3 mide
+ * el rótulo, y un botón puede pasar la primera y fallar la segunda.
+ *
+ * @param opciones.raices      dónde buscar controles. Por defecto, la app entera (`RAICES`).
+ * @param opciones.selector    qué cuenta como control. Por defecto, `SELECTOR_INTERACTIVO`.
+ * @param opciones.suelo       el umbral. Por defecto `SUELO_TACTIL_PX`; no se afloja por guardia.
+ * @param opciones.exclusiones las de M1, si quien mide se las pasa. M5 no estrena lista propia.
+ * @param opciones.testigos    selector de los controles cuya medida hay que poder demostrar.
+ */
+export async function medirAreaTactil(
+  page: Page,
+  opciones: {
+    raices?: string;
+    selector?: string;
+    suelo?: number;
+    exclusiones?: readonly Exclusion[];
+    testigos?: string;
+  } = {},
+): Promise<MedidaM5> {
+  const raices = opciones.raices ?? RAICES;
+  const selector = opciones.selector ?? SELECTOR_INTERACTIVO;
+  const suelo = opciones.suelo ?? SUELO_TACTIL_PX;
+  const exclusiones = selectorDeExclusiones(opciones.exclusiones ?? []);
+  const testigos = opciones.testigos ?? null;
+
+  return page.evaluate(
+    ({ raices, selector, suelo, exclusiones, testigos, tolerancia }) => {
+      const nombrar = (el: Element) => {
+        const clases = [...el.classList].slice(0, 2).join('.');
+        const testid = el.getAttribute('data-testid');
+        return (
+          el.tagName.toLowerCase() +
+          (clases ? `.${clases}` : '') +
+          (testid ? `[data-testid="${testid}"]` : '')
+        );
+      };
+
+      /** El rótulo con el que una persona reconoce el control en el mensaje de fallo. */
+      const rotular = (el: Element) => {
+        const propio = (el.textContent ?? '').trim().replace(/\s+/g, ' ');
+        const alterno =
+          el.getAttribute('aria-label') ??
+          el.getAttribute('title') ??
+          (el as HTMLInputElement).value ??
+          (el as HTMLInputElement).placeholder ??
+          '';
+        return (propio !== '' ? propio : alterno).slice(0, 40);
+      };
+
+      /**
+       * La caja del control, ampliada por sus pseudoelementos si los usa para agrandar la
+       * diana. Un desplazamiento NEGATIVO de un pseudo absoluto es área que se gana.
+       */
+      const cajaTactil = (el: Element) => {
+        const r = el.getBoundingClientRect();
+        let top = r.top;
+        let left = r.left;
+        let right = r.right;
+        let bottom = r.bottom;
+        let ampliado = false;
+        for (const pseudo of ['::before', '::after']) {
+          const s = getComputedStyle(el, pseudo);
+          if (s.content === 'none' || s.content === '') continue;
+          if (s.position !== 'absolute' && s.position !== 'fixed') continue;
+          const px = (v: string) => (v.endsWith('px') ? parseFloat(v) : Number.NaN);
+          const [t, d, b, i] = [s.top, s.right, s.bottom, s.left].map(px);
+          if ([t, d, b, i].some((n) => Number.isNaN(n))) continue;
+          // `inset` se mide DESDE el borde del contenedor hacia dentro: negativo = fuera.
+          const nt = r.top + t;
+          const ni = r.left + i;
+          const nd = r.right - d;
+          const nb = r.bottom - b;
+          if (nt < top || ni < left || nd > right || nb > bottom) ampliado = true;
+          top = Math.min(top, nt);
+          left = Math.min(left, ni);
+          right = Math.max(right, nd);
+          bottom = Math.max(bottom, nb);
+        }
+        return { top, left, right, bottom, ancho: right - left, alto: bottom - top, ampliado };
+      };
+
+      const ventana = document.documentElement.clientWidth;
+      const medidos: {
+        selector: string;
+        rotulo: string;
+        ancho: number;
+        alto: number;
+        top: number;
+        left: number;
+        right: number;
+        bottom: number;
+        ampliadoPorPseudo: boolean;
+      }[] = [];
+      const vistosTestigo: string[] = [];
+      const vistos = new Set<Element>();
+
+      for (const raiz of document.querySelectorAll(raices)) {
+        const candidatos = [
+          ...(raiz.matches(selector) ? [raiz] : []),
+          ...raiz.querySelectorAll(selector),
+        ];
+        for (const el of candidatos) {
+          if (vistos.has(el)) continue;
+          vistos.add(el);
+          if (exclusiones && el.closest(exclusiones)) continue;
+          const c = cajaTactil(el);
+          // Invisible: ni ocupa ni se ve. No es una diana (misma regla que M1).
+          if (c.ancho === 0 && c.alto === 0) continue;
+          // `display: none` en un ancestro deja caja 0×0, pero `visibility: hidden` no:
+          // se pregunta a la plataforma, que es quien sabe si el control se pinta.
+          if (typeof el.checkVisibility === 'function' && !el.checkVisibility()) continue;
+          if (testigos && el.matches(testigos)) vistosTestigo.push(nombrar(el));
+          medidos.push({
+            selector: nombrar(el),
+            rotulo: rotular(el),
+            ancho: c.ancho,
+            alto: c.alto,
+            top: c.top,
+            left: c.left,
+            right: c.right,
+            bottom: c.bottom,
+            ampliadoPorPseudo: c.ampliado,
+          });
+        }
+      }
+
+      const pequenos = medidos
+        .filter((m) => m.ancho < suelo - tolerancia || m.alto < suelo - tolerancia)
+        .sort((a, b) => Math.min(a.ancho, a.alto) - Math.min(b.ancho, b.alto));
+
+      const solapes: { a: string; b: string; ancho: number; alto: number }[] = [];
+      for (let i = 0; i < medidos.length; i++) {
+        for (let j = i + 1; j < medidos.length; j++) {
+          const a = medidos[i];
+          const b = medidos[j];
+          const ancho = Math.min(a.right, b.right) - Math.max(a.left, b.left);
+          const alto = Math.min(a.bottom, b.bottom) - Math.max(a.top, b.top);
+          if (ancho > tolerancia && alto > tolerancia) {
+            solapes.push({
+              a: `${a.selector} «${a.rotulo}»`,
+              b: `${b.selector} «${b.rotulo}»`,
+              ancho,
+              alto,
+            });
+          }
+        }
+      }
+
+      return {
+        suelo,
+        ventana,
+        medidos: medidos.length,
+        pequenos,
+        solapes,
+        testigos: vistosTestigo,
+      };
+    },
+    { raices, selector, suelo, exclusiones, testigos, tolerancia: TOLERANCIA_PX },
+  );
+}
+
+/** El relato de M5, **con las cifras**: lo que se pega en un fallo o en `_qa/`. */
+export const describirAreaTactil = (m: MedidaM5): string =>
+  `suelo ${m.suelo}x${m.suelo} · controles medidos=${m.medidos} · por debajo=` +
+  `${m.pequenos.length} · solapes=${m.solapes.length}` +
+  (m.pequenos.length > 0
+    ? `\n${m.pequenos
+        .slice(0, 10)
+        .map(
+          (c) =>
+            `  ${c.selector} «${c.rotulo}»: ${Math.round(c.ancho)}x${Math.round(c.alto)}` +
+            (c.ampliadoPorPseudo ? ' (ampliado por pseudoelemento)' : ''),
+        )
+        .join('\n')}`
+    : '') +
+  (m.solapes.length > 0
+    ? `\n${m.solapes
+        .slice(0, 5)
+        .map((s) => `  se pisan ${s.a} y ${s.b} en ${Math.round(s.ancho)}x${Math.round(s.alto)} px`)
+        .join('\n')}`
+    : '');
+
+/**
+ * **El defecto de M5, escrito como CSS que lo devuelve** (ADR-026 §7).
+ *
+ * No es «un CSS cualquiera que encoja algo»: es la caja que `.btn-sm` tenía el día que la
+ * medida nació —`padding: 8px 14px` con `font: 600 13px/1`, ≈31 px de alto— llevada un
+ * paso más allá para que el fallo sea inequívoco. `.btn-sm` es la clase de los tres
+ * controles que nacieron rojos: *Editar*, *Quitar* y el botón de dirección del orden.
+ *
+ * Va sin `!important` a propósito: entra como `<style>` al final del `<head>`, así que le
+ * basta el orden de fuente para ganar a una regla de la misma especificidad. Si el arreglo
+ * que se prueba subiera la especificidad —`.tarjeta-pie .btn-sm`— o pusiera un
+ * `min-height`, esta reinyección dejaría de reproducir el defecto **y la prueba de
+ * eficacia lo diría**, que es exactamente para lo que está.
+ */
+export const DEFECTO_AREA_TACTIL = `.btn-sm { padding: 2px 6px; font-size: 10px }`;
+
+/* ────────────────────────────────────────────────────────────────────────────
+   Contenedores de desplazamiento y overflow declarado (SPEC-054 CA-4, CA-21)
+   ──────────────────────────────────────────────────────────────────────────── */
+
+export interface ContenedorDeDesplazamiento {
+  selector: string;
+  overflowX: string;
+  /** Lo que el contenedor ocupa a lo ancho por dentro. */
+  contenido: number;
+  /** Lo que se ve de él. */
+  visible: number;
+  /** `overflow-x` declarado (`auto`/`scroll`) **y** desplazado de verdad: hay que arrastrar. */
+  hayQueArrastrar: boolean;
+}
+
+/**
+ * **El inventario de `overflow-x` de una pantalla**, elemento a elemento.
+ *
+ * Responde a dos preguntas que ni M1 ni M2 responden y que SPEC-054 necesita afirmar:
+ *
+ *  - *«¿queda algún contenedor que arrastrar?»* (CA-4). La promesa del patrón de tarjetas
+ *    es que en un teléfono **no se arrastra nada**. M1 no lo ve: un contenedor con
+ *    desplazamiento declarado es la **segunda salida legítima** de ADR-026 §4 y M1 exime
+ *    su subárbol precisamente por eso. Que exista no es un defecto en general; que exista
+ *    en móvil **después de esta spec** sí lo es, y hay que preguntarlo aparte.
+ *  - *«¿ha aparecido un `overflow: hidden` nuevo?»* (CA-21). ADR-026 §4 dice que recortar
+ *    **no es un arreglo**, y el mal ejemplo está en casa: `design/tremen-ds/responsive.css`
+ *    resuelve su paso a móvil con `html, body { overflow-x: hidden }`, que la app carga.
+ *    Como el recorte no mueve ninguna otra cifra, la única forma de vigilarlo es
+ *    **listarlo**.
+ *
+ * Recorre desde `<html>` a propósito —no desde `RAICES`— porque los dos que el proyecto
+ * acepta heredados son justamente `html` y `body`, y una lista que no los enseñe no se
+ * puede comparar con la lista de los que se aceptan.
+ */
+export async function medirOverflowHorizontal(page: Page): Promise<ContenedorDeDesplazamiento[]> {
+  return page.evaluate((tolerancia) => {
+    const nombrar = (el: Element) => {
+      const clases = [...el.classList].slice(0, 2).join('.');
+      const testid = el.getAttribute('data-testid');
+      return (
+        el.tagName.toLowerCase() +
+        (clases ? `.${clases}` : '') +
+        (testid ? `[data-testid="${testid}"]` : '')
+      );
+    };
+    const salida: {
+      selector: string;
+      overflowX: string;
+      contenido: number;
+      visible: number;
+      hayQueArrastrar: boolean;
+    }[] = [];
+    // `querySelectorAll('*')` ya devuelve `<html>`, así que se recorre con un `Set`: sin
+    // esto el documento aparecía DOS veces en el inventario y quien lo compara con una
+    // lista de elementos aceptados veía un duplicado que no existe.
+    const vistos = new Set<Element>([document.documentElement, ...document.querySelectorAll('*')]);
+    for (const el of vistos) {
+      const ox = getComputedStyle(el).overflowX;
+      if (ox === 'visible') continue;
+      const declarado = ox === 'auto' || ox === 'scroll';
+      salida.push({
+        selector: nombrar(el),
+        overflowX: ox,
+        contenido: el.scrollWidth,
+        visible: el.clientWidth,
+        hayQueArrastrar: declarado && el.scrollWidth > el.clientWidth + tolerancia,
+      });
+    }
+    return salida;
+  }, TOLERANCIA_PX);
+}
+
+/* ────────────────────────────────────────────────────────────────────────────
+   Presencia, cajas y suelos tipográficos (SPEC-054 CA-1, CA-3, CA-14, CA-20)
+   ──────────────────────────────────────────────────────────────────────────── */
+
+export interface Presencia {
+  selector: string;
+  /** Cuántos elementos casan el selector. `0` = no está en el DOM. */
+  existe: number;
+  /** El `display` computado del primero. Cadena vacía si no existe. */
+  display: string;
+  /**
+   * Si la plataforma lo considera pintado (`Element.checkVisibility()`), que es lo mismo
+   * que decir **si está en el árbol de accesibilidad** por la vía de `display: none`.
+   */
+  enElArbol: boolean;
+  ancho: number;
+  alto: number;
+}
+
+/**
+ * **Qué representación está viva a este ancho** (SPEC-054 CA-1, ADR-034 §3).
+ *
+ * La conmutación de modo se afirma por el `display` computado y por si la plataforma
+ * considera el elemento pintado, no por una captura: `display: none` es lo que retira del
+ * árbol de accesibilidad y lo que deja la caja a 0 × 0 para que M1 la salte.
+ */
+export async function medirPresencia(page: Page, selectores: string[]): Promise<Presencia[]> {
+  return page.evaluate((selectores) => {
+    return selectores.map((selector) => {
+      const todos = document.querySelectorAll(selector);
+      const el = todos[0] ?? null;
+      if (!el) {
+        return { selector, existe: 0, display: '', enElArbol: false, ancho: 0, alto: 0 };
+      }
+      const r = el.getBoundingClientRect();
+      return {
+        selector,
+        existe: todos.length,
+        display: getComputedStyle(el).display,
+        enElArbol: typeof el.checkVisibility === 'function' ? el.checkVisibility() : r.width > 0,
+        ancho: r.width,
+        alto: r.height,
+      };
+    });
+  }, selectores);
+}
+
+export interface CajaMedida {
+  selector: string;
+  texto: string;
+  top: number;
+  left: number;
+  right: number;
+  bottom: number;
+  ancho: number;
+  alto: number;
+}
+
+/**
+ * Las cajas de todo lo que casa un selector, en coordenadas de ventana.
+ *
+ * Es el primitivo con el que una guardia afirma **relaciones** entre cajas —«estas dos
+ * están en la misma línea», «ésta empieza por debajo de aquélla», «las dos miden lo
+ * mismo»— sin escribirse su propia lectura del DOM. La medida es de aquí; **qué** se
+ * afirma con ella es de cada guardia (ADR-026 §2).
+ */
+export async function medirCajas(page: Page, selector: string): Promise<CajaMedida[]> {
+  return page.evaluate((selector) => {
+    return [...document.querySelectorAll(selector)].map((el) => {
+      const r = el.getBoundingClientRect();
+      const clases = [...el.classList].slice(0, 2).join('.');
+      const testid = el.getAttribute('data-testid');
+      return {
+        selector:
+          el.tagName.toLowerCase() +
+          (clases ? `.${clases}` : '') +
+          (testid ? `[data-testid="${testid}"]` : ''),
+        texto: (el.textContent ?? '').trim().replace(/\s+/g, ' ').slice(0, 40),
+        top: r.top,
+        left: r.left,
+        right: r.right,
+        bottom: r.bottom,
+        ancho: r.width,
+        alto: r.height,
+      };
+    });
+  }, selector);
+}
+
+export interface TextoConTamano {
+  selector: string;
+  texto: string;
+  tamano: number;
+}
+
+export interface MedidaTipografia {
+  /** Todo `input`/`select`/`textarea` visible, con su `font-size` computado. */
+  controles: TextoConTamano[];
+  /** Todo elemento visible con texto propio, con su `font-size` computado. */
+  textos: TextoConTamano[];
+}
+
+/**
+ * **Los dos suelos de legibilidad** (SPEC-054 CA-14, ADR-034 §7).
+ *
+ *  - **16 px en los controles de formulario.** No es estética: por debajo de 16 px,
+ *    Safari en iOS **amplía la página al enfocar el campo** y no la devuelve. Es un
+ *    defecto de interacción con causa conocida y umbral exacto.
+ *  - **12 px en cualquier texto.** Es el suelo que el proyecto **ya tiene**
+ *    (`.quote-fail`/`.quote-pending`/`.quote-stale`) y esta medida lo **congela, no lo
+ *    sube**: subirlo obligaría a rehacer una caja que SPEC-016 y SPEC-043 afinaron a
+ *    `34ch`. WCAG **no fija un tamaño mínimo de fuente** —lo que fija es SC 1.4.4 *Resize
+ *    Text* (AA)— y decir lo contrario sería inventarse una norma.
+ *
+ * Se mide el elemento que **contiene el nodo de texto**, no cualquier ancestro: el
+ * `font-size` que importa es el que se hereda hasta donde el texto se pinta.
+ */
+export async function medirSuelosTipograficos(
+  page: Page,
+  opciones: { raices?: string } = {},
+): Promise<MedidaTipografia> {
+  const raices = opciones.raices ?? RAICES;
+  return page.evaluate((raices) => {
+    const nombrar = (el: Element) => {
+      const clases = [...el.classList].slice(0, 2).join('.');
+      const testid = el.getAttribute('data-testid');
+      return (
+        el.tagName.toLowerCase() +
+        (clases ? `.${clases}` : '') +
+        (testid ? `[data-testid="${testid}"]` : '')
+      );
+    };
+    const pintado = (el: Element) => {
+      const r = el.getBoundingClientRect();
+      if (r.width === 0 && r.height === 0) return false;
+      return typeof el.checkVisibility === 'function' ? el.checkVisibility() : true;
+    };
+
+    const controles: { selector: string; texto: string; tamano: number }[] = [];
+    const textos: { selector: string; texto: string; tamano: number }[] = [];
+    const vistos = new Set<Element>();
+
+    for (const raiz of document.querySelectorAll(raices)) {
+      for (const el of [raiz, ...raiz.querySelectorAll('*')]) {
+        if (vistos.has(el)) continue;
+        vistos.add(el);
+        if (!pintado(el)) continue;
+        const tamano = parseFloat(getComputedStyle(el).fontSize || '0');
+
+        if (el.matches('input, select, textarea')) {
+          const v = el as HTMLInputElement;
+          controles.push({
+            selector: nombrar(el),
+            texto: (v.name || v.type || '').slice(0, 40),
+            tamano,
+          });
+        }
+
+        // Sólo el elemento que contiene DIRECTAMENTE texto no vacío: el `font-size` que
+        // se juzga es el del sitio donde el texto se pinta, no el de cualquier ancestro.
+        const propio = [...el.childNodes]
+          .filter((n) => n.nodeType === 3)
+          .map((n) => (n.textContent ?? '').trim())
+          .filter((t) => t !== '')
+          .join(' ');
+        if (propio !== '') {
+          textos.push({ selector: nombrar(el), texto: propio.slice(0, 40), tamano });
+        }
+      }
+    }
+    return { controles, textos };
+  }, raices);
+}
+
+/**
+ * **El breakpoint de MODO del producto**, en px CSS (ADR-034 §1).
+ *
+ * Por debajo, la tabla de datos se presenta como tarjetas; por encima, como tabla. Es el
+ * **único** ancho de todo el árbol que puede hacer aparecer o desaparecer una
+ * representación: 599/600 (el reparto de `.cards`) y 380 (el apretón tipográfico del
+ * sistema de diseño) son de DENSIDAD y no hacen aparecer ni desaparecer nada.
+ *
+ * Vive aquí, junto a `ANCHOS`, porque es **del proyecto y no de una spec**: la spec 2 de
+ * EPIC-007 (la navegación) y la 3 (el resto de rutas) lo heredan sin volver a decidirlo, y
+ * el día que alguien quiera moverlo tendrá que hacerlo en un sitio donde se ve.
+ *
+ * La otra cara del mismo canto es `min-width: 721px`, y así lo escribe ADR-034 §1: son
+ * **un** breakpoint mirado desde sus dos lados, no dos.
+ */
+export const BREAKPOINT_MODO_PX = 720;
+
+/** Los anchos medidos en los que manda la representación de tarjetas. */
+export const ANCHOS_TARJETA = ANCHOS.filter((a) => a <= BREAKPOINT_MODO_PX);
+
+/** Los anchos medidos en los que manda la tabla. */
+export const ANCHOS_TABLA = ANCHOS.filter((a) => a > BREAKPOINT_MODO_PX);
+
+/**
+ * Los dos anchos de **teléfono** del proyecto: 360 (Android pequeño, iPhone SE) y 390.
+ *
+ * Se derivan de `ANCHOS` en vez de escribirse, para que el día que el suelo del proyecto
+ * cambie no queden dos listas diciendo cosas distintas. El corte en 400 no es un
+ * breakpoint del producto: es «esto es un teléfono en una mano» frente a «esto es una
+ * tablet o una ventana estrecha».
+ */
+export const ANCHOS_TELEFONO = ANCHOS.filter((a) => a < 400);
+
+export interface PropiedadesComputadas {
+  selector: string;
+  texto: string;
+  props: Record<string, string>;
+}
+
+/**
+ * Las propiedades computadas que se le pidan, de todo lo que casa un selector.
+ *
+ * Es el hermano de `medirCajas`: un **primitivo de lectura**, no una medida con criterio.
+ * Existe para que una guardia pueda afirmar cosas como «el fondo de la tarjeta es el mismo
+ * color que el de su fila», «el aviso conserva su caja de `34ch`» o «ninguna propiedad
+ * reordena nada dentro de la tarjeta» **sin escribirse su propio `getComputedStyle`** en
+ * cada fichero — que es exactamente como se degradaron las cuatro guardias que ADR-026
+ * vino a unificar. Qué se lee lo dice quien mide; **cómo** se lee, este módulo.
+ *
+ * Se pide por nombre de propiedad en camelCase (`backgroundColor`, `maxWidth`,
+ * `gridRowStart`), que es como las nombra `CSSStyleDeclaration`.
+ */
+export async function medirPropiedadesComputadas(
+  page: Page,
+  selector: string,
+  propiedades: readonly string[],
+): Promise<PropiedadesComputadas[]> {
+  return page.evaluate(
+    ({ selector, propiedades }) => {
+      return [...document.querySelectorAll(selector)].map((el) => {
+        const s = getComputedStyle(el);
+        const clases = [...el.classList].slice(0, 2).join('.');
+        const testid = el.getAttribute('data-testid');
+        const props: Record<string, string> = {};
+        for (const p of propiedades) props[p] = s.getPropertyValue(p) || String(s[p as never] ?? '');
+        return {
+          selector:
+            el.tagName.toLowerCase() +
+            (clases ? `.${clases}` : '') +
+            (testid ? `[data-testid="${testid}"]` : ''),
+          texto: (el.textContent ?? '').trim().replace(/\s+/g, ' ').slice(0, 60),
+          props,
+        };
+      });
+    },
+    { selector, propiedades: [...propiedades] },
+  );
+}

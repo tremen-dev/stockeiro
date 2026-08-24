@@ -136,8 +136,10 @@ export function listaLarga(n: number): FilaSembrada[] {
  * La medida vive en el módulo (`medirFondoDeLista`, ADR-030 §4): aquí sólo se dice cuál
  * es la lista de esta pantalla.
  */
-export const medirPrecondicion = (page: Page): Promise<MedidaFondoDeLista> =>
-  medirFondoDeLista(page, { lista: 'table.data-table', elementos: 'tbody tr' });
+export const medirPrecondicion = async (page: Page): Promise<MedidaFondoDeLista> =>
+  (await page.locator('table.data-table').isVisible())
+    ? medirFondoDeLista(page, { lista: 'table.data-table', elementos: 'tbody tr' })
+    : medirFondoDeLista(page, { lista: LISTA_DE_TARJETAS, elementos: ':scope > li' });
 
 /**
  * **CA-11 afirmada.** El fondo de la tabla queda por debajo del pliegue, o el test falla
@@ -187,20 +189,47 @@ export async function derivarListaLarga(page: Page): Promise<number> {
    Gestos y localizadores
    ──────────────────────────────────────────────────────────────────────────── */
 
-export const filas = (page: Page) => page.locator('table.data-table tbody tr');
+/*
+  ── ADAPTACIÓN DE SPEC-054 (dónde MIRAN estos localizadores, no qué exigen) ──────────
+
+  Desde SPEC-054 / ADR-034 §3, `/vigiladas` monta la fila **dos veces** —`<table>` y `<ul>`
+  de tarjetas— y el `@media` de 720 px apaga la que no toca con `display: none`. Las
+  guardias de SPEC-046 recorren los **ocho anchos** del proyecto, así que a 360, 390, 640 y
+  700 px la representación viva ya no es la tabla: es la lista de tarjetas.
+
+  Lo que SPEC-046 vigila no cambia ni un ápice —M4 sobre la capa de edición, la
+  precondición de lista larga, las tres posiciones, el foco que vuelve— y **ni una de sus
+  aserciones se toca**. Lo único que cambia es a qué apuntan estos localizadores: a **la
+  representación que está viva a este ancho**, que es la que el usuario tiene delante. Un
+  localizador clavado en la tabla mediría, por debajo del canto, un árbol que nadie ve.
+
+  Las asas de prueba del árbol de tarjetas llevan sufijo a propósito (`editar-zonas-tarjeta`
+  y no `editar-zonas`): hay guardias que cuentan a nivel de página y un asa repetida las
+  rompería por duplicado sin que exista ningún defecto.
+*/
+const FILAS_DE_LA_TABLA = 'table.data-table tbody tr';
+const LISTA_DE_TARJETAS = 'ul[data-testid="tarjetas-vigiladas"]';
+const TARJETAS = `${LISTA_DE_TARJETAS} > li`;
+const EDITAR = '[data-testid="editar-zonas"], [data-testid="editar-zonas-tarjeta"]';
+const MERCADO = '[data-testid="row-market"], [data-testid="row-market-tarjeta"]';
+
+/** Las filas de la representación **viva** a este ancho: `<tr>` o tarjeta. */
+export const filas = (page: Page) =>
+  page.locator(`${FILAS_DE_LA_TABLA}, ${TARJETAS}`).filter({ visible: true });
+
 export const capa = (page: Page) => page.getByTestId('editar-panel');
 export const formEdicion = (page: Page) => page.getByTestId('editar-form');
 export const cadencia = (page: Page) => page.getByTestId('edicion-cadencia');
 
 /** El control *Editar* de la fila que ocupa la posición `i` **en pantalla**. */
 export const editarEnFila = (page: Page, i: number): Locator =>
-  filas(page).nth(i).getByTestId('editar-zonas');
+  filas(page).nth(i).locator(EDITAR);
 
 /** La fila de `TICKER_DUAL` en el mercado indicado: dos filas, un ticker (ADR-007). */
 export const filaDual = (page: Page, mercado: 'BME' | 'NYSE'): Locator =>
   filas(page)
     .filter({ hasText: TICKER_DUAL })
-    .filter({ has: page.getByTestId('row-market').filter({ hasText: mercado }) });
+    .filter({ has: page.locator(MERCADO).filter({ hasText: mercado }) });
 
 /** Las tres posiciones que ADR-030 §4 exige medir: cada una mata un error distinto. */
 export interface Posicion {

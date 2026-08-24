@@ -1,0 +1,5 @@
+SPEC-054 CA-15 — los avisos, enteros y dentro de su caja
+/vigiladas · ancho 360 · 3 avisos, max-width=100%/270.504px · líneas=2,2,1
+/vigiladas · ancho 390 · 3 avisos, max-width=100%/270.504px · líneas=2,2,1
+/cartera · ancho 360 · 2 avisos, max-width=244.8px · líneas=3,2
+/cartera · ancho 390 · 2 avisos, max-width=244.8px · líneas=3,2

@@ -1,0 +1,9 @@
+SPEC-054 CA-3 — una tarjeta por fila y una sola columna
+/vigiladas · ancho 360 · 7 tarjetas, una columna, alto medio 313 px
+/vigiladas · ancho 390 · 7 tarjetas, una columna, alto medio 313 px
+/vigiladas · ancho 640 · 7 tarjetas, una columna, alto medio 313 px
+/vigiladas · ancho 700 · 7 tarjetas, una columna, alto medio 313 px
+/cartera · ancho 360 · 5 tarjetas, una columna, alto medio 170 px
+/cartera · ancho 390 · 5 tarjetas, una columna, alto medio 170 px
+/cartera · ancho 640 · 5 tarjetas, una columna, alto medio 170 px
+/cartera · ancho 700 · 5 tarjetas, una columna, alto medio 170 px

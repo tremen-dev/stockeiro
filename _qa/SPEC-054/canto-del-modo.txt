@@ -1,0 +1,5 @@
+SPEC-054 CA-2 — el canto, medido a los dos lados
+/vigiladas · ancho 720 · viva=tarjetas (esperada tarjetas)
+/vigiladas · ancho 721 · viva=tabla (esperada tabla)
+/cartera · ancho 720 · viva=tarjetas (esperada tarjetas)
+/cartera · ancho 721 · viva=tabla (esperada tabla)

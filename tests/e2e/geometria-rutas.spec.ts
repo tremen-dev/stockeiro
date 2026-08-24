@@ -2,6 +2,7 @@ import { mkdirSync, writeFileSync } from 'node:fs';
 import { test, expect, type Page } from '@playwright/test';
 import {
   ANCHOS,
+  ANCHOS_TABLA,
   TOLERANCIA_PX,
   describirDesborde,
   describirViolaciones,
@@ -16,6 +17,10 @@ import {
   asegurarVigilada,
   entrar,
 } from './spec040';
+import { RUTAS_CON_POSICIONES, RUTAS_CON_SESION, RUTAS_PUBLICAS } from './rutas';
+// SPEC-054 CA-11: `/cartera` con posiciones. El escenario lo monta quien lo tiene —esta
+// guardia no siembra carteras— y de ahí salen también las cifras de `_qa/SPEC-054/`.
+import { PANTALLAS, SELECTOR_TABLA, SHOTS as SHOTS_054, prepararCuenta } from './spec054';
 
 /**
  * SPEC-040 CA-3, CA-4, CA-5 y CA-11 — **la geometría de las rutas que alcanza un
@@ -45,11 +50,13 @@ import {
  * se va fuera de la pantalla dentro de un contenedor recortado.
  */
 
-/** Lo primero que ve alguien que llega del foro. Sin cookie de sesión. */
-const RUTAS_PUBLICAS = ['/', '/ayuda', '/legal', '/login', '/register'] as const;
-
-/** Lo que alcanza un tester una vez dentro (CE-2 de EPIC-004: ni Cartera ni Importar). */
-const RUTAS_CON_SESION = ['/dashboard', '/vigiladas', '/avisos', '/cuenta'] as const;
+/*
+  Las tres listas de rutas viven en `./rutas.ts` desde SPEC-054 CA-11, y por un motivo:
+  para poder afirmarlas **sin arrancar el navegador**. Una lista escrita aquí dentro no se
+  puede importar desde un test unitario sin ejecutar de paso todos los `test()` de este
+  fichero, y CA-11 pide exactamente eso — un test que diga en rojo, y no en silencio, si
+  alguien retira `/cartera` del conjunto.
+*/
 
 async function recorrerAnchos(page: Page, ruta: string) {
   const medidas = [];
@@ -256,7 +263,23 @@ test.describe('SPEC-040 CA-5: la tabla se desplaza dentro de su caja, nunca la p
     await page.goto('/vigiladas');
     await page.locator('table.data-table').waitFor({ state: 'visible' });
 
-    for (const ancho of ANCHOS) {
+    /*
+      ── RE-ENCUADRE DE SPEC-054 (a qué anchos, no qué se exige) ──────────────────────
+
+      Este caso afirma que **la tabla sigue siendo legible**: que desplazándola dentro de
+      su caja se alcanza el control de la última columna. Desde SPEC-054 / ADR-034 §1, por
+      debajo de 720 px **no hay tabla** —`/vigiladas` se presenta como tarjetas y el
+      `<table>` está apagado con `display: none`, que lo retira del árbol de
+      accesibilidad—, así que `getByRole('button', { name: 'Quitar' })` no encuentra nada
+      que esperar. Medir ahí sería medir un árbol que nadie ve.
+
+      Se recorre el conjunto donde la premisa sigue siendo cierta: los anchos en los que la
+      tabla ES la representación viva. Y no se pierde nada por debajo del canto, al revés:
+      allí rige una afirmación **más fuerte** —SPEC-054 CA-4, «no queda ni un contenedor
+      que arrastrar»—, porque la pregunta «¿se alcanza la última columna arrastrando?» deja
+      de tener sentido cuando no hay nada que arrastrar.
+    */
+    for (const ancho of ANCHOS_TABLA) {
       await ponerVentana(page, ancho);
       const caja = page.locator('.table-scroll');
       await caja.evaluate((el) => {
@@ -318,4 +341,91 @@ test('SPEC-040 CA-11: capturas de los ocho anchos en _qa/SPEC-040', async ({ pag
       await page.screenshot({ path: `${SHOTS}/ancho-${ancho}-${nombre}.png`, fullPage: true });
     }
   }
+});
+
+/* ────────────────────────────────────────────────────────────────────────────
+   SPEC-054 CA-11 / ADR-034 §9 — `/cartera` entra en el conjunto de rutas medidas
+   ──────────────────────────────────────────────────────────────────────────── */
+
+/**
+ * Una de las dos tablas del producto **no se medía a ningún ancho**, y llevaba así desde
+ * SPEC-002. No era un hueco entre dos anchos medidos como el que descubrió SPEC-040: era
+ * la ausencia de la superficie entera, que es la misma lección de ADR-026 §3 en su versión
+ * de ruta.
+ *
+ * Se mide **con posiciones** a propósito: `/cartera` sin operaciones pinta el estado vacío,
+ * que es otra pantalla y no tiene tabla dentro. Medir la vacía sería medir el caso en el
+ * que el defecto no puede existir.
+ *
+ * Y se mide con las **tres** medidas horizontales, no sólo con M1: M2 caza el tramo
+ * 721–800 px, donde el `overflow-x: hidden` del sistema de diseño no está puesto para
+ * disimular nada, y M3 es la única que ve la «columna imposible» —el texto que se parte
+ * DENTRO de su caja— que ni M1 ni M2 pueden ver porque no desborda nada.
+ */
+test('SPEC-054 CA-11: /cartera con posiciones, M1 + M2 + M3 a los ocho anchos', async ({
+  page,
+}) => {
+  test.slow();
+  await prepararCuenta(page);
+
+  const cartera = PANTALLAS.find((p) => p.ruta === RUTAS_CON_POSICIONES[0]);
+  expect(cartera, `\`${RUTAS_CON_POSICIONES[0]}\` no está descrita en PANTALLAS`).toBeDefined();
+
+  await page.goto(RUTAS_CON_POSICIONES[0]);
+  await page.locator(SELECTOR_TABLA).waitFor({ state: 'visible' });
+  // La precondición: si la cuenta no tuviera posiciones, esto mediría el estado vacío.
+  await expect(
+    page.locator(`${SELECTOR_TABLA} tbody tr`),
+    'la cuenta de SPEC-054 no tiene posiciones en cartera: se estaría midiendo el estado ' +
+      'vacío, que es otra pantalla y no tiene tabla dentro',
+  ).toHaveCount(cartera!.filas);
+
+  const { informe } = await recorrerAnchos(page, RUTAS_CON_POSICIONES[0]);
+
+  // M3 sobre los rótulos de las DOS representaciones. A cada ancho hay una viva y otra
+  // con caja 0 × 0, así que se exige que se haya medido texto de verdad: si las dos
+  // estuvieran ocultas, «cero palabras partidas» no aprobaría nada.
+  const lineas: string[] = [];
+  for (const ancho of ANCHOS) {
+    await ponerVentana(page, ancho);
+    const textos = await medirIntegridadDePalabra(
+      page,
+      '.data-table th, .tarjeta-cabecera, .tarjeta-datos dt',
+      '.table-scroll, .tarjeta',
+    );
+    const pintados = textos.filter((t) => t.lineas > 0);
+    expect(
+      pintados.length,
+      `a ${ancho} px no se midió ni un rótulo de /cartera: o la tabla y las tarjetas están ` +
+        `ocultas las dos, o el selector dejó de casar y M3 aprueba en el vacío`,
+    ).toBeGreaterThan(0);
+    for (const t of pintados) {
+      lineas.push(
+        `ancho ${ancho} · ${t.selector} «${t.texto}»: palabras=${t.palabras} ` +
+          `lineas=${t.lineas} anchoLineaMax=${Math.round(t.anchoLineaMax)} ` +
+          `contenedor=${Math.round(t.anchoContenedor)}`,
+      );
+      expect(
+        t.lineas,
+        `a ${ancho} px el rótulo «${t.texto}» de /cartera ocupa ${t.lineas} líneas para ` +
+          `${t.palabras} palabra(s): se está partiendo DENTRO de una palabra («Ac / cio / ` +
+          `ne / s»), que es lo único que M3 ve y que ni M1 ni M2 pueden ver`,
+      ).toBeLessThanOrEqual(Math.max(1, t.palabras));
+    }
+  }
+
+  // La evidencia de este caso va bajo `_qa/SPEC-054/` y NO bajo `_qa/SPEC-040/`, aunque el
+  // caso viva en la guardia de SPEC-040: CA-19 acota lo que esta spec escribe a su propia
+  // carpeta, y `guardarMedidas` apunta a la de la spec dueña de este fichero.
+  mkdirSync(SHOTS_054, { recursive: true });
+  writeFileSync(
+    `${SHOTS_054}/medidas-cartera.txt`,
+    `SPEC-054 CA-11 — M1 + M2 sobre /cartera con posiciones, a los ocho anchos\n${informe}\n`,
+    'utf8',
+  );
+  writeFileSync(
+    `${SHOTS_054}/medidas-cartera-m3.txt`,
+    `SPEC-054 CA-11 — M3 sobre los rótulos de /cartera, a los ocho anchos\n${lineas.join('\n')}\n`,
+    'utf8',
+  );
 });

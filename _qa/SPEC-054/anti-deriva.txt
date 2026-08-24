@@ -1,0 +1,3 @@
+SPEC-054 CA-6 — la tarjeta dice todo lo que dice la fila
+/vigiladas: 9 <th> → 6 <dt> por tarjeta [Tipo · Mercado · Precio · A fecha · Zona compra · Zona venta] · 62 valores comparados en 7 filas
+/cartera: 5 <th> → 4 <dt> por tarjeta [Cantidad viva · Coste medio · P/L realizado · P/L actual] · 25 valores comparados en 5 filas
