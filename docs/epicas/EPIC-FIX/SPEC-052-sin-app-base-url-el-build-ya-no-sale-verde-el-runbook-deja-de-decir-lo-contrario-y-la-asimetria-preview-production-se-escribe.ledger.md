@@ -46,10 +46,10 @@ epica: EPIC-FIX
 | CA-1 — frase falsa fuera, y no vuelve por copia | `docs/despliegue.md` §0 (aviso de `APP_BASE_URL` reescrito) | `G` › *CA-1: la frase falsa desaparece, y no puede volver por copia* — **3 casos**, uno por entrada de la lista cerrada `AFIRMACIONES_RETIRADAS` (frase + fecha + motivo) | 3/3 verde. **Rojo reproducido por mí**: con `docs/despliegue.md` restaurado a `497eccf`, los tres casos caen | ✅ |
 | CA-2 — lo que dice en su lugar (build, PR #58, log literal) **+ (d) origen real → `stockeiro.tremen.dev`** | `docs/despliegue.md` §0, bloque 🚨 del aviso | `G` › *CA-2: lo que el aviso dice en su lugar* — **4 casos**: (a) build/`metadataBase`/layout/SPEC-051 · (b) `next build` + *el despliegue no llega a existir* · (c) 2026-08-23 + PR #58 + `Failed to collect configuration for /_not-found` · (d) `stockeiro.tremen.dev` presente y `stockeiro-lemon.vercel.app` ausente | 4/4 verde; **rojo reproducido** sobre el §0 viejo. **(c) comprobado a mano**: el literal del log que cita §0 coincide **carácter a carácter** con el que lanza `src/lib/config/app-url.ts:87` y con el que produjo mi `npm run build` (CA-16). Las **dos** afirmaciones falsas han desaparecido | ✅ |
 | CA-3 — conserva lo que sí era cierto (falta ≠ mal); **ya NO conserva el desmentido del ejemplo** | `docs/despliegue.md` §0, bloque ⚠️ del aviso | `G` › *CA-3: el arreglo no tira lo que sí seguía siendo cierto* — **1 caso** (falla ruidosamente si falta · no detecta que esté mal · solo lo ve quien pincha). La retirada del desmentido la vigilan CA-1 (3.ª entrada) y CA-17 | 1/1 verde; rojo reproducido. La parte que **sí** era cierta sigue escrita en §0 | ✅ |
-| CA-4 — **(a)** columna **Entornos**, vocabulario cerrado, sin celdas vacías · **(b)** el motivo escrito de las solo-Production | `docs/despliegue.md` §0: tabla con la columna **Entornos**, la leyenda del vocabulario y el bloque 🧭. **Prosa corregida el 2026-08-25** por los findings del gate: la leyenda de `Preview + Production` ya no promete una consecuencia que solo vale para cuatro filas (**F-SPEC-052-10**) y el bloque 🧭 ya no dice que la decisión proteja el cupo de Marketstack (**F-SPEC-052-11**). El vocabulario cerrado sigue con sus **tres** valores y **ningún fichero de `tests/` cambió** | `G` › *CA-4 (a)* — **1 caso** (toda fila usa un valor de `VOCABULARIO_ENTORNOS`) · *CA-4 (b)* — **2 casos**: las cuatro claves marcadas `Production`, y §0 con el motivo y el precio aceptado literales | **3/3 verde, y aun así NO cerrado.** La columna y los literales exigidos están; lo que falla es la **prosa nueva que los acompaña**, que afirma dos cosas que este verificador ha medido y son falsas: la leyenda de `Preview + Production` (**F-SPEC-052-10**) y el bloque 🧭 sobre Marketstack (**F-SPEC-052-11**). Ningún test las mira porque ningún CA las pide — pero están en §0 de un documento de verdad y las escribe esta entrega | ⚠️ |
+| CA-4 — **(a)** columna **Entornos**, vocabulario cerrado, sin celdas vacías · **(b)** el motivo escrito de las solo-Production | `docs/despliegue.md` §0: tabla con la columna **Entornos**, la leyenda del vocabulario y el bloque 🧭. **Prosa corregida el 2026-08-25** por los findings del gate: la leyenda de `Preview + Production` ya no promete una consecuencia que solo vale para cuatro filas (**F-SPEC-052-10**) y el bloque 🧭 ya no dice que la decisión proteja el cupo de Marketstack (**F-SPEC-052-11**). El vocabulario cerrado sigue con sus **tres** valores y **ningún fichero de `tests/` cambió** | `G` › *CA-4 (a)* — **1 caso** (toda fila usa un valor de `VOCABULARIO_ENTORNOS`) · *CA-4 (b)* — **2 casos**: las cuatro claves marcadas `Production`, y §0 con el motivo y el precio aceptado literales | **3/3 verde, y ahora SÍ cerrado (2.ª ronda, 2026-08-25).** (a) vocabulario cerrado con sus **tres** valores en el documento y en `VOCABULARIO_ENTORNOS` (`tests/entornos-de-despliegue.test.ts:95`): sin cuarto valor. (b) los literales exigidos **intactos palabra por palabra** (*«una preview no debe gastar cuota de proveedores externos ni poder mandar correo de verdad»*, *«el buscador de símbolos no busca, no sale ni un correo y el cron no se puede probar»*, las cuatro claves `Production`). **F-SPEC-052-10 y -11 cerrados, y no me he creído ninguno de los dos**: rehíce el build de control —`.next` borrado, solo `DATABASE_URL` + `APP_BASE_URL`, **sin** `MARKETSTACK_API_KEY`— y sale **verde, exit 0, 21/21 páginas**; y contrasté el 🧭 nuevo contra sus ADR (ADR-007:21 *«`/symbol_search` está en el free tier (Basic)»*; ADR-012:73 *«Twelve Data se MANTIENE, en free tier, solo para la BÚSQUEDA»*). El bloque 🧭 **no nombra `APP_BASE_URL`** (0 ocurrencias), así que `avisoDeAppBaseUrl()` (`:444`) sigue recogiendo lo mismo y CA-2 mide lo mismo | ✅ |
 | CA-5 — foto de `vercel env ls` del 2026-08-23 en §13, etiquetada como foto | `docs/despliegue.md` **§13.5** (nueva) | `G` › *CA-5* — **2 casos**: comando + fecha + las siete claves del inventario; y *foto fechada* / *no es una fuente de verdad viva* | 2/2 verde; rojo reproducido sobre el §13 viejo. La etiqueta de «foto» está y dice lo que tiene que decir | ✅ |
 | CA-6 — el arreglo de ops consta como HECHO (§13 + checklist §5) | `docs/despliegue.md` §13.5, puntero en §13.2 (junto a `ALLOW_MIGRATE`) y línea `- [x]` en §5 | `G` › *CA-6* — **2 casos**: §13 con `vercel env add APP_BASE_URL preview` + valor + PR #58 + fecha; y la línea de checklist de §5 | 2/2 verde; rojo reproducido. §13.5 y la línea `- [x]` de §5 están, y el puntero de §13.2 junto a `ALLOW_MIGRATE` también | ✅ |
-| CA-7 — Preview deja de ser opcional en §3.2 y §7 | `docs/despliegue.md` §3.2 (bloque de Preview + `env add … preview`) y §7 paso 2 | `G` › *CA-7* — **3 casos**: las **dos** frases prohibidas ausentes de todo el fichero, y §3.2 distinguiendo *Obligatorias en Preview porque el build las lee* de *solo hacen la preview más útil* | 3/3 verde; rojo reproducido: las dos frases prohibidas estaban en el §3.2/§7 de `497eccf` y ya no están | ✅ |
+| CA-7 — Preview deja de ser opcional en §3.2 y §7 | `docs/despliegue.md` §3.2 (bloque de Preview + `env add … preview`) y §7 paso 2 | `G` › *CA-7* — **3 casos**: las **dos** frases prohibidas ausentes de todo el fichero, y §3.2 distinguiendo *Obligatorias en Preview porque el build las lee* de *solo hacen la preview más útil* | **REABIERTO en la 2.ª ronda (2026-08-25): 3/3 verde y NO cerrado.** Los tres casos pasan y las dos frases prohibidas siguen fuera — el defecto no es de test. La corrección de `F-SPEC-052-10` convirtió §3.2 en la **autoridad** citada por la leyenda de §0 (*«Cuáles tumban el build lo dice §3.2»*), así que fui a medir §3.2, y su primer grupo es **falso para dos de sus cuatro claves**: con `.next` borrado y **sin `AUTH_SECRET` ni `AUTH_TRUST_HOST`**, `npm run build` sale **verde, exit 0**. Controles positivos en el mismo árbol: sin `APP_BASE_URL` → rojo en *Collecting page data*; sin `DATABASE_URL` → rojo en `/api/cron/refresh`. Ni `src/` ni `scripts/` leen esas dos claves (0 lecturas). **F-SPEC-052-12** | ⚠️ |
 | CA-8 — cruce: claves del build ⊆ claves marcadas `Preview + Production` | `G` — `clavesQueExigeElBuild()` + `entornosDeclarados()` + `incumplimientos()` | `G` › *CA-8: el runbook y el workflow concuerdan* — **1 caso** sobre el árbol real. El mensaje de cada incumplimiento se vuelca en el `expect` para que el rojo se lea sin abrir el fichero | Verde sobre el árbol real. **Rojo reproducido por mí** sobre el runbook de `497eccf`: nombra las cuatro claves (`APP_BASE_URL`, `AUTH_SECRET`, `AUTH_TRUST_HOST`, `DATABASE_URL`) y dice que la PR se queda sin preview. No es decoración | ✅ |
 | CA-9 — centinela: conjunto derivado no vacío, un solo job, contiene `APP_BASE_URL` y `DATABASE_URL` | `G` — `jobsQueConstruyen()` localiza por **contenido** (`run` con `npm run build`), nunca por nombre | `G` › *CA-9* — **2 casos**: exactamente **un** job construye; y sus claves no están vacías y llevan `APP_BASE_URL` y `DATABASE_URL` | 2/2 verde. Contrastado con `tests/ci-workflow.test.ts` caso 5.1: su `toEqual` de cuatro claves sigue **intacto** y el fichero **no está en el diff** — la cadena de tres eslabones de D-1 no se ha aflojado | ✅ |
 | CA-10 — centinela: tabla parseada ≥ 11 filas, con celdas de entorno no vacías | `G` — `entornosDeclarados()` | `G` › *CA-10* — **2 casos**: **cota inferior** de 11 filas (no recuento exacto: §0 crecerá) y `APP_BASE_URL` + `MARKETSTACK_API_KEY` con celda no vacía | 2/2 verde; **rojo reproducido**: con el §0 sin columna, `expected 0 to be greater than or equal to 11`. El parser deja de casar y lo dice | ✅ |
@@ -249,7 +249,97 @@ que es justo lo que esta spec **no** cambia).
 ## Veredicto del verificador
 <!-- GREEN/RED + fecha + resumen. Lo escribe SOLO sdd-verificador. -->
 
-### 🔴 RED — 2026-08-25, sdd-verificador
+### 🔴 RED — 2026-08-25 (2.ª ronda), sdd-verificador
+
+**CA-4 queda CERRADO: los dos findings de la ronda anterior están genuinamente
+arreglados y lo he vuelto a medir yo, no me he fiado del informe. Pero al ir a medir
+la frase nueva de la leyenda descubrí que el arreglo REUBICA el defecto en vez de
+eliminarlo, y que su destino —§3.2— contiene la misma falsedad sobre otras dos
+claves. Se reabre CA-7. Finding único: `F-SPEC-052-12`.**
+
+**Gates automáticos, ejecutados por mí sobre `85e4b3d` con el árbol limpio:**
+`npx vitest run` → **1829/1829, 114/114 ficheros** (el mismo número que antes de la
+ronda, que es lo que se esperaba de un arreglo que ningún test mira);
+`npm run typecheck` exit 0; `npm run lint` exit 0; `npm run version:check` con el
+árbol limpio → *«El diff no toca codigo de aplicacion: no hay nada que subir»*,
+exit 0. `origin/main` sigue en **`497eccf`**: la base no se ha movido y **no hay que
+rebasar**.
+
+**Alcance de la ronda, comprobado y no creído.** `git diff --name-only 77b1321 85e4b3d`
+devuelve exactamente tres ficheros: `docs/despliegue.md`, el ledger y el frontmatter de
+la spec. **Ni un fichero de `tests/`, ni `.env.example`, ni nada bajo `src/`.** Las
+celdas *Verif.* y *Estado* de la matriz llegaron **intactas** esta vez, incluidas las de
+CA-15 y CA-16: el implementador solo tocó la columna *Implementado* de la fila de CA-4.
+Queda dicho, porque en la ronda anterior no fue así.
+
+**Los dos findings anteriores: CERRADOS, con mi propia medición.**
+
+- **`F-SPEC-052-10`.** El hecho que la nueva redacción presupone es cierto. Con `.next`
+  **borrado** y el entorno reducido a `DATABASE_URL` + `APP_BASE_URL`, **sin**
+  `MARKETSTACK_API_KEY`, `npx next build` termina **verde, exit 0**, con las 21/21
+  páginas y el listado de rutas completo. Corroborado en el código: la clave se lee como
+  parámetro por defecto del constructor (`src/lib/market/marketstack-provider.ts:230`) y
+  lanza dentro de `getQuotes` (`:238`), y la factory `quoteProvider()` solo se invoca en
+  petición. La leyenda ya no afirma en primera persona nada falso.
+- **`F-SPEC-052-11`.** El bloque 🧭 ya no tranquiliza sobre Marketstack, y **cada cosa que
+  ahora afirma la he contrastado contra su fuente**, no contra el informe: ADR-007 línea
+  21 —*«Twelve Data `/symbol_search` está en el free tier (Basic), cuesta 1 crédito»*— y
+  ADR-012 línea 73 —*«Twelve Data se MANTIENE, en free tier, solo para la BÚSQUEDA»*—.
+  Los literales que exige CA-4 (b) están **palabra por palabra**, el vocabulario cerrado
+  sigue con sus **tres** valores en el documento y en `VOCABULARIO_ENTORNOS`, y el bloque
+  🧭 **no contiene la cadena `APP_BASE_URL`** (0 ocurrencias), de modo que el recolector
+  `avisoDeAppBaseUrl()` sigue viendo exactamente los mismos bloques y CA-2 sigue midiendo
+  lo mismo.
+
+**Por qué aun así es RED.** La leyenda corregida no se limita a callar: **delega**. Dice
+*«**Cuáles tumban el build lo dice §3.2**, que separa las que `next build` lee —esas sí
+dejan la PR sin preview— de las que solo hacen la preview más útil»*. Un gate que aceptara
+esa frase sin abrir §3.2 estaría haciendo exactamente lo que esta spec castiga: creerse
+una remisión. La abrí, y §3.2 —texto **nuevo de esta entrega**, no heredado: no existe en
+`497eccf`— dice:
+
+> - **Obligatorias en Preview porque el build las lee** — `DATABASE_URL`, `AUTH_SECRET`,
+>   `AUTH_TRUST_HOST` y `APP_BASE_URL` […]. Si falta una, **`next build` falla y la PR se
+>   queda sin preview**. No sale «a medias»: no llega a existir.
+
+**Medido, con control positivo en el mismo árbol y `.next` borrado:** faltando
+`AUTH_SECRET` **y** `AUTH_TRUST_HOST` a la vez, el build sale **verde, exit 0**. Faltando
+`APP_BASE_URL`, **rojo** en *Collecting page data*. Faltando `DATABASE_URL`, **rojo** en
+`/api/cron/refresh`. Así que el harness detecta fallos perfectamente y la frase
+*«si falta una, `next build` falla»* es **falsa para dos de las cuatro claves que ella
+misma enumera**. Ninguna de las dos se lee en `src/` ni en `scripts/`: cero lecturas.
+
+**Y la ironía importa, porque es el criterio de severidad de esta spec.** SPEC-052 existe
+porque §0 decía *«el error es en tiempo de petición, no de build, así que el deploy sale
+verde igualmente»*. La entrega retira esa frase y, en §3.2, escribe **su inversa exacta**
+sobre otras dos claves: promete un fallo de build donde el fallo es de petición. Es la
+tercera afirmación de la misma familia en la misma entrega. Las dos anteriores las cacé
+leyendo; esta la he cazado **midiendo**, y no la vi en la primera ronda — lo digo
+explícitamente porque un gate que se calla su propio fallo anterior no es un gate.
+
+**Agravante, no atenuante: el literal falso está clavado por un test.**
+`tests/entornos-de-despliegue.test.ts:553` afirma
+`expect(cuerpo).toContain('Obligatorias en Preview porque el build las lee')`. La etiqueta
+es del propio CA-7, así que el test hace lo que se le pidió; el problema es la **lista de
+claves** que se colgó debajo y la consecuencia categórica que se le añadió. Y el ledger de
+esta misma entrega ya lo sabía: **`F-SPEC-052-3`** acepta por escrito que la guardia
+**sobreaproxima** y nombra a `AUTH_TRUST_HOST` como *«candidata»* a no ser necesaria
+estrictamente. Una sobreaproximación deliberada en una **guardia** es prudencia; la misma
+sobreaproximación redactada en el **runbook** como consecuencia comprobada es la mentira
+que esta spec vino a matar.
+
+**Qué tiene que ser cierto para cerrar** (no prescribo redacción): que §3.2 deje de
+atribuir a `AUTH_SECRET` y `AUTH_TRUST_HOST` un fallo de `next build` que no ocurre —
+**sin** degradarlas a *«solo hacen la preview más útil»*, porque sí son obligatorias en
+Preview: sin ellas la preview construye, arranca y **nadie puede autenticarse**, que es un
+tercer caso y no ninguno de los dos existentes. La tabla de §0 **no cambia**: las cuatro
+siguen siendo `Preview + Production` y CA-8 lo sigue exigiendo con razón (F-SPEC-052-3).
+
+---
+
+<details><summary>El veredicto de la 1.ª ronda, tal como se emitió el 2026-08-25</summary>
+
+### 🔴 RED — 2026-08-25 (1.ª ronda), sdd-verificador
 
 **16 de los 17 criterios evaluables están cerrados y verificados ejecutando. El que
 falla es CA-4, y falla por lo mismo que originó la spec: prosa nueva en §0 de
@@ -303,6 +393,8 @@ Son columnas del verificador y no se rellenan «al revés», ni siquiera para un
 evidente. Las he sobrescrito con mi propia verificación. Todas las demás llegaron vacías,
 como debe ser.
 
+</details>
+
 ## Evidencia visual
 No aplica: esta spec no cambia ninguna superficie de UI. La evidencia es textual
 (diffs de documentación, salida de la guardia y las dos capturas de consola de N-1/N-2).
@@ -310,6 +402,92 @@ No aplica: esta spec no cambia ninguna superficie de UI. La evidencia es textual
 ni estilos — no hay nada que capturar con Playwright, y no se ha usado.
 
 ## Salvedades / follow-ups
+
+- **F-SPEC-052-12** 🔴 **ABIERTO — finding del gate del 2026-08-25 (2.ª ronda). §3.2 promete
+  un fallo de `next build` que no ocurre, para dos de las cuatro claves que enumera — y la
+  leyenda corregida de §0 manda al lector justo ahí.** `docs/despliegue.md` §3.2:
+
+  > - **Obligatorias en Preview porque el build las lee** — `DATABASE_URL`, `AUTH_SECRET`,
+  >   `AUTH_TRUST_HOST` y `APP_BASE_URL`, más `ALLOW_MIGRATE=1` (§13.2), que es de la
+  >   guardia de migración y no del build. Si falta una, **`next build` falla y la PR se
+  >   queda sin preview**. No sale «a medias»: no llega a existir. Es exactamente lo que
+  >   pasó el 2026-08-23 (§0).
+
+  **Medido por el verificador**, con `.next` borrado antes de cada corrida y el
+  `.env.local` del árbol conteniendo solo `VERCEL_OIDC_TOKEN`:
+
+  | Entorno de la corrida | Resultado |
+  |---|---|
+  | Las 4 claves del `env` del job de CI, sin `MARKETSTACK_API_KEY` | **verde**, exit 0, 21/21 páginas |
+  | `DATABASE_URL` + `APP_BASE_URL`, **sin `AUTH_SECRET` ni `AUTH_TRUST_HOST`** | **verde**, exit 0, 21/21 páginas |
+  | Sin `APP_BASE_URL` | **rojo** — *Collecting page data* → `Failed to collect configuration for /ayuda`, causa `APP_BASE_URL no definida` |
+  | Sin `DATABASE_URL` | **rojo** — `DATABASE_URL no definida` en `/api/cron/refresh` |
+
+  Las dos últimas filas son el **control positivo**: el harness detecta fallos de build sin
+  problema, así que el verde de la segunda fila no es un artefacto de caché. Corroborado en
+  el código: `grep -rn 'AUTH_SECRET\|AUTH_TRUST_HOST' src/ scripts/` devuelve **cero
+  lecturas** (solo una mención en un comentario de `src/lib/config/app-url.ts:6`); Auth.js
+  las lee de `process.env` **en petición**.
+
+  **Por qué es RED y no una salvedad.** (1) El texto es **nuevo de esta entrega** —no está
+  en `497eccf`— y lo pide CA-7. (2) La corrección de `F-SPEC-052-10` lo ascendió a
+  **autoridad**: la leyenda de §0 ahora dice *«Cuáles tumban el build lo dice §3.2»*, así
+  que el defecto que se retiró de §0 se sirve ahora al lector a un salto de distancia. (3)
+  Es **la inversa exacta** de la frase que originó la spec: donde §0 decía *«el error es en
+  tiempo de petición, no de build»* siendo de build, §3.2 dice *«el build falla»* siendo de
+  petición. Misma familia, misma forma de comprobación-ya-hecha, mismo documento.
+
+  **Lo que el propio ledger ya sabía.** **`F-SPEC-052-3`** acepta por escrito que la guardia
+  de CA-8 **sobreaproxima** —*«incluidas las que el build quizá no necesite estrictamente
+  (candidata: `AUTH_TRUST_HOST`)»*—. Esa prudencia es correcta **en la guardia**. Lo que no
+  se puede es trasladarla al runbook redactada como consecuencia medida.
+
+  **Condición de cierre** (la redacción es del implementador; esto es lo que tiene que ser
+  cierto):
+  - §3.2 deja de atribuir a `AUTH_SECRET` y `AUTH_TRUST_HOST` un fallo de `next build`.
+  - **No** se degradan a *«solo hacen la preview más útil»*: **sí** son obligatorias en
+    Preview. Sin ellas la preview construye, arranca y **nadie puede autenticarse** — es un
+    tercer caso, y hoy §3.2 solo tiene dos cajones.
+  - La tabla de §0 **no cambia**: las cuatro siguen `Preview + Production`, y CA-8 las sigue
+    exigiendo con razón (F-SPEC-052-3).
+  - El literal `Obligatorias en Preview porque el build las lee` lo fija CA-7 y
+    `tests/entornos-de-despliegue.test.ts:553`. Si la etiqueta deja de describir a su grupo,
+    **el que se ajusta es el grupo, no el test** — y si se juzga que la etiqueta del CA es
+    la equivocada, eso es del arquitecto y se escala, no se reescribe la aserción.
+  - Comprobado **midiendo**, no razonando: un `next build` por afirmación que se escriba.
+
+- **F-SPEC-052-13** 🟡 **RESIDUAL con dueño — dictamen del gate sobre la observación de
+  fondo del implementador (2026-08-25). NO amplía el alcance de esta entrega.**
+
+  La observación era: *«ningún CA pide que la prosa que acompaña a la tabla sea cierta;
+  CA-4 (a) vigila el vocabulario y CA-4 (b) tres literales, y los defectos vivían fuera de
+  ambos»*. **El hecho es correcto y el gate lo confirma.** El dictamen, que es lo que
+  faltaba:
+
+  **No es un hueco aceptable, y hoy hay evidencia para afirmarlo.** El argumento de *«hay
+  prosa que ningún test puede juzgar, y para eso está el gate»* sería válido con **un**
+  caso. Van **tres en la misma entrega** (`F-SPEC-052-10`, `-11`, `-12`), los tres de la
+  misma familia, los tres en `docs/despliegue.md`, y el tercero **sobrevivió a una ronda de
+  gate**: yo mismo di CA-7 por bueno sin medirlo. Un control que falla una de cada tres
+  veces no es el control adecuado para el defecto que esta épica persigue. La conclusión no
+  es que el gate sobre, sino que **el gate no puede ser el único**.
+
+  **Lo que NO se pide**, para que el residual no nazca imposible: no se puede testear la
+  verdad de la prosa en general. Lo que sí es mecanizable es mucho más estrecho — **una
+  afirmación de la forma «sin la clave K, `next build` falla» es ejecutable**: se reduce a
+  correr el build sin `K` y mirar el código de salida. Las tres frases de esta entrega caen
+  dentro de esa forma. Ese es el residual, y por eso tiene forma de test y no de buena
+  intención.
+
+  **Dueño y disparador.** Destino natural: **la meta-guardia ya decidida como spec propia**
+  (la que nace de `F-SPEC-052-6` / el precedente de SPEC-048). Si el arquitecto prefiere
+  otro encuadre, que lo diga ahí; lo que no puede es quedar sin dueño.
+  **Disparador, escrito para que sea comprobable**: la próxima vez que un documento de
+  `docs/` afirme que la ausencia de una variable de entorno tumba el build, esa afirmación
+  debe venir con un caso que lo ejecute — o el gate la trata como `F-SPEC-052-12`.
+  **Precedente que lo justifica**: exactamente el argumento de ADR-031 que el propio
+  `F-SPEC-052-6` cita, *«la convención en prosa aguantó dos días»*. Aquí no aguantó ni una
+  entrega.
 
 - **F-SPEC-052-10** ✅ **CERRADO el 2026-08-25 por el implementador** (finding del gate del
   mismo día). Texto nuevo en `docs/despliegue.md` §0, leyenda de la columna:
