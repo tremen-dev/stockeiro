@@ -59,14 +59,87 @@ const GUARDIAS = [
 /** La que NO se toca, y el motivo por el que no hace falta (D-8). */
 const NO_SE_TOCA = 'tests/deploy-gate-workflow.test.ts';
 
-/** Los ficheros de `tests/` que esta spec ESTRENA. Todo lo demás que la nombre es ajeno. */
-const PROPIOS = [
-  'tests/e2e/tarjeta.spec.ts',
-  'tests/tarjeta-frontera.test.ts',
-  'tests/tarjeta-guardias-ampliadas.test.ts',
-  'tests/tarjeta-imagen.test.ts',
-  'tests/tarjeta-raster.ts',
+/**
+ * **La FIRMA de un re-encuadre autorizado por SPEC-051 CA-17** — re-encuadrada por
+ * **SPEC-052 CA-18** el **2026-08-24**; ver el porqué entero al lado de la aserción.
+ *
+ * No la inventa esta lista: la define **CA-17.2**, aquí abajo, al exigir que toda
+ * ampliación autorizada lleve **en el cuerpo de su caso** estas seis marcas juntas. Una
+ * cita en prosa no produce la conjunción; un re-encuadre autorizado sí, **por obligación**.
+ */
+const FIRMA_DE_REENCUADRE: ReadonlyArray<{ marca: RegExp; parte: string }> = [
+  { marca: /SPEC-051/, parte: 'la spec que autoriza' },
+  { marca: /CA-17/, parte: 'el CA que autoriza' },
+  { marca: /2026-08-23/, parte: 'la fecha del arbitraje' },
+  { marca: /arbitraje del humano/i, parte: 'quién lo arbitró' },
+  { marca: /Qué vigilaba antes/, parte: 'qué vigilaba antes' },
+  { marca: /Qué vigila ahora/, parte: 'qué vigila ahora' },
 ];
+
+/**
+ * **La autoexclusión, y por qué es necesaria y no un blanqueo** (SPEC-052 CA-18 b).
+ *
+ * Este fichero **define** la firma en las aserciones de CA-17.2, así que su propia fuente
+ * la contiene y la detección se encontraría a sí misma. La exclusión va en una constante
+ * con su motivo —y no escondida en un `filter`— porque una exclusión que nadie mira es la
+ * puerta por la que se afloja esto sin que se note. El centinela de abajo comprueba las
+ * dos mitades: que la fuente de este fichero **sí lleva** la firma (luego la exclusión
+ * hace falta) y que la lista tiene **exactamente un** elemento (luego nadie ha colado un
+ * segundo excluido de paso).
+ */
+const EXCLUIDOS_DE_LA_DETECCION = ['tests/tarjeta-guardias-ampliadas.test.ts'];
+
+/**
+ * Los cuerpos de caso de un fuente, con **cualquier sangría** y con el título en comilla
+ * simple o en acento grave — los casos de CA-17.2 y CA-17.3 llevan el nombre interpolado y
+ * van a cuatro espacios dentro de un `for`. Mismo mecanismo que `casos()` en
+ * `tests/guardias-ancladas.test.ts`.
+ *
+ * **No sustituye a `casos()` de aquí abajo, que no se toca**: aquella la usan CA-17.2 y
+ * CA-17.3 para localizar UN caso por su título exacto, y ampliarla movería aserciones que
+ * SPEC-052 no tiene autorización para mover (CA-18 e).
+ */
+function cuerposDeCasos(src: string): string[] {
+  const patron =
+    /^([ \t]+)it\((?:'([^'\\]*(?:\\.[^'\\]*)*)'|`([^`\\]*(?:\\.[^`\\]*)*)`),[\s\S]*?^\1\}\);$/gm;
+  return [...src.matchAll(patron)].map((m) => m[0]);
+}
+
+/**
+ * **La detección, como función pura `(ruta, fuente) => boolean`** (SPEC-052 CA-18 c).
+ * Función y no `expect` incrustado para poder ejercitarla **en los dos sentidos** con
+ * entradas sintéticas, que es lo único que distingue una guardia de una decoración verde.
+ *
+ * La firma tiene que estar completa **dentro del cuerpo de UN MISMO caso**: repartida
+ * entre casos distintos no es la conjunción que CA-17.2 exige, es coincidencia.
+ */
+function llevaFirmaDeReencuadre(ruta: string, src: string): boolean {
+  if (EXCLUIDOS_DE_LA_DETECCION.includes(ruta)) return false;
+  return cuerposDeCasos(src).some((cuerpo) =>
+    FIRMA_DE_REENCUADRE.every(({ marca }) => marca.test(cuerpo)),
+  );
+}
+
+/** Un caso sintético CON la firma completa: la detección tiene que verlo. */
+const FUENTE_CON_FIRMA = [
+  "describe('bloque sintético', () => {",
+  "  it('una guardia ajena re-encuadrada', () => {",
+  '    // Re-encuadrada por SPEC-051 CA-17, arbitraje del humano del 2026-08-23.',
+  '    // Qué vigilaba antes: una foto del árbol. Qué vigila ahora: la propiedad.',
+  '    expect(1).toBe(1);',
+  '  });',
+  '});',
+].join('\n');
+
+/** Y uno que solo la CITA en prosa: **el caso exacto que rompía la guardia vieja**. */
+const FUENTE_QUE_SOLO_CITA = [
+  "describe('bloque sintético', () => {",
+  "  it('cita la spec, que no es re-encuadrarla', () => {",
+  '    // Desde SPEC-051 el origen absoluto se lee también en tiempo de build.',
+  '    expect(2).toBe(2);',
+  '  });',
+  '});',
+].join('\n');
 
 /**
  * Los casos de un fichero de test, por título: un `it(` con dos espacios de sangría y
@@ -109,25 +182,117 @@ function fuentesDeTests(dir = testsDir): string[] {
 }
 
 describe('SPEC-051 CA-17.1: son DOS guardias ajenas, y la tercera no ha hecho falta', () => {
-  it('los únicos ficheros ajenos de tests/ que esta spec nombra son esos dos', () => {
-    // La versión comprobable sin git de «están nombradas, una a una, y son dos». Si
-    // alguien re-encuadrara un tercer fichero ajeno tendría que escribir su porqué al
-    // lado —lo exige CA-17.2 y `FOUNDATION.md`—, y ese porqué nombra la spec. Así que la
-    // lista de ficheros de `tests/` que dicen «SPEC-051» es exactamente: los dos
-    // autorizados más los que esta entrega estrena. Un tercero ajeno aquí es RED.
-    const nombran = fuentesDeTests()
-      .filter((f) => readFileSync(f, 'utf8').includes('SPEC-051'))
+  it('los ficheros de tests/ re-encuadrados bajo la autorización de esta spec son esos dos', () => {
+    // **`F-SPEC-052-7` — RE-ENCUADRADA por SPEC-052 CA-18 el 2026-08-24**, con
+    // **autorización nominal del humano (Alberto Fojo, 2026-08-24)**. Constancia del
+    // proceso, que es la mitad del valor de esto: el defecto lo detectó y lo **escaló sin
+    // tocarlo** el implementador de SPEC-052, y el arreglo lo **redactó el arquitecto** —
+    // quien toca una guardia no puede ser quien se beneficia de que calle
+    // (`FOUNDATION.md`). El porqué que SPEC-051 dejó en la cabecera de este fichero
+    // **sigue intacto**: una re-escritura no borra la auditoría de la anterior.
+    //
+    // **Qué vigilaba antes:** que los ficheros de `tests/` cuya fuente contuviera la
+    // cadena `SPEC-051` fueran exactamente siete — las dos guardias ajenas ampliadas más
+    // los cinco que aquella entrega estrenaba (`PROPIOS`, retirada con esta aserción:
+    // era la **segunda instantánea congelada** del mismo caso, y los ficheros propios de
+    // SPEC-051 no llevan firma porque no son re-encuadres).
+    //
+    // **Qué vigila ahora:** que los ficheros de `tests/` **re-encuadrados bajo la
+    // autorización de SPEC-051 CA-17** sean exactamente esos dos. El conjunto se deriva
+    // de la **firma** de un re-encuadre —`FIRMA_DE_REENCUADRE`, la conjunción que CA-17.2
+    // ya exige aquí abajo— y no de la mención. Un fichero que solo **cite** la spec en
+    // prosa no entra.
+    //
+    // **Por qué cambió:** era un **error de converso**. El comentario original declaraba
+    // su inferencia —*«todo re-encuadre menciona SPEC-051»*— y el código la usaba como si
+    // fuera *«toda mención es un re-encuadre»*: condición **necesaria** tratada como
+    // **suficiente**. El converso no se sigue, y lo pagó el primero que citó
+    // legítimamente a SPEC-051 — `tests/entornos-de-despliegue.test.ts`, obligado a
+    // citarla por CA-2 (a) y CA-14 de SPEC-052. La guardia se rompía **por cumplir la
+    // spec**, no por incumplirla. Su forma tiene nombre: **un conjunto cerrado sobre un
+    // universo abierto** —los ficheros que *pueden* mencionar la cadena crecen sin
+    // límite—, así que **caduca por instantánea, no por diana móvil**. Por eso la
+    // meta-guardia de SPEC-048 no la vio: aquí no hay ni un `git`, y ante ADR-031 era
+    // formalmente impecable.
+    //
+    // **Por qué se RE-ENCUADRA y no se borra:** porque *«no hubo un tercer fichero ajeno
+    // aflojado»* **sigue vivo** y **ningún otro caso de este fichero lo cubre** —CA-17.2,
+    // CA-17.3 y CA-17.4 hablan solo de las dos guardias autorizadas—. Borrarlo dejaría
+    // esa proposición sin dueño. Es la diferencia con el caso de SPEC-050, donde lo
+    // vigilado ya no podía volver a ser falso y retirarlo era limpio.
+    //
+    // **Lo que NO mejora, dicho en voz alta:** un re-encuadre **mudo** —aflojar una
+    // tercera guardia ajena sin escribir nota alguna— no lo caza ni esta versión ni la
+    // anterior; la detección siempre dependió de que el infractor escribiera la nota. La
+    // cobertura frente al fallo real es **idéntica**; lo que desaparece es el falso
+    // positivo.
+    const reencuadrados = fuentesDeTests()
       .map(rel)
+      .filter((ruta) => llevaFirmaDeReencuadre(ruta, fuente(ruta)))
       .sort();
-    const esperados = [...GUARDIAS.map((g) => g.fichero), ...PROPIOS].sort();
     expect(
-      nombran,
+      reencuadrados,
       'un TERCER fichero ajeno re-encuadrado es RED: se escala al gate, no se toca',
-    ).toEqual(esperados);
+    ).toEqual(GUARDIAS.map((g) => g.fichero).sort());
+  });
+
+  it('la exclusión de este fichero es NECESARIA, y es exactamente una', () => {
+    // SPEC-052 CA-18 (b). Las dos mitades del centinela. Sin la primera, la exclusión
+    // podría ser un blanqueo preventivo —excluir por si acaso, sin que hiciera falta— y
+    // nadie lo sabría. Sin la segunda, mañana alguien añade un segundo excluido y la
+    // lista deja de ser una excepción para convertirse en un desagüe.
     expect(
-      [...nombran, 'tests/ci-workflow.test.ts'].sort(),
+      EXCLUIDOS_DE_LA_DETECCION,
+      'la lista de exclusiones no es un desagüe: es UNA excepción con nombre y motivo',
+    ).toHaveLength(1);
+
+    const yo = EXCLUIDOS_DE_LA_DETECCION[0];
+    expect(yo).toBe('tests/tarjeta-guardias-ampliadas.test.ts');
+    // Se pregunta por la firma SIN pasar por la exclusión: si este fichero no la llevara,
+    // excluirlo sobraría y habría que quitar la excepción.
+    const cuerpos = cuerposDeCasos(fuente(yo));
+    expect(
+      cuerpos.some((c) => FIRMA_DE_REENCUADRE.every(({ marca }) => marca.test(c))),
+      'este fichero ya no contiene la firma: la exclusión ha dejado de hacer falta y ' +
+        'mantenerla sería taparse un ojo sin motivo',
+    ).toBe(true);
+  });
+
+  it('la detección se prueba en rojo: firma completa sí, mención en prosa NO', () => {
+    // SPEC-052 CA-18 (c). Los dos sentidos, con entrada propia y en el mismo caso. El
+    // segundo es literalmente el escenario que rompía la guardia vieja: una fuente que
+    // nombra la spec sin haber re-encuadrado nada.
+    expect(
+      llevaFirmaDeReencuadre('tests/sintetico-con-firma.test.ts', FUENTE_CON_FIRMA),
+      'no reconoce un re-encuadre que lleva las seis marcas: la guardia no vería el ' +
+        'defecto que existe',
+    ).toBe(true);
+    expect(
+      llevaFirmaDeReencuadre('tests/sintetico-que-cita.test.ts', FUENTE_QUE_SOLO_CITA),
+      'confunde citar con re-encuadrar: es el error de converso, otra vez',
+    ).toBe(false);
+
+    // Y falta una marca cualquiera → deja de ser firma. Se quita la fecha, que es la que
+    // más fácil se olvidaría al copiar una nota de otra spec.
+    expect(
+      llevaFirmaDeReencuadre(
+        'tests/sintetico-incompleto.test.ts',
+        FUENTE_CON_FIRMA.replace('2026-08-23', 'hace un tiempo'),
+      ),
+      'acepta una firma incompleta: entonces no está exigiendo la conjunción de CA-17.2',
+    ).toBe(false);
+  });
+
+  it('y un TERCER fichero con firma rompería la igualdad: la lista sigue cerrada', () => {
+    // SPEC-052 CA-18 (c), tercer caso. La comparación de arriba tiene que **distinguir**
+    // un tercero, no limitarse a coincidir con lo que hay. Sin esto, un `toEqual` contra
+    // un conjunto que resultara vacío pasaría igual.
+    const autorizados = GUARDIAS.map((g) => g.fichero).sort();
+    expect(autorizados.length, 'el conjunto autorizado no puede estar vacío').toBe(2);
+    expect(
+      [...autorizados, 'tests/inventado-re-encuadrado.test.ts'].sort(),
       'la comparación no distingue un tercero: habría dejado de ser una lista cerrada',
-    ).not.toEqual(esperados);
+    ).not.toEqual(autorizados);
   });
 
   it(`${NO_SE_TOCA} ni siquiera sabe que esta spec existe`, () => {

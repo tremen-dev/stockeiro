@@ -1,6 +1,6 @@
 import { describe, it, expect } from 'vitest';
-import { readFileSync } from 'node:fs';
-import { dirname, join, resolve } from 'node:path';
+import { readFileSync, readdirSync, statSync } from 'node:fs';
+import { dirname, join, relative, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { parse } from 'yaml';
 import { appBaseUrl } from '@/lib/config/app-url';
@@ -707,15 +707,22 @@ describe('SPEC-052 CA-14: `appBaseUrl()` sigue lanzando si la clave falta', () =
     // defecto, leer `VERCEL_URL`— están rechazadas por escrito en SPEC-051 D-4. Revisarlo
     // es otra spec y otra conversación; si alguien llega aquí queriendo ablandarlo, para y
     // ábrela.
+    // El mensaje va **literal y entero**, y no por gusto: es el mismo texto que el log de
+    // Vercel del PR #58 y el mismo que CA-2 (c) exige citado en `docs/despliegue.md`. Así
+    // el documento y el código quedan atados por la misma cadena: si alguien reescribe el
+    // mensaje, este caso se pone rojo y el runbook deja de mentir por omisión.
+    const MENSAJE = 'APP_BASE_URL no definida (ver .env.example): sin ella no hay enlaces válidos.';
+
     const sinLaClave: NodeJS.ProcessEnv = { ...process.env };
     delete sinLaClave.APP_BASE_URL;
-    expect(() => appBaseUrl(sinLaClave)).toThrow(/APP_BASE_URL no definida/);
+    expect(() => appBaseUrl(sinLaClave)).toThrow(MENSAJE);
 
     // Y una cadena de espacios cuenta como ausente: `.trim()` la vacía. Si no lanzara,
     // el build produciría `new URL('')` y el fallo llegaría más tarde y peor explicado.
-    expect(() => appBaseUrl({ ...sinLaClave, APP_BASE_URL: '   ' })).toThrow(
-      /APP_BASE_URL no definida/,
-    );
+    expect(() => appBaseUrl({ ...sinLaClave, APP_BASE_URL: '   ' })).toThrow(MENSAJE);
+
+    // Y el runbook cita ESE mismo error, para que documento y código no se separen.
+    expect(desnudo(avisoDeAppBaseUrl())).toContain(MENSAJE);
   });
 
   it('y el caso lleva escrito al lado que es deliberado y que esta spec no lo revisa', () => {
@@ -738,5 +745,204 @@ describe('SPEC-052 CA-14: `appBaseUrl()` sigue lanzando si la clave falta', () =
     expect(cuerpo, 'falta decir que SPEC-052 no lo revisa').toMatch(
       /SPEC-052 NO revisa esta conducta/i,
     );
+  });
+});
+
+// ---------------------------------------------------------------------------
+// CA-18 — el re-encuadre de la guardia ajena, por sus dos partes que NO viven en el
+// fichero re-encuadrado: que no se afloje nada más (e) y que no se tome el atajo del
+// literal partido (f).
+//
+// Las partes (a)…(d) —el criterio nuevo, la autoexclusión probada, el rojo en los dos
+// sentidos y el porqué al lado— viven donde tienen que vivir: dentro de
+// `tests/tarjeta-guardias-ampliadas.test.ts`, junto a la aserción re-encuadrada.
+// Duplicarlas aquí sería tener dos sitios donde pedir permiso.
+//
+// Contexto, para quien llegue sin haberlo vivido: SPEC-051 CA-17.1 cerraba su lista sobre
+// la CADENA de su propio identificador, y este fichero la menciona porque CA-2 (a) y
+// CA-14 le OBLIGAN a mencionarla. La guardia se rompía **por cumplir la spec**. Lo
+// detectó y lo escaló el implementador sin tocarlo; lo autorizó nominalmente el humano
+// (Alberto Fojo, 2026-08-24); lo redactó el arquitecto. Ese orden es la condición de
+// proceso de `FOUNDATION.md` y es la mitad del valor del arreglo.
+// ---------------------------------------------------------------------------
+
+const testsDir = join(rootDir, 'tests');
+const reencuadradaRel = 'tests/tarjeta-guardias-ampliadas.test.ts';
+const reencuadrada = () => readFileSync(join(rootDir, reencuadradaRel), 'utf8');
+
+/** Todos los fuentes TypeScript bajo `tests/`, e2e y helpers incluidos. */
+function fuentesDeTests(dir: string = testsDir): string[] {
+  const out: string[] = [];
+  for (const entrada of readdirSync(dir).sort()) {
+    const ruta = join(dir, entrada);
+    if (statSync(ruta).isDirectory()) out.push(...fuentesDeTests(ruta));
+    else if (entrada.endsWith('.ts')) out.push(ruta);
+  }
+  return out;
+}
+
+const relDesdeRaiz = (f: string) => relative(rootDir, f).replace(/\\/g, '/');
+
+/** Los títulos de caso de un fuente, con cualquier sangría y cualquier estilo de comilla. */
+const titulosDeCasos = (src: string) =>
+  [...src.matchAll(/^[ \t]+it\((?:'([^'\\]*(?:\\.[^'\\]*)*)'|`([^`\\]*(?:\\.[^`\\]*)*)`),/gm)].map(
+    (m) => m[1] ?? m[2],
+  );
+
+describe('SPEC-052 CA-18 (e): no se afloja nada más del fichero re-encuadrado', () => {
+  it('ningún caso queda apagado', () => {
+    // La forma más barata de convertir un re-encuadre en una aflojada es apagar lo que
+    // molesta. Es la misma comprobación que CA-17.3 hace sobre las dos guardias que
+    // SPEC-051 amplió; aquí se aplica al fichero que SPEC-052 toca.
+    expect(reencuadrada()).not.toMatch(/\b(it|describe|test)\.(skip|only|todo)\b/);
+    expect(reencuadrada()).not.toMatch(/\bxit\(|\bxdescribe\(/);
+  });
+
+  it('los cuatro bloques de CA-17 siguen en pie, con sus títulos intactos', () => {
+    // Se nombran por su título porque el título ES el contrato de cada bloque: dice qué
+    // propiedad vigila. Que sigan existiendo es lo que significa «solo se tocó la
+    // aserción nombrada». No se congela un RECUENTO de casos —el re-encuadre estrena tres
+    // centinelas y el fichero puede crecer—, sino que ninguno de los cuatro bloques haya
+    // desaparecido.
+    for (const bloque of [
+      'CA-17.1: son DOS guardias ajenas, y la tercera no ha hecho falta',
+      'CA-17.2: cada ampliación lleva su porqué al lado de la aserción',
+      'CA-17.3: es una ampliación, no una aflojada',
+      'CA-17.4: ninguna propiedad protegida se debilita',
+    ]) {
+      expect(reencuadrada(), `ha desaparecido el bloque «${bloque}»`).toContain(bloque);
+    }
+  });
+
+  it('lo único que cambió es el caso nombrado por CA-18; el resto sigue ahí', () => {
+    const titulos = titulosDeCasos(reencuadrada());
+
+    // Fuera el viejo, dentro el nuevo: las dos mitades de un re-encuadre. Si el viejo
+    // siguiera, no se habría re-encuadrado nada; si el nuevo faltara, se habría borrado —
+    // y borrar era la salida que D-7 descarta, porque la proposición sigue viva.
+    expect(
+      titulos,
+      'el caso con el criterio viejo (la cadena, no la firma) sigue en el fichero',
+    ).not.toContain('los únicos ficheros ajenos de tests/ que esta spec nombra son esos dos');
+    expect(titulos).toContain(
+      'los ficheros de tests/ re-encuadrados bajo la autorización de esta spec son esos dos',
+    );
+
+    // Y los casos de los tres bloques que CA-18 (e) declara intactos siguen ahí, uno a
+    // uno. Los de CA-17.2 y CA-17.3 llevan el nombre interpolado (`${fichero}: …`), así
+    // que se comprueban por su parte estable.
+    for (const cola of [
+      ': dice qué vigilaba, qué vigila y en virtud de qué CA entra',
+      ': ningún caso queda apagado',
+      ': la guardia sigue cerrada ante una exclusión inventada',
+      ': la hermana que mide la propiedad sigue ahí y sigue mirando',
+      'ni siquiera sabe que esta spec existe',
+    ]) {
+      expect(
+        titulos.some((t) => t.endsWith(cola)),
+        `ha desaparecido el caso que termina en «${cola}»`,
+      ).toBe(true);
+    }
+    for (const titulo of [
+      'el matcher sigue sin conocer una sola ruta de producto',
+      '`PUBLIC_PREFIXES` no crece: la excepción documentada a RN-03 sigue siendo de páginas',
+    ]) {
+      expect(titulos, `ha desaparecido el caso «${titulo}»`).toContain(titulo);
+    }
+  });
+});
+
+/**
+ * CA-18 (f) — las formas de **partir** el identificador de una spec para que la cadena
+ * deje de casar.
+ *
+ * Lo que delata el atajo no es que alguien concatene —el literal **entero** seguido de
+ * `+` es legítimo y sigue conteniendo la cadena— sino que un literal **termine en un
+ * prefijo propio** (los cuatro cortes posibles antes del último dígito), o que una
+ * interpolación lo parta por la mitad. Ese fragmento no tiene otro uso honesto.
+ *
+ * Los rótulos usan comillas angulares y no acentos graves **a propósito**: un rótulo que
+ * terminara con el fragmento entrecomillado sería él mismo un literal cortado, y este
+ * barrido —que lee texto— lo marcaría. La guardia tiene que poder describirse sin
+ * infringirse.
+ */
+const ATAJOS_DEL_LITERAL_PARTIDO: ReadonlyArray<{ patron: RegExp; forma: string }> = [
+  { patron: /SPEC-05['"`]/, forma: 'literal cortado tras «SPEC-05» y concatenado' },
+  { patron: /SPEC-0['"`]/, forma: 'literal cortado tras «SPEC-0» y concatenado' },
+  { patron: /SPEC-['"`]/, forma: 'literal cortado tras «SPEC-» y concatenado' },
+  { patron: /SPEC['"`]\s*\+/, forma: 'literal «SPEC» concatenado con lo que sigue' },
+  { patron: /SPEC-\$\{/, forma: 'interpolación que parte la cadena por el guion' },
+  { patron: /SPEC-0\$\{/, forma: 'interpolación que parte la cadena por el cero' },
+];
+
+/**
+ * El prefijo se **compone en tiempo de ejecución**, y esto no es una coquetería: los
+ * espectros de abajo son, por definición, literales partidos. Si aparecieran escritos tal
+ * cual en la fuente, el barrido de CA-18 (f) —que lee **texto**, no un AST— se marcaría a
+ * sí mismo como infractor y el caso sería imposible de poner en verde sin aflojarlo. Es el
+ * mismo recurso, y por el mismo motivo, que `tests/revision-movil-en-tests.test.ts` usa
+ * con sus fragmentos infractores (SPEC-048 CA-10.3/10.4).
+ *
+ * Nótese que esto **no es** el atajo que (f) prohíbe: no esquiva ninguna guardia: la
+ * alimenta. Lo que (f) persigue es partir el literal para que una guardia **deje de
+ * verte**; aquí se parte para que la guardia **pueda probarse**.
+ */
+const PREFIJO = ['S', 'PEC'].join('');
+
+/** Los seis espectros, uno por forma prohibida. */
+const ESPECTROS_DEL_ATAJO = [
+  `const a = '${PREFIJO}-05' + '1';`,
+  `const b = '${PREFIJO}-0' + '51';`,
+  `const c = '${PREFIJO}-' + '051';`,
+  `const d = '${PREFIJO}' + '-051';`,
+  'const e = `' + PREFIJO + '-' + '${' + "'051'" + '}`;',
+  'const f = `' + PREFIJO + '-0' + '${' + "'51'" + '}`;',
+];
+
+/** Y lo que NO es atajo: el literal entero, concatenado o interpolado alrededor. */
+const INOCENTES_DEL_ATAJO = [
+  `expect(cuerpo).toContain('${PREFIJO}-051');`,
+  `const m = '${PREFIJO}-051' + ' CA-17';`,
+  'const t = `' + '${fichero}: ' + PREFIJO + '-051 CA-17`;',
+];
+
+describe('SPEC-052 CA-18 (f): nadie parte el literal para esquivar la guardia', () => {
+  it('ningún fuente de tests/ compone el identificador de una spec por trozos', () => {
+    // La salida fácil ante una guardia que molesta es escribir su literal partido hasta
+    // que deje de casar. Es aflojar en silencio y a favor de quien se beneficia, que es lo
+    // que `FOUNDATION.md` prohíbe. Consta que en esta entrega **no se hizo** —se escaló y
+    // se re-encuadró con autorización— y queda prohibido por escrito para el siguiente.
+    //
+    // Sigue haciendo falta aunque la guardia re-encuadrada ya no dependa de la cadena:
+    // **CA-17.2 sí** exige el literal dentro del cuerpo de cada ampliación, así que
+    // partirlo seguiría siendo la manera de escapar de ella.
+    const infractores: string[] = [];
+    for (const ruta of fuentesDeTests()) {
+      const src = readFileSync(ruta, 'utf8');
+      for (const { patron, forma } of ATAJOS_DEL_LITERAL_PARTIDO) {
+        if (patron.test(src)) infractores.push(`${relDesdeRaiz(ruta)}: ${forma}`);
+      }
+    }
+    expect(
+      infractores,
+      'el identificador de una spec no se parte, no se interpola y no se disfraza',
+    ).toEqual([]);
+  });
+
+  it('y la detección de ese atajo no está vacía: reconoce las seis formas', () => {
+    // Centinela. Un barrido que no casara con nada dejaría el caso de arriba en verde sin
+    // haber mirado, que es el modo de fallo exacto que ADR-031 documenta.
+    for (const espectro of ESPECTROS_DEL_ATAJO) {
+      expect(
+        ATAJOS_DEL_LITERAL_PARTIDO.some(({ patron }) => patron.test(espectro)),
+        `no reconoce el atajo en: ${espectro}`,
+      ).toBe(true);
+    }
+    for (const inocente of INOCENTES_DEL_ATAJO) {
+      expect(
+        ATAJOS_DEL_LITERAL_PARTIDO.some(({ patron }) => patron.test(inocente)),
+        `falso positivo en: ${inocente}`,
+      ).toBe(false);
+    }
   });
 });

@@ -56,20 +56,28 @@ epica: EPIC-FIX
 | CA-11 — **la guardia probada en rojo** con entrada propia, en los dos sentidos | `G` — `incumplimientos()` es función pura sobre dos cadenas (D-3) | `G` › *CA-11* — **4 casos**: `Production` a secas → incumplimiento que **nombra la clave** y dice *«el build de Preview de toda PR fallará en `next build`»* · fila ausente → incumplimiento · corregido a `Preview + Production` → **ninguno** · runbook sin §0 → **no** queda en verde por vacío | | |
 | CA-12 — `.env.example` admite Production/Preview/Development | `.env.example`, cabecera | `G` › *CA-12* — **2 casos**: la frase del entorno único ausente; y los tres entornos + *no todas viven en todos* + *también en Preview* + remisión a `docs/despliegue.md` | | |
 | CA-13 — `.env.example`: la ausencia de `APP_BASE_URL` rompe el build | `.env.example`, bloque de `APP_BASE_URL` | `G` › *CA-13* — **2 casos**: la consecuencia **vieja** conservada literal, y la **nueva** añadida (SPEC-051 + *rompe el `next build`*) | | |
-| CA-14 — `appBaseUrl()` sigue lanzando, con la nota de que es deliberado; **y su primer test propio** (premisa del CA corregida el 2026-08-24, F-SPEC-052-8) | **Nada**: `src/lib/config/app-url.ts` intacto (ver **F-SPEC-052-8**) | `G` › *CA-14* — **2 casos**: lanza con la clave ausente y con una cadena de espacios; y el propio caso **contiene la nota** (SPEC-051 · D-4 · deliberado · *SPEC-052 NO revisa esta conducta*), leída de la fuente del fichero, sin `git` | | |
+| CA-14 — `appBaseUrl()` sigue lanzando, con la nota de que es deliberado; **y su primer test propio** (premisa del CA corregida el 2026-08-24, F-SPEC-052-8) | **Nada**: `src/lib/config/app-url.ts` intacto (ver **F-SPEC-052-8**) | `G` › *CA-14* — **2 casos**: lanza con la clave ausente **y** con una cadena de espacios, en ambos con el **mensaje literal entero** (`APP_BASE_URL no definida (ver .env.example): sin ella no hay enlaces válidos.`) — el mismo del log del PR #58 —, y **la misma cadena se exige presente en el aviso de §0**, que es lo que ata documento y código; y el propio caso **contiene la nota** (SPEC-051 · D-4 · deliberado · *SPEC-052 NO revisa esta conducta*), leída de la fuente del fichero, sin `git` | | |
 | CA-15 — la entrega no toca `src/` ni `drizzle/` | — (criterio sobre el delta) | **n-a — ver nota N-1** | gate | n-a |
 | CA-16 — `npm run build` sin `APP_BASE_URL` falla | — (verificación empírica única) | **n-a — ver nota N-2** | gate | n-a |
 | CA-17 — `.env.example`: `APP_BASE_URL` → `http://localhost:3000`, y §0 retira el desmentido | `.env.example` (valor + comentario) y `docs/despliegue.md` §0 (desmentido retirado) | `G` › *CA-17: el valor de ejemplo es el de desarrollo* — **3 casos** (valor literal · `stockeiro.app` ya no es su valor · `RESEND_FROM` **conserva** el suyo) y *CA-17: §0 retira el desmentido* — **2 casos** (`stockeiro.app` fuera del aviso, pero *origen REAL del despliegue* sigue) | | |
 
-| CA-18 — re-encuadre autorizado de `tests/tarjeta-guardias-ampliadas.test.ts:118-126`: **(a)** firma en vez de mención · **(b)** autoexclusión probada · **(c)** rojo en los dos sentidos · **(d)** el porqué al lado · **(e)** nada más del fichero aflojado · **(f)** sin atajo del literal | | | | ❌ |
+| CA-18 — re-encuadre autorizado de `tests/tarjeta-guardias-ampliadas.test.ts:118-126`: **(a)** firma en vez de mención · **(b)** autoexclusión probada · **(c)** rojo en los dos sentidos · **(d)** el porqué al lado · **(e)** nada más del fichero aflojado · **(f)** sin atajo del literal | **(a)–(d)** `tests/tarjeta-guardias-ampliadas.test.ts`: `FIRMA_DE_REENCUADRE` (6 marcas), `EXCLUIDOS_DE_LA_DETECCION` (1 elemento, con motivo), `cuerposDeCasos()` **nuevo** —`casos()` NO se toca—, `llevaFirmaDeReencuadre(ruta, fuente)` pura, y el porqué de 40 líneas junto a la comparación. **`PROPIOS` retirado**, con su motivo escrito ahí mismo. **(e)–(f)** `tests/entornos-de-despliegue.test.ts` | **(a)** `tarjeta-guardias-ampliadas` › *los ficheros de tests/ re-encuadrados bajo la autorización de esta spec son esos dos* — **1 caso** · **(b)** *la exclusión de este fichero es NECESARIA, y es exactamente una* — **1 caso**, las dos mitades · **(c)** *la detección se prueba en rojo: firma completa sí, mención en prosa NO* (**3 sentidos**: firma→`true`, cita→`false`, firma incompleta→`false`) y *un TERCER fichero con firma rompería la igualdad* — **2 casos** · **(d)** el porqué es prosa, se verifica leyéndolo · **(e)** `G` › *CA-18 (e)* — **3 casos** (nada apagado · los cuatro bloques en pie · solo cambió el caso nombrado) · **(f)** `G` › *CA-18 (f)* — **2 casos** (barrido de `tests/**/*.ts` + centinela de las 6 formas y 3 inocentes) | | |
 
 > **CA-18 lo añadió sdd-arquitecto el 2026-08-24**, tras la escalada de `F-SPEC-052-7`.
 > Las columnas *Implementado* y *Test* las rellena sdd-implementador; *Verif.* y *Estado*,
 > sdd-verificador. El arquitecto no las toca.
 
-**Estado de la suite tras la entrega:** `tests/entornos-de-despliegue.test.ts` → **38/38 verde**.
-`npm run typecheck` y `npm run lint` limpios. Suite completa: **1702/1703**, con **un rojo que no
-es de esta entrega y que NO se ha tocado** — ver **F-SPEC-052-7**.
+**Estado de la suite tras la entrega:** `tests/entornos-de-despliegue.test.ts` → **43/43 verde**;
+`tests/tarjeta-guardias-ampliadas.test.ts` (re-encuadrada) → **15/15 verde**. `npm run typecheck`
+y `npm run lint` limpios. **Suite completa: 1711/1711 en verde, 110/110 ficheros.**
+
+> Antes del re-encuadre de CA-18 la suite estaba en **1702/1703**, con el único rojo de
+> `F-SPEC-052-7` — que no era un defecto de esta entrega sino una guardia ajena caducada. Con
+> CA-18 aplicado, ese rojo **desaparece por arreglo, no por silencio**: el conjunto ahora se
+> cierra sobre la firma de un re-encuadre y no sobre la mención, y sigue mordiendo ante un
+> tercero de verdad (demostrado abajo, en el cierre de `F-SPEC-052-7`). Los **9 casos nuevos**
+> —5 en el fichero re-encuadrado, 5 en el propio, menos el que se sustituye— son las seis
+> partes de CA-18.
 
 ### El rojo de nacimiento de la guardia (CA-11 y ADR-031)
 
@@ -355,6 +363,95 @@ No aplica: esta spec no cambia ninguna superficie de UI. La evidencia es textual
     literal `'SPEC-051'`. Consta que el implementador **no** lo hizo, y la prohibición queda
     para el siguiente.
 
+  ---
+
+  ↳ **APLICADO y CERRADO el 2026-08-24 por sdd-implementador.** Las seis partes están
+  implementadas y probadas; el fichero ajeno queda en **15/15 verde** y la suite completa en
+  **1711/1711**. Lo que se hizo, y la evidencia de que no es un verde de conveniencia:
+
+  **1. El criterio cambió de verdad, y se puede medir.** Ejecutando **el criterio viejo** (la
+  cadena) sobre el árbol de hoy salen **nueve** ficheros; el nuevo (la firma) devuelve
+  **exactamente dos**. Los siete de diferencia son los falsos positivos que el converso
+  producía:
+
+  ```
+  CRITERIO VIEJO (la cadena) -> 9 ficheros
+    tests/cuenta-rutas.test.ts               ← re-encuadre real
+    tests/e2e/tarjeta.spec.ts                ← propio de SPEC-051, no es re-encuadre
+    tests/entornos-de-despliegue.test.ts     ← LA CITA OBLIGADA por CA-2 (a) y CA-14
+    tests/legal-rutas-publicas.test.ts       ← re-encuadre real
+    tests/tarjeta-frontera.test.ts           ← propio
+    tests/tarjeta-guardias-ampliadas.test.ts ← el que DEFINE la firma
+    tests/tarjeta-imagen.test.ts             ← propio
+    tests/tarjeta-raster.ts                  ← propio
+    tests/zz-tercero-sintetico.test.ts       ← el sintético de la prueba de abajo
+
+  CRITERIO NUEVO (la firma) -> 2 ficheros
+    tests/cuenta-rutas.test.ts
+    tests/legal-rutas-publicas.test.ts
+  ```
+
+  **2. El rojo, en los dos sentidos, demostrado sobre el árbol y no solo con cadenas.** Se creó
+  un fichero sintético bajo `tests/` y se ejecutó la guardia re-encuadrada dos veces, cambiando
+  **solo** su contenido. Con la **firma completa** (`SPEC-051` + `CA-17` + `2026-08-23` +
+  *arbitraje del humano* + *Qué vigilaba antes* + *Qué vigila ahora*) → **RED**:
+
+  ```
+  FAIL tests/tarjeta-guardias-ampliadas.test.ts >
+    SPEC-051 CA-17.1: son DOS guardias ajenas, y la tercera no ha hecho falta >
+    los ficheros de tests/ re-encuadrados bajo la autorización de esta spec son esos dos
+  AssertionError: un TERCER fichero ajeno re-encuadrado es RED: se escala al gate, no se toca
+      Array [
+        "tests/cuenta-rutas.test.ts",
+        "tests/legal-rutas-publicas.test.ts",
+  +     "tests/zz-tercero-sintetico.test.ts",
+      ]
+   Tests  1 failed | 14 passed (15)
+  ```
+
+  Y con el **mismo fichero** limitado a **citar** la spec en un comentario en prosa —el caso
+  exacto que rompía la guardia vieja— → **GREEN**, `15/15`. Ese par es la prueba entera: la
+  guardia **sigue mordiendo** ante un tercer re-encuadre y **ha dejado** de morder ante una
+  cita. El sintético se borró después; no queda en la rama.
+
+  Además, los tres sentidos quedan **permanentes en la suite** como función pura
+  (CA-18 c): firma completa → `true`; cita en prosa → `false`; y firma a la que se le quita
+  **una sola marca** (la fecha) → `false`, porque una firma incompleta no es la conjunción que
+  CA-17.2 exige.
+
+  **3. La autoexclusión es necesaria, y se prueba.** El centinela pregunta por la firma
+  **sin** pasar por la exclusión y confirma que la fuente de `tarjeta-guardias-ampliadas`
+  **sí la lleva** —la lleva porque su caso de CA-17.2 la define—, de modo que la excepción no
+  es un blanqueo preventivo; y que `EXCLUIDOS_DE_LA_DETECCION` tiene **exactamente un**
+  elemento, para que la lista no se convierta en un desagüe.
+
+  Detalle de implementación que conviene saber: la extracción de casos que ya existía en el
+  fichero (`casos()`) **solo** reconoce `it('…')` a dos espacios, y los casos de CA-17.2 llevan
+  el título **interpolado** y van a cuatro. Con ella, el fichero **no** se habría detectado a
+  sí mismo y la exclusión habría sido justo el blanqueo que CA-18 (b) prohíbe. Por eso se añade
+  `cuerposDeCasos()` —cualquier sangría, comilla simple o acento grave, molde de
+  `tests/guardias-ancladas.test.ts`— y **`casos()` se deja intacta**: la usan CA-17.2 y CA-17.3,
+  y tocarla sería mover aserciones que SPEC-052 no tiene autorización para mover.
+
+  **4. `PROPIOS` retirado** (no inerte): la constante desaparece y su motivo queda escrito en el
+  porqué de la aserción —*era la segunda instantánea congelada del mismo caso, y los ficheros
+  propios de SPEC-051 no llevan firma porque no son re-encuadres*—. Dejarla inerte habría
+  exigido referenciarla para no romper el lint, que es la forma de acabar con una lista muerta.
+
+  **5. Nada más del fichero se movió.** Los tres bloques protegidos (CA-17.2, CA-17.3 con su
+  prueba por mutación, y CA-17.4 con las hermanas, el matcher y `PUBLIC_PREFIXES`) y el caso de
+  la guardia que **no** se toca siguen íntegros; la cabecera con el porqué que dejó SPEC-051
+  **no se borró**. Lo vigilan los tres casos de CA-18 (e), que además comprueban que el caso
+  viejo **ya no está** y el nuevo **sí**: las dos mitades de un re-encuadre.
+
+  **6. El atajo del literal, prohibido y vigilado** (CA-18 f). El barrido recorre
+  `tests/**/*.ts` buscando literales cortados por un prefijo propio o partidos por una
+  interpolación. Tiene su propio centinela: reconoce las **seis** formas y no marca las **tres**
+  inocentes. Y una trampa que hubo que resolver, escrita para quien la herede: los espectros y
+  los rótulos de la propia guardia **no pueden contener el fragmento literalmente**, o el
+  barrido se marcaría a sí mismo — se componen en tiempo de ejecución y los rótulos usan
+  comillas angulares. Una guardia tiene que poder describirse sin infringirse.
+
 - **F-SPEC-052-8** (discrepancia menor de la spec, resuelta sin salirse del CA) — **CA-14 da por
   existente un caso de SPEC-023 que no existe.** El CA dice *«si el caso ya existe (SPEC-023), se
   le añade la nota y no se duplica»*, y la tabla de §Ficheros lista *«el test de `appBaseUrl()`
@@ -388,34 +485,47 @@ No aplica: esta spec no cambia ninguna superficie de UI. La evidencia es textual
 
 ## Cómo retomar (handoff)
 
-**Estado real (2026-08-24)**: **implementación TERMINADA**, spec en `en-revision`, rama
-`ft/SPEC-052-sin-app-base-url-el-build-ya-no-sale-verde` sobre `origin/main` en `3b6fc8b`.
-Dos commits: el de la spec y el de la entrega. **Sin PR y sin merge** — eso es del orquestador.
+**Estado real (2026-08-24)**: **implementación TERMINADA, con CA-18 incluido**; spec en
+`en-revision`; rama `ft/SPEC-052-sin-app-base-url-el-build-ya-no-sale-verde` sobre `origin/main`
+en `3b6fc8b`. **Suite completa en verde: 1711/1711.** **Sin PR y sin merge** — eso es del
+orquestador.
 
-**Lo que hay que mirar primero, antes que ninguna otra cosa: `F-SPEC-052-7`.** Hay **un rojo en
-la suite** y **no es de esta entrega**: `tests/tarjeta-guardias-ampliadas.test.ts` (SPEC-051
-CA-17.1) congeló la lista de ficheros de `tests/` que mencionan `SPEC-051`, y el fichero nuevo
-la menciona porque **dos CA de SPEC-052 obligan a mencionarla** (CA-2 a y CA-14). Es una
-aserción **ajena**, la spec no la nombra, y **no se ha tocado ni esquivado**: se escala. Hasta
-que el gate decida, `npm run test` da **1702/1703**.
+**`F-SPEC-052-7` está CERRADO, y conviene leer su cierre antes que nada.** El rojo de la guardia
+ajena de SPEC-051 CA-17.1 **ya no existe, y no porque se haya callado**: el humano autorizó
+nominalmente tocarla el 2026-08-24, el arquitecto redactó el re-encuadre como **CA-18** y esta
+implementación lo aplicó. El conjunto pasó de cerrarse sobre la **cadena** `SPEC-051` a cerrarse
+sobre la **firma de un re-encuadre autorizado**. La prueba de que sigue mordiendo —un tercero
+sintético con firma la pone RED, el mismo fichero limitado a citar la deja GREEN— está pegada en
+el cierre de ese follow-up, junto con la medida del criterio viejo (9 ficheros) contra el nuevo
+(2).
 
 **Cómo se verifica esta entrega, en orden y sin sorpresas:**
 
-1. `npx vitest run tests/entornos-de-despliegue.test.ts` → **38/38**. Es donde vive todo lo
-   testable de CA-1..CA-14 y CA-17.
-2. `npm run typecheck` y `npm run lint` → limpios.
-3. `npm run test` → **1702/1703**, con el único rojo de `F-SPEC-052-7`.
-4. Los dos `n-a` **ya están ejecutados y con su salida literal pegada** en N-1 y N-2 de arriba
+1. `npx vitest run tests/entornos-de-despliegue.test.ts` → **43/43**. Todo lo testable de
+   CA-1..CA-14, CA-17 y las partes (e)/(f) de CA-18.
+2. `npx vitest run tests/tarjeta-guardias-ampliadas.test.ts` → **15/15**. La guardia ajena
+   re-encuadrada, con las partes (a)…(d) de CA-18.
+3. `npm run typecheck` y `npm run lint` → limpios.
+4. `npm run test` → **1711/1711**, 110/110 ficheros. **Sin excepciones ni rojos declarados.**
+5. Los dos `n-a` **ya están ejecutados y con su salida literal pegada** en N-1 y N-2 de arriba
    (incluido el **control** del build en verde con las cuatro claves de la CI, que es lo que
    hace que el rojo de N-2 signifique algo).
-5. `npm run version:check` → *«el diff no toca codigo de aplicacion»*, exit 0, **con el árbol
+6. `npm run version:check` → *«el diff no toca codigo de aplicacion»*, exit 0, **con el árbol
    limpio**. Si SPEC-053 (PR #60, el lockfile) se mergea antes, **re-ejecútalo**: la versión
    base es un recurso compartido y la reclama quien mergea primero.
 
-**Para comprobar que la guardia de CA-8 no es decoración, sin creerse el ledger:** cambia a mano
-la celda de `APP_BASE_URL` en la tabla de §0 de `docs/despliegue.md` de `Preview + Production`
-a `Production` y vuelve a correr el fichero. Tiene que ponerse roja nombrando la clave y
-diciendo que *el build de Preview de toda PR fallará en `next build`*. Deshaz el cambio después.
+**Para comprobar que las dos guardias no son decoración, sin creerse el ledger:**
+
+- **CA-8** — cambia a mano la celda de `APP_BASE_URL` en la tabla de §0 de `docs/despliegue.md`
+  de `Preview + Production` a `Production` y vuelve a correr el fichero. Tiene que ponerse roja
+  nombrando la clave y diciendo que *el build de Preview de toda PR fallará en `next build`*.
+- **CA-18** — crea un fichero cualquiera bajo `tests/` con un caso que lleve las **seis marcas**
+  de la firma (`SPEC-051`, `CA-17`, `2026-08-23`, *arbitraje del humano*, *Qué vigilaba antes*,
+  *Qué vigila ahora*) y corre `tests/tarjeta-guardias-ampliadas.test.ts`: **rojo**, listando el
+  tercero. Quítale una sola marca —la fecha, por ejemplo— y vuelve: **verde**. Ese par es la
+  diferencia entre la guardia y su decoración.
+
+Deshaz los dos cambios después.
 
 **Trampas que siguen vivas para quien toque esto:**
 
@@ -432,3 +542,19 @@ diciendo que *el build de Preview de toda PR fallará en `next build`*. Deshaz e
   markdown, porque una frase partida dentro de un blockquote sigue siendo la misma frase.
 - **Lo que la guardia NO sabe**: nada del panel real de Vercel (**F-SPEC-052-1**). Si el panel
   pierde una clave mañana, sigue verde. Lo único que lo delata es una preview roja.
+
+Y tres más que estrena **CA-18**, para quien vuelva a tocar la guardia ajena:
+
+- **`casos()` de `tarjeta-guardias-ampliadas` no se toca.** Solo reconoce `it('…')` a dos
+  espacios y la usan CA-17.2 y CA-17.3 para localizar un caso por su título exacto. La detección
+  del re-encuadre usa `cuerposDeCasos()`, que es **aparte** y admite cualquier sangría y el
+  título interpolado. Ampliar la primera movería aserciones que esta spec no tiene autorización
+  para mover.
+- **La autoexclusión tiene que seguir siendo NECESARIA.** Si algún día ese fichero dejara de
+  contener la firma, la exclusión sobraría y su centinela lo dirá en rojo. Quitarla entonces es
+  lo correcto; ampliarla a un segundo fichero, no — la lista es una excepción con nombre, no un
+  desagüe.
+- **Una guardia tiene que poder describirse sin infringirse.** Los espectros y los rótulos de
+  CA-18 (f) se componen en tiempo de ejecución y usan comillas angulares, porque escribir el
+  fragmento prohibido tal cual haría que el barrido se marcara a sí mismo. Si añades una forma,
+  añade su espectro **y** compruébalo contra los tres inocentes.
