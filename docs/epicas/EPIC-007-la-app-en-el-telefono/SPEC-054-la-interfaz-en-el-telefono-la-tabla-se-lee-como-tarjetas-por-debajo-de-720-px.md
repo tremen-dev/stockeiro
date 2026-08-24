@@ -14,6 +14,7 @@ historial:
   - {estado: en-revision, fecha: 2026-08-24, por: sdd-arquitecto}
   - {estado: en-progreso, fecha: 2026-08-24, por: sdd-implementador}
   - {estado: en-revision, fecha: 2026-08-24, por: sdd-implementador}
+  - {estado: en-revision, fecha: 2026-08-24, por: sdd-arquitecto}
 ---
 # SPEC-054 — La interfaz en el teléfono: la tabla se lee como tarjetas por debajo de 720 px
 
@@ -279,8 +280,34 @@ representación oculta no ensucia ni infla el recuento — y **`display: none` t
   (`.quote-pending`), una sin refrescar (`.quote-stale`) y una posición de cartera con aviso
   en su P/L actual, cuando se cargan las dos páginas a 360 y 390 px, entonces cada aviso está
   **visible y completo** —su texto coincide carácter a carácter con el que se lee a 1280 px—,
-  conserva `max-width: 34ch` computado, **envuelve** (más de una caja de línea sin partir ni
-  una palabra, M3) y **no desborda su tarjeta** (M1 aplicado con la tarjeta como raíz).
+  conserva su **caja acotada** (`max-width: 34ch` computado, nunca `none`), **ninguna línea de
+  ningún aviso se extiende por encima de esa caja**, **el aviso de más palabras de cada
+  pantalla ocupa más de una caja de línea**, **ninguno parte una palabra** (M3) y **ninguno
+  desborda su tarjeta** (M1 aplicado con la tarjeta como raíz, y el borde derecho de cada
+  aviso dentro del de su tarjeta).
+
+  **Por qué el envolvimiento se afirma del aviso más largo y no de cada uno.** Hay que
+  escribirlo, porque la redacción anterior pedía las dos cosas a la vez y eran incompatibles.
+  Exigir que **cada** aviso ocupe más de una línea dentro de una caja de `34ch` no es una
+  propiedad de la caja: es una propiedad de **la longitud del texto de cada motivo**, que esta
+  spec no elige. Medido a 360 y 390 px en la tarjeta de `/vigiladas`: `.quote-fail`
+  (91 caracteres) ocupa **dos** cajas de línea, `.quote-pending` (52) **dos**, y
+  `.quote-stale` (45) **una sola**, con su línea más larga en **267,20 px** dentro de una caja
+  de **270,504 px**. Cabe por **3,3 px**, y la única forma de hacerle ocupar dos sería
+  **estrechar la caja** — justo lo que la cláusula anterior del mismo CA prohíbe. El CA se
+  pedía a sí mismo dos cosas que no pueden ser verdad juntas.
+
+  Lo que esta spec quiere afirmar de verdad es que **la caja acotada funciona**, no que todos
+  los motivos sean largos; y eso son **tres** propiedades, no una: **(i)** que nadie se salga
+  de su caja; **(ii)** que quien no cabe **envuelva** en vez de extenderse —que es literalmente
+  el defecto que rompió esta tabla en SPEC-016, *«un párrafo de motivo que se extendía en vez
+  de envolverse»*, y que SPEC-040 CA-4 arregló acotando la **caja**, nunca el texto (ADR-034
+  §7)—; y **(iii)** que envolver no se pague **partiendo palabras**. Un aviso corto que cabe en
+  una línea **está bien**: en la tarjeta hay más ancho que en la celda de 170 px de la tabla, y
+  penalizarlo por ser corto sería convertir el CA en rehén del texto de cada motivo. *(Reescrito
+  el 2026-08-24 tras el RED de la ronda 5: **`F-VERIF-054-2`**. La guardia ya afirmaba estas
+  tres propiedades, con su porqué escrito al lado; lo que faltaba era que el CA dijera lo que la
+  guardia hace. **No cambia ni una línea de código ni de test.**)*
 
 - **CA-16 (cero regresión funcional — CE-5)**: Dado el escenario de cada suite existente,
   cuando se ejecutan enteras `npm test` y `npx playwright test`, entonces **todas pasan y no
@@ -299,7 +326,7 @@ representación oculta no ensucia ni infla el recuento — y **`display: none` t
   intacta **qué propiedad se afirma y sobre qué sujeto**, y sólo corrige **dónde vive hoy ese
   sujeto**. Es ilegítimo si toca la afirmación. En concreto:
 
-  - **Legítimo (re-encuadre)**, y sólo estas cinco formas, cada una con su motivo escrito al
+  - **Legítimo**, y sólo estas seis formas, cada una con su motivo escrito al
     lado del cambio: **(a)** un **localizador** que pasa a apuntar a la representación **viva**
     al ancho que mide; **(b)** una **espera** que aguardaba a `table.data-table` visible y pasa
     a aguardar a la representación viva —una espera no es una aserción—; **(c)** un caso que
@@ -307,7 +334,12 @@ representación oculta no ensucia ni infla el recuento — y **`display: none` t
     de existir y allí rige un CA **más fuerte** de esta misma spec; **(d)** una lista escrita
     dentro de un `.spec.ts` que **se extrae a un módulo importable** sin cambiar su contenido;
     **(e)** una guardia unitaria que miraba **un fichero** y pasa a mirar **la superficie
-    entera** de la pantalla porque ese fichero se partió — mide más, no menos.
+    entera** de la pantalla porque ese fichero se partió — mide más, no menos; **(f)** el
+    **módulo de medida compartido** de ADR-026, al que esta spec **añade** medidas nuevas sin
+    tocar ni una línea de las que ya había. **(f) no es un re-encuadre: es crecimiento**, y por
+    eso su prueba es aritmética y no interpretativa — el diff del fichero tiene que ser
+    `+N/−0`. Con cero líneas borradas ninguna guardia previa puede haber cambiado de
+    significado, porque ninguna de sus líneas cambió.
   - **Ilegítimo (aflojar)**: quitar o debilitar una aserción, subir una tolerancia, marcar un
     caso `skip`/`fixme`, sustituir una aserción por una espera, o recortar el conjunto de
     anchos **para esquivar un rojo** en vez de para seguir a la representación.
@@ -316,20 +348,36 @@ representación oculta no ensucia ni infla el recuento — y **`display: none` t
   `tests/e2e/vigiladas-orden.spec.ts`, `tests/e2e/cartera.spec.ts`,
   `tests/e2e/decimales.spec.ts` y `tests/e2e/sin-refrescar-geometria.spec.ts` —sus aserciones
   sobre la tabla a 360 px son de atributo o de valor computado, y `display: none` no cambia ni
-  uno ni otro—. Se **re-encuadran**, y sólo por (a)–(e):
-  `tests/e2e/spec046.ts` *(helper, no guardia: es lo que permite dejar
-  `vigiladas-capa-edicion.spec.ts` intacto)*, `tests/e2e/vigiladas-capa-edicion.spec.ts`
+  uno ni otro—. Se tocan, y **sólo por (a)–(f)**:
+  `tests/e2e/spec046.ts` *(—(a)—: sus localizadores pasan a apuntar a la representación viva;
+  helper, no guardia, y es lo que permite dejar `vigiladas-capa-edicion.spec.ts` intacto)*,
+  `tests/e2e/vigiladas-capa-edicion.spec.ts`
   *(una espera —(b)—, ninguna aserción)*, `tests/e2e/vigiladas-editar.spec.ts` *(su `editarDe`
   local —(a)—)*, `tests/e2e/geometria-rutas.spec.ts` *(las tres listas de rutas salen a módulo
   —(d)—, lo exige CA-11; y el caso «la tabla se sigue pudiendo arrastrar» pasa a los anchos de
   tabla —(c)—, porque por debajo del canto rige CA-4, que es **más fuerte**: no queda nada que
   arrastrar)*, `tests/e2e/movil-alta.spec.ts` *(—(a)—)*,
   `tests/e2e/geometria-puntos-ciegos.spec.ts` *(—(c)—: a 360 px la exención de M1 que mide ya
-  no puede hacer nada, así que aprobaba en el vacío)*, y las dos unitarias
-  `tests/spec044-frontera.test.ts` y `tests/spec043-sin-refrescar.test.ts` *(—(e)—)*.
+  no puede hacer nada, así que aprobaba en el vacío)*, las dos unitarias
+  `tests/spec044-frontera.test.ts` y `tests/spec043-sin-refrescar.test.ts` *(—(e)—)*, y el
+  módulo `tests/e2e/geometria.ts` *(—(f)—: el módulo único de ADR-026 estrena M5 y las medidas
+  que esta spec necesita; su diff contra `main` es **+630 / −0**, cero líneas borradas, y
+  `TOLERANCIA_PX` sigue valiendo 1 en la misma línea y con el mismo comentario)*.
+
+  **Y las dos listas juntas son exhaustivas**, con el diff acotado a **los commits de esta
+  spec** —la rama lleva encima trabajo de otras y un `main...HEAD` a pelo mezcla sus ficheros
+  con los de aquí—: no queda ni un fichero de test **que ya existiera** tocado por SPEC-054 y
+  sin clasificar. Los siete restantes —`tests/e2e/rutas.ts`, `tests/e2e/spec054.ts`,
+  `tests/e2e/tarjetas-conmutacion.spec.ts`, `tests/e2e/tarjetas-geometria.spec.ts`,
+  `tests/e2e/tarjetas-capa-edicion.spec.ts`, `tests/spec054-breakpoint-y-rutas.test.ts` y
+  `tests/spec054-m5-en-el-modulo.test.ts`— **nacen en esta spec**, así que no pueden aflojar
+  nada: no había nada que aflojar. *(Escrito el 2026-08-24 tras la ronda 5: `geometria.ts`
+  estaba tocado y sin clasificar, y un CA que se verifica leyendo diffs no puede dejar un diff
+  fuera de sus listas. No es un defecto —el fichero es puramente aditivo—, es un hueco de la
+  enumeración.)*
 
   **La verificación de este CA es leer los diffs de test**, no sólo ver las dos suites verdes:
-  un cambio en un fichero de test que no encaje en (a)–(e), o que no lleve su motivo escrito al
+  un cambio en un fichero de test que no encaje en (a)–(f), o que no lleve su motivo escrito al
   lado, es rojo aunque todo pase. *(Reescrito el 2026-08-24 tras el RED de la ronda 1, que
   confirmó los seis re-encuadres uno a uno y **cero aserciones aflojadas**: `F-SPEC-054-2`.)*
 
@@ -479,7 +527,23 @@ representación oculta no ensucia ni infla el recuento — y **`display: none` t
   (`F-SPEC-054-3`).
   No cuentan como `hidden` los **valores por defecto del agente de usuario** —`overflow-x:
   clip` en los campos de texto— porque no son una regla de este proyecto ni de su sistema de
-  diseño. *(**R-2 de EPIC-007**: el mal ejemplo
+  diseño.
+
+  **La lista de tres es la afirmación; el patrón que la reconoce es más ancho que ella, y eso
+  se escribe aquí en vez de apretarse.** La guardia reconoce a los heredados por el nombre del
+  elemento, y el trozo que reconoce a (iii) —`\.card\b`— aceptaría también una clase futura del
+  tipo `.card-algo`, porque el guion es frontera de palabra. **Hoy no existe ninguna**: la lista
+  medida y la lista escrita coinciden elemento a elemento, y por eso el CA se verifica. No se
+  aprieta en esta spec porque apretarlo es **cambiar una guardia ya verificada** para cazar un
+  caso que no existe, y esta spec no toca guardias para adornarlas. Queda como
+  **`F-SPEC-054-9`**: el día que el sistema de diseño estrene su primera clase `.card-*`, el
+  reconocedor tiene que pasar a comparar **clases enteras** en vez de prefijos, o la
+  enumeración deja de ser exacta sin que nadie se entere. *(Anotado el 2026-08-24, observación
+  (ii) de la ronda 5. La alternativa —dejarlo sin escribir— es la que hace que el próximo
+  revisor lo redescubra desde cero, que es lo mismo que le pasó a `.card` y costó
+  `F-SPEC-054-3`.)*
+
+  *(**R-2 de EPIC-007**: el mal ejemplo
   está en casa. `design/tremen-ds/responsive.css:11` resuelve su paso a móvil con
   `html, body { overflow-x: hidden }`, que es exactamente lo que ADR-026 §4 declara que **no es
   un arreglo**, y es el patrón que cualquiera copiará al ver una barra de desplazamiento. Esta
