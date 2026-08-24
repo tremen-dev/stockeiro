@@ -3,6 +3,9 @@ import { readFileSync } from 'node:fs';
 import { dirname, join, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { parse as parseYaml } from 'yaml';
+import { passwordResetTokens, users } from '@/db/schema';
+import { requestPasswordReset } from '@/lib/auth/password-reset';
+import type { NotificationSender } from '@/lib/notifications/sender';
 import { appBaseUrl, buildResetUrl } from '@/lib/config/app-url';
 
 /**
@@ -471,5 +474,154 @@ describe('SPEC-055 CA-12 — la batería crece sin tocar ninguna aserción', () 
     // Centinela del propio recorrido: si la constante cambiara de nombre, este caso se
     // quedaría mirando a un fantasma y pasaría de vacío.
     expect(src).toContain(`const ${NOMBRE_DE_LA_TABLA}: Fila[] = [`);
+  });
+});
+
+// ---------------------------------------------------------------------------
+// CA-8 — el oráculo de enumeración, cerrado por construcción
+// ---------------------------------------------------------------------------
+
+/**
+ * Un doble de `db` que **registra cualquier acceso**. No emula Postgres: emula lo justo
+ * para que `requestPasswordReset` recorra su camino —una consulta de usuario, una cuenta
+ * de tokens recientes, el `update` que invalida los vivos y el `insert` del nuevo— y deja
+ * anotado cada paso. Lo que se mide aquí no es el resultado de ninguna consulta: es
+ * **cuántas** hubo, que es lo que distingue una cuenta que existe de una que no.
+ *
+ * Es a mano y no PGlite a propósito: con una base de verdad, «cero accesos» sería un
+ * `SELECT count(*)` sobre tablas vacías, o sea otra afirmación. Aquí es una lista vacía.
+ */
+type Acceso = { op: 'select' | 'update' | 'insert'; tabla: string };
+
+function crearDobleDeDb(usuario: { id: string; email: string } | null) {
+  const accesos: Acceso[] = [];
+  const nombreDeTabla = (t: unknown): string => {
+    if (t === users) return 'users';
+    if (t === passwordResetTokens) return 'passwordResetTokens';
+    return 'desconocida';
+  };
+
+  const cadena = (op: Acceso['op'], tablaInicial?: unknown) => {
+    let tabla = tablaInicial;
+    const filas = (): unknown[] => {
+      accesos.push({ op, tabla: nombreDeTabla(tabla) });
+      if (op !== 'select') return [];
+      if (tabla === users) return usuario === null ? [] : [usuario];
+      return [{ n: 0 }]; // la cuenta de tokens recientes: por debajo del límite
+    };
+    const api: Record<string, unknown> = {
+      from: (t: unknown) => {
+        tabla = t;
+        return api;
+      },
+      where: () => api,
+      limit: () => api,
+      set: () => api,
+      values: () => api,
+      returning: () => api,
+      then: (res: (v: unknown[]) => unknown, rej: (e: unknown) => unknown) =>
+        Promise.resolve().then(filas).then(res, rej),
+    };
+    return api;
+  };
+
+  const db = {
+    select: () => cadena('select'),
+    update: (t: unknown) => cadena('update', t),
+    insert: (t: unknown) => cadena('insert', t),
+  };
+  return { db: db as unknown as Parameters<typeof requestPasswordReset>[0], accesos };
+}
+
+/** Un sender que nunca se invoca en estos casos; está para completar la firma. */
+const senderMudo: NotificationSender = { send: async () => ({ ok: true }) };
+
+const USUARIO = { id: 'u-1', email: 'existe@example.com' };
+const NO_EXISTE = 'noexiste@example.com';
+
+/**
+ * El camino de recuperación tal y como lo escribe `src/app/(auth)/actions.ts:128`: el
+ * origen se compone **como argumento**, o sea ANTES de entrar en `requestPasswordReset`.
+ * Ese orden es todo el arreglo, y por eso se reproduce aquí en vez de describirse.
+ */
+async function caminoDeRecuperacion(
+  db: Parameters<typeof requestPasswordReset>[0],
+  email: string,
+  componerOrigen: (env: NodeJS.ProcessEnv) => string,
+  env: NodeJS.ProcessEnv,
+) {
+  return requestPasswordReset(db, senderMudo, email, { baseUrl: componerOrigen(env) });
+}
+
+/** Lo que le pasó a una llamada: o devolvió el acuse, o lanzó. */
+type Desenlace = { tipo: 'acuse' } | { tipo: 'lanza'; mensaje: string };
+
+async function ejecutar(
+  usuario: { id: string; email: string } | null,
+  email: string,
+  componerOrigen: (env: NodeJS.ProcessEnv) => string,
+): Promise<{ desenlace: Desenlace; accesos: Acceso[] }> {
+  const { db, accesos } = crearDobleDeDb(usuario);
+  try {
+    await caminoDeRecuperacion(db, email, componerOrigen, entorno('[SENSITIVE]'));
+    return { desenlace: { tipo: 'acuse' }, accesos };
+  } catch (e) {
+    return { desenlace: { tipo: 'lanza', mensaje: (e as Error).message }, accesos };
+  }
+}
+
+describe('SPEC-055 CA-8 — con la clave envenenada, recuperación falla igual para todos', () => {
+  it('el DESPUÉS: cuenta que existe y cuenta que no fallan idéntico y sin tocar la BD', async () => {
+    const existe = await ejecutar(USUARIO, USUARIO.email, appBaseUrl);
+    const noExiste = await ejecutar(null, NO_EXISTE, appBaseUrl);
+
+    expect(existe.desenlace.tipo).toBe('lanza');
+    expect(noExiste.desenlace.tipo).toBe('lanza');
+    // El MISMO error para las dos direcciones: nada en la respuesta distingue las ramas.
+    expect(existe.desenlace).toStrictEqual(noExiste.desenlace);
+    // Y cero accesos: ni consulta, ni `update` sobre `passwordResetTokens`, ni `insert`.
+    expect(existe.accesos).toStrictEqual([]);
+    expect(noExiste.accesos).toStrictEqual([]);
+  });
+
+  it('el ANTES, medido aquí mismo: 200 si no existe, 500 si existe, y el enlace vivo quemado', async () => {
+    // Esta mitad no describe el defecto: lo ejecuta, con la `appBaseUrl()` anterior
+    // componiendo el origen. Si alguien afloja la guardia nueva, la mitad de arriba se
+    // parecerá a ésta y el fichero se pondrá rojo.
+    const existe = await ejecutar(USUARIO, USUARIO.email, appBaseUrlAnterior);
+    const noExiste = await ejecutar(null, NO_EXISTE, appBaseUrlAnterior);
+
+    // La cuenta que NO existe sale por la primera salida temprana: acuse normal, 200.
+    expect(noExiste.desenlace.tipo).toBe('acuse');
+    // La que SÍ existe estalla, y estalla DESPUÉS de haber escrito dos veces.
+    expect(existe.desenlace.tipo).toBe('lanza');
+    if (existe.desenlace.tipo === 'lanza') {
+      expect(existe.desenlace.mensaje).toMatch(/Invalid URL/);
+      // Y sin decir de qué clave venía: ese es el otro medio defecto.
+      expect(existe.desenlace.mensaje).not.toContain('APP_BASE_URL');
+    }
+
+    // La asimetría se CALCULA, no se afirma.
+    expect(existe.desenlace.tipo).not.toBe(noExiste.desenlace.tipo);
+
+    // El daño colateral: `invalidateLiveTokens` corrió antes del estallido, así que el
+    // usuario legítimo perdió su enlace vivo y el sustituto nunca salió.
+    const ops = existe.accesos.map((a) => `${a.op}:${a.tabla}`);
+    expect(ops).toContain('update:passwordResetTokens');
+    expect(ops).toContain('insert:passwordResetTokens');
+    // La cuenta inexistente no llegó a ninguna de las dos: ahí está el oráculo.
+    const opsNoExiste = noExiste.accesos.map((a) => `${a.op}:${a.tabla}`);
+    expect(opsNoExiste).not.toContain('update:passwordResetTokens');
+    expect(opsNoExiste).not.toContain('insert:passwordResetTokens');
+    expect(existe.accesos.length).toBeGreaterThan(noExiste.accesos.length);
+  });
+
+  it('`src/lib/auth/password-reset.ts` no participa del arreglo: sigue como estaba', () => {
+    // El arreglo es que el valor envenenado ya no puede llegar hasta él. Si algún día
+    // alguien mete aquí una segunda guardia, serían dos puertas que pueden divergir (D-2).
+    const src = fuente('src/lib/auth/password-reset.ts');
+    expect(src).toContain('const user = await getUserByEmail(db, email);');
+    expect(src).toContain('if (!user) return nothing;');
+    expect(src).not.toContain('appBaseUrl');
   });
 });
