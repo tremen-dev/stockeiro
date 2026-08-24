@@ -24,8 +24,17 @@ epica: EPIC-INFRA
   redactara el **arquitecto**. Salida elegida: **(b) retirar el caso**, no re-encuadrarlo —el
   re-encuadre esbozado seguiría en rojo, porque la línea `Specs relacionadas` de ADR-033
   también contiene `SPEC-050`—. Gobernado por **CA-13** y **CA-14** de la spec, con el
-  argumento entero en §*La guardia ajena que se rompió*. **Sigue pendiente de implementar**:
-  las dos filas nuevas de la matriz están en ❌.
+  argumento entero en §*La guardia ajena que se rompió*.
+- **APLICADA el 2026-08-24.** El caso está retirado y su porqué escrito en el hueco que
+  dejó. `tests/primera-pantalla-fuente.test.ts` pasa de **21 casos (20 verdes + 1 rojo)** a
+  **20, los 20 verdes**; la suite entera, de **1687 (1 rojo)** a **1686, todos verdes** —la
+  diferencia es **exactamente un caso** en los dos recuentos—. `lint` **0**, `typecheck`
+  **0**. Los catorce CA están cubiertos.
+- **Queda un residual menor y ABIERTO a propósito**: `F-SPEC-053-7`. El índice de la
+  cabecera de ese fichero sigue anunciando el caso retirado (*«ni un ADR nuevo»*, líneas 25 y
+  234). Son dos líneas de comentario, pero CA-13 dice **tres veces** que ninguna otra línea
+  del fichero se toca, y decidir que esas dos no cuentan lo haría **quien se beneficia**. Se
+  pregunta en vez de interpretar.
 
 ## Matriz de criterios de aceptación
 <!-- Escritores: sdd-implementador rellena Implementado y Test; sdd-verificador rellena Verif. y Estado. Nunca al revés. -->
@@ -57,10 +66,10 @@ epica: EPIC-INFRA
 | CA-8 — `--help` y cabecera de `check-version-bump.mjs` dicen «los dos ficheros» | `scripts/check-version-bump.mjs` — bloque nuevo de cabecera *«QUÉ FICHEROS TOCA EL COMANDO QUE ESTE GATE RECOMIENDA (ADR-033…)»* y párrafo nuevo en `USO` | `tests/version-bump-gate.test.ts`, bloque *«SPEC-053 CA-8, CA-9 y CA-10»* — 4 casos: cabecera con los dos ficheros + ADR-033, cabecera con «mismo commit», `--help` con los dos + «MISMO COMMIT» y **saliendo con 0**, y `--help` con `npm install --package-lock-only` | | ❌ |
 | CA-9 — el mensaje de `sin-subir` lo dice también (sobre `evaluar`, puro) | `scripts/check-version-bump.mjs` — mensaje del veredicto `sin-subir` | `tests/version-bump-gate.test.ts` — *«CA-9 — el veredicto `sin-subir` lo dice, sobre la función pura y sin invocar git»* (comprueba además que lo de antes sigue: los dos `npm version …`) y *«CA-9 — y los otros motivos no se contaminan»* (`sin-codigo` y `subida` no hablan del lock) | | ❌ |
 | CA-10 — no queda en el repositorio ninguna afirmación de «un solo fichero» | `scripts/check-version-bump.mjs` (el texto nuevo no reintroduce la frase); **ADR-024 NO se edita** | `tests/version-bump-gate.test.ts` — 3 casos con **centinela**: el detector *sí* se dispara sobre `docs/adr/ADR-024-*.md` (prueba a la vez que el detector funciona **y** que el ADR sigue intacto: si alguien «arreglara» la frase borrándola, este caso se pondría rojo), **no** se dispara sobre ningún `.mjs` de `scripts/`, y ADR-033 está `aprobada`, dice «enmienda», cita `ADR-024` y `pto. 8` y dice «no lo supersede» | | ❌ |
-| CA-11 — sobre `tests/` solo el fichero nuevo y adiciones a `version-bump-gate.test.ts` | `tests/version-bump-gate.test.ts`: **173 insertions, 0 deletions** contra `3b6fc8b` | **n-a (gate)** — criterio sobre el delta; evidencia abajo | | ❌ |
-| CA-12 — conjunto cerrado de ficheros de la rama | 7 ficheros, ninguno bajo `src/` | **n-a (gate)** — criterio sobre el delta; evidencia abajo | | ❌ |
-| CA-13 — la guardia ajena que se retira: nombrada, con el porqué en el sitio, sin aflojar y sin exclusión por nombre | | | | ❌ |
-| CA-14 — la suite vuelve a verde entera; 21 → 20 casos en ese fichero y ningún otro cambia de recuento | | **parte gate** — los dos recuentos, antes y después, abajo | | ❌ |
+| CA-11 — sobre `tests/` solo el fichero nuevo, adiciones a `version-bump-gate.test.ts` y lo que CA-13 autoriza | `version-bump-gate.test.ts`: **`173 0`** contra `3b6fc8b` —cero borradas—; `primera-pantalla-fuente.test.ts`: **`50 10`**, solo CA-13 | **n-a (gate)** — criterio sobre el delta; evidencia abajo | | ❌ |
+| CA-12 — conjunto cerrado de ficheros de la rama | **8** ficheros tras la enmienda del 2026-08-24, ninguno bajo `src/` | **n-a (gate)** — criterio sobre el delta; evidencia abajo | | ❌ |
+| CA-13 — la guardia ajena que se retira: nombrada, con el porqué en el sitio, sin aflojar y sin exclusión por nombre | `tests/primera-pantalla-fuente.test.ts` — el caso de `:310-318` **retirado entero** y sustituido por **prosa en su sitio** (43 líneas de comentario donde estaba), más la línea 1, que pierde `readdirSync` por quedar sin uso. Diff **`50 10`**: las 10 borradas son las 9 del caso + el import. Ningún `.skip`, ninguna exclusión por nombre de `ADR-033`, ninguna otra línea | **por diseño, no lleva test** — CA-13 es una propiedad del **texto del fichero** y se verifica leyéndolo; escribir un test que afirme *«este comentario está aquí»* sería el verde vacío que ADR-031 prohíbe, y es explícitamente lo que la spec descarta al decir que aquí **no hay «inverso» que poner**. Evidencia (diff completo) abajo | | ❌ |
+| CA-14 — la suite vuelve a verde entera; 21 → 20 casos en ese fichero y ningún otro cambia de recuento | — (consecuencia de CA-13; no hay nada que implementar aparte) | **parte gate** — `tests/primera-pantalla-fuente.test.ts` **21 → 20**, los 20 verdes; suite entera **1687 → 1686**, `110 passed (110)`, **cero rojos**. La diferencia global es **exactamente un caso**. Los cuatro recuentos, abajo | | ❌ |
 
 ## Evidencia de los criterios de gate
 <!-- CA-2, CA-3, CA-11, CA-12. Salida de comandos pegada, no parafraseada (RI-03 opción 2). -->
@@ -173,13 +182,16 @@ no cambia nada de lo que se instala.
 ### CA-11 — sobre `tests/`, solo el fichero nuevo y adiciones
 
 ```
-$ git diff --name-only 3b6fc8b...HEAD -- tests/
-tests/version-bump-gate.test.ts
-tests/version-en-los-dos-ficheros.test.ts
-
-$ git diff --numstat 3b6fc8b...HEAD -- tests/version-bump-gate.test.ts
+$ git diff --numstat 3b6fc8b...HEAD -- tests/
+50      10      tests/primera-pantalla-fuente.test.ts
 173     0       tests/version-bump-gate.test.ts
+230     0       tests/version-en-los-dos-ficheros.test.ts
 ```
+
+Tres ficheros, que son exactamente los tres que CA-11 admite tras su enmienda del
+2026-08-24: el **nuevo** de CA-4, `version-bump-gate.test.ts` **solo con adiciones**, y
+`primera-pantalla-fuente.test.ts` **solo con lo que CA-13 autoriza** (desglose de sus
+`50 10` en §*CA-13 y CA-14*).
 
 **`173  0`: ciento setenta y tres líneas añadidas y CERO borradas.** Es la forma más corta
 de demostrar «solo adiciones»: no hay ninguna línea de los bloques *SPEC-038 CA-12* y
@@ -200,11 +212,14 @@ docs/epicas/EPIC-INFRA/SPEC-053-la-version-vive-en-los-dos-ficheros-el-lock-deja
 docs/epicas/EPIC-INFRA/SPEC-053-la-version-vive-en-los-dos-ficheros-el-lock-deja-de-derivar-y-una-guardia-lo-mantiene.md
 package-lock.json
 scripts/check-version-bump.mjs
+tests/primera-pantalla-fuente.test.ts
 tests/version-bump-gate.test.ts
 tests/version-en-los-dos-ficheros.test.ts
 ```
 
-Siete ficheros, todos en la lista de CA-12. **Ninguno bajo `src/`**, ninguna migración, ni
+**Ocho** ficheros, todos en la lista de CA-12 —el octavo,
+`tests/primera-pantalla-fuente.test.ts`, entra por la **enmienda del 2026-08-24** y **solo**
+con el alcance de CA-13—. **Ninguno bajo `src/`**, ninguna migración, ni
 `.github/workflows/ci.yml`, ni `.sdd.json`, ni `package.json`. `docs/tablero.md` está en la
 lista permitida pero **no se ha tocado**: lo regenera el documentalista con `/sdd-tablero`,
 y editarlo a mano está prohibido (`CLAUDE.md`).
@@ -213,15 +228,90 @@ y editarlo a mano está prohibido (`CLAUDE.md`).
 como *untracked* en este worktree. Es de **SPEC-052**, que va por otra rama en paralelo.
 **No se ha añadido a ningún commit** — se ha dejado exactamente como estaba.
 
-### CA-13 y CA-14 — la guardia ajena retirada (PENDIENTE, añadido el 2026-08-24)
+### CA-13 y CA-14 — la guardia ajena retirada (2026-08-24)
 
-- **CA-13** — pegar el diff completo de `tests/primera-pantalla-fuente.test.ts`. Tiene que
-  ser **una supresión** (el caso de `:310-318`) **más una adición** (el comentario del
-  porqué, en su sitio) y **nada más**: ninguna otra línea del fichero, ningún `.skip`,
-  ninguna exclusión por nombre.
-- **CA-14** — pegar el recuento **antes** (`21 casos: 20 verdes + 1 rojo`, ya capturado en
-  `F-SPEC-053-4`) y **después** (`20 casos, 20 verdes`), más el total de `npx vitest run`
-  entero en los dos momentos. La diferencia global tiene que ser **exactamente un caso**.
+#### CA-14 — los recuentos, antes y después
+
+Los cuatro, ejecutados en este worktree el 2026-08-24:
+
+```
+ANTES  (el caso todavía puesto)
+$ npx vitest run tests/primera-pantalla-fuente.test.ts
+ ❯ tests/primera-pantalla-fuente.test.ts (21 tests | 1 failed) 89ms
+   × SPEC-050 CA-20: esto es presentación pura > `docs/adr/` no gana ningún fichero por
+     esta spec: no hay decisión que registrar
+ Test Files  1 failed (1)
+      Tests  1 failed | 20 passed (21)
+
+$ npx vitest run
+ Test Files  1 failed | 109 passed (110)
+      Tests  1 failed | 1686 passed (1687)
+
+
+DESPUES (el caso retirado)
+$ npx vitest run tests/primera-pantalla-fuente.test.ts
+ ✓ tests/primera-pantalla-fuente.test.ts (20 tests) 56ms
+ Test Files  1 passed (1)
+      Tests  20 passed (20)
+
+$ npx vitest run
+ Test Files  110 passed (110)
+      Tests  1686 passed (1686)
+```
+
+**La cuenta cuadra exactamente**: el fichero pasa de **21 a 20** —diferencia **uno**, y es
+el retirado, porque los 20 que quedan son los mismos 20 que ya estaban verdes—; y la suite
+entera pasa de **1687 a 1686** —diferencia **uno también**—, con `110 passed (110)` en
+ficheros. **Ningún otro fichero de `tests/` cambia su número de casos**: si alguno hubiera
+perdido uno, el total global habría bajado en dos y no en uno. Y **cero rojos**: el verde no
+se obtiene aflojando nada más, se obtiene retirando exactamente lo autorizado.
+
+#### CA-13 — el diff completo del fichero ajeno
+
+`git diff --numstat -- tests/primera-pantalla-fuente.test.ts` → **`50  10`**.
+
+Las **10 borradas** son, todas y sin ninguna más:
+
+```
+-import { readFileSync, readdirSync } from 'node:fs';
+-  it('`docs/adr/` no gana ningún fichero por esta spec: no hay decisión que registrar', () => {
+-    const adrs = readdirSync('docs/adr').filter((f) => f.endsWith('.md'));
+-    const citantes = adrs.filter((f) => fuente(`docs/adr/${f}`).includes('SPEC-050'));
+-    expect(
+-      citantes,
+-      'esta spec no toma ninguna decisión que constriña trabajo futuro (CE-M3): ' +
+-        'desacoplar `.brand` de `.app-nav` REDUCE acoplamiento, no abre puerta a nada',
+-    ).toEqual([]);
+-  });
+```
+
+Nueve son **el caso entero** (`:310-318`, el que CA-13 cond. 1 nombra) y la décima es la
+**línea 1**: `readdirSync` era usado **solo** por ese caso y `eslint . --max-warnings=0`
+rechaza un import sin usar (`@typescript-eslint/no-unused-vars` está en `warn`, y el gate de
+lint no admite warnings). **Es consecuencia mecánica de la retirada, no un cambio de
+criterio**; queda dicho también dentro del propio comentario, para que quien lea el fichero
+no tenga que venir aquí. Verificado: con el import puesto, `npm run lint` sale con **1**.
+
+Las **50 añadidas** son un único bloque de comentario, en el hueco exacto que dejó el caso,
+con las cinco cosas que CA-13 cond. 2 exige: **qué vigilaba antes**, **qué vigila ahora**
+(nada en la suite; vuelve al gate, donde se consumó con el GREEN 22/22 de SPEC-050 del
+2026-08-23), **en virtud de qué CA** (`SPEC-053 CA-13`), la **fecha** y la **autorización
+nominal del humano (Alberto Fojo) del 2026-08-24**, y la constancia de que **quien lo
+escribió no es quien se beneficia** —lo escaló el implementador como `F-SPEC-053-4` sin tocar
+el fichero, y lo redactó el arquitecto—. Añade además por qué (a) no funcionaba, qué se
+pierde, qué no se pierde, y que **excluir `ADR-033` por nombre está prohibido**.
+
+Las tres condiciones negativas, comprobadas sobre el diff de arriba:
+
+| Condición | Comprobación | Resultado |
+|---|---|---|
+| No se marca nada como saltado | `grep -c "\.skip\|\.only\|todo(" ` sobre el diff | **0** |
+| No se añade exclusión por nombre de `ADR-033` ni de ningún fichero | `ADR-033` aparece en las líneas **añadidas** solo dentro de la prosa que explica **por qué está prohibido**; **cero** en código | **cumplida** |
+| No se toca ninguna otra línea | las 10 borradas son las de arriba y ninguna más; las 50 añadidas son comentario | **cumplida** |
+
+**Y la otra mitad de CA-20 sigue intacta**: las listas exactas de `dependencies`,
+`devDependencies` y `scripts`, y el semver de `version`. Sus cuatro casos ni se rozan y están
+entre los 20 verdes.
 
 ### CA-7 — las meta-guardias de SPEC-048, con el fichero nuevo dentro
 
@@ -285,11 +375,13 @@ despliegue sigue siendo el commit.
 ```
 $ npm run typecheck   -> 0
 $ npm run lint        -> 0   (eslint . --max-warnings=0)
-$ npx vitest run      -> ver F-SPEC-053-4
+$ npx vitest run      -> 0   (110 passed (110) / 1686 passed (1686))
 ```
 
-La suite completa queda con **un único rojo**, y no es de esta implementación:
-`tests/primera-pantalla-fuente.test.ts` (SPEC-050 CA-20). Ver §Salvedades.
+**La suite completa está en verde, entera**, tras aplicar CA-13. Antes de aplicarlo quedaba
+con un único rojo, que no era de esta implementación —`tests/primera-pantalla-fuente.test.ts`,
+SPEC-050 CA-20— y que dio origen a `F-SPEC-053-4`. Los cuatro recuentos, antes y después,
+están en §*CA-13 y CA-14*.
 
 ## Veredicto del verificador
 <!-- GREEN/RED + fecha + resumen. Lo escribe SOLO sdd-verificador. -->
@@ -424,6 +516,47 @@ matriz. Un `_qa/SPEC-053/` con capturas sería teatro.
   - **Y sigue en pie quién hace qué**: el implementador **no tocó el fichero** y escaló, que
     es lo que había que hacer. Ahora sí puede tocarlo, y **solo** eso.
 
+  ---
+
+  **CERRADO — aplicado el 2026-08-24 por el implementador.** El caso está retirado, con su
+  porqué escrito en el hueco que dejó. Diff **`50 10`**, suite **1686/1686 en verde**,
+  `lint` y `typecheck` en **0**. La evidencia entera —los cuatro recuentos y las diez líneas
+  borradas, una a una— está en §*CA-13 y CA-14*. **Un solo apunte sobre el alcance**: además
+  de las nueve líneas del caso hubo que quitar `readdirSync` del `import` de la línea 1
+  porque quedaba sin uso y el gate de lint no admite warnings; está verificado
+  (`npx eslint` con el import → **1**, sin él → **0**) y dicho también dentro del comentario.
+  Nada más de ese fichero se ha tocado. Lo que quedó **sin** tocar, a propósito y con
+  discusión, es `F-SPEC-053-7`.
+
+- **`F-SPEC-053-7` (ABIERTO, menor — decisión de alcance que NO tomo yo)** — **el índice de
+  la cabecera de `tests/primera-pantalla-fuente.test.ts` sigue anunciando el caso retirado.**
+  La línea **25** del fichero dice:
+
+  ```
+   *   CA-20  ni una dependencia nueva, ni un script nuevo, ni un ADR nuevo
+  ```
+
+  y la **234**, la cabecera de la sección, dice *«CA-20 — sin dependencia nueva, sin script
+  nuevo, sin ADR nuevo»*. Tras la retirada, *«ni un ADR nuevo»* ya no lo comprueba nada: es
+  prosa de índice que se ha quedado desfasada.
+
+  **No la toco, y el motivo es literal**: CA-13 cond. 1 dice *«ninguna otra línea de ese
+  fichero»*, cond. 3 dice *«no se toca nada más»*, y la enmienda de CA-12 remata con
+  *«cualquier otra línea de ese fichero sigue siendo RED»*. Cabe leerlo como que esas
+  cláusulas hablan de **aserciones** y no de prosa de índice —y entonces actualizar dos
+  líneas de comentario sería lo correcto—, pero **esa lectura la haría yo, que soy quien se
+  beneficia de que el fichero deje de estar rojo**. Habiendo tres frases explícitas en
+  contra, lo conservador es preguntar en vez de interpretar.
+
+  **Mitigación mientras tanto**: el índice no engaña mucho rato. Quien lo siga llega al
+  bloque `SPEC-050 CA-20` y lo primero que encuentra tras los cuatro casos vivos es el
+  comentario de 43 líneas que explica exactamente qué pasó con el quinto. La explicación
+  está **en el fichero**, no solo aquí.
+
+  *Destino*: el **verificador** puede dictaminarlo en el mismo GREEN —«actualiza esas dos
+  líneas»— y lo aplico; o el **arquitecto** lo mete en la enmienda si prefiere dejarlo
+  escrito. *Coste*: dos líneas de comentario.
+
 - **`F-SPEC-053-6` (menor, encontrado y resuelto por el arquitecto el 2026-08-24)** — **este
   ledger se commiteó con un BOM UTF-8 delante del frontmatter, y eso rompía
   `valida.mjs`.** Los tres primeros bytes del fichero eran `EF BB BF` ya en `e25078e`, así
@@ -449,17 +582,23 @@ matriz. Un `_qa/SPEC-053/` con capturas sería teatro.
 
 ## Cómo retomar (handoff)
 
-**Estado (2026-08-24)**: **implementación terminada**. Los doce CA están cubiertos —ocho con
-test permanente, cuatro con evidencia de gate arriba—. La spec está en `en-revision`.
-**Falta el verificador**, y hay **una parada abierta**: `F-SPEC-053-4`.
+**Estado (2026-08-24, segunda pasada)**: **implementación terminada**. Los **catorce** CA
+están cubiertos —nueve con test permanente, cuatro con evidencia de gate arriba, y CA-13 con
+el texto del fichero más su diff—. La spec está en `en-revision`. **Falta el verificador**.
+La suite entera está en **verde**: `110 passed (110)` / `1686 passed (1686)`, `lint` 0,
+`typecheck` 0. **`F-SPEC-053-4` quedó cerrado**; el único residual abierto que necesita una
+respuesta es **`F-SPEC-053-7`**, y son dos líneas de comentario.
 
-**Los tres commits de la rama, en orden**:
+**Los commits de la rama, en orden**:
 
 | Commit | Qué trae |
 |---|---|
 | `e24c578` | la spec, el ledger y ADR-033 (del arquitecto, aprobado por el humano) |
 | `c4d774b` | **CA-1, CA-4, CA-5, CA-6** — la guardia nueva (escrita primero, roja por el defecto vivo) y la sincronización del lock a `0.3.4` |
 | `d0c3a88` | **CA-8, CA-9, CA-10** — el texto del gate: cabecera, `--help` y `sin-subir` |
+| `e25078e` | el ledger con los doce CA y la escalada `F-SPEC-053-4` |
+| `fa6481d` | **CA-13 y CA-14** y la enmienda de CA-11/CA-12 (del arquitecto, autorizada por el humano el 2026-08-24) |
+| `1fa3df9` | **CA-13** aplicado — la retirada del caso ajeno, con su porqué en el sitio |
 
 **Dónde está cada cosa**:
 
@@ -472,6 +611,11 @@ test permanente, cuatro con evidencia de gate arriba—. La spec está en `en-re
   `evaluarConPendientes`, `rutasDeAplicacion`, `tocanCodigoDeAplicacion` y el contrato de
   códigos de salida están byte a byte como estaban.
 - `package-lock.json` — dos líneas, producidas por npm.
+- `tests/primera-pantalla-fuente.test.ts` — **ajeno**, y por eso el alcance es el más
+  estrecho de toda la rama: **un caso retirado** (`:310-318`), **su porqué escrito en el
+  hueco** y **el `import` de la línea 1**, que pierde `readdirSync` por quedarse sin uso.
+  Nada más. Lo que **no** se hizo, porque está prohibido y porque es lo que apetecía:
+  excluir `ADR-033` por nombre del filtro.
 
 **Decisiones que tomé y que el verificador puede querer discutir**:
 
@@ -512,10 +656,19 @@ test permanente, cuatro con evidencia de gate arriba—. La spec está en `en-re
 `package-lock.json`, se dejó que se pusiera roja por el defecto vivo de `3b6fc8b`, y ese
 rojo está pegado entero arriba. Solo después se ejecutó `npm install --package-lock-only`.
 
-**Siguiente paso**: **verificador**, con `F-SPEC-053-4` sobre la mesa. La rama **no** tiene
-PR abierta y **no** se ha mergeado nada. Si el gate decide (a) o (b) para la guardia ajena,
-eso es trabajo de otra mano —no del implementador de esta spec— y probablemente de otra
-rama; hasta entonces la CI de ésta seguirá roja en `Unit tests` por ese único caso.
+**Siguiente paso**: **verificador**. La rama **no** tiene PR abierta y **no** se ha mergeado
+nada. `F-SPEC-053-4` ya no está sobre la mesa: se cerró aplicando CA-13, y la CI de esta rama
+debería salir limpia en `Unit tests`.
+
+**Dos cosas que mirar con lupa al verificar, porque son las que más fácil se cuelan**:
+
+1. **Que la retirada de CA-13 no se llevó nada por delante.** La prueba corta es
+   aritmética: `21 → 20` en el fichero y `1687 → 1686` en la suite. Si alguien hubiera
+   retirado **dos** casos, el global habría bajado en dos. Está en §*CA-13 y CA-14* con los
+   cuatro recuentos pegados, y el desglose de las diez líneas borradas, una a una.
+2. **Que no hay exclusión de `ADR-033` por nombre.** La condición 3 de CA-13 la prohíbe, y
+   era el parche que apetecía. `ADR-033` solo aparece en las líneas añadidas dentro de la
+   prosa que explica **por qué está prohibido**; cero en código.
 
 **Y antes de mergear, mirar otra vez `F-SPEC-053-2`**: SPEC-052 sigue en vuelo por otra
 rama. Comprobado hoy en este worktree: sus dos `.md` están ahí como *untracked* y

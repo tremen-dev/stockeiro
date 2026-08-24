@@ -2,7 +2,7 @@
 id: SPEC-053
 tipo: spec
 epica: EPIC-INFRA
-estado: en-progreso
+estado: en-revision
 aprobada-por: humano (Alberto Fojo)
 historial:
   - {estado: borrador, fecha: 2026-08-23, por: sdd-arquitecto}
@@ -10,6 +10,7 @@ historial:
   - {estado: en-progreso, fecha: 2026-08-23, por: sdd-implementador}
   - {estado: en-revision, fecha: 2026-08-23, por: sdd-implementador}
   - {estado: en-progreso, fecha: 2026-08-24, por: sdd-arquitecto (CA-13 y CA-14 anadidos; enmienda de CA-11 y CA-12 autorizada por humano (Alberto Fojo) el 2026-08-24 para cerrar F-SPEC-053-4)}
+  - {estado: en-revision, fecha: 2026-08-24, por: sdd-implementador}
 ---
 # SPEC-053 — La versión vive en los dos ficheros: el lock deja de derivar y una guardia lo mantiene
 
