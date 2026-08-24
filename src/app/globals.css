@@ -1845,13 +1845,46 @@ td.num .quote-fail, td.num .quote-stale { text-align: right; }
     font-size: 16px;
   }
 
-  /* Los campos de los formularios de alta, edición, compra y venta. Ya llegaban al suelo
-     táctil por su relleno; lo que se fija aquí es el otro suelo, el de los 16 px, que con
-     `font: inherit` dependía de que nadie tocara el tamaño del cuerpo. */
+  /* Los campos de los formularios de alta, edición, compra y venta, con SUS DOS suelos.
+
+     El de 16 px es el de ADR-034 §7: con `font: inherit` dependía de que nadie tocara el
+     tamaño del cuerpo, y por debajo de 16 Safari en iOS amplía la página al enfocar el
+     campo y no la devuelve.
+
+     El de 44 px es el táctil, y aquí estaba **la mentira medible** que devolvió esta spec
+     del verificador (F-VERIF-054-1): estos campos NO llegaban al suelo por su relleno. Con
+     `padding: 10px` arriba y abajo, `border: 1px` y 21 px de línea, la caja medía **43,000
+     px exactos** — 8 campos en los formularios de compra y venta de `/cartera`, 5 en el
+     alta desplegada de `/vigiladas` y 4 en la capa de edición. Y M5 los daba por buenos
+     porque compara contra `suelo − TOLERANCIA_PX`, una resta que existe para las
+     fracciones que devuelve `getBoundingClientRect()`, no para regalar un píxel: el umbral
+     efectivo era 43. Un píxel entero de holgura colado por la puerta del redondeo es la
+     versión suave de lo que `F-ADR-026-1` prohíbe.
+
+     El arreglo es **agrandar**, como manda ADR-026 §4: 11 + 11 de relleno + 1 + 1 de borde
+     + 21 de línea = **45**. Un píxel por encima del suelo, no uno por debajo.
+
+     Y se agranda con `padding-block`, no con `padding` ni con `min-height`, por dos
+     razones que conviene no redescubrir:
+
+     - **Un `padding` de dos valores rompería el cheurón.** `.auth-form select` declara
+       `padding-right: 34px` para hacerle sitio al desplegable dibujado; este bloque va
+       DESPUÉS en el fichero, así que un `padding: 11px 12px` le ganaría por orden de
+       fuente y el cheurón se comería el texto. `padding-block` toca sólo el eje vertical.
+     - **Un `min-height` convertiría la medida en decorativa.** Es la misma cautela que
+       está escrita arriba para `.btn-sm` y la razón por la que la prueba de eficacia de
+       CA-13 demuestra algo: una altura sostenida por un suelo declarado ya no depende de
+       la caja, así que un defecto futuro en el relleno o en el tamaño de letra no bajaría
+       el alto y ninguna guardia lo vería (ADR-026 §7). La altura se sigue derivando de la
+       caja, que es lo que se puede medir y lo que se puede romper.
+
+     Sólo por debajo del canto: CE-5 de EPIC-007 dice que el escritorio no paga la factura
+     del móvil, y a 1280 px estos campos se ven exactamente como se veían. */
   .auth-form input,
   .auth-form select,
   .auth-form textarea,
   .symbol-search-input {
+    padding-block: 11px;
     font-size: 16px;
   }
 }

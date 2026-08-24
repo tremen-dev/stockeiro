@@ -313,7 +313,7 @@ test('SPEC-054 CA-5: por encima del canto, la tabla se sigue desplazando en SU c
 const m1Ventana = (ancho: number) => ancho + TOLERANCIA_PX;
 
 /* ────────────────────────────────────────────────────────────────────────────
-   El suelo táctil, afirmado en el 44 EXACTO — F-VERIF-054-1
+   El suelo táctil, afirmado SIN TOLERANCIA — F-VERIF-054-1
    ──────────────────────────────────────────────────────────────────────────── */
 
 /**
@@ -373,8 +373,9 @@ const porQueSinTolerancia = (donde: string) =>
   `medida sin tolerancia. Ojo con la salida fácil: M5 los da por buenos porque compara ` +
   `contra \`suelo − TOLERANCIA_PX\`, y esa resta existe para las FRACCIONES que devuelve ` +
   `\`getBoundingClientRect()\`, no para regalar un píxel de holgura. Un campo de 43,00 ` +
-  `exactos no es un 44 mal redondeado: es un 43. La salida legítima es AGRANDARLO —bajo el ` +
-  `canto, que CE-5 dice que el escritorio no paga la factura del móvil—; subir la ` +
+  `exactos no es un ${SUELO_TACTIL_PX} mal redondeado: es un 43. La salida legítima es ` +
+  `AGRANDARLO —bajo el canto, que CE-5 dice que el escritorio no paga la factura del ` +
+  `móvil—; subir la ` +
   `tolerancia o bajar el suelo sería F-ADR-026-1 cumpliéndose por escrito (ADR-026 §4, ` +
   `ADR-034 §6).`;
 
