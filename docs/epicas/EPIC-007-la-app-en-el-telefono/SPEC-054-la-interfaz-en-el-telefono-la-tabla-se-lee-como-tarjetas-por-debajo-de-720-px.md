@@ -2,7 +2,7 @@
 id: SPEC-054
 tipo: spec
 epica: EPIC-007
-estado: en-revision
+estado: hecho
 aprobada-por: humano (Alberto Fojo)
 historial:
   - {estado: borrador, fecha: 2026-08-24, por: sdd-arquitecto}
@@ -15,6 +15,7 @@ historial:
   - {estado: en-progreso, fecha: 2026-08-24, por: sdd-implementador}
   - {estado: en-revision, fecha: 2026-08-24, por: sdd-implementador}
   - {estado: en-revision, fecha: 2026-08-24, por: sdd-arquitecto}
+  - {estado: hecho, fecha: 2026-08-24, por: sdd-verificador}
 ---
 # SPEC-054 — La interfaz en el teléfono: la tabla se lee como tarjetas por debajo de 720 px
 
