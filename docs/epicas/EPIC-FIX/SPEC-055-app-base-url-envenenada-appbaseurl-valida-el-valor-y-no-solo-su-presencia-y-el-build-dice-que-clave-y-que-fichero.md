@@ -18,10 +18,20 @@ historial:
 
 **`appBaseUrl()` protege contra la clave ausente y no contra la clave envenenada.**
 
-`npm run build` muere con `Failed to collect configuration for /_not-found` → `Invalid URL`
+`npm run build` muere con `Failed to collect configuration for <una ruta>` → `Invalid URL`
 **aunque `APP_BASE_URL` esté definida**, y el mensaje **no nombra ni la clave culpable ni el
 fichero**. El desarrollador ve un `Invalid URL` sin sujeto y se pone a buscar en
 `DATABASE_URL`, que es la única URL que tiene en la cabeza.
+
+**Esa ruta es variable y no es la firma del defecto** *(corrección del 2026-08-24, O2 del
+verificador; antes aquí se leía `/_not-found`)*. Next genera las páginas con quince workers en
+paralelo y la primera línea nombra **la del worker que estalla primero**, así que cambia entre
+pasadas de la misma escena: medidas `/register` y `/admin` en dos corridas del mismo build el
+2026-08-24. Esta spec **no fija ninguna ruta**, y quien compare una salida con este texto debe
+comparar el diagnóstico, no la ruta. **Y el diagnóstico no está en esa primera línea: viaja
+dentro de `[cause]`, en la segunda** —`Error: Failed to collect configuration for …` primero,
+el mensaje de `appBaseUrl()` después—. Es cosa de Next, no de esta spec, pero es exactamente
+la línea que hay que leer para reconocer el fallo.
 
 ### La cadena, línea a línea
 
@@ -42,7 +52,9 @@ Cinco eslabones. Ninguno es un fallo por sí solo; juntos producen un build rojo
    no vacía: **pasa la guardia** y se devuelve tal cual, recortadas las barras finales.
 5. **`src/app/layout.tsx:57` hace `metadataBase: new URL(appBaseUrl())`**, que se evalúa
    **en tiempo de build** —es un export `metadata`, SPEC-051 CA-1—, y
-   `new URL('[SENSITIVE]')` lanza `Invalid URL`.
+   `new URL('[SENSITIVE]')` lanza `Invalid URL`. Next lo reporta como
+   `Failed to collect configuration for <ruta>`, con **la ruta del worker que estalla
+   primero** —variable entre pasadas, ver arriba— y el diagnóstico real dentro de `[cause]`.
 
 El apaño conocido es arrancar con `APP_BASE_URL=http://localhost:3200 npm run build`. **Eso
 es el apaño, no el arreglo**: tapa el síntoma en la máquina de quien ya sabe la respuesta.
@@ -195,9 +207,10 @@ redacción nueva de CA-5 y, porque no es local a esta spec, en `FOUNDATION.md`.
 
 ## Diseño
 
-Siete decisiones. Las dos primeras son las que impiden que esto se convierta en una
-reapertura de SPEC-051. La séptima se añadió **después** del gate del verificador y es la que
-arregla CA-5.
+Ocho decisiones. Las dos primeras son las que impiden que esto se convierta en una
+reapertura de SPEC-051. La séptima se añadió **después** del primer gate del verificador y es
+la que arregla CA-5; la octava, después del **segundo**, y es la que arregla CA-12 — y las dos
+últimas son lecciones sobre cómo se escribe, no sobre `APP_BASE_URL`.
 
 - **D-1 — Esto extiende D-4 de SPEC-051; no lo contradice.** SPEC-051 §Diseño D-4 dice de
   `appBaseUrl()` que **«ya falla ruidosamente si falta, que es la conducta correcta»**, y
@@ -274,6 +287,30 @@ arregla CA-5.
   **Esta decisión no es local a esta spec**, así que se sube donde el próximo la vea: queda
   escrita como corolario en `FOUNDATION.md` §*Cómo se trabaja aquí*, colgando de la
   convención del 2026-08-20 que generaliza.
+
+- **D-8 — Un CA enuncia la PROPIEDAD que quiere garantizar, nunca la FORMA concreta que quiere
+  prohibir.** Añadida el **2026-08-24**, después del **segundo** gate, a raíz de F1 de la 2.ª
+  vuelta. **Y ya no es anécdota: son cuatro casos, en dos specs y dos épicas, cada uno con una
+  ronda roja entera detrás**, y en los cuatro el implementador escribió exactamente lo que la
+  letra pedía —hizo bien— y lo que salió no garantizaba nada:
+
+  | Caso | La forma que nombró | La propiedad que quería |
+  |---|---|---|
+  | **SPEC-054 CA-15** | que cada aviso «**envuelva**» | que la **caja acotada funcione** — y exigir que envuelva un motivo de 45 caracteres sólo se logra estrechando la caja, o sea contradiciendo la otra mitad del mismo CA |
+  | **SPEC-054 CA-16** | guardias ajenas «**sin tocarse**» | **sin aflojarse** — y «sin tocarse» era incumplible por construcción, porque la propia spec obligaba a re-encuadrarlas |
+  | **SPEC-055 CA-5** | el tercer valor «**de la misma forma**» que los otros dos | que los valores **vivos** se lean de su fichero y los demás se escriban — y «de la misma forma» se leyó como «también leído», y acabó leyendo un fichero de otra spec |
+  | **SPEC-055 CA-12** | que la constante «**no aparezca dentro de un `toHaveLength(`**» | que **añadir una fila no obligue a tocar ningún aserto** — y la guardia resultante no veía la congelación escrita al derecho |
+
+  Dos reglas operativas salen de ahí, y son las que gobiernan la redacción nueva de CA-12:
+  **(i) enumerar formas prohibidas está prohibido** —es la lista que caduca de `F-SPEC-048-2`
+  un piso más arriba: la enumeración vive ahora en la letra en vez de en el test, y caduca
+  igual—; **(ii) cuando el único entregable de un CA es una guardia, el CA exige también la
+  prueba de que esa guardia se pone roja** (ADR-026 §7), con los especímenes mínimos escritos
+  en el propio CA y **en los dos sentidos**: lo que debe cazar y lo que no debe cazar. El
+  listón, en una línea: **un CA está bien escrito si se puede violar de una forma que no se le
+  ocurrió a quien lo escribió y aun así falla.**
+  **Esta decisión tampoco es local a esta spec** —dos de los cuatro casos son de SPEC-054—, así
+  que sube a `FOUNDATION.md` §*Cómo se trabaja aquí* como segundo corolario, junto al de D-7.
 
 ## Criterios de aceptación
 
@@ -409,12 +446,51 @@ Todos verificables con test unitario. El fichero nuevo es `tests/app-base-url.te
   no está vacía y tiene **al menos un representante de cada una de las tres familias**
   (no parsea / protocolo / forma).
 
-- **CA-12 — La batería crece sin tocar ninguna aserción.** Entonces la tabla de valores se
-  recorre con `it.each` o un bucle y **ningún** aserto del fichero fija su longitud ni la
-  compara con una lista literal: añadir un valor mañana no obliga a actualizar un número.
-  *Test:* un caso que lee su propio fichero fuente y comprueba que la constante de la tabla
-  no aparece dentro de un `toHaveLength(` ni de un `toEqual([`. Motivo escrito al lado:
-  `F-SPEC-048-2`, la familia de guardias que congelan una lista que crece.
+- **CA-12 — Añadir una fila mañana no obliga a tocar ningún aserto de esta batería, y la
+  guardia que lo vigila se puede poner roja.** Dos mitades, y la segunda es la que faltaba.
+  *(Reescrito el 2026-08-24 tras el RED de la 2.ª vuelta: **F1**. El defecto era de la letra
+  —ver §Notas pto. 8 y **D-8**—, no de la implementación.)*
+
+  **(a) La propiedad, enunciada sin nombrar ninguna sintaxis.** Entonces la tabla de valores
+  se recorre con `it.each` o un bucle y **ninguna aserción del fichero congela su tamaño ni su
+  composición**: ninguna afirma **cuántas** filas hay contra un número escrito a mano, ni
+  **cuáles** son contra una lista escrita a mano. El discriminante es uno solo: **si añadir una
+  fila obligara a actualizar ese aserto, ese aserto congela**; da igual con qué matcher, en qué
+  orden o de qué lado del `expect(` esté escrito. Lo legítimo, por contraste, es lo que se
+  **deriva** de la propia tabla (`VALORES_RECHAZADOS.length` como valor esperado) y lo que
+  afirma un **suelo sin techo** (el centinela de CA-11, `toBeGreaterThan(0)`): los dos
+  sobreviven intactos a una fila nueva.
+
+  **Esta letra NO enumera formas prohibidas, y es deliberado.** Una lista de matchers vetados
+  es la misma clase de enumeración que caduca sola (`F-SPEC-048-2`) un piso más arriba, y es
+  justo lo que hundió la primera redacción: pedía que la constante «no apareciera **dentro de**
+  un `toHaveLength(`», se implementó exactamente eso, y la guardia resultante sólo miraba el
+  texto **posterior** al matcher — con lo que era ciega a la congelación escrita al derecho,
+  que es como se escribe de verdad. **Cómo se detecte es del implementador.** Lo que esta spec
+  compra es (a), demostrado por (b).
+
+  **(b) La prueba de eficacia, por mutación y en los dos sentidos.** Es ADR-026 §7 —*«que la
+  medida reporta violación, y que sin reinyectarlo no»*— aplicado a una guardia de texto. El
+  caso aplica su propio detector, **como función y sin tocar el disco**, a un conjunto de
+  **especímenes escritos en el test**, y exige el veredicto de cada uno:
+  1. **Que debe cazar, y estos tres como mínimo** —las formas naturales de congelar la tabla—:
+     `expect(VALORES_RECHAZADOS).toHaveLength(13);`,
+     `expect(VALORES_RECHAZADOS.length).toBe(13);` y una que congele la **composición**, del
+     tipo `expect(VALORES_RECHAZADOS.map((f) => f.nombre)).toEqual([...]);`. **Los dos primeros
+     no son hipotéticos: son literalmente los que el verificador inyectó el 2026-08-24 y que la
+     guardia anterior dejó pasar en verde.**
+  2. **Que NO debe cazar, y estos dos como mínimo** —las formas buenas, que viven hoy en el
+     fichero—: `expect(algo).toHaveLength(VALORES_RECHAZADOS.length);` (derivada) y
+     `expect(VALORES_RECHAZADOS.length).toBeGreaterThan(0);` (el suelo de CA-11). Esta mitad no
+     es adorno: sin ella la reparación tiene una salida barata y mala —cazar cualquier mención
+     de la constante— que pondría roja a CA-11 y acabaría con alguien aflojando la guardia.
+  3. **El fuente real del fichero**, que debe salir **limpio**.
+
+  **Centinelas, que fallan en vez de pasar de vacío:** si el conjunto de especímenes está
+  vacío, si le falta cualquiera de las dos direcciones, o si la constante de la tabla ya no
+  existe con ese nombre en el fuente, el caso **falla**. Motivo escrito al lado, en el test:
+  `F-SPEC-048-2`, la familia de guardias que congelan una lista que crece — y **F1 de la 2.ª
+  vuelta**, que es esa misma familia mordiendo a la guardia que venía a evitarla.
 
 - **CA-13 — El comentario del punto de estallido dice la otra mitad.** Entonces la cabecera
   de `src/lib/config/app-url.ts` y el comentario del bloque `metadata` de
@@ -441,14 +517,19 @@ Todos verificables con test unitario. El fichero nuevo es `tests/app-base-url.te
   función. **Contrato compartido**, conservado por CA-1.
 - **SPEC-016 y SPEC-043** — «decir el motivo» como requisito, no como aseo. Es la doctrina
   que sostiene CA-6 y CA-7 (D-4).
-- **ADR-026 §7** — una guardia nueva demuestra que caza el defecto. CA-11.
-- **`F-SPEC-048-2`** — guardias que congelan una lista que crece. D-5 y CA-12.
+- **ADR-026 §7** — una guardia nueva demuestra que caza el defecto. CA-11, y desde la 2.ª
+  vuelta también **CA-12**: la guardia contra listas congeladas tiene que demostrar que ve una
+  lista congelada, en los dos sentidos (lo que debe cazar y lo que no).
+- **`F-SPEC-048-2`** — guardias que congelan una lista que crece. D-5 y CA-12 — y, en la 2.ª
+  vuelta, **la propia CA-12 cayó en esa familia**: su primera letra enumeraba matchers, que es
+  la lista que caduca, sólo que escrita en la spec en vez de en el test. Ver D-8.
 - **`FOUNDATION.md` §Cómo se trabaja aquí** — *un test de frontera fija una propiedad, no un
   estado del árbol*. Por eso CA-5 **deriva** de sus ficheros los dos valores **vivos** (los
   de CI y del e2e) en vez de escribirlos. **Y es lo único de esta lista que esta spec no se
-  limita a aplicar: le añade un corolario** —leer un fichero ajeno y aseverar sobre su
-  contenido acopla igual que escribirlo—, porque F1 demostró que la convención tal y como
-  estaba escrita no cubría el canal de lectura. Ver **D-7**, y el gate de §Notas pto. 7.
+  limita a aplicar: le añade DOS corolarios**, uno por cada RED —**D-7**, leer un fichero
+  ajeno y aseverar sobre su contenido acopla igual que escribirlo; y **D-8**, un CA enuncia la
+  propiedad y nunca la forma—, porque las dos vueltas demostraron que la convención tal y como
+  estaba escrita no cubría ni el canal de lectura ni el de la letra. Gate: §Notas ptos. 7 y 8.
 - **`.gitignore:12`** (`.env*.local`) — la razón de que aquí no haya nada que limpiar.
 
 ### Ficheros que esta spec modifica
@@ -459,13 +540,15 @@ Todos verificables con test unitario. El fichero nuevo es `tests/app-base-url.te
 | `src/app/layout.tsx` | **Sólo el comentario** del bloque `metadata`; ni una línea de expresión | CA-13 |
 | `tests/app-base-url.test.ts` (**nuevo**) | Toda la batería, sus centinelas y el contraste con la versión anterior | CA-1..CA-12 |
 | `package.json` + `package-lock.json` | La **subida de versión** (0.4.0 → 0.4.1) que el gate `Version bump` exige por tocar `src/`; los dos en el **mismo commit**, que es lo que manda ADR-033 | — (gate, no CA) |
-| `FOUNDATION.md` | Un corolario en §*Cómo se trabaja aquí*: leer un fichero ajeno y aseverar sobre su contenido acopla igual que escribirlo | D-7 |
+| `FOUNDATION.md` | **Dos** corolarios en §*Cómo se trabaja aquí*: (1) leer un fichero ajeno y aseverar sobre su contenido acopla igual que escribirlo; (2) un CA enuncia la propiedad, nunca la forma | D-7, D-8 |
 | La propia spec y su `.ledger.md` | — | — |
 
-**Esta tabla estaba incompleta y se corrige aquí (O2 del verificador).** `package.json` y
+**Esta tabla estaba incompleta y se corrigió aquí (O2 de la 1.ª vuelta).** `package.json` y
 `package-lock.json` faltaban aunque el párrafo siguiente ya los anunciaba: la tabla se
-escribió antes que su propia frase. `FOUNDATION.md` entra ahora, con D-7. **Ocho ficheros en
-total**, y ése es el conjunto cerrado que el gate debe ver en `git diff --name-only`.
+escribió antes que su propia frase. `FOUNDATION.md` entró con D-7 y crece con D-8 **sin añadir
+fichero**. **Ocho ficheros en total**, y ése sigue siendo el conjunto cerrado que el gate debe
+ver en `git diff --name-only`: la 2.ª vuelta **no lo mueve** — toca la spec, el ledger,
+`FOUNDATION.md` y (el implementador) `tests/app-base-url.test.ts`, los cuatro ya dentro.
 
 Nada bajo `drizzle/`, `.github/workflows/`, `docs/despliegue.md`, `.env.example` ni
 `tests/entornos-de-despliegue.test.ts`. `src/lib/auth/password-reset.ts` **no se toca**
@@ -596,7 +679,7 @@ del 2026-08-24 y viven ahora en §Decisiones (filas 1 y 3), no aquí:
 - **¿60 o 120 caracteres de recorte?** **120**, y el motivo es legibilidad, no
   confidencialidad: `APP_BASE_URL` no es un secreto. *(Decisión de sdd-orquestador.)*
 
-**7. Lo que cambió en esta spec DESPUÉS del RED del verificador (2026-08-24), y por qué
+**7. Lo que cambió en esta spec DESPUÉS del PRIMER RED del verificador (2026-08-24), y por qué
 deberías mirarlo tú.** No se tocó ni una línea de código ni de test: el verificador no
 encontró ningún defecto en la implementación. Lo que estaba mal era **la letra**:
 - **CA-5, reescrito.** Su «de la misma forma» admitía dos lecturas y la implementación cogió
@@ -609,3 +692,36 @@ encontró ningún defecto en la implementación. Lo que estaba mal era **la letr
 - **La tabla de ficheros** (O2) y **la latencia del oráculo** (O3), corregidas donde tocaba.
 - **Cuatro decisiones tácitas**, ahora escritas con su autor en §Decisiones. Tres son tuyas
   del gate anterior; confirma que las recogí como las dijiste.
+
+**8. Lo que cambió DESPUÉS del SEGUNDO RED (2026-08-24), y las dos cosas que te toca decidir a
+ti.** Otra vez **cero líneas de código y cero de test por mi parte**: los doce CA restantes
+pasaron con evidencia ejecutada y el único bloqueante, F1, volvió a ser **de la letra**.
+
+- **CA-12, reescrito, y con criterio distinto al anterior.** La letra vieja pedía una **forma**
+  («que la constante no aparezca dentro de un `toHaveLength(`») y se implementó al pie de la
+  letra: el patrón empezaba en el matcher, así que sólo miraba el texto **posterior** a él, y
+  en una congelación real el nombre de la tabla va **antes**. El verificador lo midió: inyectó
+  `expect(VALORES_RECHAZADOS).toHaveLength(13);` y `expect(VALORES_RECHAZADOS.length).toBe(13);`
+  en una copia y el caso **siguió verde**. Ahora el CA dice la **propiedad** —*si añadir una
+  fila obligara a actualizar ese aserto, ese aserto congela*—, **prohíbe expresamente enumerar
+  matchers**, deja el mecanismo al implementador, y **exige la prueba de eficacia por mutación
+  en los dos sentidos** (ADR-026 §7): tres especímenes que la guardia debe cazar y dos que no
+  debe cazar. Esa segunda dirección importa tanto como la primera: sin ella la reparación fácil
+  —cazar cualquier mención de la constante— pondría roja a CA-11 y acabaría aflojada.
+- **`FOUNDATION.md`, un SEGUNDO corolario, y es lo que más quiero que mires.** El mismo defecto
+  ha aparecido **cuatro veces en dos specs y dos épicas** —SPEC-054 CA-15 y CA-16, SPEC-055
+  CA-5 y CA-12— y cada una costó una ronda roja entera. A mi juicio eso deja de ser anécdota y
+  es convención de proyecto, así que la subo, apoyándome en el precedente que autorizaste el
+  2026-08-24 para el corolario de D-7. La tabla de los cuatro casos está en **D-8**, para que
+  puedas comprobar el argumento en vez de creértelo. **Si te parece que sube demasiado pronto,
+  se saca de la rama y queda como follow-up**: CA-12 se sostiene solo con D-8 dentro de la spec.
+  Nota de gate: `FOUNDATION.md` **ya estaba** en el conjunto cerrado de ocho ficheros, así que
+  esto no lo mueve, y no es código de aplicación — **la versión sigue en `0.4.1`**.
+- **`/_not-found` corregido en §Problema** (O2 de esta vuelta). No se ha sustituido por otro
+  literal: se dice que **la ruta es variable** —Next nombra la del worker que estalla primero,
+  de quince— y que lo que hay que leer es el `[cause]` de la segunda línea (O3). El mismo
+  literal caduco sobrevive en `docs/roadmap.md:153` y en el ledger de SPEC-054, que **no son
+  míos y no toco**: queda anotado en el ledger para quien gobierne esos dos.
+- **Lo que NO cambió, a propósito:** `src/lib/config/app-url.ts` (pasó el gate entera), los
+  otros doce CA, el estado de la spec, y `D-SPEC-055-1`, que sigue declarada y sin ejecutar con
+  sus tres puntos.

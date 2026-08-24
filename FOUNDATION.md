@@ -119,8 +119,8 @@ Y una tercera, que ya ha costado **cuatro** veces y se fija el **2026-08-20** (c
   está fallando; la declara y la lleva al gate. Precedentes: `F-SPEC-034-6` (tres guardias
   re-encuadradas) y `F-SPEC-042-9` (un caso borrado, con su motivo escrito en el sitio).
 
-Y un **corolario de esa tercera**, que ya ha costado una vez y se fija el **2026-08-24**
-(cierra `F1` de SPEC-055):
+Y un **primer corolario de esa tercera**, que ya ha costado una vez y se fija el
+**2026-08-24** (cierra `F1` de la 1.ª vuelta de SPEC-055):
 
 - **Leer un fichero ajeno y aseverar sobre su contenido acopla igual que escribirlo.** Que
   `git diff --name-only` de dos ramas no se solape **no prueba que estén desacopladas**. Un
@@ -139,3 +139,33 @@ Y un **corolario de esa tercera**, que ya ha costado una vez y se fija el **2026
 - **Si la propiedad que quieres vigilar es sobre un fichero ajeno, la guardia vive con el
   dueño del fichero**, y se le pide como dependencia (`D-SPEC-nnn-n`). No se trae de contrabando
   al fichero de test propio. Precedente: `D-SPEC-055-1` pto. 3.
+
+Y un **segundo corolario**, éste sobre cómo se escriben los **criterios de aceptación** y no
+sobre cómo se escriben los tests. Ya ha costado **cuatro rondas rojas** en dos specs y dos
+épicas, y se fija el **2026-08-24** (cierra `F1` de la 2.ª vuelta de SPEC-055):
+
+- **Un CA enuncia la PROPIEDAD que quiere garantizar, nunca la FORMA concreta que quiere
+  prohibir.** Quien implementa escribe exactamente lo que la letra pide, y hace bien: si la
+  letra nombra una forma, sale una guardia que sólo conoce esa forma y que **da por vigilado
+  todo lo demás**. El rojo llega en el gate, el defecto es de la letra —no del código— y lo
+  paga una ronda entera. Los cuatro casos, para que esto sea comprobable y no una moraleja:
+  **SPEC-054 CA-15** pidió que cada aviso *«envuelva»* —una forma— cuando la propiedad era que
+  la caja acotada funcione, y así se pedía a sí mismo dos cosas incompatibles; **SPEC-054
+  CA-16** pidió guardias ajenas *«sin tocarse»* —una forma— cuando la propiedad era *sin
+  aflojarse*, y era incumplible por construcción; **SPEC-055 CA-5** pidió el tercer valor *«de
+  la misma forma»* que los otros dos y se acabó leyendo un fichero de otra spec; **SPEC-055
+  CA-12** pidió que una constante *«no aparezca dentro de un `toHaveLength(`»* —una forma—
+  cuando la propiedad era que **añadir una fila no obligue a tocar ningún aserto**, y la
+  guardia resultante no veía la congelación escrita al derecho.
+- **Enumerar formas prohibidas está prohibido.** Una lista de matchers, de literales o de
+  ficheros vetados dentro de un CA es la misma lista que caduca de `F-SPEC-048-2`, sólo que
+  escrita un piso más arriba: en la spec en vez de en el test. Caduca igual, y encima con la
+  autoridad de un criterio aprobado detrás.
+- **Cuando el único entregable de un CA es una guardia, el CA exige también la prueba de que
+  esa guardia se pone roja** (ADR-026 §7), con los **especímenes mínimos escritos en el propio
+  CA** y **en los dos sentidos**: lo que debe cazar, y lo que **no** debe cazar. La segunda
+  dirección no es adorno — sin ella la reparación barata es cazar de más, y una guardia que
+  molesta acaba aflojada. **Una guardia que no se puede poner roja no es una guardia: es una
+  casilla.**
+- **El listón, en una línea: un CA está bien escrito si se puede violar de una forma que no se
+  le ocurrió a quien lo escribió, y aun así falla.**
