@@ -243,3 +243,60 @@ describe('SPEC-054 CA-11: `/cartera` está en el conjunto de rutas que la guardi
     }
   });
 });
+
+describe('SPEC-054 CA-21: la salida prohibida no se usa, y se afirma en la fuente', () => {
+  /**
+   * El bloque que esta spec añadió a `globals.css`, acotado por su cabecera.
+   *
+   * Se mira **lo que esta spec escribió**, no el fichero entero: los `overflow: hidden`
+   * que ya estaban —`.data-table`, para recortar sus esquinas redondeadas desde
+   * SPEC-007— son legítimos y no se tocan. Lo que CA-21 prohíbe es **añadir uno nuevo**.
+   */
+  const bloqueDeLaSpec = (): string => {
+    const src = readFileSync(CSS, 'utf8');
+    const desde = src.indexOf('SPEC-054 / ADR-034');
+    expect(
+      desde,
+      `no se encontró la sección de SPEC-054 en ${CSS}: o cambió de cabecera, o ` +
+        'desapareció. Este test no puede auditar lo que no encuentra',
+    ).toBeGreaterThan(-1);
+    return src.slice(desde);
+  };
+
+  it('ninguna regla añadida por esta spec declara `overflow: hidden`', () => {
+    // R-2 de EPIC-007: **el mal ejemplo está en casa**.
+    // `design/tremen-ds/responsive.css:11` resuelve su paso a móvil con
+    // `html, body { overflow-x: hidden }` —exactamente lo que ADR-026 §4 declara que NO
+    // es un arreglo— y la app lo carga por una cadena de tres saltos. Es el patrón que
+    // cualquiera copiará al ver una barra de desplazamiento, así que esta spec dice por
+    // escrito que no lo usa, y lo comprueba.
+    const declaraciones = [...bloqueDeLaSpec().matchAll(/overflow(?:-x|-y)?\s*:\s*([^;]+);/g)]
+      .map((m) => m[1].trim())
+      .filter((v) => v.includes('hidden'));
+    expect(
+      declaraciones,
+      'la sección de SPEC-054 en globals.css declara `overflow: hidden`. ADR-026 §4 admite ' +
+        'exactamente DOS salidas ante un desborde —que quepa, o que el desplazamiento viva ' +
+        'en un contenedor propio declarado— y recortar no es ninguna de las dos: es la ' +
+        'versión visual del fallo silencioso que CE-F2 de EPIC-FIX existe para erradicar',
+    ).toEqual([]);
+  });
+
+  it('y tampoco esconde el desborde detrás de un contenedor desplazable nuevo en móvil', () => {
+    // La otra salida barata: en vez de recortar, declarar un `overflow-x: auto` y llamarlo
+    // «segunda salida legítima de ADR-026 §4». Lo es **por encima** del canto, donde la
+    // tabla vive dentro de `.table-scroll`; por debajo, el patrón entero de esta spec
+    // existe para que no haya nada que arrastrar (CA-4). Que en tiempo de ejecución no
+    // quede ninguno lo mide `tarjetas-geometria.spec.ts`; que no se haya escrito uno
+    // nuevo, esto.
+    const bloque = bloqueDeLaSpec();
+    const enMovil = bloque.slice(bloque.indexOf('@media (max-width: 720px)'));
+    const desplazables = [...enMovil.matchAll(/overflow(?:-x)?\s*:\s*(auto|scroll)\s*;/g)];
+    expect(
+      desplazables.map((m) => m[0]),
+      'la sección de SPEC-054 declara un contenedor con desplazamiento horizontal por ' +
+        'debajo del breakpoint. La promesa del patrón de tarjetas es que en un teléfono la ' +
+        'lectura de una fila deje de ser un gesto de exploración por columna',
+    ).toEqual([]);
+  });
+});

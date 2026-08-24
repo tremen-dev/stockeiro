@@ -305,3 +305,34 @@ export async function abrirAncha(page: Page, pantalla: Pantalla): Promise<void> 
   await page.goto(pantalla.ruta);
   await page.locator(SELECTOR_TABLA).waitFor({ state: 'visible' });
 }
+
+/* ────────────────────────────────────────────────────────────────────────────
+   El alcance de las medidas nuevas — escrito, no supuesto
+   ──────────────────────────────────────────────────────────────────────────── */
+
+/**
+ * **Dónde se aplican M5 y los suelos tipográficos de esta spec, y por qué ahí.**
+ *
+ * M1, M2 y M3 se aplican a **la app entera** (`RAICES`), como siempre: ya estaban verdes
+ * sobre estas dos rutas y tienen que seguirlo. M5 y CA-14, en cambio, son medidas **nuevas**
+ * y nacen rojas en sitios que esta spec **no puede tocar**.
+ *
+ * El «fuera de alcance» de SPEC-054 es explícito: *«Dentro están sólo `src/app/vigiladas/*`,
+ * `src/app/cartera/page.tsx` con sus formularios, y los bloques de `src/app/globals.css` que
+ * sirven a esas dos páginas»*, y deja fuera **la navegación global** (*«tocarla mete en el
+ * diff una superficie compartida por todas las páginas»*) y **el pie**. Así que las medidas
+ * nuevas se aplican a `main.page` —que es el cuerpo de las dos pantallas, con su cabecera,
+ * su control de orden, su alta plegable, sus formularios y sus tablas— más la capa de
+ * edición, que cuelga de `<body>` porque es un `<dialog>` (ADR-030 §1).
+ *
+ * **Esto no esconde nada: lo aplaza y lo deja escrito.** `R-1 de EPIC-007` lo predijo con
+ * todas las letras —*«en cuanto exista el medidor de CE-3, cada botón pequeño de la app es
+ * un rojo pendiente… la épica descubre trabajo a medida que avanza»*— y la spec 2 de la
+ * épica es justamente la navegación. Las guardias de esta spec **miden igualmente la
+ * pantalla entera** y dejan la cifra en `_qa/SPEC-054/`, sin afirmarla, para que quien
+ * escriba esa spec llegue con el trabajo dimensionado en vez de descubrirlo.
+ *
+ * Lo que **no** se hace, y conviene decirlo: bajar el suelo de M5 hasta que la nav pase.
+ * Eso sería `F-ADR-026-1` cumpliéndose por escrito (ADR-034 §6).
+ */
+export const RAICES_EN_ALCANCE = 'main.page, dialog.editar-vigilada';

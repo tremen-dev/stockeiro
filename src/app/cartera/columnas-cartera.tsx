@@ -38,8 +38,11 @@ export function columnasDeCartera(ctx: ContextoCartera): Columna<PositionView>[]
       clave: 'ticker',
       rotulo: 'Ticker',
       sitio: 'cabecera',
-      claseCelda: 'ticker',
-      valor: (p) => p.ticker,
+      // La clase va en el `<span>` y no en el `<td>` para que el ancla de la fila se llame
+      // igual en las dos formas: `.ticker` es lo que identifica una fila tanto en la tabla
+      // como en la tarjeta, y una guardia que compare las dos secuencias necesita un solo
+      // localizador. El aspecto no cambia: `.data-table .ticker` lo pinta igual.
+      valor: (p) => <span className="ticker">{p.ticker}</span>,
     },
     {
       clave: 'cantidad-viva',

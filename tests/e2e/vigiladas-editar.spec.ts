@@ -65,12 +65,27 @@ const ESCENARIO = [
 const panel = (page: Page) => page.getByTestId('editar-panel');
 const formEdicion = (page: Page) => page.getByTestId('editar-form');
 
-/** El control «Editar» de la fila cuyo ticker se pasa. */
+/**
+ * El control «Editar» de la fila cuyo ticker se pasa.
+ *
+ * ── ADAPTACIÓN DE SPEC-054 (a qué APUNTA, no qué exige) ──────────────────────────────
+ *
+ * Desde SPEC-054 / ADR-034 §3, `/vigiladas` monta la fila **dos veces** —`<table>` y `<ul>`
+ * de tarjetas— y el `@media` de 720 px apaga la que no toca. CA-23 de esta misma spec
+ * recorre los **ocho anchos**, así que a 360, 390, 640 y 700 px la fila que el usuario
+ * tiene delante es una tarjeta, no un `<tr>`. Un localizador clavado en la tabla estaría
+ * pulsando, por debajo del canto, un control que nadie ve.
+ *
+ * Ni una aserción de este fichero cambia: lo que cambia es dónde está el botón. Se busca en
+ * **la representación viva**, filtrando por visibilidad — que es exactamente el criterio
+ * con el que lo encontraría una persona.
+ */
 function editarDe(page: Page, ticker: string) {
   return page
-    .locator('table.data-table tbody tr')
+    .locator('table.data-table tbody tr, ul[data-testid="tarjetas-vigiladas"] > li')
+    .filter({ visible: true })
     .filter({ hasText: ticker })
-    .getByTestId('editar-zonas');
+    .locator('[data-testid="editar-zonas"], [data-testid="editar-zonas-tarjeta"]');
 }
 
 /** La celda de zona de compra («12 – 14» o «—») de una fila. */

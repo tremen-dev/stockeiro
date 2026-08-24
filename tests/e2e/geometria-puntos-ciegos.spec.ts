@@ -146,10 +146,35 @@ test.describe('V-SPEC-040-2: un `overflow-y: auto` no deja ciega a M1 en su sub�
   test('la exención legítima sigue viva: la tabla ancha dentro de `.table-scroll` no da violación', async ({
     page,
   }) => {
+    /*
+      ── RE-ENCUADRE DE SPEC-054 (a qué ancho se mide, no qué se exige) ────────────────
+
+      Este caso mide **la exención de M1**: que una tabla más ancha que la ventana, dentro
+      de un contenedor con desplazamiento declarado, NO cuente como violación — porque es
+      la segunda salida legítima de ADR-026 §4 y lo que tiene que caber es el contenedor.
+
+      Se medía a **360 px**, y desde SPEC-054 / ADR-034 §1 a ese ancho **ya no hay tabla**:
+      por debajo de 720 px `/vigiladas` se presenta como tarjetas y la tabla está apagada
+      con `display: none`. Con la tabla apagada, `.table-scroll` no es desplazable a lo
+      ancho, ninguna celda se sale, y este caso pasaría a medir la situación en la que la
+      exención **no puede hacer nada** — o sea, a aprobar en el vacío.
+
+      Se re-encuadra al primer ancho donde la premisa **sigue siendo cierta**: **730 px**,
+      el primero por encima del canto, donde la tabla de nueve columnas sigue sin caber
+      (a 760 px, `scrollWidth` 819 sobre `clientWidth` 760 — es el defecto que descubrió
+      SPEC-040 y el motivo de que 730 exista en `ANCHOS`). Ni una aserción cambia: las
+      tres precondiciones se siguen exigiendo y la conclusión —M1 a cero— también. Lo
+      único que se mueve es el ancho, porque el fenómeno se mudó de sitio.
+
+      Y no se pierde cobertura en móvil: que a 360 px **no quede nada que arrastrar** es
+      exactamente lo que afirma SPEC-054 CA-4 en `tarjetas-geometria.spec.ts`.
+    */
+    const ANCHO_CON_TABLA_ANCHA = 730;
+
     await asegurarVigilada(page);
     await page.goto('/vigiladas');
     await page.locator('table.data-table').waitFor({ state: 'visible' });
-    await ponerVentana(page, 360);
+    await ponerVentana(page, ANCHO_CON_TABLA_ANCHA);
 
     // El contenedor es desplazable DE VERDAD, y su contenido se sale de la ventana: si
     // no fuera así, «M1 = 0» no demostraría que la exención sigue funcionando, sólo que
@@ -170,7 +195,7 @@ test.describe('V-SPEC-040-2: un `overflow-y: auto` no deja ciega a M1 en su sub�
     });
 
     console.log(
-      `[V-SPEC-040-2 exención] 360 px · .table-scroll[overflow-x=${caja.overflowX} ` +
+      `[V-SPEC-040-2 exención] ${ANCHO_CON_TABLA_ANCHA} px · .table-scroll[overflow-x=${caja.overflowX} ` +
         `contenido=${caja.contenido} visible=${caja.visible}] · celda más a la derecha ` +
         `right=${Math.round(caja.derechaCeldaMax)} sobre ventana ${caja.ventana}`,
     );
@@ -178,13 +203,14 @@ test.describe('V-SPEC-040-2: un `overflow-y: auto` no deja ciega a M1 en su sub�
     expect(caja.overflowX, 'ADR-026 §4: el desplazamiento vive en su contenedor').toBe('auto');
     expect(
       caja.contenido,
-      `.table-scroll no es desplazable a lo ancho a 360 px (contenido=${caja.contenido} ` +
-        `visible=${caja.visible}): este test no está probando la exención`,
+      `.table-scroll no es desplazable a lo ancho a ${ANCHO_CON_TABLA_ANCHA} px ` +
+        `(contenido=${caja.contenido} visible=${caja.visible}): este test no está probando ` +
+        `la exención`,
     ).toBeGreaterThan(caja.visible);
     expect(
       caja.derechaCeldaMax,
-      `ninguna celda de la tabla se sale de la ventana a 360 px, así que la exención de ` +
-        `M1 no está haciendo nada aquí y este test no prueba nada`,
+      `ninguna celda de la tabla se sale de la ventana a ${ANCHO_CON_TABLA_ANCHA} px, así ` +
+        `que la exención de M1 no está haciendo nada aquí y este test no prueba nada`,
     ).toBeGreaterThan(caja.ventana + TOLERANCIA_PX);
 
     // Y con todo eso, M1 no reporta violación: lo que tiene que caber es el CONTENEDOR.

@@ -1517,3 +1517,82 @@ export async function medirSuelosTipograficos(
     return { controles, textos };
   }, raices);
 }
+
+/**
+ * **El breakpoint de MODO del producto**, en px CSS (ADR-034 §1).
+ *
+ * Por debajo, la tabla de datos se presenta como tarjetas; por encima, como tabla. Es el
+ * **único** ancho de todo el árbol que puede hacer aparecer o desaparecer una
+ * representación: 599/600 (el reparto de `.cards`) y 380 (el apretón tipográfico del
+ * sistema de diseño) son de DENSIDAD y no hacen aparecer ni desaparecer nada.
+ *
+ * Vive aquí, junto a `ANCHOS`, porque es **del proyecto y no de una spec**: la spec 2 de
+ * EPIC-007 (la navegación) y la 3 (el resto de rutas) lo heredan sin volver a decidirlo, y
+ * el día que alguien quiera moverlo tendrá que hacerlo en un sitio donde se ve.
+ *
+ * La otra cara del mismo canto es `min-width: 721px`, y así lo escribe ADR-034 §1: son
+ * **un** breakpoint mirado desde sus dos lados, no dos.
+ */
+export const BREAKPOINT_MODO_PX = 720;
+
+/** Los anchos medidos en los que manda la representación de tarjetas. */
+export const ANCHOS_TARJETA = ANCHOS.filter((a) => a <= BREAKPOINT_MODO_PX);
+
+/** Los anchos medidos en los que manda la tabla. */
+export const ANCHOS_TABLA = ANCHOS.filter((a) => a > BREAKPOINT_MODO_PX);
+
+/**
+ * Los dos anchos de **teléfono** del proyecto: 360 (Android pequeño, iPhone SE) y 390.
+ *
+ * Se derivan de `ANCHOS` en vez de escribirse, para que el día que el suelo del proyecto
+ * cambie no queden dos listas diciendo cosas distintas. El corte en 400 no es un
+ * breakpoint del producto: es «esto es un teléfono en una mano» frente a «esto es una
+ * tablet o una ventana estrecha».
+ */
+export const ANCHOS_TELEFONO = ANCHOS.filter((a) => a < 400);
+
+export interface PropiedadesComputadas {
+  selector: string;
+  texto: string;
+  props: Record<string, string>;
+}
+
+/**
+ * Las propiedades computadas que se le pidan, de todo lo que casa un selector.
+ *
+ * Es el hermano de `medirCajas`: un **primitivo de lectura**, no una medida con criterio.
+ * Existe para que una guardia pueda afirmar cosas como «el fondo de la tarjeta es el mismo
+ * color que el de su fila», «el aviso conserva su caja de `34ch`» o «ninguna propiedad
+ * reordena nada dentro de la tarjeta» **sin escribirse su propio `getComputedStyle`** en
+ * cada fichero — que es exactamente como se degradaron las cuatro guardias que ADR-026
+ * vino a unificar. Qué se lee lo dice quien mide; **cómo** se lee, este módulo.
+ *
+ * Se pide por nombre de propiedad en camelCase (`backgroundColor`, `maxWidth`,
+ * `gridRowStart`), que es como las nombra `CSSStyleDeclaration`.
+ */
+export async function medirPropiedadesComputadas(
+  page: Page,
+  selector: string,
+  propiedades: readonly string[],
+): Promise<PropiedadesComputadas[]> {
+  return page.evaluate(
+    ({ selector, propiedades }) => {
+      return [...document.querySelectorAll(selector)].map((el) => {
+        const s = getComputedStyle(el);
+        const clases = [...el.classList].slice(0, 2).join('.');
+        const testid = el.getAttribute('data-testid');
+        const props: Record<string, string> = {};
+        for (const p of propiedades) props[p] = s.getPropertyValue(p) || String(s[p as never] ?? '');
+        return {
+          selector:
+            el.tagName.toLowerCase() +
+            (clases ? `.${clases}` : '') +
+            (testid ? `[data-testid="${testid}"]` : ''),
+          texto: (el.textContent ?? '').trim().replace(/\s+/g, ' ').slice(0, 60),
+          props,
+        };
+      });
+    },
+    { selector, propiedades: [...propiedades] },
+  );
+}
