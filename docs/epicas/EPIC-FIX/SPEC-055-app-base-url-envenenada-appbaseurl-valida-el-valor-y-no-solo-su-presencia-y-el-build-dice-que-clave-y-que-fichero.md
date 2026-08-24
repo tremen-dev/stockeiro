@@ -2,7 +2,7 @@
 id: SPEC-055
 tipo: spec
 epica: EPIC-FIX
-estado: en-progreso
+estado: en-revision
 aprobada-por: humano (Alberto Fojo)
 historial:
   - {estado: borrador, fecha: 2026-08-24, por: sdd-arquitecto}
@@ -10,6 +10,7 @@ historial:
   - {estado: en-progreso, fecha: 2026-08-24, por: sdd-implementador}
   - {estado: en-revision, fecha: 2026-08-24, por: sdd-implementador}
   - {estado: en-progreso, fecha: 2026-08-24, por: sdd-verificador}
+  - {estado: en-revision, fecha: 2026-08-24, por: sdd-implementador}
 ---
 # SPEC-055 — `APP_BASE_URL` envenenada: `appBaseUrl()` valida el valor y no solo su presencia, y el build dice qué clave y qué fichero
 
