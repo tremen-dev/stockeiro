@@ -56,10 +56,16 @@ epica: EPIC-FIX
 | CA-11 — **la guardia probada en rojo** con entrada propia, en los dos sentidos | `G` — `incumplimientos()` es función pura sobre dos cadenas (D-3) | `G` › *CA-11* — **4 casos**: `Production` a secas → incumplimiento que **nombra la clave** y dice *«el build de Preview de toda PR fallará en `next build`»* · fila ausente → incumplimiento · corregido a `Preview + Production` → **ninguno** · runbook sin §0 → **no** queda en verde por vacío | | |
 | CA-12 — `.env.example` admite Production/Preview/Development | `.env.example`, cabecera | `G` › *CA-12* — **2 casos**: la frase del entorno único ausente; y los tres entornos + *no todas viven en todos* + *también en Preview* + remisión a `docs/despliegue.md` | | |
 | CA-13 — `.env.example`: la ausencia de `APP_BASE_URL` rompe el build | `.env.example`, bloque de `APP_BASE_URL` | `G` › *CA-13* — **2 casos**: la consecuencia **vieja** conservada literal, y la **nueva** añadida (SPEC-051 + *rompe el `next build`*) | | |
-| CA-14 — `appBaseUrl()` sigue lanzando, con la nota de que es deliberado | **Nada**: `src/lib/config/app-url.ts` intacto (ver **F-SPEC-052-8**) | `G` › *CA-14* — **2 casos**: lanza con la clave ausente y con una cadena de espacios; y el propio caso **contiene la nota** (SPEC-051 · D-4 · deliberado · *SPEC-052 NO revisa esta conducta*), leída de la fuente del fichero, sin `git` | | |
+| CA-14 — `appBaseUrl()` sigue lanzando, con la nota de que es deliberado; **y su primer test propio** (premisa del CA corregida el 2026-08-24, F-SPEC-052-8) | **Nada**: `src/lib/config/app-url.ts` intacto (ver **F-SPEC-052-8**) | `G` › *CA-14* — **2 casos**: lanza con la clave ausente y con una cadena de espacios; y el propio caso **contiene la nota** (SPEC-051 · D-4 · deliberado · *SPEC-052 NO revisa esta conducta*), leída de la fuente del fichero, sin `git` | | |
 | CA-15 — la entrega no toca `src/` ni `drizzle/` | — (criterio sobre el delta) | **n-a — ver nota N-1** | gate | n-a |
 | CA-16 — `npm run build` sin `APP_BASE_URL` falla | — (verificación empírica única) | **n-a — ver nota N-2** | gate | n-a |
 | CA-17 — `.env.example`: `APP_BASE_URL` → `http://localhost:3000`, y §0 retira el desmentido | `.env.example` (valor + comentario) y `docs/despliegue.md` §0 (desmentido retirado) | `G` › *CA-17: el valor de ejemplo es el de desarrollo* — **3 casos** (valor literal · `stockeiro.app` ya no es su valor · `RESEND_FROM` **conserva** el suyo) y *CA-17: §0 retira el desmentido* — **2 casos** (`stockeiro.app` fuera del aviso, pero *origen REAL del despliegue* sigue) | | |
+
+| CA-18 — re-encuadre autorizado de `tests/tarjeta-guardias-ampliadas.test.ts:118-126`: **(a)** firma en vez de mención · **(b)** autoexclusión probada · **(c)** rojo en los dos sentidos · **(d)** el porqué al lado · **(e)** nada más del fichero aflojado · **(f)** sin atajo del literal | | | | ❌ |
+
+> **CA-18 lo añadió sdd-arquitecto el 2026-08-24**, tras la escalada de `F-SPEC-052-7`.
+> Las columnas *Implementado* y *Test* las rellena sdd-implementador; *Verif.* y *Estado*,
+> sdd-verificador. El arquitecto no las toca.
 
 **Estado de la suite tras la entrega:** `tests/entornos-de-despliegue.test.ts` → **38/38 verde**.
 `npm run typecheck` y `npm run lint` limpios. Suite completa: **1702/1703**, con **un rojo que no
@@ -310,6 +316,45 @@ No aplica: esta spec no cambia ninguna superficie de UI. La evidencia es textual
   cualquiera de los dos casos, con lo que vigilaba antes y lo que vigila ahora escrito en el
   ledger de quien lo toque. Precedentes de los dos: `F-SPEC-034-6` y `F-SPEC-042-9`.
 
+  ---
+
+  ↳ **RESUELTO el 2026-08-24. Salida elegida: RE-ENCUADRAR.** Autorizado nominalmente por el
+  humano (**Alberto Fojo, 2026-08-24**); **escalado sin tocarlo por el implementador**;
+  **redactado por sdd-arquitecto**, que es quien no se beneficia de que la guardia calle. Queda
+  gobernado por **SPEC-052 CA-18 (a)…(f)** y argumentado en **§Diseño D-7**. Resumen del
+  arbitraje, para quien lea solo el ledger:
+
+  - **El diagnóstico del implementador se confirma, y se afina.** El defecto de fondo es un
+    **error de converso**: la guardia se apoya —lo dice su propio comentario— en que *«todo
+    re-encuadre menciona SPEC-051»*, y la usa como si fuera *«toda mención es un re-encuadre»*.
+    Condición necesaria empleada como suficiente. Su forma se nombra: **un conjunto cerrado
+    sobre un universo abierto**, familia de `F-SPEC-034-6`, que caduca **por instantánea** y no
+    por diana móvil — y por eso la meta-guardia de SPEC-048 no la vio: ahí no hay ni un `git`.
+  - **Por qué re-encuadrar y no borrar.** Se leyeron los **cuatro** bloques del fichero:
+    CA-17.2, CA-17.3 y CA-17.4 hablan **solo de las dos** guardias autorizadas. **Ninguno dice
+    nada sobre un tercero.** Borrar dejaría sin dueño el único punto que vigila *«no hubo un
+    tercero»*, y esa proposición **sigue viva**. Es lo que lo separa del caso de SPEC-050
+    (SPEC-053 CA-13), donde lo vigilado ya **no podía volver a ser cierto**.
+  - **El re-encuadre.** El conjunto se cierra sobre **la firma de un re-encuadre autorizado**
+    —la conjunción que **CA-17.2 ya exige**: `SPEC-051` + `CA-17` + `2026-08-23` + *arbitraje
+    del humano* + *Qué vigilaba antes* + *Qué vigila ahora*— en vez de sobre la cadena
+    `SPEC-051`. Una cita en prosa no produce esa conjunción; un re-encuadre autorizado sí, por
+    obligación. El mecanismo pasa a coincidir con la inferencia que la guardia ya declaraba.
+  - **Cobertura: idéntica frente al fallo real; desaparece el falso positivo.** Y lo que **NO**
+    mejora, dicho en voz alta: un re-encuadre **mudo** —sin nota— no lo caza ninguna de las dos
+    versiones. **Tampoco lo cazaba la original**, cuya detección siempre dependió de que el
+    infractor escribiera la nota. No se pierde nada; el hueco es de la meta-guardia futura.
+  - **Trampa nueva que el implementador debe tratar, y está en CA-18 (b)**: este fichero
+    **define** la firma en sus propias aserciones, así que **la contiene y se detectaría a sí
+    mismo**. La detección excluye su propia ruta, en constante con su motivo, y un centinela
+    afirma que la exclusión es **necesaria** (el fichero sí lleva la firma) y que hay
+    **exactamente una**.
+  - **`PROPIOS` queda huérfano**: era la **segunda instantánea congelada** del mismo caso y deja
+    de alimentar ninguna aserción. Se retira, o se deja inerte **con su motivo escrito**.
+  - **El atajo sigue prohibido, ahora por escrito** (CA-18 f): no se parte ni se disfraza el
+    literal `'SPEC-051'`. Consta que el implementador **no** lo hizo, y la prohibición queda
+    para el siguiente.
+
 - **F-SPEC-052-8** (discrepancia menor de la spec, resuelta sin salirse del CA) — **CA-14 da por
   existente un caso de SPEC-023 que no existe.** El CA dice *«si el caso ya existe (SPEC-023), se
   le añade la nota y no se duplica»*, y la tabla de §Ficheros lista *«el test de `appBaseUrl()`
@@ -323,6 +368,22 @@ No aplica: esta spec no cambia ninguna superficie de UI. La evidencia es textual
   dentro de `tests/entornos-de-despliegue.test.ts`, con la nota que CA-14 pide. No se duplica
   nada y no se ha tocado ninguna aserción ajena. Se anota porque la tabla de ficheros de la spec
   dice otra cosa y conviene que el verificador no la busque donde no está.
+
+  ↳ **VALIDADO el 2026-08-24 por sdd-arquitecto: el implementador tenía razón y el CA estaba mal
+  redactado.** Escribí *«si el caso ya existe (SPEC-023)»* sobre una suposición que **no
+  verifiqué**, y era falsa. **Crear el caso una sola vez en el fichero nuevo es lo correcto.**
+  **CA-14 y la tabla de §Ficheros quedan corregidos** en la spec: se retira la premisa falsa y la
+  fila *«el test de `appBaseUrl()` (SPEC-023)»*.
+  **Y el hallazgo se asciende de discrepancia a hecho registrado**, porque vale más que una
+  corrección de redacción: **la función cuya excepción tumbó todas las previews no tenía ni un
+  test unitario**. El motivo es lo instructivo: SPEC-023 la ejercitaba solo **de paso**, dentro
+  del flujo de recuperación; cuando SPEC-051 le dio un **segundo consumidor completamente
+  distinto** —metadatos en tiempo de build— no había nada que la probara **por sí misma**. Una
+  función con dos consumidores y cero tests propios se prueba solo por accidente.
+  **Exigencia añadida a CA-14**: el caso nuevo asserta el **mensaje literal**
+  (`APP_BASE_URL no definida (ver .env.example): sin ella no hay enlaces válidos.`), que es el que
+  aparece en el log de Vercel del PR #58 y el que **CA-2 (c)** exige en el documento — así el
+  documento y el código quedan atados por el mismo literal y no pueden divergir en silencio.
 
 
 ## Cómo retomar (handoff)

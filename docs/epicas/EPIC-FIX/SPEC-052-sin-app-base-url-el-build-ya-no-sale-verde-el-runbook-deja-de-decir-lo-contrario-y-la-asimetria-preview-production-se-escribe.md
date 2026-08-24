@@ -200,12 +200,71 @@ lo que se explica en §Notas para el gate humano (punto 3).
   una trampa que solo se desactiva leyendo un segundo documento — y la lección entera de
   esta spec es que el segundo documento puede estar mintiendo.
 
+- **D-7 — La guardia ajena de SPEC-051 CA-17.1 se RE-ENCUADRA, no se retira; y lo que se
+  corrige es un error de converso.** Autorizado nominalmente por el humano (Alberto Fojo)
+  el **2026-08-24**; detectado y **escalado sin tocarlo** por el implementador; redactado
+  por el arquitecto, que es quien no se beneficia de que la guardia calle.
+
+  **El diagnóstico, confirmado y afinado.** La aserción de
+  `tests/tarjeta-guardias-ampliadas.test.ts:118-126` confunde **mencionar** con
+  **re-encuadrar**. Su propio comentario declara la inferencia en que se apoya: *«si
+  alguien re-encuadrara un tercer fichero ajeno tendría que escribir su porqué al lado
+  —lo exige CA-17.2— y ese porqué nombra la spec»*. Eso es una condición **necesaria**
+  (*todo re-encuadre menciona SPEC-051*) usada como **suficiente** (*toda mención es un
+  re-encuadre*). El converso no se sigue, y lo paga el primero que cite legítimamente a
+  SPEC-051 — que resulta ser **esta misma entrega**, obligada a citarla por CA-2 (a) y
+  CA-14. La guardia se rompe **por cumplir la spec**, no por incumplirla.
+
+  **Su forma, nombrada: un conjunto cerrado sobre un universo abierto.** Los ficheros que
+  *pueden* mencionar `SPEC-051` crecen sin límite; la lista contra la que se comparan está
+  congelada el día de la entrega. Es la familia de `F-SPEC-034-6` (*«drizzle/ tiene nueve
+  `.sql`»*), no la de ADR-031: **caduca por instantánea, no por diana móvil**. Por eso la
+  meta-guardia de SPEC-048 no la vio — vigila revisiones móviles de git, y aquí no hay
+  ninguna: es una propiedad del árbol, formalmente impecable ante ADR-031, y aun así
+  caduca.
+
+  **Por qué re-encuadrar y no retirar.** Porque la proposición **sigue viva y no está
+  cubierta en ningún otro punto del fichero**. Verificado leyendo sus cuatro bloques:
+  **CA-17.2** recorre `GUARDIAS` —las dos— y exige que su porqué esté escrito;
+  **CA-17.3** comprueba que **de esas dos** no se apagó ni se aflojó nada, con prueba por
+  mutación incluida; **CA-17.4** protege las hermanas, el matcher sin rutas de producto y
+  `PUBLIC_PREFIXES`. **Ninguno dice absolutamente nada sobre un tercero.** Retirar la
+  aserción dejaría sin dueño el único punto que vigila *«no hubo un tercero»*. Eso separa
+  este caso del de SPEC-050 resuelto esta madrugada (SPEC-053 CA-13), donde lo vigilado ya
+  **no podía volver a ser cierto** y borrar era la salida correcta. Aquí sí puede: mañana
+  alguien puede aflojar una tercera guardia ajena, y eso es exactamente lo que no debe
+  pasar en silencio.
+
+  **El re-encuadre.** El conjunto deja de cerrarse sobre la cadena `SPEC-051` y pasa a
+  cerrarse sobre **la firma de un re-encuadre autorizado**. Y esa firma **ya está
+  definida**: la define CA-17.2 al exigir que toda ampliación autorizada por SPEC-051
+  lleve, en el cuerpo de su caso, `SPEC-051` + `CA-17` + `2026-08-23` + *arbitraje del
+  humano* + *Qué vigilaba antes* + *Qué vigila ahora*. Una cita en prosa no produce esa
+  conjunción; un re-encuadre autorizado sí, **por obligación de CA-17.2**. Es decir: el
+  re-encuadre no inventa un criterio nuevo — hace que el **mecanismo** coincida con la
+  **inferencia que la guardia ya declaraba** como su propia justificación.
+
+  **Qué NO mejora, y hay que decirlo en voz alta.** Un re-encuadre **mudo** —aflojar una
+  tercera guardia ajena sin escribir nota alguna— no lo caza ninguna de las dos versiones.
+  **Tampoco lo cazaba la original**: su detección siempre dependió de que el infractor
+  escribiera la nota. La cobertura frente al fallo real es **idéntica**; lo único que
+  desaparece es el **falso positivo**. Ese hueco pertenece a la meta-guardia futura (ver
+  §Fuera de alcance), no a esta spec.
+
+  **Rechazado, y consta que no se hizo:** partir, interpolar o disfrazar el literal
+  `'SPEC-051'` para que la cadena no case (CA-18 f). Es aflojar en silencio y a favor de
+  quien se beneficia — prohibido por `FOUNDATION.md`. El implementador dejó constancia de
+  que no lo hizo, y esta spec lo prohíbe por escrito para que tampoco lo haga el siguiente.
+
 ## Criterios de aceptación
 
-Numeración: **CA-1 … CA-17**. Los que no se pueden probar con un test están marcados
+Numeración: **CA-1 … CA-18**. Los que no se pueden probar con un test están marcados
 **n-a** de forma explícita, con el motivo y con dónde se verifican en su lugar; ninguno
 se disfraza de test. **CA-17 y la parte (b) de CA-4 nacen del arbitraje humano del
-2026-08-24**; la nota de CA-3 se ajustó por efecto de CA-17.
+2026-08-24**; la nota de CA-3 se ajustó por efecto de CA-17. **CA-18 nace de una guardia
+ajena rota que el implementador escaló sin tocar** (autorizada por el humano el
+2026-08-24, redactada por el arquitecto); **CA-14 se corrigió** al descubrirse que su
+premisa era falsa (F-SPEC-052-8).
 
 ### El párrafo deja de mentir
 
@@ -373,12 +432,27 @@ No usa `git` (D-4).
 
 ### Lo que esta spec no toca, y por qué queda escrito
 
-- **CA-14** — *La conducta que causó el incidente se conserva a propósito.* Dado
-  `appBaseUrl()` con `APP_BASE_URL` ausente del entorno, entonces **lanza** — y el caso
-  que lo prueba lleva escrito al lado que esto es **deliberado** (SPEC-051 D-4/R-2,
-  arbitrado en su gate) y que **SPEC-052 no lo revisa**. Si el caso ya existe (SPEC-023),
-  se le añade la nota y **no se duplica**. Test: el caso existente pasa y contiene la
-  nota.
+- **CA-14** — *La conducta que causó el incidente se conserva a propósito, y por fin
+  tiene un test propio.* Dado `appBaseUrl()` con `APP_BASE_URL` ausente del entorno,
+  entonces **lanza**, y el mensaje es **el mismo que aparece en el log de Vercel del
+  PR #58**: `APP_BASE_URL no definida (ver .env.example): sin ella no hay enlaces
+  válidos.` El caso lleva escrito al lado que esto es **deliberado** (SPEC-051 D-4/R-2,
+  arbitrado en su gate) y que **SPEC-052 no lo revisa**. Test: el caso, con la nota y con
+  la aserción sobre el mensaje — que es lo que ata el literal que CA-2 (c) exige en el
+  documento al literal que el código lanza.
+
+  **Corrección de la premisa (2026-08-24, cierra F-SPEC-052-8).** La redacción original
+  de este CA decía *«si el caso ya existe (SPEC-023), se le añade la nota y no se
+  duplica»*. **Ese caso no existía.** El implementador lo buscó por símbolo, por módulo y
+  por mensaje: la única cobertura viva era un test **estático sobre el texto** de
+  `layout.tsx`. O sea que la función cuya excepción tumbó **todas** las previews **no
+  tenía ni un test unitario**. El motivo es instructivo y por eso queda escrito: SPEC-023
+  la ejercitaba solo **de paso**, dentro del flujo de recuperación de contraseña, y
+  cuando SPEC-051 le dio un **segundo consumidor completamente distinto** —metadatos en
+  tiempo de build— no había nada que la probara **por sí misma**. Una función con dos
+  consumidores y cero tests propios es una función que solo se prueba por accidente. Así
+  que el caso **se crea, una sola vez**, en el fichero de test de esta spec; la condición
+  *«no se duplica»* sigue en pie.
 
 - **CA-15** — *Esta entrega no toca `src/` ni `drizzle/`.* Dado el alcance —
   documentación y una guardia en `tests/`—, entonces el delta de la rama no contiene
@@ -398,6 +472,69 @@ No usa `git` (D-4).
   verde vacío que ADR-031 prohíbe. Verificación de **gate** (RI-03, opción 2): se
   ejecuta una vez y su **salida literal** se pega en el ledger, que es lo que sostiene
   el literal que CA-2 exige en el documento.
+
+### La guardia ajena que esta entrega rompe por cumplirla
+
+- **CA-18** — *El re-encuadre de `tests/tarjeta-guardias-ampliadas.test.ts`, con su
+  autorización escrita.* **Aserción nombrada**: `tests/tarjeta-guardias-ampliadas.test.ts`,
+  **líneas 118-126** — bloque `describe('SPEC-051 CA-17.1: son DOS guardias ajenas…')`,
+  caso *«los únicos ficheros ajenos de tests/ que esta spec nombra son esos dos»*,
+  comparación `expect(nombran, …).toEqual(esperados)`. Motivo y elección entre las dos
+  salidas legítimas: **D-7**. Seis partes, todas exigidas:
+
+  **(a) Qué vigila ahora.** El conjunto se deriva de la **firma de re-encuadre** y no de
+  la mención: un fuente de `tests/` entra si contiene, en el cuerpo de un mismo caso, la
+  conjunción que **CA-17.2 ya exige** a toda ampliación autorizada por SPEC-051
+  —`SPEC-051` + `CA-17` + `2026-08-23` + *arbitraje del humano* + *Qué vigilaba antes* +
+  *Qué vigila ahora*—. El conjunto resultante es **exactamente los dos ficheros de
+  `GUARDIAS`**. Un fichero que solo **cite** SPEC-051 en prosa **no entra**.
+  Consecuencia: `PROPIOS` deja de alimentar esta aserción —era la **segunda instantánea
+  congelada** del mismo caso, y los ficheros propios de SPEC-051 no llevan firma porque
+  no son re-encuadres—. Se retira, o se deja explícitamente inerte con su motivo escrito;
+  **no se queda como lista muerta sin explicación**.
+
+  **(b) La autoexclusión, nombrada y probada.** Este fichero **define** la firma en sus
+  propias aserciones (CA-17.2) y por tanto **la contiene**: sin tratarlo, se detectaría a
+  sí mismo. La detección excluye **su propia ruta**, declarada en una constante con su
+  motivo al lado. **Centinela obligatorio**: un caso afirma que la fuente de este fichero
+  **sí lleva la firma** —lo que prueba que la exclusión es *necesaria* y no un blanqueo
+  preventivo— y que la lista de exclusiones tiene **exactamente un elemento**. Una
+  exclusión que nadie comprueba es la puerta por la que se afloja esto sin que se note.
+
+  **(c) Se prueba en rojo, en los dos sentidos.** Misma exigencia que CA-11 y por la misma
+  razón. La detección es una **función pura** `(ruta, fuente) => boolean`, no un `expect`
+  incrustado. Con una fuente sintética que lleva la **firma completa**, devuelve `true`;
+  con una fuente que solo dice `SPEC-051` en un comentario en prosa —**el caso exacto que
+  rompía la guardia vieja**— devuelve `false`. Y un tercer caso comprueba que **añadir un
+  fichero sintético con firma rompe la igualdad**, que es la prueba de que la lista sigue
+  cerrada y de que un tercer re-encuadre seguiría siendo RED.
+
+  **(d) El porqué, al lado de la aserción.** Junto a la comparación queda escrito: **qué
+  vigilaba antes** (*«los ficheros de `tests/` que mencionan la cadena SPEC-051 son estos
+  siete»*); **qué vigila ahora** (*«los ficheros de `tests/` re-encuadrados bajo la
+  autorización de SPEC-051 CA-17 son estos dos»*); **por qué cambió** (mencionar ≠
+  re-encuadrar — condición necesaria usada como suficiente; y la lista era un conjunto
+  cerrado sobre un universo abierto); **en virtud de qué CA** (SPEC-052 **CA-18**); **con
+  qué fecha** (**2026-08-24**); **con autorización nominal** del humano (**Alberto Fojo,
+  2026-08-24**); y **constancia del proceso**: lo detectó y lo **escaló sin tocarlo el
+  implementador**, y el arreglo lo **redactó el arquitecto**. Además, el porqué que
+  SPEC-051 dejó en la **cabecera** del fichero **no se borra**: una re-escritura no borra
+  la auditoría de la anterior — es la misma regla que CA-17.2 impone a las ampliaciones
+  cuando exige `toContain('2026-08-22')`.
+
+  **(e) No se afloja nada más del fichero.** Los otros tres bloques —**CA-17.2**,
+  **CA-17.3** (incluida su prueba por mutación contra una séptima exclusión inventada) y
+  **CA-17.4** (las hermanas, el matcher sin una sola ruta de producto, y `PUBLIC_PREFIXES`
+  congelado)— y el caso *«`tests/deploy-gate-workflow.test.ts` ni siquiera sabe que esta
+  spec existe»* quedan **intactos**. Ningún caso del fichero queda apagado
+  (`it.skip`/`.only`/`.todo`/`xit`). Test: los títulos de casos del fichero son los mismos
+  salvo el re-encuadrado, y ninguno lleva marca de apagado.
+
+  **(f) Prohibido el atajo silencioso.** No se parte, interpola ni disfraza el literal
+  `'SPEC-051'` en ningún fuente de `tests/` para que la cadena deje de casar. Test: ningún
+  fuente de `tests/` compone esa cadena por concatenación o interpolación. Es aflojar en
+  silencio y a favor de quien se beneficia; consta que el implementador **no** lo hizo, y
+  queda prohibido por escrito para el siguiente.
 
 ## Entidades y reglas afectadas
 
@@ -427,8 +564,8 @@ No usa `git` (D-4).
 | `docs/despliegue.md` §0 | Frase falsa fuera; origen real corregido; desmentido del ejemplo retirado; aviso reescrito; columna **Entornos** + el motivo de las solo-Production | CA-1, CA-2, CA-3, CA-4, CA-17 |
 | `docs/despliegue.md` §3.2, §5, §7, §13 | Preview deja de ser opcional; checklist; foto de `vercel env ls`; el arreglo del 2026-08-23 como hecho | CA-5, CA-6, CA-7 |
 | `.env.example` | Cabecera por entornos; consecuencia entera de `APP_BASE_URL`; valor de ejemplo → `http://localhost:3000` | CA-12, CA-13, CA-17 |
-| `tests/entornos-de-despliegue.test.ts` (**nuevo**) | La guardia y sus centinelas | CA-1, CA-2, CA-3, CA-4, CA-7, CA-8, CA-9, CA-10, CA-11, CA-12, CA-13, CA-17 |
-| el test de `appBaseUrl()` (SPEC-023) | Se le añade la nota de CA-14; sin cambiar la aserción | CA-14 |
+| `tests/entornos-de-despliegue.test.ts` (**nuevo**) | La guardia y sus centinelas; **y el primer test propio de `appBaseUrl()`**, con su nota | CA-1..CA-4, CA-7..CA-14, CA-17 |
+| `tests/tarjeta-guardias-ampliadas.test.ts` (**ajeno, re-encuadrado con autorización**) | Solo el caso de las líneas 118-126; los otros tres bloques intactos | CA-18 |
 
 Nada bajo `src/`, `drizzle/`, `vercel.json` ni `.github/workflows/`.
 
@@ -462,6 +599,19 @@ Aparcado a propósito, con su motivo:
 - **Tocar `tests/ci-workflow.test.ts` caso 5.1.** Se apoya en él (D-1) y no lo modifica:
   aflojar el `toEqual` que congela el bloque `env` destruiría el punto de paso obligatorio
   del que esta spec depende.
+- **La meta-guardia contra el patrón de CA-18.** Es el **segundo** caso del mismo molde en
+  veinticuatro horas: la guardia de SPEC-050 que barría `docs/adr/` (retirada en SPEC-053
+  CA-13, PR #60, aún sin mergear) y esta. Los dos comparten forma **exacta**: un
+  **conjunto cerrado sobre un universo abierto**, congelado el día de la entrega, que
+  caduca **no cuando algo se rompe sino cuando alguien hace algo legítimo** —citar una
+  spec, añadir un ADR—. Y los dos **escapan a la meta-guardia de SPEC-048**, que vigila
+  revisiones móviles de git: aquí no hay ninguna, son propiedades del árbol, formalmente
+  impecables ante ADR-031 y aun así caducas. Eso es un **patrón, no un incidente**, y el
+  disparador que SPEC-053 dejó anotado —*«la segunda vez»*— ha saltado. **El humano ya ha
+  decidido que la meta-guardia es spec propia, después de que estas dos se mergeen**, así
+  que **no se escribe aquí** y esta spec no amplía su alcance hacia ella. Lo que sí deja
+  es lo que esa spec necesitará para no empezar de cero: el **segundo caso documentado**,
+  su **forma nombrada** y la razón por la que la guardia existente no lo caza.
 
 ## Notas para el gate humano
 
@@ -561,7 +711,36 @@ gate decides que `appBaseUrl()` debería degradar en vez de lanzar, **para esta 
 otra**: es reabrir un arbitraje tuyo de anteayer y no debe colarse por la puerta de atrás
 de un FIX de documentación.
 
-**9. Sin paradas.** El defecto está medido, la causa raíz verificada con `vercel env ls`,
+**9. La guardia ajena rota (CA-18): re-encuadrada, no retirada, y aquí está el porqué en
+una línea.** Su proposición —*«nadie re-encuadró una tercera guardia ajena bajo SPEC-051»*—
+**sigue viva y no la cubre ningún otro bloque del fichero**: lo comprobé leyendo los
+cuatro, y CA-17.2/17.3/17.4 solo hablan de **las dos** autorizadas. Eso la separa del caso
+de SPEC-050 de esta madrugada, donde lo vigilado ya no podía volver a ser cierto y borrar
+era lo correcto. El defecto real es un **error de converso**: la guardia usa *«todo
+re-encuadre menciona SPEC-051»* como si fuera *«toda mención es un re-encuadre»*. El
+arreglo cierra el conjunto sobre la **firma** de un re-encuadre autorizado —que CA-17.2 ya
+define— en vez de sobre la cadena. **Cobertura frente al fallo real: idéntica**; lo que
+desaparece es el falso positivo. **Lo que sigue sin cubrirse, y lo digo yo, no el
+verificador**: un re-encuadre **mudo**, sin nota. Tampoco lo cubría la versión original —su
+detección siempre dependió de que el infractor escribiera la nota—, así que no se pierde
+nada; pero es el hueco que la meta-guardia futura tiene que mirar. Todo esto está en
+**D-7** y exigido en **CA-18 (a)…(f)**, incluida la prueba en rojo en los dos sentidos y la
+prohibición explícita del atajo de partir el literal.
+
+**10. F-SPEC-052-8: el implementador tenía razón y mi CA-14 estaba mal redactado.**
+Escribí *«si el caso ya existe (SPEC-023)»* sobre una suposición que **no verifiqué**, y
+era falsa. Crear el caso una sola vez en el fichero nuevo es **lo correcto**, y he
+reescrito CA-14 para que no descanse en la premisa falsa. Pero el hallazgo merece más que
+una corrección de redacción, y por eso queda escrito en el CA: **la función cuya excepción
+tumbó todas las previews no tenía ni un test unitario**. SPEC-023 la ejercitaba solo *de
+paso*, dentro del flujo de recuperación; cuando SPEC-051 le dio un segundo consumidor
+completamente distinto —metadatos en build— no había nada que la probara por sí misma. Una
+función con dos consumidores y cero tests propios se prueba solo por accidente. He añadido
+además que el caso asserte **el mensaje literal**, que es el que aparece en el log de
+Vercel y el que CA-2 (c) exige en el documento: así el documento y el código quedan atados
+por el mismo literal.
+
+**11. Sin paradas.** El defecto está medido, la causa raíz verificada con `vercel env ls`,
 el arreglo de ops hecho y fechado, las dos preguntas arbitradas e incorporadas, y el
 alcance de la guardia acotado con su límite declarado (F-SPEC-052-1). Nada queda abierto
 que impida implementar.
