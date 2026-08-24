@@ -2,13 +2,14 @@
 id: SPEC-052
 tipo: spec
 epica: EPIC-FIX
-estado: en-revision
+estado: en-progreso
 aprobada-por: humano (Alberto Fojo)
 historial:
   - {estado: borrador, fecha: 2026-08-23, por: sdd-arquitecto}
   - {estado: aprobada, fecha: 2026-08-23, por: humano (Alberto Fojo)}
   - {estado: en-progreso, fecha: 2026-08-24, por: sdd-implementador}
   - {estado: en-revision, fecha: 2026-08-24, por: sdd-implementador}
+  - {estado: en-progreso, fecha: 2026-08-24, por: sdd-verificador}
 ---
 # SPEC-052 — Sin `APP_BASE_URL` el build ya no sale verde: el runbook deja de decir lo contrario y la asimetría Preview/Production se escribe
 

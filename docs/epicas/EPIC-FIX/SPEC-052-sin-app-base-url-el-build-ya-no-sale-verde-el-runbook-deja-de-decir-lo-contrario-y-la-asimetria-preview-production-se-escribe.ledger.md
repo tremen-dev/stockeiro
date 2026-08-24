@@ -43,25 +43,25 @@ epica: EPIC-FIX
 
 | CA | Implementado (fichero) | Test (fichero/caso) | Verif. | Estado |
 |---|---|---|---|---|
-| CA-1 — frase falsa fuera, y no vuelve por copia | `docs/despliegue.md` §0 (aviso de `APP_BASE_URL` reescrito) | `G` › *CA-1: la frase falsa desaparece, y no puede volver por copia* — **3 casos**, uno por entrada de la lista cerrada `AFIRMACIONES_RETIRADAS` (frase + fecha + motivo) | | |
-| CA-2 — lo que dice en su lugar (build, PR #58, log literal) **+ (d) origen real → `stockeiro.tremen.dev`** | `docs/despliegue.md` §0, bloque 🚨 del aviso | `G` › *CA-2: lo que el aviso dice en su lugar* — **4 casos**: (a) build/`metadataBase`/layout/SPEC-051 · (b) `next build` + *el despliegue no llega a existir* · (c) 2026-08-23 + PR #58 + `Failed to collect configuration for /_not-found` · (d) `stockeiro.tremen.dev` presente y `stockeiro-lemon.vercel.app` ausente | | |
-| CA-3 — conserva lo que sí era cierto (falta ≠ mal); **ya NO conserva el desmentido del ejemplo** | `docs/despliegue.md` §0, bloque ⚠️ del aviso | `G` › *CA-3: el arreglo no tira lo que sí seguía siendo cierto* — **1 caso** (falla ruidosamente si falta · no detecta que esté mal · solo lo ve quien pincha). La retirada del desmentido la vigilan CA-1 (3.ª entrada) y CA-17 | | |
-| CA-4 — **(a)** columna **Entornos**, vocabulario cerrado, sin celdas vacías · **(b)** el motivo escrito de las solo-Production | `docs/despliegue.md` §0: tabla con la columna **Entornos**, la leyenda del vocabulario y el bloque 🧭 | `G` › *CA-4 (a)* — **1 caso** (toda fila usa un valor de `VOCABULARIO_ENTORNOS`) · *CA-4 (b)* — **2 casos**: las cuatro claves marcadas `Production`, y §0 con el motivo y el precio aceptado literales | | |
-| CA-5 — foto de `vercel env ls` del 2026-08-23 en §13, etiquetada como foto | `docs/despliegue.md` **§13.5** (nueva) | `G` › *CA-5* — **2 casos**: comando + fecha + las siete claves del inventario; y *foto fechada* / *no es una fuente de verdad viva* | | |
-| CA-6 — el arreglo de ops consta como HECHO (§13 + checklist §5) | `docs/despliegue.md` §13.5, puntero en §13.2 (junto a `ALLOW_MIGRATE`) y línea `- [x]` en §5 | `G` › *CA-6* — **2 casos**: §13 con `vercel env add APP_BASE_URL preview` + valor + PR #58 + fecha; y la línea de checklist de §5 | | |
-| CA-7 — Preview deja de ser opcional en §3.2 y §7 | `docs/despliegue.md` §3.2 (bloque de Preview + `env add … preview`) y §7 paso 2 | `G` › *CA-7* — **3 casos**: las **dos** frases prohibidas ausentes de todo el fichero, y §3.2 distinguiendo *Obligatorias en Preview porque el build las lee* de *solo hacen la preview más útil* | | |
-| CA-8 — cruce: claves del build ⊆ claves marcadas `Preview + Production` | `G` — `clavesQueExigeElBuild()` + `entornosDeclarados()` + `incumplimientos()` | `G` › *CA-8: el runbook y el workflow concuerdan* — **1 caso** sobre el árbol real. El mensaje de cada incumplimiento se vuelca en el `expect` para que el rojo se lea sin abrir el fichero | | |
-| CA-9 — centinela: conjunto derivado no vacío, un solo job, contiene `APP_BASE_URL` y `DATABASE_URL` | `G` — `jobsQueConstruyen()` localiza por **contenido** (`run` con `npm run build`), nunca por nombre | `G` › *CA-9* — **2 casos**: exactamente **un** job construye; y sus claves no están vacías y llevan `APP_BASE_URL` y `DATABASE_URL` | | |
-| CA-10 — centinela: tabla parseada ≥ 11 filas, con celdas de entorno no vacías | `G` — `entornosDeclarados()` | `G` › *CA-10* — **2 casos**: **cota inferior** de 11 filas (no recuento exacto: §0 crecerá) y `APP_BASE_URL` + `MARKETSTACK_API_KEY` con celda no vacía | | |
-| CA-11 — **la guardia probada en rojo** con entrada propia, en los dos sentidos | `G` — `incumplimientos()` es función pura sobre dos cadenas (D-3) | `G` › *CA-11* — **4 casos**: `Production` a secas → incumplimiento que **nombra la clave** y dice *«el build de Preview de toda PR fallará en `next build`»* · fila ausente → incumplimiento · corregido a `Preview + Production` → **ninguno** · runbook sin §0 → **no** queda en verde por vacío | | |
-| CA-12 — `.env.example` admite Production/Preview/Development | `.env.example`, cabecera | `G` › *CA-12* — **2 casos**: la frase del entorno único ausente; y los tres entornos + *no todas viven en todos* + *también en Preview* + remisión a `docs/despliegue.md` | | |
-| CA-13 — `.env.example`: la ausencia de `APP_BASE_URL` rompe el build | `.env.example`, bloque de `APP_BASE_URL` | `G` › *CA-13* — **2 casos**: la consecuencia **vieja** conservada literal, y la **nueva** añadida (SPEC-051 + *rompe el `next build`*) | | |
-| CA-14 — `appBaseUrl()` sigue lanzando, con la nota de que es deliberado; **y su primer test propio** (premisa del CA corregida el 2026-08-24, F-SPEC-052-8) | **Nada**: `src/lib/config/app-url.ts` intacto (ver **F-SPEC-052-8**) | `G` › *CA-14* — **2 casos**: lanza con la clave ausente **y** con una cadena de espacios, en ambos con el **mensaje literal entero** (`APP_BASE_URL no definida (ver .env.example): sin ella no hay enlaces válidos.`) — el mismo del log del PR #58 —, y **la misma cadena se exige presente en el aviso de §0**, que es lo que ata documento y código; y el propio caso **contiene la nota** (SPEC-051 · D-4 · deliberado · *SPEC-052 NO revisa esta conducta*), leída de la fuente del fichero, sin `git` | | |
-| CA-15 — la entrega no toca `src/` ni `drizzle/` | — (criterio sobre el delta) | **n-a — ver nota N-1** | gate | n-a |
-| CA-16 — `npm run build` sin `APP_BASE_URL` falla | — (verificación empírica única) | **n-a — ver nota N-2** | gate | n-a |
-| CA-17 — `.env.example`: `APP_BASE_URL` → `http://localhost:3000`, y §0 retira el desmentido; **(c) enmienda 2026-08-25 (`D-SPEC-055-1`): el valor de ejemplo pasa `appBaseUrl()`** — invocando la función, con centinela y rojo probado | `.env.example` (valor + comentario) y `docs/despliegue.md` §0 (desmentido retirado) | `G` › *CA-17: el valor de ejemplo es el de desarrollo* — **3 casos** (valor literal · `stockeiro.app` ya no es su valor · `RESEND_FROM` **conserva** el suyo) y *CA-17: §0 retira el desmentido* — **2 casos** (`stockeiro.app` fuera del aviso, pero *origen REAL del despliegue* sigue). **(c)** `G` › *CA-17 (c): el valor de ejemplo además SIRVE* — **4 casos**: `appBaseUrl()` **invocada** acepta el valor y devuelve ese origen · centinela 1 (el lector devuelve el literal congelado, no vacío) · centinela 2 (sin la clave, el lector **lanza** en vez de devolver algo) · **rojo probado** con un ejemplo con ruta, más el **control** que aísla la ruta como causa. Helpers: `valorDeAppBaseUrlEn()` y `elEjemploSirve()` | | |
+| CA-1 — frase falsa fuera, y no vuelve por copia | `docs/despliegue.md` §0 (aviso de `APP_BASE_URL` reescrito) | `G` › *CA-1: la frase falsa desaparece, y no puede volver por copia* — **3 casos**, uno por entrada de la lista cerrada `AFIRMACIONES_RETIRADAS` (frase + fecha + motivo) | 3/3 verde. **Rojo reproducido por mí**: con `docs/despliegue.md` restaurado a `497eccf`, los tres casos caen | ✅ |
+| CA-2 — lo que dice en su lugar (build, PR #58, log literal) **+ (d) origen real → `stockeiro.tremen.dev`** | `docs/despliegue.md` §0, bloque 🚨 del aviso | `G` › *CA-2: lo que el aviso dice en su lugar* — **4 casos**: (a) build/`metadataBase`/layout/SPEC-051 · (b) `next build` + *el despliegue no llega a existir* · (c) 2026-08-23 + PR #58 + `Failed to collect configuration for /_not-found` · (d) `stockeiro.tremen.dev` presente y `stockeiro-lemon.vercel.app` ausente | 4/4 verde; **rojo reproducido** sobre el §0 viejo. **(c) comprobado a mano**: el literal del log que cita §0 coincide **carácter a carácter** con el que lanza `src/lib/config/app-url.ts:87` y con el que produjo mi `npm run build` (CA-16). Las **dos** afirmaciones falsas han desaparecido | ✅ |
+| CA-3 — conserva lo que sí era cierto (falta ≠ mal); **ya NO conserva el desmentido del ejemplo** | `docs/despliegue.md` §0, bloque ⚠️ del aviso | `G` › *CA-3: el arreglo no tira lo que sí seguía siendo cierto* — **1 caso** (falla ruidosamente si falta · no detecta que esté mal · solo lo ve quien pincha). La retirada del desmentido la vigilan CA-1 (3.ª entrada) y CA-17 | 1/1 verde; rojo reproducido. La parte que **sí** era cierta sigue escrita en §0 | ✅ |
+| CA-4 — **(a)** columna **Entornos**, vocabulario cerrado, sin celdas vacías · **(b)** el motivo escrito de las solo-Production | `docs/despliegue.md` §0: tabla con la columna **Entornos**, la leyenda del vocabulario y el bloque 🧭 | `G` › *CA-4 (a)* — **1 caso** (toda fila usa un valor de `VOCABULARIO_ENTORNOS`) · *CA-4 (b)* — **2 casos**: las cuatro claves marcadas `Production`, y §0 con el motivo y el precio aceptado literales | **3/3 verde, y aun así NO cerrado.** La columna y los literales exigidos están; lo que falla es la **prosa nueva que los acompaña**, que afirma dos cosas que este verificador ha medido y son falsas: la leyenda de `Preview + Production` (**F-SPEC-052-10**) y el bloque 🧭 sobre Marketstack (**F-SPEC-052-11**). Ningún test las mira porque ningún CA las pide — pero están en §0 de un documento de verdad y las escribe esta entrega | ⚠️ |
+| CA-5 — foto de `vercel env ls` del 2026-08-23 en §13, etiquetada como foto | `docs/despliegue.md` **§13.5** (nueva) | `G` › *CA-5* — **2 casos**: comando + fecha + las siete claves del inventario; y *foto fechada* / *no es una fuente de verdad viva* | 2/2 verde; rojo reproducido sobre el §13 viejo. La etiqueta de «foto» está y dice lo que tiene que decir | ✅ |
+| CA-6 — el arreglo de ops consta como HECHO (§13 + checklist §5) | `docs/despliegue.md` §13.5, puntero en §13.2 (junto a `ALLOW_MIGRATE`) y línea `- [x]` en §5 | `G` › *CA-6* — **2 casos**: §13 con `vercel env add APP_BASE_URL preview` + valor + PR #58 + fecha; y la línea de checklist de §5 | 2/2 verde; rojo reproducido. §13.5 y la línea `- [x]` de §5 están, y el puntero de §13.2 junto a `ALLOW_MIGRATE` también | ✅ |
+| CA-7 — Preview deja de ser opcional en §3.2 y §7 | `docs/despliegue.md` §3.2 (bloque de Preview + `env add … preview`) y §7 paso 2 | `G` › *CA-7* — **3 casos**: las **dos** frases prohibidas ausentes de todo el fichero, y §3.2 distinguiendo *Obligatorias en Preview porque el build las lee* de *solo hacen la preview más útil* | 3/3 verde; rojo reproducido: las dos frases prohibidas estaban en el §3.2/§7 de `497eccf` y ya no están | ✅ |
+| CA-8 — cruce: claves del build ⊆ claves marcadas `Preview + Production` | `G` — `clavesQueExigeElBuild()` + `entornosDeclarados()` + `incumplimientos()` | `G` › *CA-8: el runbook y el workflow concuerdan* — **1 caso** sobre el árbol real. El mensaje de cada incumplimiento se vuelca en el `expect` para que el rojo se lea sin abrir el fichero | Verde sobre el árbol real. **Rojo reproducido por mí** sobre el runbook de `497eccf`: nombra las cuatro claves (`APP_BASE_URL`, `AUTH_SECRET`, `AUTH_TRUST_HOST`, `DATABASE_URL`) y dice que la PR se queda sin preview. No es decoración | ✅ |
+| CA-9 — centinela: conjunto derivado no vacío, un solo job, contiene `APP_BASE_URL` y `DATABASE_URL` | `G` — `jobsQueConstruyen()` localiza por **contenido** (`run` con `npm run build`), nunca por nombre | `G` › *CA-9* — **2 casos**: exactamente **un** job construye; y sus claves no están vacías y llevan `APP_BASE_URL` y `DATABASE_URL` | 2/2 verde. Contrastado con `tests/ci-workflow.test.ts` caso 5.1: su `toEqual` de cuatro claves sigue **intacto** y el fichero **no está en el diff** — la cadena de tres eslabones de D-1 no se ha aflojado | ✅ |
+| CA-10 — centinela: tabla parseada ≥ 11 filas, con celdas de entorno no vacías | `G` — `entornosDeclarados()` | `G` › *CA-10* — **2 casos**: **cota inferior** de 11 filas (no recuento exacto: §0 crecerá) y `APP_BASE_URL` + `MARKETSTACK_API_KEY` con celda no vacía | 2/2 verde; **rojo reproducido**: con el §0 sin columna, `expected 0 to be greater than or equal to 11`. El parser deja de casar y lo dice | ✅ |
+| CA-11 — **la guardia probada en rojo** con entrada propia, en los dos sentidos | `G` — `incumplimientos()` es función pura sobre dos cadenas (D-3) | `G` › *CA-11* — **4 casos**: `Production` a secas → incumplimiento que **nombra la clave** y dice *«el build de Preview de toda PR fallará en `next build`»* · fila ausente → incumplimiento · corregido a `Preview + Production` → **ninguno** · runbook sin §0 → **no** queda en verde por vacío | 4/4 verde. Leídos uno a uno: los dos sentidos van en el mismo bloque y con entrada propia; el mensaje nombra la clave y la consecuencia | ✅ |
+| CA-12 — `.env.example` admite Production/Preview/Development | `.env.example`, cabecera | `G` › *CA-12* — **2 casos**: la frase del entorno único ausente; y los tres entornos + *no todas viven en todos* + *también en Preview* + remisión a `docs/despliegue.md` | 2/2 verde; rojo reproducido con el `.env.example` de `497eccf` | ✅ |
+| CA-13 — `.env.example`: la ausencia de `APP_BASE_URL` rompe el build | `.env.example`, bloque de `APP_BASE_URL` | `G` › *CA-13* — **2 casos**: la consecuencia **vieja** conservada literal, y la **nueva** añadida (SPEC-051 + *rompe el `next build`*) | 2/2 verde; rojo reproducido. Se **añade** sin sustituir: la consecuencia vieja sigue literal en la plantilla | ✅ |
+| CA-14 — `appBaseUrl()` sigue lanzando, con la nota de que es deliberado; **y su primer test propio** (premisa del CA corregida el 2026-08-24, F-SPEC-052-8) | **Nada**: `src/lib/config/app-url.ts` intacto (ver **F-SPEC-052-8**) | `G` › *CA-14* — **2 casos**: lanza con la clave ausente **y** con una cadena de espacios, en ambos con el **mensaje literal entero** (`APP_BASE_URL no definida (ver .env.example): sin ella no hay enlaces válidos.`) — el mismo del log del PR #58 —, y **la misma cadena se exige presente en el aviso de §0**, que es lo que ata documento y código; y el propio caso **contiene la nota** (SPEC-051 · D-4 · deliberado · *SPEC-052 NO revisa esta conducta*), leída de la fuente del fichero, sin `git` | 2/2 verde. **`src/lib/config/app-url.ts` NO se ha tocado**: `git log 497eccf..HEAD -- src/lib/config/app-url.ts` vacío y el fichero no está en el diff. **Los dos literales coinciden de verdad**: el del caso, el de `app-url.ts:87` y el que §0 cita en el bloque de log son **la misma cadena**, y la misma que salió de mi `npm run build` | ✅ |
+| CA-15 — la entrega no toca `src/` ni `drizzle/` | — (criterio sobre el delta) | **n-a — ver nota N-1** | **Re-verificado por el verificador el 2026-08-25**, no leído del ledger: `git diff --name-only 497eccf...HEAD` → **6 ficheros**, ninguno bajo `src/` ni `drizzle/`. `origin/main` sigue en `497eccf` (no hace falta rebasar otra vez). `npm run version:check` **con el árbol limpio** → *«El diff no toca codigo de aplicacion: no hay nada que subir»*, exit 0. Acotación correcta y **no exigida como test**, que es lo que la spec pide | n-a ✅ |
+| CA-16 — `npm run build` sin `APP_BASE_URL` falla | — (verificación empírica única) | **n-a — ver nota N-2** | **Ejecutado por el verificador el 2026-08-25**, no leído del ledger. `npm run build` sin `APP_BASE_URL` (`.env.local` de este árbol solo define `VERCEL_OIDC_TOKEN`) → `Failed to collect configuration for /_not-found` · `[cause]: Error: APP_BASE_URL no definida (ver .env.example): sin ella no hay enlaces válidos.` · traza terminando en `L.layout`. **Control ejecutado también**: con las cuatro claves del `env` del job de CI → build **verde** hasta el listado de rutas. El rojo es por la clave, no por un árbol roto. La afirmación nueva de §0 es **cierta** | n-a ✅ |
+| CA-17 — `.env.example`: `APP_BASE_URL` → `http://localhost:3000`, y §0 retira el desmentido; **(c) enmienda 2026-08-25 (`D-SPEC-055-1`): el valor de ejemplo pasa `appBaseUrl()`** — invocando la función, con centinela y rojo probado | `.env.example` (valor + comentario) y `docs/despliegue.md` §0 (desmentido retirado) | `G` › *CA-17: el valor de ejemplo es el de desarrollo* — **3 casos** (valor literal · `stockeiro.app` ya no es su valor · `RESEND_FROM` **conserva** el suyo) y *CA-17: §0 retira el desmentido* — **2 casos** (`stockeiro.app` fuera del aviso, pero *origen REAL del despliegue* sigue). **(c)** `G` › *CA-17 (c): el valor de ejemplo además SIRVE* — **4 casos**: `appBaseUrl()` **invocada** acepta el valor y devuelve ese origen · centinela 1 (el lector devuelve el literal congelado, no vacío) · centinela 2 (sin la clave, el lector **lanza** en vez de devolver algo) · **rojo probado** con un ejemplo con ruta, más el **control** que aísla la ruta como causa. Helpers: `valorDeAppBaseUrlEn()` y `elEjemploSirve()` | (a)(b) 5/5 verde, rojo reproducido con el `.env.example` de `497eccf`. **(c) 4/4 verde y las tres condiciones comprobadas leyendo el código, no el ledger**: la aserción **invoca** `appBaseUrl()` y **no hay ni un regex que restatee su criterio** —el único regex del bloque localiza la línea de la plantilla, que es lectura y no criterio—; el centinela cubre sus **dos mitades** (valor no vacío e igual al literal de CA-17 (a); y `.env.example` sintético sin la clave → el lector **lanza**); y el rojo con ruta entra por `rechazar()` en `src/lib/config/app-url.ts:78`, o sea que **SPEC-055 sigue siendo dueña única**. `RESEND_FROM` intacto | ✅ |
 
-| CA-18 — re-encuadre autorizado de `tests/tarjeta-guardias-ampliadas.test.ts:118-126`: **(a)** firma en vez de mención · **(b)** autoexclusión probada · **(c)** rojo en los dos sentidos · **(d)** el porqué al lado · **(e)** nada más del fichero aflojado · **(f)** sin atajo del literal | **(a)–(d)** `tests/tarjeta-guardias-ampliadas.test.ts`: `FIRMA_DE_REENCUADRE` (6 marcas), `EXCLUIDOS_DE_LA_DETECCION` (1 elemento, con motivo), `cuerposDeCasos()` **nuevo** —`casos()` NO se toca—, `llevaFirmaDeReencuadre(ruta, fuente)` pura, y el porqué de 40 líneas junto a la comparación. **`PROPIOS` retirado**, con su motivo escrito ahí mismo. **(e)–(f)** `tests/entornos-de-despliegue.test.ts` | **(a)** `tarjeta-guardias-ampliadas` › *los ficheros de tests/ re-encuadrados bajo la autorización de esta spec son esos dos* — **1 caso** · **(b)** *la exclusión de este fichero es NECESARIA, y es exactamente una* — **1 caso**, las dos mitades · **(c)** *la detección se prueba en rojo: firma completa sí, mención en prosa NO* (**3 sentidos**: firma→`true`, cita→`false`, firma incompleta→`false`) y *un TERCER fichero con firma rompería la igualdad* — **2 casos** · **(d)** el porqué es prosa, se verifica leyéndolo · **(e)** `G` › *CA-18 (e)* — **3 casos** (nada apagado · los cuatro bloques en pie · solo cambió el caso nombrado) · **(f)** `G` › *CA-18 (f)* — **2 casos** (barrido de `tests/**/*.ts` + centinela de las 6 formas y 3 inocentes) | | |
+| CA-18 — re-encuadre autorizado de `tests/tarjeta-guardias-ampliadas.test.ts:118-126`: **(a)** firma en vez de mención · **(b)** autoexclusión probada · **(c)** rojo en los dos sentidos · **(d)** el porqué al lado · **(e)** nada más del fichero aflojado · **(f)** sin atajo del literal | **(a)–(d)** `tests/tarjeta-guardias-ampliadas.test.ts`: `FIRMA_DE_REENCUADRE` (6 marcas), `EXCLUIDOS_DE_LA_DETECCION` (1 elemento, con motivo), `cuerposDeCasos()` **nuevo** —`casos()` NO se toca—, `llevaFirmaDeReencuadre(ruta, fuente)` pura, y el porqué de 40 líneas junto a la comparación. **`PROPIOS` retirado**, con su motivo escrito ahí mismo. **(e)–(f)** `tests/entornos-de-despliegue.test.ts` | **(a)** `tarjeta-guardias-ampliadas` › *los ficheros de tests/ re-encuadrados bajo la autorización de esta spec son esos dos* — **1 caso** · **(b)** *la exclusión de este fichero es NECESARIA, y es exactamente una* — **1 caso**, las dos mitades · **(c)** *la detección se prueba en rojo: firma completa sí, mención en prosa NO* (**3 sentidos**: firma→`true`, cita→`false`, firma incompleta→`false`) y *un TERCER fichero con firma rompería la igualdad* — **2 casos** · **(d)** el porqué es prosa, se verifica leyéndolo · **(e)** `G` › *CA-18 (e)* — **3 casos** (nada apagado · los cuatro bloques en pie · solo cambió el caso nombrado) · **(f)** `G` › *CA-18 (f)* — **2 casos** (barrido de `tests/**/*.ts` + centinela de las 6 formas y 3 inocentes) | **Verificado ejecutando, no leyendo.** Creé `tests/zzz-verificador-tercero.test.ts` y corrí la guardia re-encuadrada dos veces cambiando **solo** su contenido: con la **firma completa** → **RED**, listando el tercero (`1 failed \| 14 passed`); el **mismo fichero** limitado a **citar** `SPEC-051` en prosa → **15/15 verde**. Fichero borrado, árbol limpio. **(b)** el centinela prueba las dos mitades y la exclusión es *load-bearing*: el cuerpo del caso de CA-17.2 lleva las seis marcas, así que sin la exclusión el fichero se detectaría a sí mismo y el `toEqual` caería. **(d)** el porqué está al lado y la cabecera de SPEC-051 **no se borró**. **(e)** el diff del fichero ajeno toca **solo** el caso nombrado y retira `PROPIOS` con su motivo escrito; **ninguna tercera aserción ajena tocada** en toda la rama. **(f)** barrido verde y sin rastro del atajo | ✅ |
 
 > **CA-18 lo añadió sdd-arquitecto el 2026-08-24**, tras la escalada de `F-SPEC-052-7`.
 > Las columnas *Implementado* y *Test* las rellena sdd-implementador; *Verif.* y *Estado*,
@@ -248,13 +248,130 @@ que es justo lo que esta spec **no** cambia).
 
 ## Veredicto del verificador
 <!-- GREEN/RED + fecha + resumen. Lo escribe SOLO sdd-verificador. -->
-Pendiente.
+
+### 🔴 RED — 2026-08-25, sdd-verificador
+
+**16 de los 17 criterios evaluables están cerrados y verificados ejecutando. El que
+falla es CA-4, y falla por lo mismo que originó la spec: prosa nueva en §0 de
+`docs/despliegue.md` que afirma con seguridad dos cosas que no son ciertas.**
+
+**Gates automáticos, todos verdes y ejecutados por mí:** `npm run test` → **1829/1829,
+114/114 ficheros**; `npm run typecheck` limpio; `npm run lint` limpio;
+`npm run version:check` con árbol limpio → *«el diff no toca codigo de aplicacion»*,
+exit 0, sobre `origin/main` en `497eccf` (que sigue siendo la base: **no hay que rebasar
+otra vez**).
+
+**Lo que sí está demostrado, y no me lo he creído: lo he vuelto a producir.**
+
+- **La guardia no es decoración.** Restaurando `docs/despliegue.md` y `.env.example` a
+  `497eccf` y corriendo `tests/entornos-de-despliegue.test.ts`: **27 rojos de 47**
+  (el ledger declaraba 24/38 sobre la versión del fichero anterior a CA-17 (c) y CA-18
+  (e)/(f); los tres de diferencia son exactamente los de CA-17 (c)). Cae CA-8 nombrando
+  las cuatro claves, cae CA-10 con `expected 0 to be >= 11`, caen las tres frases de
+  CA-1 y las cuatro partes de CA-2.
+- **CA-16, ejecutado y con control.** `npm run build` sin `APP_BASE_URL` muere en
+  *Collecting page data* con el mensaje literal y la traza terminando en `L.layout`; con
+  las cuatro claves del `env` del job de CI, **verde**. El párrafo nuevo de §0 dice la
+  verdad.
+- **CA-18, ejecutado en los dos sentidos sobre el árbol real.** Un tercer fichero con la
+  firma completa pone la guardia re-encuadrada en **RED**; el mismo fichero limitado a
+  citar `SPEC-051` en prosa la deja en **15/15**. El fichero sintético queda borrado.
+- **Nada ajeno de más.** `src/lib/config/app-url.ts` intacto; `tests/ci-workflow.test.ts`
+  caso 5.1 intacto con su `toEqual` de cuatro claves; una sola aserción ajena tocada, la
+  autorizada; `PROPIOS` retirado con su motivo; ni un literal partido; `.env.example` sin
+  rastro de las mutaciones de prueba.
+
+**Por qué eso no basta.** La severidad que esta spec se fija a sí misma no es *«el
+documento estaba desactualizado»* sino *«el documento hablaba, y lo que decía tenía la
+forma de una comprobación ya hecha»*. Las dos frases de abajo tienen esa forma exacta
+—«el build revienta», «no puede quemar el cupo»—, están en §0, las escribe esta entrega,
+y una de ellas la desmiente el propio fichero once líneas más abajo. Es la misma familia
+de defecto que **CA-2 (d)** entró a arreglar. Aceptarlas sería repetir, desde el gate, lo
+que hizo el lector del 2026-08-23: leer una frase segura y no volver a medir.
+
+Ningún test las mira, y no es culpa del implementador: **ningún CA las pide**. Por eso el
+arreglo es de prosa y no de guardia, y por eso los dos findings van con el literal exacto
+a sustituir.
+
+**Findings: `F-SPEC-052-10` y `F-SPEC-052-11`** (abajo, en §Salvedades). Los dos son de
+`docs/despliegue.md` §0. Ninguno toca `src/`, ningún test cambia, y la suite tiene que
+seguir en 1829/1829 después.
+
+**Observación de proceso, sin consecuencia sobre el veredicto:** las celdas *Verif.* y
+*Estado* de CA-15 y CA-16 llegaron pre-rellenadas por el implementador (`gate` / `n-a`).
+Son columnas del verificador y no se rellenan «al revés», ni siquiera para un `n-a`
+evidente. Las he sobrescrito con mi propia verificación. Todas las demás llegaron vacías,
+como debe ser.
 
 ## Evidencia visual
 No aplica: esta spec no cambia ninguna superficie de UI. La evidencia es textual
 (diffs de documentación, salida de la guardia y las dos capturas de consola de N-1/N-2).
+**Confirmado por el verificador**: el diff de la rama no toca `src/app/`, ni componentes,
+ni estilos — no hay nada que capturar con Playwright, y no se ha usado.
 
 ## Salvedades / follow-ups
+
+- **F-SPEC-052-10** 🔴 **ABIERTO — finding del gate del 2026-08-25. La leyenda nueva de
+  §0 afirma algo falso de una de sus propias filas.** `docs/despliegue.md` §0, justo
+  debajo de la tabla:
+
+  > - **`Preview + Production`** — obligatoria en **los dos** entornos. Si falta en
+  >   Preview, la PR **no tiene preview**: el build revienta (§3.2).
+
+  Esa consecuencia es cierta para `DATABASE_URL`, `AUTH_SECRET`, `AUTH_TRUST_HOST` y
+  `APP_BASE_URL`. **No lo es para `MARKETSTACK_API_KEY`**, que también está marcada
+  `Preview + Production` (línea 97). **Medido, no razonado**: el build de control de CA-16
+  se ejecutó con **solo** las cuatro claves del `env` del job de CI —sin
+  `MARKETSTACK_API_KEY`, y el `.env.local` de este árbol solo define `VERCEL_OIDC_TOKEN`—
+  y **terminó verde**.
+
+  Y el propio fichero lo desmiente **once líneas más abajo**, en §3.2:
+
+  > - **Las que solo hacen la preview más útil** — `MARKETSTACK_API_KEY`. Sin ella la
+  >   preview construye y arranca igual; simplemente hay menos que mirar.
+
+  **Por qué es RED y no una imprecisión de estilo.** Es un documento contradiciéndose
+  dentro de sí mismo sobre qué pasa si falta una clave —la misma forma exacta que **CA-2
+  (d)** entró a corregir en este mismo párrafo— y lo introduce la entrega que existe para
+  eliminar ese defecto. El coste no es un despliegue roto: es que el lector que descubra
+  la contradicción deje de fiarse de la columna entera, que es el activo que CA-4 (a)
+  acaba de construir.
+
+  **Qué hay que hacer.** La leyenda tiene que describir el vocabulario sin prometer una
+  causa que solo aplica a algunas filas: que `Preview + Production` significa *que la
+  clave vive en los dos entornos*, y que **cuál de ellas tumba el build si falta en
+  Preview lo dice §3.2**, que ya separa los dos grupos correctamente. No hace falta un
+  cuarto valor —el vocabulario cerrado de CA-4 (a) se queda como está— ni tocar ningún
+  test. Que la redacción resultante no vuelva a afirmar de todas las filas algo que solo
+  vale para cuatro.
+
+- **F-SPEC-052-11** 🔴 **ABIERTO — finding del gate del 2026-08-25. El bloque 🧭 de §0
+  dice que la decisión protege el cupo de Marketstack, y no lo protege.** El texto:
+
+  > `TWELVE_DATA_API_KEY`, `RESEND_API_KEY`, `RESEND_FROM` y `CRON_SECRET` se quedan fuera
+  > de Preview porque **una preview no debe gastar cuota de proveedores externos ni poder
+  > mandar correo de verdad**: una rama cualquiera no puede quemar el cupo de
+  > **Marketstack**/Twelve Data ni escribirle a una persona real.
+
+  `MARKETSTACK_API_KEY` **no está** entre las cuatro claves que se quedan fuera de
+  Preview. Está en Preview a propósito, y el mismo documento lo dice **tres veces**: la
+  tabla de §0 la marca `Preview + Production` (línea 97), §3.2 la incluye en el bloque de
+  `vercel env add … preview` (línea 278) y la foto de §13.5 la lista en *Production y
+  Preview* (línea 1322).
+
+  De modo que la frase afirma justo lo contrario de lo que la configuración hace, **y
+  sobre el único proveedor de pago**: Marketstack está en plan Basic de 10.000
+  unidades/mes (ADR-032) y se factura **por símbolo, no por llamada** (ADR-027 pto. 1).
+  Twelve Data, el que sí queda fuera de Preview, es free tier. La frase tranquiliza
+  exactamente sobre el riesgo que no está cubierto.
+
+  **Qué hay que hacer.** Que el motivo nombre solo lo que la decisión de verdad protege
+  —la cuota de **Twelve Data** y el correo real de Resend, más el cron— y no a Marketstack.
+  Los literales que **CA-4 (b) exige** (*«una preview no debe gastar cuota de proveedores
+  externos ni poder mandar correo de verdad»* y el precio aceptado) **no se tocan**: el
+  defecto está en la coletilla que los glosa. Si además se quiere dejar dicho que
+  Marketstack **sí** está en Preview y por qué eso se acepta, es el sitio natural, pero no
+  es exigible por ningún CA y queda a criterio del arquitecto.
 
 - **F-SPEC-052-1** (destino **EPIC-INFRA**, futuro) — **nada compara el runbook con el
   estado REAL de Vercel.** La guardia de CA-8 cruza `docs/despliegue.md` contra
