@@ -267,14 +267,35 @@ vercel env add DATABASE_URL production          # connection string de Neon
 ```
 
 **Y ahora Preview, que no es opcional.** La columna **Entornos** de §0 dice cuál es cuál, y hay
-dos grupos que no se parecen en nada:
+**tres** casos que no se parecen en nada. La diferencia importa porque decide **dónde vas a ver
+el fallo**: en el log de build, en el navegador al intentar entrar, o en nada que impida revisar
+la PR.
 
-- **Obligatorias en Preview porque el build las lee** — `DATABASE_URL`, `AUTH_SECRET`,
-  `AUTH_TRUST_HOST` y `APP_BASE_URL`, más `ALLOW_MIGRATE=1` (§13.2), que es de la guardia de
-  migración y no del build. Si falta una, **`next build` falla y la PR se queda sin preview**.
-  No sale «a medias»: no llega a existir. Es exactamente lo que pasó el 2026-08-23 (§0).
+- **Obligatorias en Preview porque el build las lee** — `DATABASE_URL` y `APP_BASE_URL`, y solo
+  esas dos. Si falta una, **`next build` falla y la PR se queda sin preview**. No sale «a
+  medias»: no llega a existir. Es exactamente lo que pasó el 2026-08-23 con `APP_BASE_URL` (§0).
+  Medido con `.next` borrado antes de cada corrida: sin `APP_BASE_URL` el build muere en
+  *Collecting page data* (`Failed to collect configuration for /_not-found`); sin `DATABASE_URL`,
+  recogiendo `/api/auth/[...nextauth]` (`DATABASE_URL no definida`).
+- **Obligatorias en Preview aunque el build NO las lee** — `AUTH_SECRET` y `AUTH_TRUST_HOST`.
+  Auth.js las lee **en cada petición**, no al construir: en `src/` y en `scripts/` no hay ni una
+  lectura suya —solo se nombran en un comentario—, y sin las dos `next build` termina
+  **verde, exit 0** (medido, con
+  `.next` borrado y el entorno reducido a `DATABASE_URL` + `APP_BASE_URL`). La preview se
+  construye, arranca y sus páginas públicas responden `200`. Lo que no se puede es **entrar**:
+  sobre ese mismo build, `POST /api/auth/callback/credentials` devuelve **500** —*«There was a
+  problem with the server configuration»*— y el log del servidor dice `UntrustedHost` cuando
+  falta `AUTH_TRUST_HOST` y `MissingSecret` cuando falta `AUTH_SECRET`. Una preview que se puede
+  mirar y en la que nadie puede iniciar sesión no sirve para revisar una PR: por eso §0 las marca
+  `Preview + Production` igual que a las de arriba. Pero **no las busques en un log de build
+  roto**, porque el build no se rompe: el fallo sale en el navegador de quien intenta entrar.
 - **Las que solo hacen la preview más útil** — `MARKETSTACK_API_KEY`. Sin ella la preview
   construye y arranca igual; simplemente hay menos que mirar.
+
+Fuera de los tres casos va `ALLOW_MIGRATE=1` (§13.2), que no es del build ni de la app sino de la
+**guardia de migración**: sin ella `scripts/guard-migrate.mjs` sale con código `1` y corta el
+`&&` del `buildCommand`, así que la PR se queda sin preview **antes** de que `next build` llegue
+a ejecutarse. Misma consecuencia visible que el primer grupo, mecanismo distinto y log distinto.
 
 ```bash
 vercel env add AUTH_SECRET preview
@@ -294,9 +315,12 @@ Comprobar: `vercel env ls`.
 > **Importante:** el build necesita `DATABASE_URL` presente (el cliente de DB se instancia al
 > importar). Si falta, `next build` falla. La integración de Neon o el `env add` lo resuelven.
 > Desde **SPEC-051** lo mismo vale para `APP_BASE_URL`, y por la misma vía: se lee al construir
-> (§0). Lo que el build exige está congelado en el bloque `env` del job de CI que ejecuta
-> `npm run build`, y `tests/entornos-de-despliegue.test.ts` no deja que esa lista y la tabla
-> de §0 se separen.
+> (§0). Todo lo que el build exige **cabe dentro** del bloque `env` del job de CI que ejecuta
+> `npm run build`, y `tests/entornos-de-despliegue.test.ts` no deja que esa lista y la tabla de
+> §0 se separen. Ojo al sentido: ese bloque es una **cota superior**, no la lista exacta —
+> declara las cuatro claves para que el job corra entero, y de esas cuatro solo `DATABASE_URL` y
+> `APP_BASE_URL` tumban el build. La guardia sobreaproxima a propósito: exige que estén **en la
+> tabla de §0 como `Preview + Production`**, no que su ausencia rompa `next build`.
 
 ### 3.3 Cron (ya configurado)
 
