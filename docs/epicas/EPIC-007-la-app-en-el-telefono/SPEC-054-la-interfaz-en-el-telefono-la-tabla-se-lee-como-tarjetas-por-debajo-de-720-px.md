@@ -11,6 +11,7 @@ historial:
   - {estado: en-revision, fecha: 2026-08-24, por: sdd-implementador}
   - {estado: en-progreso, fecha: 2026-08-24, por: sdd-implementador}
   - {estado: en-revision, fecha: 2026-08-24, por: sdd-implementador}
+  - {estado: en-revision, fecha: 2026-08-24, por: sdd-arquitecto}
 ---
 # SPEC-054 — La interfaz en el teléfono: la tabla se lee como tarjetas por debajo de 720 px
 
@@ -228,13 +229,30 @@ representación oculta no ensucia ni infla el recuento — y **`display: none` t
 
 - **CA-13 (M5 — el área táctil, en el módulo compartido y con el suelo en 44 × 44)**: Dado
   que `tests/e2e/geometria.ts` exporta una medida `medirAreaTactil` con la forma de ADR-034
-  §6, cuando se aplica a `/vigiladas` y `/cartera` a **360 y 390 px**, entonces **todo**
-  elemento interactivo visible (`a[href]`, `button`, `input`, `select`, `textarea`,
+  §6, cuando se aplica a `/vigiladas` y `/cartera` a **360 y 390 px**, entonces **todo
+  elemento interactivo visible que cuelgue de `main.page` en cualquiera de las dos páginas, o
+  de `dialog.editar-vigilada`** (`a[href]`, `button`, `input`, `select`, `textarea`,
   `[role="button"]`, `summary`) tiene caja de al menos **44 × 44 px CSS** —contando el área
-  ampliada por pseudoelemento si la hay— y **ninguna se solapa con la de otro control**. La
-  guardia entrega además la prueba de que la medida ve el defecto (ADR-026 §7): reinyectando
-  `.btn-sm { padding: 2px 6px; font-size: 10px }` la medida **reporta violación**, y sin
-  reinyectarlo no.
+  ampliada por pseudoelemento si la hay— y **ninguna se solapa con la de otro control**.
+
+  **El suelo se afirma contra 44, sin restarle ninguna holgura**: un control de 43,00 px es
+  rojo. *(Es el finding `F-VERIF-054-1`: los campos de formulario medían 43,00 exactos y
+  pasaban porque la comparación restaba `TOLERANCIA_PX`. La regla general —una tolerancia
+  compara dos medidas, nunca una medida contra un umbral declarado— la decide **ADR-035**, y
+  su implementación en el módulo **no es de esta spec**: `F-ADR-035-1`. Lo que este CA exige
+  es la **propiedad**, medida como haga falta.)*
+
+  **La acotación es deliberada y es la del §Fuera de alcance de esta misma spec**: la
+  navegación global (`.app-nav`), el pie (`.app-footer`) y el enlace de feedback quedan
+  **fuera de la afirmación y dentro de la medición**. La guardia los mide igualmente y escribe
+  sus cifras en `_qa/SPEC-054/m5-fuera-de-alcance.txt` **sin asertarlas**, para que la spec 2
+  de EPIC-007 llegue con el trabajo dimensionado en vez de descubrirlo. Es `R-1 de EPIC-007`
+  cumpliéndose con números, y **no autoriza a bajar el suelo**: la salida cuando esos doce
+  controles se afirmen será agrandarlos (ADR-034 §6).
+
+  La guardia entrega además la prueba de que la medida ve el defecto (ADR-026 §7):
+  reinyectando `.btn-sm { padding: 2px 6px; font-size: 10px }` la medida **reporta
+  violación**, y sin reinyectarlo no.
 
 - **CA-14 (los dos suelos de legibilidad)**: Dado el mismo escenario a 360 y 390 px, entonces
   **(a)** todo `input`, `select` y `textarea` visible tiene `font-size` computado **≥ 16 px**
@@ -263,14 +281,55 @@ representación oculta no ensucia ni infla el recuento — y **`display: none` t
   una palabra, M3) y **no desborda su tarjeta** (M1 aplicado con la tarjeta como raíz).
 
 - **CA-16 (cero regresión funcional — CE-5)**: Dado el escenario de cada suite existente,
-  cuando se ejecutan enteras `npm test` y `npx playwright test`, entonces **todas** pasan sin
-  aflojar ni una aserción; en particular siguen verdes sin tocarse
-  `tests/e2e/vigiladas-orden.spec.ts`, `tests/e2e/vigiladas-editar.spec.ts`,
-  `tests/e2e/vigiladas-capa-edicion.spec.ts`, `tests/e2e/cartera.spec.ts`,
-  `tests/e2e/decimales.spec.ts`, `tests/e2e/sin-refrescar-geometria.spec.ts` y
-  `tests/e2e/geometria-rutas.spec.ts`. Y el diff **no toca** `src/db/`, `drizzle/`,
+  cuando se ejecutan enteras `npm test` y `npx playwright test`, entonces **todas pasan y no
+  se afloja ni una aserción**; y el diff **no toca** `src/db/`, `drizzle/`,
   `src/lib/portfolio/`, `src/lib/watchlist/zone-status.ts` ni `src/lib/market/`: ni un dato,
   ni un cálculo, ni una regla.
+
+  **Lo que este CA prohíbe es aflojar, no tocar** —y la distinción hay que escribirla porque
+  esta spec **obliga** a tocar guardias ajenas: CA-1 apaga `table.data-table` a 360, 390, 640
+  y 700 px, así que toda guardia que conduzca la tabla por debajo del canto deja de encontrar
+  lo que buscaba; y CA-11 mete `/cartera` en el conjunto de rutas de
+  `tests/e2e/geometria-rutas.spec.ts`, que es una de ellas. Una redacción que exigiera «sin
+  tocarse» sería incumplible por construcción.
+
+  **El criterio que separa un re-encuadre de un aflojamiento**: un cambio es legítimo si deja
+  intacta **qué propiedad se afirma y sobre qué sujeto**, y sólo corrige **dónde vive hoy ese
+  sujeto**. Es ilegítimo si toca la afirmación. En concreto:
+
+  - **Legítimo (re-encuadre)**, y sólo estas cinco formas, cada una con su motivo escrito al
+    lado del cambio: **(a)** un **localizador** que pasa a apuntar a la representación **viva**
+    al ancho que mide; **(b)** una **espera** que aguardaba a `table.data-table` visible y pasa
+    a aguardar a la representación viva —una espera no es una aserción—; **(c)** un caso que
+    **se re-encuadra al subconjunto de anchos de tabla** porque bajo el canto su premisa deja
+    de existir y allí rige un CA **más fuerte** de esta misma spec; **(d)** una lista escrita
+    dentro de un `.spec.ts` que **se extrae a un módulo importable** sin cambiar su contenido;
+    **(e)** una guardia unitaria que miraba **un fichero** y pasa a mirar **la superficie
+    entera** de la pantalla porque ese fichero se partió — mide más, no menos.
+  - **Ilegítimo (aflojar)**: quitar o debilitar una aserción, subir una tolerancia, marcar un
+    caso `skip`/`fixme`, sustituir una aserción por una espera, o recortar el conjunto de
+    anchos **para esquivar un rojo** en vez de para seguir a la representación.
+
+  **Y por nombre, porque una regla sin lista se discute**: siguen verdes **sin tocarse**
+  `tests/e2e/vigiladas-orden.spec.ts`, `tests/e2e/cartera.spec.ts`,
+  `tests/e2e/decimales.spec.ts` y `tests/e2e/sin-refrescar-geometria.spec.ts` —sus aserciones
+  sobre la tabla a 360 px son de atributo o de valor computado, y `display: none` no cambia ni
+  uno ni otro—. Se **re-encuadran**, y sólo por (a)–(e):
+  `tests/e2e/spec046.ts` *(helper, no guardia: es lo que permite dejar
+  `vigiladas-capa-edicion.spec.ts` intacto)*, `tests/e2e/vigiladas-capa-edicion.spec.ts`
+  *(una espera —(b)—, ninguna aserción)*, `tests/e2e/vigiladas-editar.spec.ts` *(su `editarDe`
+  local —(a)—)*, `tests/e2e/geometria-rutas.spec.ts` *(las tres listas de rutas salen a módulo
+  —(d)—, lo exige CA-11; y el caso «la tabla se sigue pudiendo arrastrar» pasa a los anchos de
+  tabla —(c)—, porque por debajo del canto rige CA-4, que es **más fuerte**: no queda nada que
+  arrastrar)*, `tests/e2e/movil-alta.spec.ts` *(—(a)—)*,
+  `tests/e2e/geometria-puntos-ciegos.spec.ts` *(—(c)—: a 360 px la exención de M1 que mide ya
+  no puede hacer nada, así que aprobaba en el vacío)*, y las dos unitarias
+  `tests/spec044-frontera.test.ts` y `tests/spec043-sin-refrescar.test.ts` *(—(e)—)*.
+
+  **La verificación de este CA es leer los diffs de test**, no sólo ver las dos suites verdes:
+  un cambio en un fichero de test que no encaje en (a)–(e), o que no lleve su motivo escrito al
+  lado, es rojo aunque todo pase. *(Reescrito el 2026-08-24 tras el RED de la ronda 1, que
+  confirmó los seis re-encuadres uno a uno y **cero aserciones aflojadas**: `F-SPEC-054-2`.)*
 
 ### La semántica al dejar de haber tabla
 
@@ -332,19 +391,61 @@ representación oculta no ensucia ni infla el recuento — y **`display: none` t
   y los formularios de compra y venta de `/cartera` cumplen M1, M5 y CA-14(a). Ninguno declara
   un contenedor con desplazamiento horizontal.
 
-- **CA-18 (un solo breakpoint de modo, y afirmado)**: Dado `src/app/globals.css`, cuando un
-  test unitario extrae **todas** sus consultas `@media`, entonces los únicos anchos que
-  aparecen son **720** (modo) y **599/600** (densidad de `.cards`, ADR-034 §2); no aparece
-  ningún cuarto valor; y **todas** las reglas que ponen o quitan `display` a `table.data-table`
-  o a la lista de tarjetas viven dentro del bloque de **720**. *(Es la propiedad, no el estado
-  del árbol: si mañana hace falta otro ancho, el test lo dice y se decide en un gate — no se
-  cuela.)*
+- **CA-18 (un solo breakpoint de **modo**, y afirmado)**: Dado `src/app/globals.css`, cuando
+  un test unitario extrae **todas** sus consultas `@media`, entonces:
 
-- **CA-19 (evidencia reproducible)**: Dado el final de la ejecución, entonces
-  `_qa/SPEC-054/` contiene las cifras de M1/M2/M3/M5 por ruta y por ancho, más capturas de las
-  dos páginas a 360, 390, 700, 730 y 1280 px, y de la capa de edición abierta sobre una
-  tarjeta a 360 px. **Sólo** se escribe bajo `_qa/SPEC-054/`: ninguna otra `_qa/SPEC-NNN/`
-  aparece en el diff.
+  **(a)** los cantos que aparecen son exactamente **tres** —**720**, que es el de **modo** y
+  se escribe por sus dos lados (`max-width: 720px` y `min-width: 721px`, que son la misma
+  decisión vista desde cada lado y se normalizan a uno), y **599/600** y **1023**, que son los
+  **dos bordes del único bloque de densidad**, el de `.cards` (ADR-034 §2)— y **ningún otro**;
+
+  **(b)** **todo bloque que no sea el de modo toca `.cards` y nada más** — que es lo que hace
+  inofensivo un canto de densidad y lo que convierte el CA en una propiedad y no en un
+  recuento;
+
+  **(c)** **todas** las reglas que ponen o quitan `display` a `table.data-table`, a
+  `.table-scroll` o a la lista de tarjetas viven dentro del canto de **720**, y existen sus
+  dos caras.
+
+  *(Es la propiedad, no el estado del árbol: si mañana hace falta otro ancho, el test lo dice
+  y se decide en un gate — no se cuela. Corregido el 2026-08-24: la redacción anterior decía
+  «no aparece ningún cuarto valor» y era **falsa sobre el árbol** — el 1023 es el borde
+  superior de `@media (min-width: 600px) and (max-width: 1023px)`, existe desde antes de esta
+  spec, `/dashboard` está en su §Fuera de alcance y ese bloque no se toca. La regla de fondo
+  —un solo breakpoint de **modo**, el resto de **densidad**— no cambia; lo que cambia es que
+  ahora se afirma contando los cantos que hay, no negando uno que existe. `F-SPEC-054-3`.)*
+
+- **CA-19 (evidencia reproducible, y la palabra «reproducible» se aplica a lo que puede
+  serlo)**: Dado el final de la ejecución, entonces `_qa/SPEC-054/` contiene:
+
+  **(a) La evidencia, que son las cifras.** Ficheros de texto con las medidas de M1/M2/M3/M5
+  por ruta y por ancho, el canto del modo, el inventario de `overflow`, M4 sobre la capa, el
+  pie de la tarjeta y los suelos de legibilidad. **Son deterministas y se afirma que lo son**:
+  dos pasadas completas seguidas de la e2e devuelven los `.txt` **byte a byte idénticos**. Un
+  `.txt` que cambie sin que haya cambiado el código **es una regresión** y hay que explicarla.
+
+  **(b) La ilustración, que son las capturas.** Los `.png` de las dos páginas a 360, 390, 700,
+  730 y 1280 px y el de la capa de edición abierta sobre una tarjeta a 360 px están para que
+  un humano vea de qué se está hablando. **No son evidencia y no se afirma que sean estables**:
+  el escenario siembra `updated_at` **relativo al reloj** (RN-16, a propósito: una fecha
+  clavada sería una bomba de relojería), así que dos pasadas separadas en el tiempo producen
+  píxeles distintos sin que nada se haya movido. **Un diff en un `.png` de esta spec no prueba
+  nada por sí solo**; lo que hay que leer son los `.txt`. *(Es ADR-026 §6 aplicado a la
+  evidencia: el proyecto ya decidió que **se miden cajas, no píxeles**, y una captura que se
+  rompe al cambiar una fuente o un reloj no protege nada. Se comprobó en la ronda 2 revirtiendo
+  el arreglo, reconstruyendo y recapturando: las diez capturas de ancho cambian igual, y las
+  **alturas de imagen son idénticas a las de la base** — la maquetación no se mueve.
+  `F-SPEC-054-6`.)*
+
+  **(c) Y nada fuera de su sitio.** **Sólo** se escribe bajo `_qa/SPEC-054/`: ninguna otra
+  `_qa/SPEC-NNN/` aparece en el diff. *(La e2e completa reescribe capturas ajenas; se
+  restauran con `git checkout -- _qa/`.)*
+
+  *(Reescrito el 2026-08-24. La redacción anterior pedía «evidencia reproducible» sin
+  distinguir las dos mitades, y con ella un `.png` distinto obligaba a investigar un fantasma.
+  **La alternativa era congelar el reloj del escenario y se rechaza**: `updated_at` relativo es
+  lo que hace que `.quote-stale` signifique algo, y clavarlo convertiría la guardia de RN-16 en
+  una bomba de relojería — se pagaría un invariante de dominio por una comodidad de diff.)*
 
 - **CA-20 (el pie de la tarjeta: dos botones al 50 %, en una fila)**: Dado un usuario con
   vigiladas, cuando se carga `/vigiladas` a **360 y 390 px**, entonces en cada tarjeta
@@ -362,9 +463,21 @@ representación oculta no ensucia ni infla el recuento — y **`display: none` t
   regla añadida por esta spec declara `overflow-x: hidden`, `overflow-y: hidden` ni
   `overflow: hidden`** sobre un elemento de las dos páginas en alcance; y en tiempo de
   ejecución, a **360 y 390 px**, ningún elemento de `/vigiladas` ni de `/cartera` tiene
-  `overflow-x` computado `hidden` **salvo** los que ya lo tenían antes de esta spec
-  —`html`/`body` (heredado, ADR-026 §4 lo acepta explícitamente) y `.data-table`, que lo lleva
-  desde SPEC-007 para recortar sus esquinas redondeadas—. *(**R-2 de EPIC-007**: el mal ejemplo
+  `overflow-x` computado `hidden` **salvo** los que ya lo tenían antes de esta spec, que son
+  **tres y se enumeran enteros**:
+  **(i)** `html`/`body`, heredados de `design/tremen-ds/responsive.css:11` (ADR-026 §4 acepta
+  explícitamente el heredado; lo que prohíbe es **añadirlo**);
+  **(ii)** `table.data-table` (`globals.css`), desde SPEC-007, para recortar sus esquinas
+  redondeadas;
+  **(iii)** `.card` (`design/tremen-ds/components/cards.css:30`, `overflow: hidden`), desde el
+  **primer commit del proyecto**, y vivo en los formularios de compra y venta de `/cartera`,
+  en el de alta y en la capa de edición. Se acepta por el mismo motivo que (ii) —es una
+  máscara de esquinas redondeadas, no una respuesta a un desborde— y **se enumera aquí porque
+  la lista anterior se escribió mirando sólo `globals.css` y éste vive en `design/`**
+  (`F-SPEC-054-3`).
+  No cuentan como `hidden` los **valores por defecto del agente de usuario** —`overflow-x:
+  clip` en los campos de texto— porque no son una regla de este proyecto ni de su sistema de
+  diseño. *(**R-2 de EPIC-007**: el mal ejemplo
   está en casa. `design/tremen-ds/responsive.css:11` resuelve su paso a móvil con
   `html, body { overflow-x: hidden }`, que es exactamente lo que ADR-026 §4 declara que **no es
   un arreglo**, y es el patrón que cualquiera copiará al ver una barra de desplazamiento. Esta
@@ -396,6 +509,11 @@ respetándolas:
 - **ADR-034** (nuevo, en `borrador`): el breakpoint de modo, la convivencia de los tres
   breakpoints, los dos árboles derivados de una descripción de columnas, la semántica
   sustituida, M5 y las áreas seguras inertes.
+- **ADR-035** (nuevo, en `borrador`, 2026-08-24): un **umbral declarado se afirma sin
+  holgura** —la tolerancia de redondeo compara dos medidas, nunca una medida contra un umbral
+  escrito en un ADR—. Nace del finding `F-VERIF-054-1` de esta spec y **la vincula sólo en la
+  redacción de CA-13**: la propiedad («44 es 44») se exige aquí, pero **el cambio en
+  `medirAreaTactil` no se implementa en esta spec** (ADR-035 §5, `F-ADR-035-1`).
 - **SPEC-007** (fondo, no distintivo) y **SPEC-041 CA-11** (el control de orden fuera de
   `.table-scroll`): se **respetan y se trasladan**, no se reabren.
 
@@ -435,6 +553,12 @@ sirven a esas dos páginas.
 - **Bajar de 360 px.** ADR-026 §3 lo dejó cerrado: *«a 320 px la tabla de datos y el
   formulario de alta no se ajustan, se rediseñan, y eso es una decisión de producto con su
   épica»*.
+- **El cambio de `medirAreaTactil` que decide ADR-035** (dejar de restar `TOLERANCIA_PX` a un
+  umbral declarado). La **propiedad** sí se exige aquí —CA-13 afirma el suelo contra 44 sin
+  holgura— pero el arreglo del módulo compartido obliga a reejecutar las cinco medidas sobre
+  **todas** las rutas medidas, y esta spec ya pasó dos rondas sin ningún rojo que ese cambio
+  arregle. Entra en una spec propia de EPIC-007, y **antes** de que la spec 2 escriba guardias
+  nuevas de M5: **`F-ADR-035-1`**.
 
 ## Notas para el gate humano
 
@@ -537,41 +661,55 @@ que no son territorio libre.
 5. **`/cartera` no la ve el rol `tester`** (CE-2 de **EPIC-004**, no de esta épica) → **se
    entrega entera**, las dos tablas en la misma spec. No se parte.
 
-### 8. Lo único que sigue abierto, y no es una pregunta de diseño
+### 8. Lo que quedaba abierto contra los criterios de la épica — **dos de tres, cerrados**
 
-La **rejilla de trazabilidad** contra los seis criterios de EPIC-007 deja tres cosas que
-sdd-producto debería mirar. **Ninguna bloquea la implementación**, pero conviene decidirlas
-antes de escribir las specs 2 y 3 de la épica:
+La **rejilla de trazabilidad** dejaba tres cosas para sdd-producto. **Dos se cerraron el
+2026-08-24 con la creación de CE-7**; la tercera sigue abierta a propósito y no bloquea nada.
+Se conservan con su resolución porque el porqué vale más que el resultado:
 
-- **CE-2 lo cubro sólo parcialmente, y la épica ya lo dice así a propósito.** CA-11 mete
+- ⏳ **CE-2 lo cubro sólo parcialmente, y la épica ya lo dice así a propósito — sigue
+  abierto.** CA-11 mete
   `/cartera` en la guardia, pero CE-2 pide que *«el conjunto de rutas que la guardia mide sea
   el conjunto de rutas que el usuario puede alcanzar»*, **derivado por un test y no una lista
   mantenida a mano**. Esta spec deja **diez** rutas medidas de dieciséis y **sigue siendo una
   lista**. Cerrarlo entero es la spec 3. Lo digo aquí para que nadie lea CA-11 como si saldara
   CE-2.
-- **EPIC-007 no tiene criterio de accesibilidad**, y esta spec tiene **tres CA que sólo se
-  justifican por ahí**: CA-7 (`aria-sort` desaparece con la tabla), CA-8 (el orden se sigue
-  anunciando y se sigue pudiendo cambiar) y CA-9 (orden de lectura = orden del DOM). Cuelgan de
-  **CE-4** leído con generosidad —para quien usa lector de pantalla, el estado de orden *es* un
-  dato que la vista ancha enseña— pero es una lectura forzada y prefiero decirlo que
-  disimularlo. **Propongo a sdd-producto un CE-7 de semántica, foco y navegación por teclado**:
-  las specs 2 (navegación) y 3 (formularios) lo van a necesitar mucho más que ésta.
-- **CE-3 es táctil, no tipográfico**, así que **CA-14** —controles de formulario ≥ 16 px para
-  no disparar el zoom de iOS, y ningún texto por debajo de 12 px— tampoco tiene CE propio.
-  Encaja en CE-3 por vecindad, pero el umbral de 16 px es de **interacción con el navegador**,
-  no de tamaño de dedo. Si se escribe el CE-7 anterior, éste cabe ahí.
-
-Y una nota de higiene: **CA-19** (evidencia sólo bajo `_qa/SPEC-054/`) no cuelga de ningún CE
-a propósito — es convención del proyecto, no criterio de la épica.
+- ✅ **EPIC-007 no tenía criterio de accesibilidad — ya lo tiene: CE-7.** Esta spec tiene
+  **tres CA que sólo se justifican por ahí**: CA-7 (`aria-sort` desaparece con la tabla), CA-8
+  (el orden se sigue anunciando y se sigue pudiendo cambiar) y CA-9 (orden de lectura = orden
+  del DOM). Colgaban de **CE-4** leído con generosidad —para quien usa lector de pantalla, el
+  estado de orden *es* un dato que la vista ancha enseña— y lo dije en vez de disimularlo.
+  **sdd-producto añadió CE-7 a EPIC-007 el 2026-08-24** —*«cambiar de forma no cambia lo que la
+  pantalla significa»*: semántica, orden de lectura, foco y teclado, más el suelo tipográfico—
+  y los tres CA **se reapuntan a CE-7** en la rejilla de la nota 9.
+- ✅ **CE-3 es táctil, no tipográfico, y CA-14 ya tiene sitio.** **CA-14** —controles de
+  formulario ≥ 16 px para no disparar el zoom de iOS, y ningún texto por debajo de 12 px—
+  encajaba en CE-3 sólo por vecindad, porque el umbral de 16 px es de **interacción con el
+  navegador**, no de tamaño de dedo. **CE-7 lo recoge por escrito** (*«el texto se puede leer
+  sin ampliar — suelo de 16 px en los controles de formulario… y ningún texto por debajo de
+  12 px»*), así que **CA-14 se reapunta a CE-7** y deja de estar sin CE.
+Y una nota de higiene: **CA-19** (evidencia bajo `_qa/SPEC-054/`, cifras deterministas y
+capturas ilustrativas) sigue **sin colgar de ningún CE a propósito** — es convención del
+proyecto y ADR-026 §6, no criterio de la épica.
 
 ### 9. Rejilla de trazabilidad CA → CE de EPIC-007
+
+**Actualizada el 2026-08-24**, contra los **siete** criterios de la épica: CE-7 se añadió
+después de escribirse esta rejilla y **CA-7, CA-8, CA-9 y CA-14 cuelgan ahora de él**, que es
+donde siempre debieron colgar (nota 8). Ninguno de los cuatro cambia de contenido: cambia de
+qué criterio de épica responde.
 
 | CE de EPIC-007 | CA que lo sostienen |
 |---|---|
 | **CE-1** — ninguna pantalla desborda en un teléfono | CA-4, CA-5, CA-12, CA-15, CA-17, CA-21 |
 | **CE-2** — lo que no se mide no cuenta *(**parcial**: 10 de 16 rutas, y aún es lista)* | CA-11 |
 | **CE-3** — se puede operar con el pulgar (44×44) | CA-13, CA-17, CA-20 |
-| **CE-4** — caber no se paga escondiendo | CA-3, CA-6, CA-10, CA-15, CA-21, y CA-7/CA-8/CA-9 *(lectura forzada, ver nota 8)* |
+| **CE-4** — caber no se paga escondiendo | CA-3, CA-6, CA-10, CA-15, CA-21 |
 | **CE-5** — el escritorio no paga la factura del móvil | CA-5, CA-16 |
 | **CE-6** — un solo breakpoint de modo | CA-1, CA-2, CA-18 |
-| *(sin CE — convención de proyecto)* | CA-14 *(ver nota 8)*, CA-19 |
+| **CE-7** — cambiar de forma no cambia lo que la pantalla significa | CA-7, CA-8, CA-9, CA-14 |
+| *(sin CE — convención de proyecto y ADR-026 §6)* | CA-19 |
+
+**Los siete criterios de la épica están tocados por esta spec**, tres de ellos sólo en parte
+(CE-2 por diseño, y CE-3 y CE-7 porque las specs 2 y 3 llevan el grueso). **Ningún CA queda
+sin criterio salvo CA-19**, que es convención y lo dice.

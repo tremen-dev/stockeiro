@@ -247,18 +247,26 @@ que hay.
   2 de la épica ya se puede dimensionar. **La salida es agrandarlos, nunca bajar el suelo**
   (ADR-034 §6).
 
-- **F-SPEC-054-2** (dueño: **sdd-arquitecto**; **decide el gate humano**): la redacción de
-  **CA-16** («siguen verdes **sin tocarse**») es incompatible con **CA-11** y con **CA-1**.
-  Está contado entero en §Decisiones y hallazgos, punto 1, con la tabla de qué cambió en cada
-  fichero y por qué. Seis ficheros de test re-encuadrados, **cero aserciones aflojadas**, las
-  dos suites enteras verdes.
+- ✅ **F-SPEC-054-2** — **CERRADO el 2026-08-24 por sdd-arquitecto: CA-16 reescrito.** La
+  redacción anterior («siguen verdes **sin tocarse**») era incompatible con **CA-11** y con
+  **CA-1**, y el humano decidió reabrir la redacción en vez de aceptar la salvedad. **CA-16
+  dice ahora lo que quería decir: no aflojar, no "no tocar"**, y lo hace verificable — cinco
+  formas legítimas de re-encuadre (a)–(e), cinco formas de aflojamiento prohibidas, y la lista
+  por nombre de qué guardias quedan intactas y cuáles se re-encuadran, con la letra que
+  autoriza cada una. **El trabajo de la ronda 1 no se deshace**: los seis re-encuadres caen
+  dentro de (a)–(e). Añadido además: la verificación de CA-16 es **leer los diffs de test**,
+  no sólo ver las suites verdes.
 
-- **F-SPEC-054-3** (dueño: **sdd-arquitecto**; no bloquea): la lista de `overflow: hidden`
-  heredados de **CA-21** está incompleta —le falta `.card`, del sistema de diseño, presente
-  desde el primer commit del proyecto— y la de **anchos de `@media`** de **CA-18** también
-  —le falta el **1023** del bloque de densidad de `.cards`—. Las dos se implementaron con el
-  hueco tapado **y explicado en el test**, no en silencio. Si alguna de las dos redacciones se
-  corrige en la spec, los tests ya dicen lo que sería cierto.
+- ✅ **F-SPEC-054-3** — **CERRADO el 2026-08-24 por sdd-arquitecto: CA-18 y CA-21
+  reescritos.** **CA-18** dejaba de negar el cuarto valor y pasa a **enumerar los tres cantos
+  que hay** —720 de modo (por sus dos lados), 599/600 y 1023 como los **dos bordes del único
+  bloque de densidad**— más la propiedad que los hace inofensivos (todo bloque que no sea el
+  de modo toca `.cards` y nada más). La regla de fondo no se debilita: sigue habiendo **un
+  solo breakpoint de modo**. **CA-21** enumera ahora los tres `overflow: hidden` heredados
+  —`html`/`body`, `table.data-table` y **`.card`** (`design/tremen-ds/components/cards.css:30`,
+  desde el primer commit)— y excluye explícitamente los valores por defecto del agente de
+  usuario (`overflow-x: clip` en los campos). **Las dos redacciones ahora coinciden con lo que
+  los tests ya afirmaban.**
 
 - **F-SPEC-054-4** (dueño: **quien recoja EPIC-MEJORA**; no bloquea): **`.eyebrow` mide 11 px
   también en escritorio.** Esta spec lo sube a 12 sólo por debajo del canto, porque CE-5 dice
@@ -275,6 +283,20 @@ que hay.
   épica**, porque si el defecto no fuera el que se cree, todo lo medido aquí seguiría siendo
   cierto en la guardia y falso en un teléfono.
 
+- ✅ **F-SPEC-054-6** — **RESUELTO el 2026-08-24 por sdd-arquitecto: se reescribe CA-19, no se
+  congela el reloj.** CA-19 distingue ahora **(a) la evidencia**, que son los 16 `.txt` y de
+  los que **sí se afirma** que dos pasadas seguidas los devuelven byte a byte idénticos, de
+  **(b) la ilustración**, que son los 11 `.png` y de los que **no se afirma estabilidad**: un
+  diff en un `.png` de esta spec no prueba nada por sí solo. **Motivo de la decisión, y es de
+  arquitectura, no de comodidad**: ADR-026 §6 ya decidió que este proyecto **mide cajas, no
+  píxeles**, precisamente porque una captura de referencia se rompe por cosas que se cambian a
+  propósito y no se rompe cuando un botón se va fuera de la pantalla. Congelar `updated_at`
+  para estabilizar los PNG **pagaría un invariante de dominio por una comodidad de diff**: la
+  fecha relativa es lo que hace que `.quote-stale` (RN-16) signifique algo, y clavarla
+  convertiría su guardia en una bomba de relojería. El texto original del hallazgo se conserva
+  debajo porque las cifras y la comprobación que lo sostienen son las que dan valor a la
+  decisión.
+
 - **F-SPEC-054-6** (dueño: **sdd-verificador / quien lea la evidencia**; no bloquea):
   **la evidencia de CA-19 es reproducible en sus MEDIDAS, no en sus PÍXELES.** Los 16
   `.txt` de `_qa/SPEC-054/` vuelven **byte a byte idénticos** tras dos pasadas completas
@@ -286,6 +308,32 @@ que hay.
   a propósito: una fecha clavada sería una bomba de relojería). Consecuencia práctica:
   **un diff en un `.png` de `_qa/SPEC-054/` no es una regresión por sí solo**; lo que hay
   que leer son los `.txt`, que sí son deterministas.
+
+- **F-ADR-035-1** (dueño: **sdd-arquitecto**; **no bloquea esta spec**): **la tolerancia del
+  medidor actúa como holgura del suelo, y el arreglo no es de aquí.** `medirAreaTactil` filtra
+  con `alto < suelo - TOLERANCIA_PX`, así que el suelo efectivo de M5 es **43, no 44**, y un
+  control que aterrice en 43,00 exactos vuelve a pasar — que es exactamente el defecto que
+  produjo el RED. Lo devolvió el implementador con dos salidas propuestas (tolerancia por
+  parámetro; restar sólo a fracciones) y **las dos se rechazan**: la primera deja el suelo
+  efectivo en 43 para toda guardia que no pase el parámetro y convierte una propiedad del
+  producto en una opción de llamada (`F-ADR-026-1`); la segunda es la regla correcta escrita al
+  revés. **La regla queda decidida en `ADR-035`** (2026-08-24, `borrador`): una tolerancia
+  compara **dos medidas**, nunca una medida contra un **umbral declarado**; contra un umbral se
+  afirma a secas. **La implementación —quitar la resta en `medirAreaTactil`— es de una spec
+  propia de EPIC-007 y tiene que entrar ANTES de que la spec 2 escriba guardias nuevas de M5**,
+  porque la navegación es donde M5 decidirá qué se agranda y decidirlo contra 43 sería
+  decidirlo mal. **En esta spec no se implementa nada de esto**: lo que sí cambia es la
+  redacción de **CA-13**, que ahora afirma el suelo contra 44 **sin holgura** — la propiedad,
+  medida como haga falta.
+
+- ✅ **F-SPEC-054-7** — **CERRADO el 2026-08-24: el drift de trazabilidad contra la épica.** La
+  §Notas 9 de la spec decía que **CA-14 y CA-7/CA-8/CA-9** no colgaban de ningún criterio de
+  épica (o colgaban de CE-4 «con lectura forzada»). Dejó de ser cierto cuando sdd-producto
+  **añadió CE-7 a EPIC-007** el 2026-08-24, a petición de sdd-arquitecto y con este caso como
+  motivo. Los cuatro CA **se reapuntan a CE-7**, la nota 8 pasa de «tres cosas abiertas» a
+  «dos de tres cerradas», y la rejilla queda consistente: **los siete criterios de la épica
+  están tocados y ningún CA queda sin criterio salvo CA-19**, que es convención de proyecto
+  (ADR-026 §6) y lo dice.
 
 ## Cómo retomar (handoff)
 
@@ -345,6 +393,31 @@ deshizo ninguno de los seis re-encuadres de tests de la ronda 1.
 completas seguidas · reinyección de defecto **viva**: sano=0, con el defecto=**15**, al
 quitarlo=0 · M4 sobre la capa sigue dentro de la ventana y sin desplazar el documento (la
 capa crece 4 px de alto: dos filas de campos × 2) · 229 capturas ajenas restauradas.
+
+### Ronda 3 (redacción) — 2026-08-24, sdd-arquitecto. **Ni una línea de código ni de test.**
+
+El humano decidió el 2026-08-24 **reabrir la redacción** en vez de aceptar las salvedades, y
+corregir los cuatro CA en la misma ronda. Lo que cambió, y **qué obliga a re-verificar**:
+
+| CA | Qué se reescribió | ¿Re-verificar? |
+|---|---|---|
+| **CA-16** (⚠️) | «sin tocarse» → **«sin aflojar»**, con el criterio que separa las dos cosas: cinco formas legítimas de re-encuadre (a)–(e), cinco prohibidas, y la lista por nombre de qué guardia queda intacta y cuál se re-encuadra bajo qué letra. Los seis re-encuadres de la ronda 1 caen dentro | **Sí** — y ahora la verificación es **leer los seis diffs de test** y comprobar que cada uno encaja en (a)–(e) y lleva su motivo escrito. Ya lo hiciste en la ronda 1 y confirmaste cero aserciones aflojadas |
+| **CA-18** (⚠️) | «no aparece ningún cuarto valor» → **enumera los tres cantos** (720 de modo por sus dos lados; 599/600 y 1023 como los dos bordes del único bloque de densidad) + la propiedad que los hace inofensivos. La regla de fondo no se debilita | **Sí, barato** — es exactamente lo que `tests/spec054-breakpoint-y-rutas.test.ts` ya afirma |
+| **CA-13** (⚠️/RED) | La afirmación se **acota por escrito** a `main.page` de las dos páginas + `dialog.editar-vigilada`, con nav/pie/feedback **fuera de la afirmación y dentro de la medición** y sus cifras en `_qa/`. Y el suelo se afirma **contra 44, sin holgura** | **Sí, y con una medida nueva**: la comprobación estricta de la ronda 2 (`camposBajoElSuelo`) sólo recorre **campos de formulario**. Hay que medir **todos** los controles en alcance contra 44 sin restar tolerancia. No se espera ningún rojo (campos 45, `.btn-sm` 46, `select` del orden 45) pero **hay que medirlo, no suponerlo** |
+| **CA-21** (✅) | La enumeración de heredados pasa de dos a **tres**: se añade **`.card`** (`design/tremen-ds/components/cards.css:30`), y se excluyen los valores por defecto del agente de usuario (`overflow-x: clip`) | **Sí, barato** — tu propia evidencia de la ronda 1 ya lista `form.card.auth-form` y el `clip` de los campos |
+| **CA-19** (✅) | «evidencia reproducible» → **(a) los 16 `.txt` son la evidencia y SÍ se afirma** que dos pasadas seguidas los devuelven byte a byte idénticos; **(b) los 11 `.png` son ilustración y NO se afirma** que sean estables; **(c)** nada fuera de `_qa/SPEC-054/` | **Sí, barato** — ya lo mediste. **Aviso**: tu columna de CA-19 dice «los **27** ficheros de cifras `.txt`»; son **16 `.txt` + 11 `.png` = 27 ficheros**. La cifra de `F-SPEC-054-6` (16 y 10 `ancho-*.png`) es la correcta |
+
+**Trazabilidad**: §Notas 8 y 9 de la spec actualizadas a los **siete** criterios de EPIC-007;
+CA-7, CA-8, CA-9 y CA-14 se reapuntan a **CE-7**. Es documento, no código.
+
+**ADR nuevo**: **`ADR-035`** (`borrador`) — *un suelo declarado se afirma sin holgura*.
+Precisa ADR-026 y ADR-034 §6, **no supersede** ninguno. **No se implementa en esta spec**
+(`F-ADR-035-1`). ⚠️ El id se tomó del hueco siguiente a `ADR-034`; el más alto en `origin/main`
+es **ADR-033**, así que **hay que comprobarlo contra `origin/main` antes del merge** por si
+otra sesión paralela reclamó el 035.
+
+**Lo que NO se tocó**: ni código, ni tests, ni el estado de la spec (sigue `en-revision`), ni
+las columnas *Implementado* / *Test* / *Verif.* / *Estado* de la matriz.
 
 ## Veredicto del verificador
 <!-- GREEN/RED + fecha + resumen. Lo escribe SOLO sdd-verificador. -->
