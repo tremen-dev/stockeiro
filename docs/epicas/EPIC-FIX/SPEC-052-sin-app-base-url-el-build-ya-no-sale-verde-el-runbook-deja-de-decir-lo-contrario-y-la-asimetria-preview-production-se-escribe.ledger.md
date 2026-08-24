@@ -46,7 +46,7 @@ epica: EPIC-FIX
 | CA-1 — frase falsa fuera, y no vuelve por copia | `docs/despliegue.md` §0 (aviso de `APP_BASE_URL` reescrito) | `G` › *CA-1: la frase falsa desaparece, y no puede volver por copia* — **3 casos**, uno por entrada de la lista cerrada `AFIRMACIONES_RETIRADAS` (frase + fecha + motivo) | 3/3 verde. **Rojo reproducido por mí**: con `docs/despliegue.md` restaurado a `497eccf`, los tres casos caen | ✅ |
 | CA-2 — lo que dice en su lugar (build, PR #58, log literal) **+ (d) origen real → `stockeiro.tremen.dev`** | `docs/despliegue.md` §0, bloque 🚨 del aviso | `G` › *CA-2: lo que el aviso dice en su lugar* — **4 casos**: (a) build/`metadataBase`/layout/SPEC-051 · (b) `next build` + *el despliegue no llega a existir* · (c) 2026-08-23 + PR #58 + `Failed to collect configuration for /_not-found` · (d) `stockeiro.tremen.dev` presente y `stockeiro-lemon.vercel.app` ausente | 4/4 verde; **rojo reproducido** sobre el §0 viejo. **(c) comprobado a mano**: el literal del log que cita §0 coincide **carácter a carácter** con el que lanza `src/lib/config/app-url.ts:87` y con el que produjo mi `npm run build` (CA-16). Las **dos** afirmaciones falsas han desaparecido | ✅ |
 | CA-3 — conserva lo que sí era cierto (falta ≠ mal); **ya NO conserva el desmentido del ejemplo** | `docs/despliegue.md` §0, bloque ⚠️ del aviso | `G` › *CA-3: el arreglo no tira lo que sí seguía siendo cierto* — **1 caso** (falla ruidosamente si falta · no detecta que esté mal · solo lo ve quien pincha). La retirada del desmentido la vigilan CA-1 (3.ª entrada) y CA-17 | 1/1 verde; rojo reproducido. La parte que **sí** era cierta sigue escrita en §0 | ✅ |
-| CA-4 — **(a)** columna **Entornos**, vocabulario cerrado, sin celdas vacías · **(b)** el motivo escrito de las solo-Production | `docs/despliegue.md` §0: tabla con la columna **Entornos**, la leyenda del vocabulario y el bloque 🧭 | `G` › *CA-4 (a)* — **1 caso** (toda fila usa un valor de `VOCABULARIO_ENTORNOS`) · *CA-4 (b)* — **2 casos**: las cuatro claves marcadas `Production`, y §0 con el motivo y el precio aceptado literales | **3/3 verde, y aun así NO cerrado.** La columna y los literales exigidos están; lo que falla es la **prosa nueva que los acompaña**, que afirma dos cosas que este verificador ha medido y son falsas: la leyenda de `Preview + Production` (**F-SPEC-052-10**) y el bloque 🧭 sobre Marketstack (**F-SPEC-052-11**). Ningún test las mira porque ningún CA las pide — pero están en §0 de un documento de verdad y las escribe esta entrega | ⚠️ |
+| CA-4 — **(a)** columna **Entornos**, vocabulario cerrado, sin celdas vacías · **(b)** el motivo escrito de las solo-Production | `docs/despliegue.md` §0: tabla con la columna **Entornos**, la leyenda del vocabulario y el bloque 🧭. **Prosa corregida el 2026-08-25** por los findings del gate: la leyenda de `Preview + Production` ya no promete una consecuencia que solo vale para cuatro filas (**F-SPEC-052-10**) y el bloque 🧭 ya no dice que la decisión proteja el cupo de Marketstack (**F-SPEC-052-11**). El vocabulario cerrado sigue con sus **tres** valores y **ningún fichero de `tests/` cambió** | `G` › *CA-4 (a)* — **1 caso** (toda fila usa un valor de `VOCABULARIO_ENTORNOS`) · *CA-4 (b)* — **2 casos**: las cuatro claves marcadas `Production`, y §0 con el motivo y el precio aceptado literales | **3/3 verde, y aun así NO cerrado.** La columna y los literales exigidos están; lo que falla es la **prosa nueva que los acompaña**, que afirma dos cosas que este verificador ha medido y son falsas: la leyenda de `Preview + Production` (**F-SPEC-052-10**) y el bloque 🧭 sobre Marketstack (**F-SPEC-052-11**). Ningún test las mira porque ningún CA las pide — pero están en §0 de un documento de verdad y las escribe esta entrega | ⚠️ |
 | CA-5 — foto de `vercel env ls` del 2026-08-23 en §13, etiquetada como foto | `docs/despliegue.md` **§13.5** (nueva) | `G` › *CA-5* — **2 casos**: comando + fecha + las siete claves del inventario; y *foto fechada* / *no es una fuente de verdad viva* | 2/2 verde; rojo reproducido sobre el §13 viejo. La etiqueta de «foto» está y dice lo que tiene que decir | ✅ |
 | CA-6 — el arreglo de ops consta como HECHO (§13 + checklist §5) | `docs/despliegue.md` §13.5, puntero en §13.2 (junto a `ALLOW_MIGRATE`) y línea `- [x]` en §5 | `G` › *CA-6* — **2 casos**: §13 con `vercel env add APP_BASE_URL preview` + valor + PR #58 + fecha; y la línea de checklist de §5 | 2/2 verde; rojo reproducido. §13.5 y la línea `- [x]` de §5 están, y el puntero de §13.2 junto a `ALLOW_MIGRATE` también | ✅ |
 | CA-7 — Preview deja de ser opcional en §3.2 y §7 | `docs/despliegue.md` §3.2 (bloque de Preview + `env add … preview`) y §7 paso 2 | `G` › *CA-7* — **3 casos**: las **dos** frases prohibidas ausentes de todo el fichero, y §3.2 distinguiendo *Obligatorias en Preview porque el build las lee* de *solo hacen la preview más útil* | 3/3 verde; rojo reproducido: las dos frases prohibidas estaban en el §3.2/§7 de `497eccf` y ya no están | ✅ |
@@ -311,9 +311,31 @@ ni estilos — no hay nada que capturar con Playwright, y no se ha usado.
 
 ## Salvedades / follow-ups
 
-- **F-SPEC-052-10** 🔴 **ABIERTO — finding del gate del 2026-08-25. La leyenda nueva de
-  §0 afirma algo falso de una de sus propias filas.** `docs/despliegue.md` §0, justo
-  debajo de la tabla:
+- **F-SPEC-052-10** ✅ **CERRADO el 2026-08-25 por el implementador** (finding del gate del
+  mismo día). Texto nuevo en `docs/despliegue.md` §0, leyenda de la columna:
+
+  > - **`Preview + Production`** — la clave **vive en los dos** entornos. Ojo: esta columna
+  >   dice **dónde vive**, no qué pasa si falta. **Cuáles tumban el build lo dice §3.2**,
+  >   que separa las que `next build` lee —esas sí dejan la PR sin preview— de las que solo
+  >   hacen la preview más útil y cuya ausencia no impide construir.
+
+  La leyenda ya no atribuye a **todas** las filas una consecuencia que solo vale para
+  cuatro: describe el vocabulario y delega en §3.2, que es donde la separación ya estaba
+  escrita bien. **Nada afirmado sin comprobar**: (1) *build de control propio*, con solo
+  `DATABASE_URL`, `AUTH_SECRET`, `AUTH_TRUST_HOST` y `APP_BASE_URL` —sin
+  `MARKETSTACK_API_KEY`, y el `.env.local` de este árbol solo define `VERCEL_OIDC_TOKEN`—
+  → **verde**, hasta el listado de rutas; (2) `MARKETSTACK_API_KEY` **no aparece** en el
+  bloque `env` del job de CI que ejecuta `npm run build` (`.github/workflows/ci.yml`), que
+  es la lista misma que la guardia de CA-8 cruza contra la tabla; (3) su única lectura en
+  código es `src/lib/market/marketstack-provider.ts:230`, un parámetro por defecto del
+  constructor que lanza en `:238` — **en petición, no al construir**. **Vocabulario cerrado
+  intacto** (`Production` · `Preview + Production` · `Opcional`, tres valores) y **ningún
+  test tocado**.
+
+  <details><summary>El finding original, tal como lo escribió el verificador</summary>
+
+  **La leyenda nueva de §0 afirma algo falso de una de sus propias filas.**
+  `docs/despliegue.md` §0, justo debajo de la tabla:
 
   > - **`Preview + Production`** — obligatoria en **los dos** entornos. Si falta en
   >   Preview, la PR **no tiene preview**: el build revienta (§3.2).
@@ -345,8 +367,37 @@ ni estilos — no hay nada que capturar con Playwright, y no se ha usado.
   test. Que la redacción resultante no vuelva a afirmar de todas las filas algo que solo
   vale para cuatro.
 
-- **F-SPEC-052-11** 🔴 **ABIERTO — finding del gate del 2026-08-25. El bloque 🧭 de §0
-  dice que la decisión protege el cupo de Marketstack, y no lo protege.** El texto:
+  </details>
+
+- **F-SPEC-052-11** ✅ **CERRADO el 2026-08-25 por el implementador** (finding del gate del
+  mismo día). Texto nuevo en el bloque 🧭 de §0 (los literales que exige **CA-4 (b)** siguen
+  intactos; lo que cambia es la coletilla que los glosa):
+
+  > `TWELVE_DATA_API_KEY`, `RESEND_API_KEY`, `RESEND_FROM` y `CRON_SECRET` se quedan fuera
+  > de Preview porque **una preview no debe gastar cuota de proveedores externos ni poder
+  > mandar correo de verdad**: una rama cualquiera no puede quemar el cupo de **búsqueda de
+  > Twelve Data** (free tier, ADR-007/ADR-012), ni mandar un correo real por **Resend**, ni
+  > disparar el **cron**. Eso —y solo eso— es lo que la asimetría protege: son las cuatro
+  > claves nombradas arriba y nada más. **`MARKETSTACK_API_KEY` no está entre ellas**, y
+  > esta decisión no la cubre: dónde vive lo dice su fila de la tabla.
+
+  El motivo ya solo nombra lo que la decisión protege de verdad, y las tres cosas están
+  comprobadas contra su fuente: **Twelve Data en free tier y solo para búsqueda** (ADR-007
+  *«`/symbol_search` está en el free tier (Basic), cuesta 1 crédito»*; ADR-012 pto. 2
+  *«Twelve Data se MANTIENE, en free tier, solo para la BÚSQUEDA»*), **Resend** como único
+  emisor de correo y **`CRON_SECRET`** como llave de `/api/cron/refresh` — las tres, filas
+  `Production` de la tabla de arriba. La frase añadida sobre Marketstack **no afirma dónde
+  vive, remite a su fila**: así no puede envejecer sola si esa fila cambiara algún día, que
+  es el defecto que esta spec entera vino a corregir. **No se dejó escrito** que su presencia
+  en Preview sea una cuota «aceptada»: eso no lo decide ningún ADR (ni ADR-032 ni ADR-027
+  mencionan Preview) y afirmarlo sería inventar una decisión — queda para el arquitecto, si
+  la quiere tomar. **Nada del bloque 🧭 nombra `APP_BASE_URL`**, así que el recolector de
+  bloques de CA-2 (`avisoDeAppBaseUrl()`) sigue viendo lo mismo que antes.
+
+  <details><summary>El finding original, tal como lo escribió el verificador</summary>
+
+  **El bloque 🧭 de §0 dice que la decisión protege el cupo de Marketstack, y no lo
+  protege.** El texto:
 
   > `TWELVE_DATA_API_KEY`, `RESEND_API_KEY`, `RESEND_FROM` y `CRON_SECRET` se quedan fuera
   > de Preview porque **una preview no debe gastar cuota de proveedores externos ni poder
@@ -372,6 +423,8 @@ ni estilos — no hay nada que capturar con Playwright, y no se ha usado.
   defecto está en la coletilla que los glosa. Si además se quiere dejar dicho que
   Marketstack **sí** está en Preview y por qué eso se acepta, es el sitio natural, pero no
   es exigible por ningún CA y queda a criterio del arquitecto.
+
+  </details>
 
 - **F-SPEC-052-1** (destino **EPIC-INFRA**, futuro) — **nada compara el runbook con el
   estado REAL de Vercel.** La guardia de CA-8 cruza `docs/despliegue.md` contra
@@ -770,7 +823,33 @@ ni estilos — no hay nada que capturar con Playwright, y no se ha usado.
 
 ## Cómo retomar (handoff)
 
-**Estado real (2026-08-24)**: **implementación TERMINADA, con CA-18 incluido**; spec en
+> ### Ronda de corrección del 2026-08-25 — lo primero que hay que saber
+>
+> El gate del 2026-08-25 dio **RED con 16 de 17 CA cerrados**, y los dos findings eran de
+> **prosa**: `F-SPEC-052-10` (la leyenda de `Preview + Production` prometía de **todas** las
+> filas una consecuencia que solo vale para cuatro) y `F-SPEC-052-11` (el bloque 🧭 decía que
+> la decisión protege el cupo de **Marketstack**, que está en Preview). **Los dos están
+> CERRADOS** arriba, con su texto nuevo y su evidencia.
+>
+> **Qué cambió y qué no.** Cambió **`docs/despliegue.md` §0 y nada más**: dos párrafos, ambos
+> dentro del alcance de CA-4. **Ni un fichero de `tests/`**, ni `.env.example`, ni `src/`, ni
+> la spec, ni ningún ADR. El vocabulario cerrado de la columna sigue teniendo sus **tres**
+> valores. La suite sigue en **1829/1829**, 114/114 ficheros — el mismo número que antes de
+> esta ronda, que es justo lo que se esperaba de un arreglo que ningún test mira.
+>
+> **Cómo se comprobó que el texto nuevo es cierto**, que es el objeto entero de esta spec:
+> un `next build` de control **propio** —solo las cuatro claves del `env` del job de CI, sin
+> `MARKETSTACK_API_KEY`— terminó **verde**; esa clave **no figura** en ese bloque `env`; y su
+> única lectura (`src/lib/market/marketstack-provider.ts:230`, que lanza en `:238`) ocurre en
+> **petición**, no al construir. Para `F-SPEC-052-11`, cada cosa que el bloque 🧭 ahora afirma
+> se contrastó con su ADR (ADR-007 y ADR-012 para el free tier de búsqueda de Twelve Data).
+>
+> **Para el verificador: solo hay que re-verificar CA-4.** Los otros 16 CA no han sido
+> tocados por esta ronda. Las celdas **Verif.** y **Estado** de la matriz —incluidas las de
+> CA-15 y CA-16— **no se han tocado**: son suyas.
+
+**Estado real (2026-08-24, vigente salvo por la ronda de arriba)**: **implementación
+TERMINADA, con CA-18 incluido**; spec en
 `en-revision`; rama `ft/SPEC-052-sin-app-base-url-el-build-ya-no-sale-verde` sobre `origin/main`
 en **`497eccf`** (rebasada **dos veces**: tras SPEC-053 + SPEC-054, y luego tras SPEC-055).
 **Suite completa en verde: 1829/1829**, y `version:check` en verde con el árbol limpio. **Sin PR

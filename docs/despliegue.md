@@ -108,8 +108,10 @@ la cruza contra el bloque `env` del job de CI que ejecuta `npm run build` y exig
 que el build lee** figure aquí como `Preview + Production` (SPEC-052). Una columna que admitiera
 prosa volvería a ser prosa, y ese cruce dejaría de poder leerla.
 
-- **`Preview + Production`** — obligatoria en **los dos** entornos. Si falta en Preview, la PR
-  **no tiene preview**: el build revienta (§3.2).
+- **`Preview + Production`** — la clave **vive en los dos** entornos. Ojo: esta columna dice
+  **dónde vive**, no qué pasa si falta. **Cuáles tumban el build lo dice §3.2**, que separa las
+  que `next build` lee —esas sí dejan la PR sin preview— de las que solo hacen la preview más
+  útil y cuya ausencia no impide construir.
 - **`Production`** — solo producción, **a propósito**. Ver el aviso de aquí abajo.
 - **`Opcional`** — la app arranca sin ella; tiene valor por defecto.
 
@@ -117,7 +119,11 @@ prosa volvería a ser prosa, y ese cruce dejaría de poder leerla.
 > este es su motivo.** `TWELVE_DATA_API_KEY`, `RESEND_API_KEY`, `RESEND_FROM` y
 > `CRON_SECRET` se quedan fuera de Preview porque **una preview no debe gastar cuota de
 > proveedores externos ni poder mandar correo de verdad**: una rama cualquiera no puede
-> quemar el cupo de Marketstack/Twelve Data ni escribirle a una persona real.
+> quemar el cupo de **búsqueda de Twelve Data** (free tier, ADR-007/ADR-012), ni mandar un
+> correo real por **Resend**, ni disparar el **cron**. Eso —y solo eso— es lo que la
+> asimetría protege: son las cuatro claves nombradas arriba y nada más.
+> **`MARKETSTACK_API_KEY` no está entre ellas**, y esta decisión no la cubre: dónde vive lo
+> dice su fila de la tabla.
 >
 > Su consecuencia es el **precio aceptado**, no un defecto: en una preview **el buscador de
 > símbolos no busca, no sale ni un correo y el cron no se puede probar**. Eso se comprueba
