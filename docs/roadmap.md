@@ -7,6 +7,43 @@ tipo: roadmap
 > El estado fino por spec vive en el tablero; aquí vive la INTENCIÓN.
 
 ## Ahora (en curso)
+- **EPIC-008 — El precio al momento: la vigilada recién dada de alta no espera al ciclo**
+  (estado: borrador; nace el 2026-08-25 a petición del humano, sobre la pantalla real).
+  **Qué entrega.** Que dar de alta una vigilada **devuelva su precio en el acto**. Hoy el
+  único camino por el que un precio entra en la base es el cron `0 22 * * *`
+  (`vercel.json` → `refreshQuotes`), y el alta —`watchAction` → `watchSymbol`
+  (`src/lib/watchlist/service.ts:51`)— **crea la vigilada sin pedir precio**: mete el
+  símbolo en el universo del ciclo y ahí acaba. Entre el alta y las 22:00 hay **hasta 24
+  horas** en las que la fila recién creada o no tiene cotización (símbolo nuevo, estado
+  neutro y **sin diagnóstico**, porque no ha fallado nada: es que el ciclo no ha corrido) o
+  enseña **el precio viejo** que quedó congelado cuando alguien dejó de seguirla, marcado
+  *sin refrescar* (SPEC-043). Es la primera capacidad de **refresco bajo demanda** del
+  producto.
+  **Por qué manda ahora.** Es **una spec y un punto de llamada**, y toca el primer minuto de
+  la pantalla que EPIC-004 puso delante de testers que llegan **sin sus vigiladas puestas**:
+  el gesto inaugural del producto —*vigila esto*— hoy se responde con una fila muda.
+  **No desplaza a EPIC-005 ni a EPIC-007**: cabe en paralelo, con worktree propio, como ya
+  se trabaja aquí.
+  ⚠️ **Es alcance nuevo por delante de lo comprometido** (R-5), y conviene que conste: entra
+  por petición del humano del 2026-08-25, no por el criterio de corte. Si prefiere que
+  espere, baja a "Después" con un renglón.
+  ⚠️ **Probable ADR** (R-1), y es lo que decide si cabe en una sesión: mete una llamada de
+  red **síncrona a un tercero dentro de una server action de escritura**, que hasta hoy solo
+  hablaba con la base. Y obliga a **escribir** la lectura de **D-2** que la sostiene: *el
+  precio se puede pedir bajo demanda; el disparo sigue evaluándose en el ciclo*.
+  ⚠️ **La pantalla y el correo van desacompasados, a propósito** (R-3). El estado de zona se
+  computa en render (`zoneStatusForUser`), así que un precio fresco pinta «En compra» al
+  instante — pero el **aviso** sigue saliendo a las 22:00. Decisión del humano del
+  2026-08-25: avisar al momento reinterpretaría D-2 (*locked*) y el modelo *edge-triggered*
+  de ADR-005, y eso necesita su propio gate.
+  ⚠️ **Coste medido, no temido** (R-2): en la unidad de ADR-027 pto. 1 hoy son **13 × 31 ≈
+  400 unidades/mes contra 10.000** (ADR-032, margen ~25×); un refresco al alta cuesta **1**.
+  El techo del plan sigue siendo **~322 símbolos distintos vigilados**, no las altas. Lo que
+  sí hay que impedir es que el gesto sea repetible a voluntad: `watchSymbol` es *upsert*.
+  ⚠️ **Cero esquema.** No añade ni una columna: escribe en `quotes` por el mismo `upsertQuote`
+  que ya usa el ciclo. **Cartera, import y un botón de «actualizar ahora» quedan FUERA**, por
+  decisión del mismo día — la épica es el sitio donde se gobiernan cuando se pidan.
+
 - **EPIC-007 — La app en el teléfono** (estado: borrador; nace el 2026-08-24 por decisión
   del humano, con su primera spec **ya aprobada**).
   **Qué entrega.** Que Stockeiro se pueda **usar** desde un móvil, no solo abrir. Hoy la
