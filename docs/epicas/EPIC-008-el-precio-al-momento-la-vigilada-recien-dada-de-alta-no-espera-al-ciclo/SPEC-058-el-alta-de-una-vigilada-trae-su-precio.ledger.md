@@ -1,4 +1,4 @@
----
+| Verificado en el gate, no por guardia congelada (correcto según ADR-037): `npm test` **1936/1936** y `npx playwright test` **325/325** a HEAD `56d3034`. Revisado uno a uno el diff `2797c35..HEAD` sobre tests ajenos: **no se borra ni se afloja ni un `expect`** — en `reglas-ingenieria*.test.ts` el patrón se **ancla al encabezado** (`^- **RN-nn** (`) porque RN-17 *cita* a RN-13/RN-14, y las 17 siguen exigiéndose en orden; en los cuatro e2e ajenos lo que se añade es **reconstrucción de premisa** (borrar cotización/diagnóstico), con la aserción intacta. El ciclo conserva su comportamiento: `src/lib/triggers/`, `vercel.json` y el esquema **sin tocar**, `symbolUniverse` sin cambios y `refreshQuotes` llamando a `ingerir` **sin presupuesto**. | ✅ || Ejecutado: los cinco casos pasan. Verificado en git que los documentos de verdad los escribe el **arquitecto** en `411715a`, antes de la primera línea de implementación (`77d84ef`), y que `FOUNDATION.md` **no se toca** (`git diff` vacío). La precisión de RN-16 es solo de redacción: `CICLOS_HASTA_SIN_REFRESCAR` sigue en 1.5, el umbral en 36 h y la medida en `updated_at`. | ✅ || Ejecutado: los cuatro casos pasan. Comprobado que la comparación es **entre los dos caminos reales** —`runRefreshCycle` y `watchAction`, cada uno sobre su PGlite— con `expect(alta.estado).toEqual(ciclo.estado)`; los literales que hay son **anclas positivas añadidas después**, no la comparación. Las dos direcciones están (respuesta buena con diagnóstico previo borrado en ambos · fallo clasificado con el mismo motivo en ambos). Leído el código: `ingerir` es privada y la llaman `refreshQuotes` y `refreshSymbolOnDemand`, y no hay segundo cuerpo. | ✅ || Ejecutado: los dos casos pasan. El barrido cruza el umbral por los dos lados **derivándolo** de `UMBRAL_SIN_REFRESCAR_MS` (no teclea 36) y compara lo que dice la pantalla contra lo que hace el alta, no contra una constante. Verificado por mí que **no hay segundo umbral**: el único hogar es `src/lib/market/sin-refrescar.ts` y `cotizacionVigente` es la negación literal de `estaSinRefrescar`; `grep` no encuentra `36` ni la aritmética del umbral en `refresh.ts` ni en `actions.ts`. | ✅ || Ejecutado: los tres gestos pasan con **una sola** llamada en total (dos altas seguidas · `unwatch` + alta · segundo usuario). El tercero comprueba además que el segundo usuario ve el precio, así que el ahorro no es «no funciona». | ✅ || Ejecutado: los tres casos pasan. La guardia cuenta **invocaciones** (`FakeMarketDataProvider.calls`, que registra cada `getQuotes`), no la forma de la llamada. El caso de cero llamadas siembra `99.99` en el proveedor y la fila sigue enseñando `53.72`: si se hubiera llamado, se vería. | ✅ || Ejecutado (unit 6/6) y verificado en navegador. Las dos direcciones vistas en mis capturas: fuera de zona `vigiladas-aviso-del-ciclo` tiene `count 0`; con REP en zona la frase aparece y es **idéntica** a `AVISO_LO_EMITE_EL_CICLO` (`toHaveText`, no `contains`). `/ayuda` la incluye desde la misma constante. Comprobado que la prosa ya no dice que el ciclo pida los precios y sigue diciendo «único que compara». Pasa la lista cerrada de afirmaciones prohibidas de SPEC-039. | ✅ || Ejecutado: los dos casos pasan. **Control positivo comprobado dentro del mismo test**: tras el alta hay 0 episodios / 0 avisos / 0 envíos, y a continuación `runRefreshCycle` sobre ese mismo estado da `triggers.opened.length === 1`, un `zone_triggers`, **un** aviso `entry` y correo en el `sender` — el cero no está verde por no llegar al motor. La guardia de imports mira el código sin comentarios, así que no confunde la explicación con la infracción. | ✅ || Ejecutado: pasa (~90 s, cuatro bases PGlite). Los cuatro casos se comparan **entre sí** (`toEqual(primero)`) y además contra el ancla positiva `{ ok: true }`, una fila y las cuatro zonas: no puede pasar por «los cuatro fallaron igual». | ✅ || Ejecutado: los tres casos pasan. Afirman `price`, `currency`, `asOf` **y** `updatedAt` idénticos al sembrado, más `sinRefrescar === true` y el `failReason` que toca. Ninguna cotización se borra ni se pone a cero. | ✅ || Ejecutado: los cuatro casos pasan (~3 s reales el del reloj). Verificado por mí que el presupuesto se declara **en un solo sitio**: `grep -rn "3_000|3000" src/` devuelve **una** línea (`refresh.ts:132`). La dirección buena está: `ProveedorLento(5)` con presupuesto 1 000 ms **persiste** `53.72` y deja diagnóstico `null`. `refreshQuotes` sigue sin admitir presupuesto (`conPresupuesto(p, undefined)` devuelve la promesa tal cual). | ✅ || Ejecutado: pasa. Además de `proveedor_no_disponible`, afirma `llamadas === 1` (el adaptador sí se invocó) — no pasa por no llegar al código. Comprobado que `proveedor_no_disponible` ya existía en `QuoteFailureReason`: no hay motivo nuevo. | ✅ || Ejecutado: pasa. `{ ok: true }`, las cuatro zonas `20/25/35/40` tal cual, `quotes` sin fila y `quote_diagnostics` con `simbolo_no_admitido`. | ✅ || Ejecutado: pasa. Las dos direcciones están: divisa **contradictoria** (USD del proveedor sobre símbolo EUR → se guarda EUR) y divisa **ausente** (caso Marketstack → se guarda USD del símbolo, no vacío). Y se afirma la identidad pedida: `[{ticker:SAN,micCode:BMEX}]` y `[{ticker:SAN,micCode:XNYS}]`. | ✅ || Verificado en navegador con Playwright a HEAD `56d3034`: `npx playwright test` → 325/325. Comprobado por mí que el fichero **no llama a `page.reload()` ni una vez** (un solo `page.goto('/vigiladas')` al principio). Captura propia: precio `53.72`, «A fecha» `2026-07-14` y clase `zone-out`/`zone-buy` en la respuesta al envío. | ✅ || Ejecutado: los dos casos pasan. El segundo es el que importa y no es tautológico — compara `updatedAt` **contra el sembrado** (`toBeGreaterThan`) con `price` y `asOf` idénticos, y exige `sinRefrescar === false`. | ✅ || Ejecutado `npm test`: el caso pasa. Leído: la fila queda con `hasQuote`, `state: buy`, `price 53.72`, `currency EUR` (la del símbolo) y `asOf` del proveedor; `quotes` tiene **una** fila y `quote_diagnostics` **cero**. No es vacío: afirma valores concretos, no ausencias. | ✅ |---
 id: SPEC-058
 tipo: ledger
 epica: EPIC-008
@@ -6,7 +6,7 @@ epica: EPIC-008
 # Ledger — SPEC-058 El alta de una vigilada trae su precio
 
 ## Resumen
-- Fase: en-revisión (implementación completa; el veredicto es del verificador)
+- Fase: **hecho** — verificada en GREEN el 2026-08-25 por sdd-verificador
 - Rama: `ft/SPEC-058-el-alta-de-una-vigilada-trae-su-precio`
 
 ## Matriz de criterios de aceptación
@@ -36,12 +36,81 @@ epica: EPIC-008
 ## Veredicto del verificador
 <!-- GREEN/RED + fecha + resumen. Lo escribe SOLO sdd-verificador. -->
 
+**GREEN — 2026-08-25, sdd-verificador.** Los 17 CA verificados sobre el árbol
+committeado en `56d3034` (rama `ft/SPEC-058-el-alta-de-una-vigilada-trae-su-precio`,
+base `origin/main` en `2797c35`), sin editar una línea de código.
+
+### Gates, literales
+
+| Gate | Resultado |
+|---|---|
+| `npm run typecheck` | `> tsc --noEmit` — sin salida, **exit 0** |
+| `npm run lint` | `> eslint . --max-warnings=0` — sin hallazgos, **exit 0** |
+| `npm test` | `Test Files 120 passed (120)` · `Tests 1936 passed (1936)` · `Duration 180.92s` |
+| `npx playwright test` | `325 passed (5.3m)` (con `APP_BASE_URL=http://localhost:3200` y build previo) |
+| `npm run version:check` | `[check-version-bump] Base: origin/main.` · `[check-version-bump] La version sube de 0.4.2 a 0.5.0.` — **exit 0** |
+
+Los cinco se corrieron **sobre el árbol committeado y limpio** (`git status --porcelain`
+vacío antes de empezar), que es la única forma de que `version:check` no dé un verde hueco.
+
+### Los tres sitios donde se apretó, y qué se encontró
+
+1. **La lectura de D-2 se sostiene en el código** (es lo que ADR-038 pto. 1 aprueba y
+   lo que hacía verificable esta entrega). El camino del alta **no alcanza** el motor ni
+   el canal: no hay import de `@/lib/triggers` ni de `@/lib/notifications` en
+   `actions.ts` ni en `refresh.ts`, y el comportamiento se mide con control positivo
+   (CA-10). El no-negociable de presentación de D-2 se sigue cumpliendo: el precio bajo
+   demanda lleva su `asOf` y la pantalla lo enseña («A fecha 2026-07-14» en las
+   capturas). Y no hay endpoint nuevo: el alta usa **el mismo** `provider.getQuotes` que
+   el ciclo, por el mismo `ingerir`. `FOUNDATION.md` no se toca.
+2. **El cero de CA-10 no está verde por no llegar al motor.** El control positivo corre
+   `runRefreshCycle` sobre el mismo estado en el mismo test y exige un episodio, un aviso
+   `entry` y correo salido.
+3. **CA-15 compara los dos caminos reales entre sí**, no contra literales: `runRefreshCycle`
+   y `watchAction`, cada uno sobre su propia PGlite, con `expect(alta.estado).toEqual(ciclo.estado)`.
+   Los valores escritos a mano que aparecen después son anclas positivas (para que la
+   igualdad no sea «los dos no hicieron nada»), no la comparación.
+
+### Lo que se comprobó de más, por desconfianza
+
+- **Un solo umbral** (CA-12/13/14): `cotizacionVigente` es la negación literal de
+  `estaSinRefrescar` y vive en `src/lib/market/sin-refrescar.ts`; `grep` sobre `src/` no
+  encuentra ningún `36` ni la aritmética del umbral fuera de ese fichero.
+- **Un solo presupuesto** (CA-7): `grep -rn "3_000\|3000" src/` devuelve **una** línea,
+  `src/lib/market/refresh.ts:132`.
+- **CA-17 no se mecanizó como guardia congelada** (ADR-037): ningún test nuevo enumera
+  directorios ni congela recuentos; la propiedad se afirma aquí, en el gate.
+- **Ningún `expect` ajeno borrado ni aflojado**: revisado el diff `2797c35..HEAD` fichero
+  a fichero sobre `tests/`.
+- **CA-3 sin recargar**: comprobado que `tests/e2e/spec058-alta-con-precio.spec.ts` no
+  contiene ni un `page.reload()` (un solo `page.goto` al principio del test).
+
+### Las tres salvedades del implementador: revisadas y aceptadas
+
+`F-SPEC-058-1` (el texto «Aún no ha pasado el ciclo» deja de describir el caso común),
+`F-SPEC-058-2` (la fecha de la entradilla de `/cartera` es global y no del usuario — es
+**anterior** a esta spec, confirmado: `src/app/cartera/page.tsx` no se toca en este diff)
+y `F-SPEC-058-3` (la latencia real sigue sin medirse, y así lo aprobó el gate). Ninguna
+bloquea un CA; las tres se llevan al humano antes del PR.
+
+**Nota de entorno, no de la rama**: `npm run build` falla en este equipo porque
+`.env.production.local` —local, ignorado por git, escrito por `vercel env pull`— trae
+`APP_BASE_URL="[SENSITIVE]"`, que es exactamente lo que la guardia de SPEC-055 debe
+rechazar. Verificado leyendo el fichero: 13 caracteres, sin esquema. Se construyó y se
+corrió el e2e con `APP_BASE_URL=http://localhost:3200`.
+
 ## Evidencia visual
 | CA | Captura |
 |---|---|
 | CA-3 (fuera de zona: precio y fecha en la misma respuesta) | `_qa/SPEC-058/ca3-alta-trae-precio-fuera-de-zona.png` |
 | CA-3 + CA-11 (en zona: color de fondo y la frase del ciclo) | `_qa/SPEC-058/ca11-en-zona-el-aviso-es-del-ciclo.png` |
 | CA-11 (`/ayuda`, sección de cadencia) | `_qa/SPEC-058/ca11-ayuda-cadencia.png` |
+
+Las tres capturas se **regeneraron en la verificación**, corriendo la suite completa de
+Playwright sobre el build de `56d3034`: el pie de cada una lleva ese commit, así que la
+evidencia visual es del árbol que se juzga y no de un estado intermedio. Las capturas de
+otras specs que la suite reescribe por el camino se restauraron (`git checkout -- …`), y
+solo se commiteó `_qa/SPEC-058/`.
 
 ## Salvedades / follow-ups
 
