@@ -9,16 +9,19 @@ tipo: roadmap
 ## Ahora (en curso)
 - **EPIC-008 — El precio al momento: la vigilada recién dada de alta no espera al ciclo**
   (estado: borrador; nace el 2026-08-25 a petición del humano, sobre la pantalla real).
-  **Qué entrega.** Que dar de alta una vigilada **devuelva su precio en el acto**. Hoy el
-  único camino por el que un precio entra en la base es el cron `0 22 * * *`
-  (`vercel.json` → `refreshQuotes`), y el alta —`watchAction` → `watchSymbol`
-  (`src/lib/watchlist/service.ts:51`)— **crea la vigilada sin pedir precio**: mete el
-  símbolo en el universo del ciclo y ahí acaba. Entre el alta y las 22:00 hay **hasta 24
-  horas** en las que la fila recién creada o no tiene cotización (símbolo nuevo, estado
-  neutro y **sin diagnóstico**, porque no ha fallado nada: es que el ciclo no ha corrido) o
-  enseña **el precio viejo** que quedó congelado cuando alguien dejó de seguirla, marcado
-  *sin refrescar* (SPEC-043). Es la primera capacidad de **refresco bajo demanda** del
-  producto.
+  **Qué entrega.** Que dar de alta una vigilada **devuelva su precio en el acto**.
+  *(Entregado: SPEC-058 salió GREEN 17/17 el 2026-08-25 y lo que sigue describe el estado
+  ANTES de esa entrega — se conserva porque es el problema que la épica vino a resolver.)*
+  Hasta SPEC-058, el único camino por el que un precio entraba en la base era el cron
+  `0 22 * * *` (`vercel.json` → `refreshQuotes`), y el alta —`watchAction` → `watchSymbol`
+  (`src/lib/watchlist/service.ts:51`)— **creaba la vigilada sin pedir precio**: metía el
+  símbolo en el universo del ciclo y ahí acababa. Entre el alta y las 22:00 había **hasta 24
+  horas** en las que la fila recién creada o no tenía cotización (símbolo nuevo, estado
+  neutro y **sin diagnóstico**, porque no había fallado nada: es que el ciclo no había
+  corrido) o enseñaba **el precio viejo** que quedó congelado cuando alguien dejó de
+  seguirla, marcado *sin refrescar* (SPEC-043). Es la primera capacidad de **refresco bajo
+  demanda** del producto, y desde el 2026-08-25 `quotes` tiene **dos escritores** — el ciclo
+  y el alta (RN-17, ADR-038).
   **Por qué manda ahora.** Es **una spec y un punto de llamada**, y toca el primer minuto de
   la pantalla que EPIC-004 puso delante de testers que llegan **sin sus vigiladas puestas**:
   el gesto inaugural del producto —*vigila esto*— hoy se responde con una fila muda.
