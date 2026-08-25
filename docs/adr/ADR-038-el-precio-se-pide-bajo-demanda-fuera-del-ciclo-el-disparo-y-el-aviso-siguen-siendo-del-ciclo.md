@@ -1,9 +1,11 @@
 ---
 id: ADR-038
 tipo: adr
-estado: borrador
+estado: aprobada
 historial:
   - {estado: borrador, fecha: 2026-08-25, por: sdd-arquitecto}
+  - {estado: aprobada, fecha: 2026-08-25, por: humano (Alberto Fojo)}
+aprobada-por: humano (Alberto Fojo)
 ---
 # ADR-038: El precio se pide bajo demanda fuera del ciclo; el disparo y el aviso siguen siendo del ciclo
 
@@ -16,6 +18,13 @@ historial:
   es lo que este ADR aporta y lo que el humano tiene que aprobar: **D-2 está *locked*** y solo
   un ADR aceptado puede interpretarla. **No decide el plan ni el proveedor** (eso es de
   producto y coste, ADR-032 pto. 7) ni la cadencia del ciclo (ADR-004).
+  El humano **aprobó este ADR y SPEC-058 el 2026-08-25**, y respondió las dos preguntas
+  abiertas del gate **confirmando lo redactado, sin cambios**: (1) **el presupuesto de tiempo
+  se queda en 3 s**, y se acepta **a sabiendas de que la latencia real no está medida** — esa
+  salvedad **sigue escrita a propósito** en el pto. 5 y en Consecuencias, y no se borra por
+  estar aprobada; (2) **la frase de CE-3 va en `/vigiladas` siempre que haya algo en zona**,
+  desde el módulo de contenido compartido, con `/ayuda` mostrándola también. A partir de aquí
+  este ADR es **inmutable**: para cambiarlo, otro que lo supersede.
 - Specs relacionadas: nace de **SPEC-058** (EPIC-008), que es su primera y única aplicación.
   **Interpreta D-2** de FOUNDATION. **Extiende ADR-002 pto. 4** (dedupe: *un símbolo no se
   pide dos veces por ciclo*) al camino bajo demanda. **Precisa la redacción de RN-16** —de
@@ -173,7 +182,9 @@ recargue a mano** (CE-1).
 ### 5. Presupuesto de tiempo declarado, y su agotamiento degrada **por el camino que ya existe**
 
 El alta pasa a esperar a un tercero. Se le pone un **presupuesto de tiempo de 3 segundos**,
-declarado **en un solo sitio** y no tecleado dos veces (ADR-026 pto. 2).
+declarado **en un solo sitio** y no tecleado dos veces (ADR-026 pto. 2). **Confirmado por el
+humano en el gate del 2026-08-25, con la salvedad encima de la mesa: la latencia real no está
+medida y este número es un techo razonado, no un percentil observado.**
 
 Por qué **3 s**, con el precio de las alternativas:
 
