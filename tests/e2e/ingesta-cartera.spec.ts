@@ -36,6 +36,16 @@ async function ingerirCotizacion(ticker: string, price: string, currency: string
   }
 }
 
+/** Retira las cotizaciones con `as_of` posterior a `limite` (ver el uso, abajo). */
+async function borrarCotizacionesPosterioresA(limite: string) {
+  const sql = postgres(DB_URL, { ssl: false, max: 1 });
+  try {
+    await sql`DELETE FROM quotes WHERE as_of > ${limite}`;
+  } finally {
+    await sql.end();
+  }
+}
+
 test('SPEC-004: la cotización ingerida alimenta el P/L actual y muestra el asOf', async ({ page }) => {
   await registrarYEntrar(page, 'ingesta1@example.com');
   await page.goto('/cartera');
@@ -55,6 +65,12 @@ test('SPEC-004: la cotización ingerida alimenta el P/L actual y muestra el asOf
 
   // Ingesta: último cierre no ajustado 110 con asOf 2026-07-13 (RN-12).
   await ingerirCotizacion('SAN', '110', 'EUR', '2026-07-13T00:00:00.000Z');
+  // La fecha de la entradilla es el `asOf` MÁS RECIENTE de `quotes` —de toda la tabla,
+  // no solo de las posiciones de este usuario— y la base del e2e es una sola. Desde
+  // SPEC-058 el alta de `/vigiladas` trae su precio (RN-17), así que specs anteriores de
+  // la suite dejan cotizaciones con `asOf` posterior a la que este test siembra. Se
+  // retiran para reconstruir la premisa; la aserción de CA-5 no se toca.
+  await borrarCotizacionesPosterioresA('2026-07-13T00:00:00.000Z');
   await page.reload();
 
   // CA-4: P/L actual = (110-100)*10 = 100.00, ya no "—".

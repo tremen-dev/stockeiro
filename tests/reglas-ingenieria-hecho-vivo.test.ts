@@ -39,6 +39,15 @@ function seccionDeIngenieria(): string {
 
 const seccionDeDominio = () => source().split(ENCABEZADO)[0];
 
+/**
+ * El ENCABEZADO de cada regla de dominio: guion de lista, id en negrita y su nombre
+ * entre paréntesis. Se ancla ahí y no a `**RN-nn**` suelto porque una regla puede
+ * **citar** a otra en su cuerpo —RN-17 nombra a **RN-13** y **RN-14** para decir que el
+ * disparo y el aviso siguen siendo del ciclo— y una cita no es una regla. Anclar no
+ * afloja la guardia: siguen teniendo que estar todas y en su orden.
+ */
+const ENCABEZADO_DE_REGLA = /^- \*\*(RN-\d+)\*\* \(/gm;
+
 /** El texto con los saltos de línea planchados: dónde caiga cada salto al
  *  ajustar el margen no es contrato; las palabras sí. */
 const llano = (texto: string) => texto.replace(/\s+/g, ' ').trim();
@@ -179,7 +188,7 @@ describe('SPEC-028 CA-14.3: alcance estricto — nada más se mueve', () => {
   });
 
   it('las RN de dominio siguen todas, y en el mismo orden', () => {
-    expect([...seccionDeDominio().matchAll(/\*\*(RN-\d+)\*\*/g)].map((m) => m[1])).toEqual([
+    expect([...seccionDeDominio().matchAll(ENCABEZADO_DE_REGLA)].map((m) => m[1])).toEqual([
       'RN-01',
       'RN-02',
       'RN-03',
@@ -198,6 +207,10 @@ describe('SPEC-028 CA-14.3: alcance estricto — nada más se mueve', () => {
       // SPEC-043, gate humano del 2026-08-21: «Cotización sin refrescar». Es de dominio
       // —dictamen de sdd-mercados, ADR-027, D-2— y entra en la serie que le toca.
       'RN-16',
+      // ADR-038 / SPEC-058, gate humano del 2026-08-25: «Refresco bajo demanda». Misma
+      // procedencia y mismo trato: dictamen de sdd-mercados detrás, y su hueco lo abre
+      // el arquitecto al aprobar (ADR-025).
+      'RN-17',
     ]);
   });
 

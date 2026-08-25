@@ -72,7 +72,7 @@
   por usuario, RN-01). Objetivo CE-2: 100 % de disparos con aviso registrado. Fuente:
   ADR-006; cierra R-4.
 - **RN-16** (Cotización sin refrescar): una cotización cuyo `updated_at` —el momento en que
-  el ciclo la **escribió**, no su `as_of` de mercado— supera el umbral de la cadencia
+  **se escribió la fila**, no su `as_of` de mercado— supera el umbral de la cadencia
   declarada (**36 h**: un ciclo perdido más medio día de holgura) está **sin refrescar**.
   Se **sigue usando** para RN-06 y RN-11 —marcar no es borrar—, pero **no se presenta como
   vigente**: toda pantalla que la muestre dice que no se está actualizando y, si se conoce,
@@ -81,7 +81,38 @@
   cambie: así el fin de semana, el festivo y el **retraso desigual de publicación** del
   proveedor **no** producen falsos positivos, y no hace falta calendario de sesiones. El
   umbral **presupone ciclo diario sin saltos**: quien introduzca saltos lo revisa en la
-  misma entrega. Fuente: sdd-mercados; D-2; ADR-027; SPEC-043.
+  misma entrega. Desde **ADR-038** hay **dos escritores** de la fila —el ciclo diario y el
+  **refresco bajo demanda** (RN-17)—, y por eso la medida se enuncia como *«cuándo se
+  escribió la fila»* y ya no *«cuándo la escribió el ciclo»*. **Es una precisión de
+  redacción y nada más**: el umbral (36 h), la medida (`updated_at` y **nunca** `as_of`) y
+  los tres motivos por los que se mide así quedan **intactos** — y un refresco bajo demanda
+  con éxito quita la marca por la misma vía que el ciclo, incluso si el proveedor devuelve
+  el mismo precio y el mismo `as_of`, porque el upsert reescribe la fila aunque el precio no
+  cambie. Fuente: sdd-mercados; D-2; ADR-027; SPEC-043; precisada por ADR-038 (SPEC-058).
+- **RN-17** (Refresco bajo demanda): un precio puede pedirse al proveedor **fuera del
+  ciclo**, atado a **un gesto del usuario**, y se ingiere por el **mismo camino** que el del
+  ciclo: misma identidad `(ticker, operating MIC)` (ADR-007/ADR-012), misma base —**último
+  cierre no ajustado**, RN-12—, divisa **del símbolo** y no la del proveedor (RN-09), y el
+  mismo vocabulario clasificado de fallo (SPEC-016). Lleva **tres límites**, y ninguno es
+  opcional:
+  **(a) No evalúa y no avisa.** No compara con las zonas, no abre ni cierra episodios y no
+  emite avisos: **RN-13** y **RN-14** siguen siendo **del ciclo** (D-2). La pantalla puede
+  ir por delante del correo —ver un valor «en zona» antes de recibir el aviso—, y eso es
+  **el diseño, no un fallo**: la pantalla que lo muestre lo dice.
+  **(b) No gasta si no compra nada.** No se pide un símbolo cuya cotización ya es
+  **vigente** —existe y **no** está *sin refrescar* (RN-16, **el mismo umbral**)—: si la
+  pantalla ya la presenta como al día, volver a pedirla no añade dato y sí consume cuota.
+  Es el dedupe de ADR-002 pto. 4 aplicado fuera del ciclo, y es lo que impide que repetir el
+  gesto se convierta en un botón de gastar cuota (ADR-027 pto. 1).
+  **(c) No puede impedir el gesto que lo dispara.** El gesto se persiste **antes** de pedir
+  el precio, y cualquier desenlace del refresco —fallo clasificado, excepción inesperada o
+  presupuesto de tiempo agotado— lo deja **completado**. El fallo se cuenta con el
+  vocabulario de SPEC-016 y **no destruye la cotización anterior**: marcar no es borrar
+  (RN-16).
+  El precio así obtenido **es un precio vigente de pleno derecho**: no se marca como
+  provisional y no tiene una segunda calidad, porque es el mismo cierre no ajustado que
+  habría traído el ciclo. Fuente: sdd-mercados (dictamen del 2026-08-25); D-2; ADR-038;
+  SPEC-058.
 
 ## Reglas de ingeniería (RI-xx)
 

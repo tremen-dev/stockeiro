@@ -48,6 +48,29 @@ export const CADENCIA_LINEA =
   'mercado. Esto no es tiempo real: cada precio lleva al lado la fecha a la que ' +
   'corresponde, y esa fecha es la que manda.';
 
+/**
+ * **La frase del desacompasamiento (SPEC-058 CA-11).** Hermana de `CADENCIA_LINEA`, y
+ * por el mismo motivo: **una frase, dos sitios que la muestran, ninguna copia**
+ * (ADR-026 pto. 2; precedente SPEC-044 CA-22). La muestran `/vigiladas` —siempre que
+ * haya algo en zona— y la sección de cadencia de `/ayuda`.
+ *
+ * Existe porque **RN-17** abre una ventana que antes no se veía. Desde el **refresco
+ * bajo demanda**, la pantalla puede decir «En compra» a las diez de la mañana mientras
+ * el correo espera al ciclo de la noche — y en un caso concreto el correo **no llega
+ * nunca**: precio de ayer dentro de zona a las 10:00, precio de hoy fuera a las 22:00, y
+ * el motor no ve la entrada (ADR-038, dictamen aviso 3). Eso es **D-2 funcionando**, no
+ * un aviso perdido; pero es nuevo que el usuario **vea** el estado intermedio, y lo que
+ * no se cuenta se lee como un fallo.
+ *
+ * Va en `/vigiladas` y no solo en la ayuda por el precedente que este repositorio ya
+ * tiene escrito arriba: *decirlo una vez, en la ayuda, no sirve — nadie lee la ayuda
+ * antes de quejarse*. Decisión del humano en el gate del 2026-08-25.
+ */
+export const AVISO_LO_EMITE_EL_CICLO =
+  'Ver una acción en zona no quiere decir que su aviso ya haya salido: los avisos se ' +
+  'emiten en el ciclo diario, después del cierre. La pantalla puede ir por delante del ' +
+  'correo.';
+
 /** Cuántos mercados dice la PROSA que hay. Ver `tests/ayuda-contenido.test.ts`. */
 export const MERCADOS_EN_PROSA = { cifra: 7, palabra: 'siete' } as const;
 
@@ -56,9 +79,15 @@ export const CADENCIA: Seccion = {
   titulo: 'Cada cuánto se mira el mercado',
   parrafos: [
     CADENCIA_LINEA,
-    'Hay un solo ciclo diario: se piden los precios de todo lo que alguien vigila, se ' +
-      'comparan con las zonas y se emiten los avisos que toquen. Entre ciclo y ciclo la ' +
-      'pantalla enseña el mismo precio, porque es el último que se conoce.',
+    // SPEC-058: esta sección ya NO dice que el ciclo sea quien pide los precios, porque
+    // desde RN-17 no es el único que los pide. Lo que sigue diciendo, y es lo que
+    // importa, es que el ciclo es el único que **compara con las zonas y avisa** (D-2).
+    'Hay un solo ciclo diario, y es el único que compara los precios con tus zonas y ' +
+      'emite los avisos que toquen. Los precios tienen dos entradas: ese mismo ciclo y el ' +
+      'gesto de empezar a vigilar una acción, que trae su precio sin esperar a la noche. ' +
+      'El resto del tiempo la pantalla enseña el mismo precio, porque es el último que se ' +
+      'conoce.',
+    AVISO_LO_EMITE_EL_CICLO,
     'Consecuencia que conviene saber antes de usar esto: un valor que entra en tu zona a ' +
       'media sesión y sale antes del cierre puede no aparecer, porque lo que se compara es ' +
       'el cierre. Stockeiro está pensado para zonas anchas y plazos largos, no para seguir ' +

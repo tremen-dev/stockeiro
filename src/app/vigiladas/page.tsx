@@ -2,7 +2,12 @@ import Link from 'next/link';
 import { requireUser } from '@/lib/auth/session';
 import { db } from '@/db/client';
 import { zoneStatusForUser } from '@/lib/watchlist/zone-status';
-import { CADENCIA_LINEA, RUTA_AYUDA, VACIO_VIGILADAS } from '@/lib/help/content';
+import {
+  AVISO_LO_EMITE_EL_CICLO,
+  CADENCIA_LINEA,
+  RUTA_AYUDA,
+  VACIO_VIGILADAS,
+} from '@/lib/help/content';
 import { AppNav } from '../app-nav';
 import { AltaVigilada } from './alta-vigilada';
 import { WatchedTable } from './watched-table';
@@ -20,6 +25,15 @@ export default async function VigiladasPage() {
   const user = await requireUser(); // SPEC-023 CA-13: sesión revocada -> login
   const rows = await zoneStatusForUser(db, user.id);
   const listaVacia = rows.length === 0;
+  /*
+    SPEC-058 CA-11 — la frase del desacompasamiento se enseña **cuando hay algo en zona**,
+    que es cuando el usuario puede leer la pantalla como una promesa de correo. Desde
+    RN-17 el precio entra también en el alta, así que se puede ver «En compra» horas antes
+    de que el ciclo compare y avise — y en un caso el correo no llega nunca (ADR-038,
+    dictamen aviso 3). El texto NO se escribe aquí: es la misma constante que muestra
+    `/ayuda`, como manda ADR-026 pto. 2.
+  */
+  const hayAlgoEnZona = rows.some((r) => r.state === 'buy' || r.state === 'sell' || r.state === 'both');
 
   return (
     <>
@@ -70,7 +84,14 @@ export default async function VigiladasPage() {
             </div>
           </div>
         ) : (
-          <WatchedTable filas={rows} />
+          <>
+            {hayAlgoEnZona && (
+              <p className="sub" data-testid="vigiladas-aviso-del-ciclo">
+                {AVISO_LO_EMITE_EL_CICLO}
+              </p>
+            )}
+            <WatchedTable filas={rows} />
+          </>
         )}
 
         <AltaVigilada listaVacia={listaVacia} />

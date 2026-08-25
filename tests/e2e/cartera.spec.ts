@@ -38,8 +38,29 @@ async function comprar(page: Page, { ticker, quantity, price, gastos, fecha }: C
   await form.locator('button[type="submit"]').click();
 }
 
+/**
+ * Deja el símbolo **sin cotización**, que es la premisa de «P/L actual "—"».
+ *
+ * Hace falta desde **SPEC-058**: el registro de símbolos es COMPARTIDO (ADR-002) y una
+ * spec anterior de la suite da de alta ese mismo ticker en `/vigiladas`, donde el alta
+ * **ya trae su precio** (RN-17). La compra de `/cartera` **sigue sin pedir precio** —el
+ * refresco bajo demanda entra por una sola puerta (ADR-038 pto. 8)—, pero el símbolo
+ * puede llegar aquí ya cotizado. Lo que este test mide no cambia y su aserción no se
+ * toca: lo que se reconstruye es el estado de partida.
+ */
+async function borrarCotizacion(ticker: string) {
+  const sql = postgres(DB_URL, { ssl: false, max: 1 });
+  try {
+    const filas = await sql`SELECT id FROM symbols WHERE ticker = ${ticker}`;
+    for (const s of filas) await sql`DELETE FROM quotes WHERE symbol_id = ${s.id}`;
+  } finally {
+    await sql.end();
+  }
+}
+
 test('SPEC-002: registrar compra muestra la posición con P/L actual "—"', async ({ page }) => {
   await registrarYEntrar(page, 'cartera1@example.com');
+  await borrarCotizacion('ITX');
   await page.goto('/cartera');
 
   await comprar(page, { ticker: 'ITX', quantity: '10', price: '100', fecha: '2026-01-02' });
