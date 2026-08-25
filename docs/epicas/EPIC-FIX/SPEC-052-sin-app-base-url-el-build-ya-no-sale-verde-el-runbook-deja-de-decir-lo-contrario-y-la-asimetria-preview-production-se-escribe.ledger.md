@@ -49,7 +49,7 @@ epica: EPIC-FIX
 | CA-4 — **(a)** columna **Entornos**, vocabulario cerrado, sin celdas vacías · **(b)** el motivo escrito de las solo-Production | `docs/despliegue.md` §0: tabla con la columna **Entornos**, la leyenda del vocabulario y el bloque 🧭. **Prosa corregida el 2026-08-25** por los findings del gate: la leyenda de `Preview + Production` ya no promete una consecuencia que solo vale para cuatro filas (**F-SPEC-052-10**) y el bloque 🧭 ya no dice que la decisión proteja el cupo de Marketstack (**F-SPEC-052-11**). El vocabulario cerrado sigue con sus **tres** valores y **ningún fichero de `tests/` cambió** | `G` › *CA-4 (a)* — **1 caso** (toda fila usa un valor de `VOCABULARIO_ENTORNOS`) · *CA-4 (b)* — **2 casos**: las cuatro claves marcadas `Production`, y §0 con el motivo y el precio aceptado literales | **3/3 verde, y ahora SÍ cerrado (2.ª ronda, 2026-08-25).** (a) vocabulario cerrado con sus **tres** valores en el documento y en `VOCABULARIO_ENTORNOS` (`tests/entornos-de-despliegue.test.ts:95`): sin cuarto valor. (b) los literales exigidos **intactos palabra por palabra** (*«una preview no debe gastar cuota de proveedores externos ni poder mandar correo de verdad»*, *«el buscador de símbolos no busca, no sale ni un correo y el cron no se puede probar»*, las cuatro claves `Production`). **F-SPEC-052-10 y -11 cerrados, y no me he creído ninguno de los dos**: rehíce el build de control —`.next` borrado, solo `DATABASE_URL` + `APP_BASE_URL`, **sin** `MARKETSTACK_API_KEY`— y sale **verde, exit 0, 21/21 páginas**; y contrasté el 🧭 nuevo contra sus ADR (ADR-007:21 *«`/symbol_search` está en el free tier (Basic)»*; ADR-012:73 *«Twelve Data se MANTIENE, en free tier, solo para la BÚSQUEDA»*). El bloque 🧭 **no nombra `APP_BASE_URL`** (0 ocurrencias), así que `avisoDeAppBaseUrl()` (`:444`) sigue recogiendo lo mismo y CA-2 mide lo mismo | ✅ |
 | CA-5 — foto de `vercel env ls` del 2026-08-23 en §13, etiquetada como foto | `docs/despliegue.md` **§13.5** (nueva) | `G` › *CA-5* — **2 casos**: comando + fecha + las siete claves del inventario; y *foto fechada* / *no es una fuente de verdad viva* | 2/2 verde; rojo reproducido sobre el §13 viejo. La etiqueta de «foto» está y dice lo que tiene que decir | ✅ |
 | CA-6 — el arreglo de ops consta como HECHO (§13 + checklist §5) | `docs/despliegue.md` §13.5, puntero en §13.2 (junto a `ALLOW_MIGRATE`) y línea `- [x]` en §5 | `G` › *CA-6* — **2 casos**: §13 con `vercel env add APP_BASE_URL preview` + valor + PR #58 + fecha; y la línea de checklist de §5 | 2/2 verde; rojo reproducido. §13.5 y la línea `- [x]` de §5 están, y el puntero de §13.2 junto a `ALLOW_MIGRATE` también | ✅ |
-| CA-7 — Preview deja de ser opcional en §3.2 y §7 | `docs/despliegue.md` §3.2 (bloque de Preview + `env add … preview`) y §7 paso 2. **Prosa de §3.2 corregida el 2026-08-25 (3.ª ronda)** por **F-SPEC-052-12**: el grupo del rótulo *«…porque el build las lee»* se queda con `DATABASE_URL` y `APP_BASE_URL` —las **dos** únicas que tumban el build, medido con `.next` borrado—; `AUTH_SECRET` y `AUTH_TRUST_HOST` pasan a un **tercer grupo** («obligatorias en Preview aunque el build **NO** las lee»), con su fallo real: build verde, preview arrancada, páginas públicas 200 y `POST /api/auth/callback/credentials` **500** (`UntrustedHost` / `MissingSecret`); y `ALLOW_MIGRATE=1` sale a párrafo propio porque su fallo es de `guard-migrate.mjs` y corta el `&&` **antes** de `next build`. Los **dos rótulos literales que exige el CA siguen palabra por palabra**, `.env.example` y §0 intactos y **ningún fichero de `tests/` cambió** | `G` › *CA-7* — **3 casos**: las **dos** frases prohibidas ausentes de todo el fichero, y §3.2 distinguiendo *Obligatorias en Preview porque el build las lee* de *solo hacen la preview más útil* | **3.ª ronda (2026-08-25): SIGUE REABIERTO. 3/3 casos verde y NO cerrado.** El grupo falso de `F-SPEC-052-12` está **genuinamente arreglado**, y lo he vuelto a medir yo con `.next` **borrado antes de cada build**: **(A)** sin `AUTH_SECRET` ni `AUTH_TRUST_HOST` → **verde, exit 0**, 21/21 páginas y listado de rutas completo — y como A solo llevaba `DATABASE_URL` + `APP_BASE_URL`, eso prueba además el *«y solo esas dos»* para **todas** las claves de §0, no solo para las cuatro del `env` de CI; **(B)** sin `APP_BASE_URL` → rojo, *Collecting page data*, `Failed to collect configuration for /_not-found`; **(C)** sin `DATABASE_URL` → rojo, `DATABASE_URL no definida`. B y C son el **control positivo**: el harness detecta fallos, así que el verde de A no es caché. Sobre **ese mismo build A**, con `next start`: `/login` **200**, `/legal` **200**, `/dashboard` **307**, `POST /api/auth/callback/credentials` **500** (*«There was a problem with the server configuration»*); y las **dos mitades por separado**, que es donde estaba la trampa: **solo** sin `AUTH_TRUST_HOST` → `UntrustedHost`; **solo** sin `AUTH_SECRET` → `MissingSecret: Please define a 'secret'`. `ALLOW_MIGRATE`: ejecutada la cadena real (`VERCEL_ENV=preview` sin permiso) → `guard-migrate.mjs` **exit 1** y el `&&` corta **antes** de `next build`. La **cota superior** es cierta y no contradice a CA-8. Los **dos rótulos literales**, palabra por palabra; §0 **sin tocar** (todos los *hunks* del diff caen en §3.2); **ningún fichero de `tests/`**. **Pero el mismo párrafo nuevo vuelve a afirmar más de lo que sus corridas prueban**: la ruta del fallo sin `DATABASE_URL`. Cuatro corridas mías, **cuatro rutas distintas**. **`F-SPEC-052-15`** | ⚠️ |
+| CA-7 — Preview deja de ser opcional en §3.2 y §7 | `docs/despliegue.md` §3.2 (bloque de Preview + `env add … preview`) y §7 paso 2. **Prosa de §3.2 corregida el 2026-08-25 (3.ª ronda)** por **F-SPEC-052-12**: el grupo del rótulo *«…porque el build las lee»* se queda con `DATABASE_URL` y `APP_BASE_URL` —las **dos** únicas que tumban el build, medido con `.next` borrado—; `AUTH_SECRET` y `AUTH_TRUST_HOST` pasan a un **tercer grupo** («obligatorias en Preview aunque el build **NO** las lee»), con su fallo real: build verde, preview arrancada, páginas públicas 200 y `POST /api/auth/callback/credentials` **500** (`UntrustedHost` / `MissingSecret`); y `ALLOW_MIGRATE=1` sale a párrafo propio porque su fallo es de `guard-migrate.mjs` y corta el `&&` **antes** de `next build`. Los **dos rótulos literales que exige el CA siguen palabra por palabra**, `.env.example` y §0 intactos y **ningún fichero de `tests/` cambió**. **4.ª ronda (2026-08-25, autorizada por el humano como excepción)** por **F-SPEC-052-15**: la última frase del primer cajón deja de dar una ruta como firma del fallo sin `DATABASE_URL` —cambia de corrida a corrida porque las páginas se recogen en paralelo— y pasa a fijar el **mensaje** (`DATABASE_URL no definida. Configúrala (ver .env.example).`, literal de `src/db/client.ts:19`) enumerando las rutas **observadas**. La mitad de `APP_BASE_URL` se queda igual porque su `/_not-found` **sí** es estable. Un solo hunk, §0 y los dos rótulos otra vez intactos, **ningún fichero de `tests/` cambió** | `G` › *CA-7* — **3 casos**: las **dos** frases prohibidas ausentes de todo el fichero, y §3.2 distinguiendo *Obligatorias en Preview porque el build las lee* de *solo hacen la preview más útil* | **3.ª ronda (2026-08-25): SIGUE REABIERTO. 3/3 casos verde y NO cerrado.** El grupo falso de `F-SPEC-052-12` está **genuinamente arreglado**, y lo he vuelto a medir yo con `.next` **borrado antes de cada build**: **(A)** sin `AUTH_SECRET` ni `AUTH_TRUST_HOST` → **verde, exit 0**, 21/21 páginas y listado de rutas completo — y como A solo llevaba `DATABASE_URL` + `APP_BASE_URL`, eso prueba además el *«y solo esas dos»* para **todas** las claves de §0, no solo para las cuatro del `env` de CI; **(B)** sin `APP_BASE_URL` → rojo, *Collecting page data*, `Failed to collect configuration for /_not-found`; **(C)** sin `DATABASE_URL` → rojo, `DATABASE_URL no definida`. B y C son el **control positivo**: el harness detecta fallos, así que el verde de A no es caché. Sobre **ese mismo build A**, con `next start`: `/login` **200**, `/legal` **200**, `/dashboard` **307**, `POST /api/auth/callback/credentials` **500** (*«There was a problem with the server configuration»*); y las **dos mitades por separado**, que es donde estaba la trampa: **solo** sin `AUTH_TRUST_HOST` → `UntrustedHost`; **solo** sin `AUTH_SECRET` → `MissingSecret: Please define a 'secret'`. `ALLOW_MIGRATE`: ejecutada la cadena real (`VERCEL_ENV=preview` sin permiso) → `guard-migrate.mjs` **exit 1** y el `&&` corta **antes** de `next build`. La **cota superior** es cierta y no contradice a CA-8. Los **dos rótulos literales**, palabra por palabra; §0 **sin tocar** (todos los *hunks* del diff caen en §3.2); **ningún fichero de `tests/`**. **Pero el mismo párrafo nuevo vuelve a afirmar más de lo que sus corridas prueban**: la ruta del fallo sin `DATABASE_URL`. Cuatro corridas mías, **cuatro rutas distintas**. **`F-SPEC-052-15`** | ⚠️ |
 | CA-8 — cruce: claves del build ⊆ claves marcadas `Preview + Production` | `G` — `clavesQueExigeElBuild()` + `entornosDeclarados()` + `incumplimientos()` | `G` › *CA-8: el runbook y el workflow concuerdan* — **1 caso** sobre el árbol real. El mensaje de cada incumplimiento se vuelca en el `expect` para que el rojo se lea sin abrir el fichero | Verde sobre el árbol real. **Rojo reproducido por mí** sobre el runbook de `497eccf`: nombra las cuatro claves (`APP_BASE_URL`, `AUTH_SECRET`, `AUTH_TRUST_HOST`, `DATABASE_URL`) y dice que la PR se queda sin preview. No es decoración | ✅ |
 | CA-9 — centinela: conjunto derivado no vacío, un solo job, contiene `APP_BASE_URL` y `DATABASE_URL` | `G` — `jobsQueConstruyen()` localiza por **contenido** (`run` con `npm run build`), nunca por nombre | `G` › *CA-9* — **2 casos**: exactamente **un** job construye; y sus claves no están vacías y llevan `APP_BASE_URL` y `DATABASE_URL` | 2/2 verde. Contrastado con `tests/ci-workflow.test.ts` caso 5.1: su `toEqual` de cuatro claves sigue **intacto** y el fichero **no está en el diff** — la cadena de tres eslabones de D-1 no se ha aflojado | ✅ |
 | CA-10 — centinela: tabla parseada ≥ 11 filas, con celdas de entorno no vacías | `G` — `entornosDeclarados()` | `G` › *CA-10* — **2 casos**: **cota inferior** de 11 filas (no recuento exacto: §0 crecerá) y `APP_BASE_URL` + `MARKETSTACK_API_KEY` con celda no vacía | 2/2 verde; **rojo reproducido**: con el §0 sin columna, `expected 0 to be greater than or equal to 11`. El parser deja de casar y lo dice | ✅ |
@@ -483,8 +483,66 @@ ni estilos — no hay nada que capturar con Playwright, y no se ha usado.
 
 ## Salvedades / follow-ups
 
-- **F-SPEC-052-15** 🔴 **ABIERTO — finding único del gate del 2026-08-25 (3.ª ronda).
-  §3.2 nombra, bajo la palabra «Medido», la ruta en la que muere el build sin
+- **F-SPEC-052-15** ✅ **CERRADO el 2026-08-25 por el implementador (4.ª ronda, autorizada
+  expresamente por el humano por encima del límite de tres del estándar).** Se toma la
+  **opción (a)** del finding: la frase deja de dar una ruta como firma y pasa a decir que
+  **lo estable es el mensaje, no la ruta**. Texto nuevo, `docs/despliegue.md` §3.2, primer
+  cajón, última frase:
+
+  > Medido con `.next` borrado antes de cada corrida: sin `APP_BASE_URL` el build muere en
+  > *Collecting page data* (`Failed to collect configuration for /_not-found`); sin
+  > `DATABASE_URL` muere en el mismo punto con el mensaje
+  > `DATABASE_URL no definida. Configúrala (ver .env.example).`, pero **la ruta que lo
+  > acompaña cambia de corrida a corrida** —se han observado `/admin`, `/cartera/importar`,
+  > `/api/cron/refresh` y `/api/auth/[...nextauth]`— porque las páginas se recogen en
+  > paralelo y revienta la primera que evalúe el cliente de BD: **lo estable es el mensaje,
+  > no la ruta**.
+
+  **Por qué (a) y no (b).** Quitar la ruta (opción **b**) dejaría al lector sin explicación
+  de por qué su log no se parece al del compañero de al lado, y este bloque se vende como
+  texto de diagnóstico: *«decide dónde vas a ver el fallo»*. Nombrar la carrera convierte la
+  discrepancia en algo esperado en vez de en una pista falsa. Y **conserva la asimetría con
+  la mitad de `APP_BASE_URL`, que es real**: esa ruta sí es estable y por eso se queda tal
+  cual, sin uniformar «por simetría».
+
+  **De dónde sale cada afirmación de la frase nueva**, una por una:
+
+  - *El mensaje* — literal exacto de `src/db/client.ts:19`
+    (`throw new Error('DATABASE_URL no definida. Configúrala (ver .env.example).')`), que es
+    también el que el gate capturó entero en su corrida **C3**. Va **completo**, no
+    abreviado, para que sea reconocible tal cual en un log.
+  - *Las cuatro rutas observadas* — las que están medidas y escritas en este ledger:
+    `/admin`, `/cartera/importar` y `/api/auth/[...nextauth]` de las corridas **C**, **C2**
+    y **C4** del gate de la 3.ª ronda, y `/api/cron/refresh` de la 2.ª. Se enumeran como
+    **observadas**, no como el conjunto posible.
+  - *La causa* — `Collecting page data using 15 workers` en el propio log: se recogen en
+    paralelo. El **número de workers no se escribe** en el runbook a propósito: depende de
+    la máquina y sería exactamente el mismo error de sobre-precisión que este finding
+    castiga (en Vercel el log del PR #58 dice `using 1 worker`).
+  - *«en el mismo punto»* — las tres corridas del gate que sí registraron ruta murieron en
+    *Collecting page data*, igual que la de `APP_BASE_URL`.
+
+  **Lo que se ha omitido a propósito.** El gate registró una corrida (**C3**) de la que
+  anotó *«solo capturé el mensaje»*. Eso admite dos lecturas —que no apareciera ruta, o que
+  no se copiara— y no puedo distinguirlas sin volver a medir, así que **no se afirma nada
+  sobre ella**: la frase no dice que a veces no salga ruta, solo enumera las observadas. Ante
+  la duda, omitir.
+
+  **Lo que NO se ha tocado**, por indicación expresa del encargo: la mitad de `APP_BASE_URL`
+  (su `/_not-found` es estable en dos corridas de la 3.ª ronda, en la de la 2.ª y en el log
+  real del PR #58), **§0 entera** (CA-4 verde y `F-SPEC-052-14` cerrado: reabrirla arriesga
+  un criterio ganado a cambio de nada), los **dos rótulos literales de CA-7** palabra por
+  palabra, `.env.example`, `src/` y **ni un fichero de `tests/`**. El diff de esta ronda es
+  **un solo hunk** en `docs/despliegue.md` §3.2 y este ledger. Suite completa:
+  **1829/1829**, 114 ficheros.
+
+  **`F-SPEC-052-16` sigue abierto y sin tocar**, tal como decidió el humano: el comentario
+  de `.github/workflows/ci.yml:138` continúa repitiendo la creencia que originó
+  `F-SPEC-052-12`, y queda anotado ahí abajo para el arquitecto.
+
+  <details><summary>El finding original, tal como lo escribió el verificador</summary>
+
+  **§3.2 nombra, bajo la palabra «Medido», la ruta en la que muere el build sin
   `DATABASE_URL`, y esa ruta no se reproduce: cambia en cada corrida.**
 
   `docs/despliegue.md` §3.2, primer cajón, última frase (texto **nuevo de esta entrega**):
@@ -543,6 +601,8 @@ ni estilos — no hay nada que capturar con Playwright, y no se ha usado.
   si fuera *la* firma. Y, como en las tres rondas anteriores: cualquier frase nueva que se
   escriba aquí tiene que venir con la corrida que la sostiene — y si la frase es universal
   («siempre», «recogiendo X»), con **más de una**.
+
+  </details>
 
 - **F-SPEC-052-14** ✅ **CERRADO por el gate el 2026-08-25 (3.ª ronda): la leyenda de §0 es
   EXACTA y no hay que tocarla.** Dictamen sobre la observación que levantó el implementador
@@ -1272,6 +1332,42 @@ ni estilos — no hay nada que capturar con Playwright, y no se ha usado.
 
 
 ## Cómo retomar (handoff)
+
+> ### 4.ª ronda de corrección (2026-08-25) — lo primero que hay que saber
+>
+> Ronda **excepcional**, autorizada expresamente por el humano (Alberto Fojo) por encima del
+> límite de tres del estándar, con **un solo finding y de una frase**: `F-SPEC-052-15`. Está
+> **CERRADO** arriba, con la opción **(a)** del propio finding.
+>
+> **Qué cambió.** **Un solo hunk** en `docs/despliegue.md` §3.2: la última frase del primer
+> cajón. Decía, con «Medido» delante, que sin `DATABASE_URL` el build muere *recogiendo
+> `/api/auth/[...nextauth]`*; ahora fija el **mensaje** —`DATABASE_URL no definida.
+> Configúrala (ver .env.example).`, literal exacto de `src/db/client.ts:19`— y dice que **la
+> ruta cambia de corrida a corrida**, enumerando las cuatro **observadas** y dando la causa
+> (las páginas se recogen en paralelo y revienta la primera que evalúe el cliente de BD).
+> **Lo estable es el mensaje, no la ruta.**
+>
+> **Qué NO cambió, y es deliberado.** La mitad de `APP_BASE_URL` sigue **igual**: su
+> `/_not-found` es estable en las corridas de la 3.ª ronda, en la de la 2.ª y en el log real
+> del PR #58, así que **no se ha uniformado «por simetría»**. §0 **no se ha tocado** (CA-4
+> verde, `F-SPEC-052-14` cerrado). Los **dos rótulos literales** de CA-7 que clava
+> `tests/entornos-de-despliegue.test.ts:553-554`, palabra por palabra. Ni `.env.example`, ni
+> `src/`, ni la spec, ni ningún ADR, ni **un solo fichero de `tests/`**.
+>
+> **Suite: 1829/1829**, 114 ficheros. (En la corrida completa, 4 tests con Postgres efímero
+> —`account-deletion`, `symbol-identity`, `triggers-cycle`, `vigiladas-nombre`— excedieron el
+> `testTimeout` de 20 s por carga de la máquina; re-ejecutados esos 4 ficheros solos:
+> **43/43 verde**. Flaquera de infraestructura, no del cambio: esta ronda solo toca prosa que
+> ningún test de esos mira.)
+>
+> **Para el verificador: solo hay que re-verificar CA-7**, y dentro de él solo esa frase.
+> Ningún otro CA ha sido tocado. Las celdas **Verif.** y **Estado** de la matriz **no se han
+> tocado**: son suyas. Si vas a medir, borra `.next` antes de cada build.
+>
+> **Residual que sigue abierto a propósito**: `F-SPEC-052-16` (el comentario de
+> `.github/workflows/ci.yml:138` repite la creencia que originó `F-SPEC-052-12`). El humano
+> decidió **dejarlo anotado y no arreglarlo aquí**: está fuera del alcance declarado de
+> SPEC-052.
 
 > ### 3.ª ronda de corrección (2026-08-25) — lo primero que hay que saber
 >

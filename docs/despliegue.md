@@ -275,8 +275,13 @@ la PR.
   esas dos. Si falta una, **`next build` falla y la PR se queda sin preview**. No sale «a
   medias»: no llega a existir. Es exactamente lo que pasó el 2026-08-23 con `APP_BASE_URL` (§0).
   Medido con `.next` borrado antes de cada corrida: sin `APP_BASE_URL` el build muere en
-  *Collecting page data* (`Failed to collect configuration for /_not-found`); sin `DATABASE_URL`,
-  recogiendo `/api/auth/[...nextauth]` (`DATABASE_URL no definida`).
+  *Collecting page data* (`Failed to collect configuration for /_not-found`); sin
+  `DATABASE_URL` muere en el mismo punto con el mensaje
+  `DATABASE_URL no definida. Configúrala (ver .env.example).`, pero **la ruta que lo
+  acompaña cambia de corrida a corrida** —se han observado `/admin`, `/cartera/importar`,
+  `/api/cron/refresh` y `/api/auth/[...nextauth]`— porque las páginas se recogen en
+  paralelo y revienta la primera que evalúe el cliente de BD: **lo estable es el mensaje,
+  no la ruta**.
 - **Obligatorias en Preview aunque el build NO las lee** — `AUTH_SECRET` y `AUTH_TRUST_HOST`.
   Auth.js las lee **en cada petición**, no al construir: en `src/` y en `scripts/` no hay ni una
   lectura suya —solo se nombran en un comentario—, y sin las dos `next build` termina
