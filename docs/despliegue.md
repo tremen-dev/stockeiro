@@ -103,12 +103,18 @@
 | `FEEDBACK_EMAIL` | — | **Opcional.** Buzón del canal de feedback del pie | SPEC-039 / F-SPEC-039-6 |
 
 > ⚠️ **`APP_BASE_URL` debe ser el origen REAL del despliegue** (hoy
-> `https://stockeiro-lemon.vercel.app`), no el valor de ejemplo de `.env.example`
-> (`https://stockeiro.app`, un dominio propio que quizá no exista aún). Si apunta a otro
-> sitio, los enlaces de reset llevan a la nada — y lo hacen con aire de estar bien
-> configurado. `appBaseUrl()` **falla ruidosamente si la variable falta**, pero no puede
-> detectar que esté *mal*: eso solo lo ve el usuario que pincha el enlace. Y ojo: el error
-> es en tiempo de **petición**, no de build, así que el deploy sale verde igualmente.
+> `https://stockeiro.tremen.dev`, el dominio principal desde el 2026-08-17), no el valor de
+> ejemplo de `.env.example` (`https://stockeiro.app`, un dominio propio que quizá no exista
+> aún). Si apunta a otro sitio, los enlaces de reset llevan a la nada — y lo hacen con aire
+> de estar bien configurado. `appBaseUrl()` **falla ruidosamente si la variable falta**, pero
+> no puede detectar que esté *mal*: eso solo lo ve el usuario que pincha el enlace.
+>
+> **Y ojo, que esto cambió**: desde **SPEC-051** la clave se lee **en tiempo de build**
+> —`metadataBase` del layout raíz—, así que si falta, **`next build` falla y no hay
+> despliegue**. Hasta el 2026-08-25 esta misma línea decía lo contrario («el error es en
+> tiempo de petición, así que el deploy sale verde igualmente»), y era falso: el preview del
+> PR #58 se cayó exactamente por eso el 2026-08-23. **Preview también la necesita**, y por eso
+> se le añadió ese mismo día (§13).
 
 > ℹ️ **`FEEDBACK_EMAIL` es la única variable que añade EPIC-004, y normalmente NO hay que
 > ponerla** (SPEC-039 CA-16). El enlace «contar algo o reportar un fallo» del pie compone un
