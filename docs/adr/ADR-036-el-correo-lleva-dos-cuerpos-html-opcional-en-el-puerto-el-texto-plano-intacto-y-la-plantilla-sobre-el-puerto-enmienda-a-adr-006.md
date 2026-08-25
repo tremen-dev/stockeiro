@@ -1,9 +1,11 @@
 ---
 id: ADR-036
 tipo: adr
-estado: borrador
+estado: aprobada
 historial:
   - {estado: borrador, fecha: 2026-08-25, por: sdd-arquitecto}
+  - {estado: aprobada, fecha: 2026-08-25, por: humano (Alberto Fojo)}
+aprobada-por: humano (Alberto Fojo)
 ---
 # ADR-036: El correo lleva dos cuerpos — `html` opcional en el puerto, el texto plano intacto, y la plantilla **sobre** el puerto, nunca dentro del adaptador (enmienda al pto. 1 de ADR-006)
 
