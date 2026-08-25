@@ -24,11 +24,11 @@ epica: EPIC-INFRA
 <!-- Un CA está ✅ solo cuando Implementado + Test + Verif. aplicables están en verde. Una salvedad se marca ⚠️, nunca ✅. -->
 | CA | Implementado (fichero) | Test (fichero/caso) | Verif. | Estado |
 |---|---|---|---|---|
-| CA-1 (la retirada, con las cuatro condiciones) | `tests/tarjeta-guardias-ampliadas.test.ts` — **retirado** el bloque `SPEC-051 CA-17.1` entero (111-139 en `778f189`) con sus **dos** casos; en su hueco, el porqué en prosa (**91-162** del árbol entregado); **cabecera corregida** (**29-39**); y los ocho símbolos que quedaban sin uso, fuera. Único fichero de código tocado | **n-a a propósito** — lo que sustituye al bloque es **prosa en el sitio** (cond. 2). Un test en su lugar sería el verde vacío que ADR-031 prohíbe; molde `F-SPEC-042-9` y SPEC-053 CA-13 | Se **lee el fichero** en el gate y se contrastan las cuatro condiciones una a una | ❌ |
-| CA-2 (recuento y suite verde) | — (no hay código que implementar: es el efecto de CA-1) | `npx vitest run` — **antes 1897 / después 1895**, Δ **−2**; **116 ficheros verdes, cero rojos**; el fichero tocado pasa de **12** a **10**. Detalle en §Recuentos | Recuentos **antes (12)** y **después (10)** del fichero, y que **ningún otro fichero de `tests/` cambie su número de casos**. Los dos recuentos se pegan abajo | ❌ |
-| CA-3 (la regla escrita, con su fuente) | **Los tres, y los tres del arquitecto**: `docs/adr/ADR-037-*.md` (aprobado el 2026-08-25); `FOUNDATION.md` **3.er corolario** datado 2026-08-25, pegado a los otros dos, al final de § *Cómo se trabaja aquí*; `docs/fundacion/reglas.md` **`RI-03`**, párrafo *«Precisión del 2026-08-25»* con **Fuente: ADR-037** y sin `RI-04`. Escritos por sdd-arquitecto tras la escalada `F-SPEC-057-4`, no por la implementación (ADR-025) | **n-a a propósito** — no se añade un test que compruebe que un documento contiene una frase: sería una casilla, y esta spec no añade comprobaciones (CA-4) | Se **leen los dos documentos** en el gate contra los tres puntos de CA-3 | ❌ |
-| CA-4 (el saldo, −2 / +0) | — | **Saldo −2 / +0**, medido contra `778f189`: dos casos de `vitest` retirados, **cero** añadidos; ni un fichero nuevo en `tests/`, ni en `tests/e2e/`, ni un script en `scripts/`, ni un step en `.github/workflows/ci.yml`, ni un `toContain` sobre un documento | Recuento de casos retirados y añadidos contra `778f189`, y comprobación de que no hay script de gate nuevo en `scripts/` ni step nuevo en `.github/workflows/ci.yml`. **Saldo no negativo = RED** | ❌ |
-| CA-5 (acotación) | **n-a** | **n-a — por ADR-031 pto. 1.2 / `RI-03`, con el porqué escrito debajo; no es una omisión** | Diff de la rama con el árbol limpio, revisado a mano; salida pegada en §Acotación | ❌ |
+| CA-1 (la retirada, con las cuatro condiciones) | `tests/tarjeta-guardias-ampliadas.test.ts` — **retirado** el bloque `SPEC-051 CA-17.1` entero (111-139 en `778f189`) con sus **dos** casos; en su hueco, el porqué en prosa (**91-162** del árbol entregado); **cabecera corregida** (**29-39**); y los ocho símbolos que quedaban sin uso, fuera. Único fichero de código tocado | **n-a a propósito** — lo que sustituye al bloque es **prosa en el sitio** (cond. 2). Un test en su lugar sería el verde vacío que ADR-031 prohíbe; molde `F-SPEC-042-9` y SPEC-053 CA-13 | **Leído el fichero entero en el árbol entregado (2026-08-25).** **(1)** El diff tiene **4 hunks** y ninguno cae por debajo de la línea 166: fuera el `describe('SPEC-051 CA-17.1…')` con sus **dos** casos y nada más; los ocho símbolos huérfanos que se eliminan son **exactamente** los ocho que la §Nota mecánica de CA-1 pre-autoriza (`readdirSync`, `statSync`, `relative`, `testsDir`, `rel`, `NO_SE_TOCA`, `PROPIOS`, `fuentesDeTests`), y `casos()`, `sinComentarios()`, `caso()`, `fuente()` y `GUARDIAS` siguen ahí. **(2)** El porqué está **en el sitio** (91-162), con los seis puntos exigidos y con **fecha y autorización nominal del humano (Alberto Fojo) del 2026-08-25**, y diciendo que lo redacta el arquitecto. La **cabecera corregida** (29-39) es **cierta hoy**: los `describe` que quedan son 17.2, 17.3 y 17.4, exactamente lo que anuncia. **(3)** Los **10** casos restantes verdes (`npx vitest run tests/tarjeta-guardias-ampliadas.test.ts` → `10 passed`), **cero líneas tocadas** por debajo del hueco; `grep` de `.skip`/`.only`/`.todo` sólo acierta dentro de la prosa; **ninguna exclusión por nombre añadida** —al contrario, `NO_SE_TOCA` y `PROPIOS` desaparecen—. **(4)** Nada protegido se debilita: 17.2, 17.3 (con su mutación de control) y 17.4 (`PUBLIC_PREFIXES` + las doce rutas) intactos | ✅ |
+| CA-2 (recuento y suite verde) | — (no hay código que implementar: es el efecto de CA-1) | `npx vitest run` — **antes 1897 / después 1895**, Δ **−2**; **116 ficheros verdes, cero rojos**; el fichero tocado pasa de **12** a **10**. Detalle en §Recuentos | **Ejecutado por el verificador (2026-08-25): `npx vitest run` → `116 passed (116)` / `1895 passed (1895)`, cero rojos**, sin ningún fichero aislado y sin ningún flake. El **12 de partida está medido, no deducido**: el blob de `778f189` del fichero se extrajo a un directorio fuera del árbol y se corrió con `npx vitest run --root <scratch>` → **`12 failed (12)`** (fallan por no encontrar `src/`, que es irrelevante: lo que se medía era el **registro** de casos). El de llegada, medido: **`10 passed (10)`**. Δ = **−2**, exactamente los dos retirados. Y **ningún otro fichero de `tests/` puede haber cambiado**: `git diff --name-status origin/main...HEAD` sólo lista `tests/tarjeta-guardias-ampliadas.test.ts`; `git diff --name-only … -- .github/ scripts/ src/ app/ drizzle/ tests/e2e/` devuelve **0**. `npm run lint` y `npm run typecheck`, sin salida y sin error | ✅ |
+| CA-3 (la regla escrita, con su fuente) | **Los tres, y los tres del arquitecto**: `docs/adr/ADR-037-*.md` (aprobado el 2026-08-25); `FOUNDATION.md` **3.er corolario** datado 2026-08-25, pegado a los otros dos, al final de § *Cómo se trabaja aquí*; `docs/fundacion/reglas.md` **`RI-03`**, párrafo *«Precisión del 2026-08-25»* con **Fuente: ADR-037** y sin `RI-04`. Escritos por sdd-arquitecto tras la escalada `F-SPEC-057-4`, no por la implementación (ADR-025) | **n-a a propósito** — no se añade un test que compruebe que un documento contiene una frase: sería una casilla, y esta spec no añade comprobaciones (CA-4) | **Leídos los dos documentos, y comprobada una a una cada referencia que hacen** —no se dan por buenas por sonar bien—. **Pto. 1**: el 3.er corolario está en `FOUNDATION.md` **dentro de** § *Cómo se trabaja aquí* (única sección desde la línea 80 hasta el final) y **pegado al segundo**, no en sección nueva; datado 2026-08-25. Sus afirmaciones **son ciertas**: (a) los **dos incidentes** — `ADR-033` cita `F-SPEC-050-4` en tres sitios (líneas 21, 47, 247), y la propia prosa de retirada de `tests/primera-pantalla-fuente.test.ts:313-350` confirma que ése fue el disparo de SPEC-050 CA-20; el segundo se lee en el código de `778f189:tests/tarjeta-guardias-ampliadas.test.ts:112-132`; (b) las **cuatro formas que sobreviven**, cada una contra su fichero real: vacío → `tests/revision-movil-en-tests.test.ts:114` (`toEqual([])`), por elemento → `tests/version-bump-gate.test.ts:1021-1030` (`readdirSync().filter(.mjs)` + `toBe(false)` por elemento, con su centinela `toBeGreaterThan(0)`), pertenencia/prefijo → `tests/spec-032-frontera.test.ts:121,151,179`, búsqueda por nombre → `tests/version-bump-gate.test.ts:924` `readdirSync(dir).find(n => n.startsWith(\`${id}-\`))` invocado como `adr('ADR-024')` en la línea 1013; (c) **la autocita es real**: `FOUNDATION.md:107` ya nombraba `tests/spec-032-frontera.test.ts` entre *«los tres encuadres buenos que este proyecto ya tiene, y que sirven de molde»*, así que *«uno de los inocentes es el ejemplo que este documento pone de correcto»* **se sostiene**; (d) la referencia al 2.º corolario (*«enumerar formas prohibidas está prohibido»*) existe literalmente en la línea 163. **Pto. 2**: `RI-03` (`docs/fundacion/reglas.md`:114-161) conserva su número —`grep "RI-0"` da **RI-01, RI-02, RI-03 y nada más**—, cierra con **Fuente: ADR-037, que precisa ADR-031 pto. 1 y no lo supersede**, y declara que las condiciones (1)-(4) siguen siendo para guardias con `git` **salvo el centinela de no-vacuidad**. **Pto. 3**: los dos documentos dicen la ausencia de mecanismo **expresamente y con su porqué** —`FOUNDATION.md`: *«Y esto NO lleva guardia, a propósito»*; `RI-03`: *«Esta mitad NO lleva meta-guardia, y es decisión registrada, no olvido»*—, y ninguno afirma que exista una para esta familia. **Y el criterio invertido se cumple: cero tests, cero `toContain` y cero steps que vigilen estos párrafos** | ✅ |
+| CA-4 (el saldo, −2 / +0) | — | **Saldo −2 / +0**, medido contra `778f189`: dos casos de `vitest` retirados, **cero** añadidos; ni un fichero nuevo en `tests/`, ni en `tests/e2e/`, ni un script en `scripts/`, ni un step en `.github/workflows/ci.yml`, ni un `toContain` sobre un documento | **Saldo verificado: −2 / +0.** Retiradas: los dos casos medidos arriba. Añadidas: **cero**, y se comprobó de dos maneras. (a) Estructural: `git diff --name-only origin/main...HEAD -- .github/ scripts/ src/ app/ drizzle/ tests/e2e/` → **0 ficheros**; no hay fichero nuevo en `tests/`, ni script de gate, ni step de CI. (b) Textual, que es la que caza el `toContain` de contrabando: `git diff origin/main...HEAD -- tests/ | grep '^+' | grep -E 'expect\(|it\(|describe\(|test\('` devuelve **una sola línea, y es prosa** —el `* describe('SPEC-051 CA-17.1…')` citado dentro del comentario de la retirada—. **Ni una aserción, ni un caso, ni una casilla añadida en toda la entrega** | ✅ |
+| CA-5 (acotación) | **n-a** | **n-a — por ADR-031 pto. 1.2 / `RI-03`, con el porqué escrito debajo; no es una omisión** | **Diff revisado con el árbol limpio** (`git status --short` sin salida). **Seis** ficheros, y los seis están en el conjunto permitido; **ninguno bajo `src/`, `app/`, `drizzle/` ni `scripts/`**; **ningún otro fichero de `tests/`**; y los tres dictaminados sanos más `tests/spec-032-frontera.test.ts` **no aparecen**. Salida pegada en §Acotación. `npm run version:check` sobre el árbol limpio: *«El diff no toca codigo de aplicacion: no hay nada que subir»*, y `package.json` sigue en **0.4.2** igual que en `origin/main` — el alcance **no** se ha desviado | ✅ |
 
 > **CA-5 no lleva fila de test a propósito, y su `n-a` no está en blanco por
 > descuido.** *«Este cambio está bien acotado»* es cierto sobre un **delta** y su
@@ -40,6 +40,63 @@ epica: EPIC-INFRA
 
 ## Veredicto del verificador
 <!-- GREEN/RED + fecha + resumen. Lo escribe SOLO sdd-verificador. -->
+
+**GREEN — 2026-08-25, sdd-verificador.** **5/5 CA cerrados**: tres con verificación
+ejecutada (CA-1, CA-2, CA-4), uno leído documento a documento (CA-3) y uno declarado
+`n-a` a propósito y verificado como acotación (CA-5). Ningún `⚠️`, ninguna salvedad
+bloqueante.
+
+**Gates automáticos, todos sobre el árbol entregado y limpio:** `npx vitest run` →
+**116 ficheros / 1895 casos, cero rojos** (una sola corrida, sin flakes y sin necesidad
+de aislar ningún fichero de Postgres efímero); `npm run lint` (`eslint . --max-warnings=0`)
+sin salida; `npm run typecheck` (`tsc --noEmit`) sin salida; `npm run version:check`
+sobre el árbol limpio confirma que no hay bump que hacer. **No se corrió la e2e**: esta
+spec no tiene superficie de UI y correrla habría reescrito capturas ajenas bajo `_qa/`.
+
+**El saldo, que era la vara de esta spec: −2 / +0, y las dos cifras están medidas.** El
+**12** de partida no se dedujo del ledger de SPEC-051 ni del conteo a ojo: el blob de
+`778f189` se extrajo fuera del árbol y se ejecutó con `vitest --root`, que registró
+**12** casos; el árbol de llegada registra **10**, verdes. **+0 comprobado por texto**,
+no sólo por estructura: el único `+` del diff de `tests/` que contiene `expect(`, `it(`,
+`describe(` o `test(` está **dentro de un comentario**.
+
+**Sobre el criterio invertido, que es lo que hacía peligrosa esta entrega.** Se buscó
+activamente el defecto contrario —el celo que se paga como virtud— y **no está**: no hay
+test nuevo, ni fichero nuevo en `tests/` o `tests/e2e/`, ni script en `scripts/`, ni step
+en `.github/workflows/`, ni un `toContain` que vigile que los párrafos nuevos de
+`FOUNDATION.md` o de `RI-03` existen. La regla de ADR-037 llega **sin mecanismo**, que es
+lo que ADR-037 pto. 4 decidió, y los dos documentos **dicen que no lo lleva y por qué**
+en vez de callarlo.
+
+**Sobre CA-3, que es la entrega duradera y donde se puso el listón más alto.** Este
+proyecto ha producido esta semana varias frases de la familia *«suena verificado y no lo
+está»*, así que el corolario **no se juzgó por su prosa sino por sus referencias**, una a
+una y contra el árbol: los dos incidentes con su disparo (`ADR-033` citando
+`F-SPEC-050-4`; el `toEqual` de `778f189`), las **cuatro** formas supervivientes contra
+cuatro ficheros reales con línea, y —la más frágil de todas— la **autocita**: *«uno de
+los inocentes es `tests/spec-032-frontera.test.ts`, que este mismo documento cita más
+arriba como molde correcto»* es **verdad**, y está en `FOUNDATION.md:107`. Ninguna
+referencia resultó falsa. La cabecera corregida de
+`tests/tarjeta-guardias-ampliadas.test.ts` **también dice hoy algo cierto**: enumera 17.2,
+17.3 y 17.4, que son exactamente los tres `describe` que quedan.
+
+**Lo que NO se cuenta como defecto, y por qué**: `F-SPEC-057-5`
+(`tests/app-base-url.test.ts`:952-957) quedó **confirmado como prosa**: se leyó el caso
+entero y sus dos aserciones son `toBeGreaterThan(0)` sobre `puntos.length` y
+`toBe('new URL(appBaseUrl())')` sobre cada punto — **ninguna lee este fichero ni afirma
+nada sobre él**, y la suite está verde. Tocarlo lo prohíben CA-1 cond. 3 y CA-5. Queda
+anotado con destino. Y `F-SPEC-057-4` está **cerrado**: el implementador escaló en vez de
+escribir en un documento locked y el arquitecto lo redactó, que es lo que manda ADR-025;
+es precedente, no deuda.
+
+**Nota de alcance, para que conste**: el encargo del gate hablaba de *«cinco ficheros»* y
+a continuación nombraba **seis**. El diff tiene **seis**, y son exactamente los seis
+nombrados. No hay fichero de más ni de menos; la discrepancia estaba en el recuento del
+encargo, no en la entrega.
+
+**Pendiente mecánico, fuera de los CA**: `docs/tablero.md` no se ha regenerado — es el
+paso de cierre de `/sdd-tablero` una vez la spec está en `hecho`, y está previsto en
+§Cómo retomar pto. 3.
 
 ## Evidencia visual
 <!-- Tabla CA → captura en _qa/SPEC-057/. Informe HTML opcional: _qa/SPEC-057/informe.html -->
@@ -65,6 +122,35 @@ la spec dictamina sanos —`tests/revision-movil-en-tests.test.ts`,
 `tests/version-bump-gate.test.ts`, `tests/primera-pantalla-fuente.test.ts`— y
 `tests/spec-032-frontera.test.ts`, que queda declarado como caso fronterizo y **no
 se toca**.
+
+**Verificado por sdd-verificador el 2026-08-25, con el árbol limpio** (`git status
+--short` sin salida; `HEAD` = `70a48a8`; base `origin/main` = `778f189`):
+
+```
+$ git diff --name-status origin/main...HEAD
+M	FOUNDATION.md
+A	docs/adr/ADR-037-enumerar-un-directorio-que-otros-hacen-crecer-y-congelar-el-resultado-es-criterio-de-gate-la-regla-se-escribe-y-no-se-mecaniza-precisa-adr-031-pto-1.md
+A	docs/epicas/EPIC-INFRA/SPEC-057-enumerar-un-directorio-ajeno-y-congelar-el-resultado-es-criterio-de-gate.ledger.md
+A	docs/epicas/EPIC-INFRA/SPEC-057-enumerar-un-directorio-ajeno-y-congelar-el-resultado-es-criterio-de-gate.md
+M	docs/fundacion/reglas.md
+M	tests/tarjeta-guardias-ampliadas.test.ts
+
+$ git diff --stat origin/main...HEAD
+ 6 files changed, 1178 insertions(+), 60 deletions(-)
+
+$ git diff --name-only origin/main...HEAD -- .github/ scripts/ src/ app/ drizzle/ tests/e2e/
+(vacío)
+```
+
+**Seis ficheros, los seis dentro del conjunto permitido.** Ninguno bajo `src/`, `app/`,
+`drizzle/` ni `scripts/`; **ningún otro fichero de `tests/`**; y los tres dictaminados
+sanos —`tests/revision-movil-en-tests.test.ts`, `tests/version-bump-gate.test.ts`,
+`tests/primera-pantalla-fuente.test.ts`— más `tests/spec-032-frontera.test.ts` **no
+aparecen en el diff**. `docs/tablero.md` (permitido) queda para el cierre.
+
+Y el **único fichero de código** tocado se revisó hunk a hunk: **4 hunks**, el último
+termina en la línea 166 y el `describe('SPEC-051 CA-17.2'…)` empieza en la 164 — es
+decir, **por debajo del hueco de la retirada no hay ni una línea modificada**.
 
 ## Recuentos (CA-2 y CA-4)
 <!-- Los pega sdd-implementador (antes/después) y los confirma sdd-verificador. -->
@@ -109,7 +195,31 @@ Los tres que §Problema dictamina *«se queda, intacto»*
 salida y sin error; `npm run lint` (`eslint . --max-warnings=0`) sin salida y sin error
 —que es la comprobación que exigía retirar los ocho símbolos huérfanos.
 
-El **12** de partida está confirmado por el ledger de SPEC-051 (*«Verde (los doce
+**Confirmado por sdd-verificador el 2026-08-25, con las dos cifras medidas por él mismo
+y no heredadas:**
+
+```
+DESPUÉS — $ npx vitest run          (árbol entregado, corrida completa, una sola vez)
+ Test Files  116 passed (116)
+      Tests  1895 passed (1895)
+
+DESPUÉS — $ npx vitest run tests/tarjeta-guardias-ampliadas.test.ts
+      Tests  10 passed (10)
+
+ANTES  — blob de 778f189 extraído FUERA del árbol y corrido con `vitest --root <scratch>`
+      Tests  12 failed (12)      <- fallan por no encontrar `src/`; lo que se mide es el
+                                    REGISTRO de casos, que es 12
+```
+
+El «antes» del fichero está por tanto **medido, no deducido**: **12 → 10, Δ −2**. La
+corrida completa del «después» salió verde **a la primera y sin aislar nada**: no hizo
+falta separar ningún fichero de Postgres efímero, así que el flake de reloj que el
+implementador documenta arriba no se reprodujo y su explicación queda aceptada tal cual.
+Y el «resto de `tests/`» no necesita medirse: `git diff --name-status` demuestra que
+**el único fichero de `tests/` que este árbol modifica es ése**, luego ningún otro pudo
+cambiar su número de casos.
+
+El **12** de partida está además confirmado por el ledger de SPEC-051 (*«Verde (los doce
 casos), 17.1 · 17.2 · 17.3 con mutación de control · 17.4»*, GREEN 2026-08-23) y
 por el conteo del fichero: 2 (17.1) + 2 (17.2, bucle sobre `GUARDIAS`) + 4 (17.3,
 dos bucles) + 4 (17.4) = 12.

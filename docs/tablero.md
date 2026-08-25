@@ -93,6 +93,7 @@ Actualizado: 2026-08-25
 | SPEC-032 — las-guardias-de-migracion-nada-migra-sin-permiso-y-ningun-drop-pasa-mudo | hecho | 2026-08-18 (sdd-verificador) |
 | SPEC-042 — la-limpieza-de-las-ramas-de-preview-de-neon-deja-de-ser-un-recordatorio | hecho | 2026-08-20 (sdd-verificador) |
 | SPEC-053 — la-version-vive-en-los-dos-ficheros-el-lock-deja-de-derivar-y-una-guardia-lo-mantiene | hecho | 2026-08-24 (sdd-verificador) |
+| SPEC-057 — enumerar-un-directorio-ajeno-y-congelar-el-resultado-es-criterio-de-gate | hecho | 2026-08-25 (sdd-verificador) |
 
 ## EPIC-MEJORA (aprobada)
 
@@ -143,8 +144,9 @@ Actualizado: 2026-08-25
 | ADR-034 | aprobada | la-tabla-de-datos-conmuta-a-tarjetas-por-debajo-de-720-px-que-es-el-unico-breakpoint-de-modo-del-producto-y-el-area-tactil-se-mide | 2026-08-24 (humano (Alberto Fojo)) |
 | ADR-035 | aprobada | un-suelo-declarado-se-afirma-sin-holgura-la-tolerancia-de-redondeo-compara-dos-medidas-nunca-una-medida-contra-un-umbral-precisa-adr-026-y-adr-034-6 | 2026-08-24 (humano (Alberto Fojo)) |
 | ADR-036 | aprobada | el-correo-lleva-dos-cuerpos-html-opcional-en-el-puerto-el-texto-plano-intacto-y-la-plantilla-sobre-el-puerto-enmienda-a-adr-006 | 2026-08-25 (humano (Alberto Fojo)) |
+| ADR-037 | aprobada | enumerar-un-directorio-que-otros-hacen-crecer-y-congelar-el-resultado-es-criterio-de-gate-la-regla-se-escribe-y-no-se-mecaniza-precisa-adr-031-pto-1 | 2026-08-25 (humano (Alberto Fojo)) |
 
 ## Resumen
 
-- hecho: 49
+- hecho: 51
 - aprobada: 1
