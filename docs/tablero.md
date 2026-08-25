@@ -60,6 +60,12 @@ Actualizado: 2026-08-25
 |---|---|---|
 | SPEC-054 — la-interfaz-en-el-telefono-la-tabla-se-lee-como-tarjetas-por-debajo-de-720-px | hecho | 2026-08-24 (sdd-verificador) |
 
+## EPIC-008 — el-precio-al-momento-la-vigilada-recien-dada-de-alta-no-espera-al-ciclo (borrador)
+
+| Spec | Estado | Último cambio |
+|---|---|---|
+| SPEC-058 — el-alta-de-una-vigilada-trae-su-precio | hecho | 2026-08-25 (sdd-verificador) |
+
 ## EPIC-FIX (aprobada)
 
 | Spec | Estado | Último cambio |
@@ -146,9 +152,10 @@ Actualizado: 2026-08-25
 | ADR-035 | aprobada | un-suelo-declarado-se-afirma-sin-holgura-la-tolerancia-de-redondeo-compara-dos-medidas-nunca-una-medida-contra-un-umbral-precisa-adr-026-y-adr-034-6 | 2026-08-24 (humano (Alberto Fojo)) |
 | ADR-036 | aprobada | el-correo-lleva-dos-cuerpos-html-opcional-en-el-puerto-el-texto-plano-intacto-y-la-plantilla-sobre-el-puerto-enmienda-a-adr-006 | 2026-08-25 (humano (Alberto Fojo)) |
 | ADR-037 | aprobada | enumerar-un-directorio-que-otros-hacen-crecer-y-congelar-el-resultado-es-criterio-de-gate-la-regla-se-escribe-y-no-se-mecaniza-precisa-adr-031-pto-1 | 2026-08-25 (humano (Alberto Fojo)) |
+| ADR-038 | aprobada | el-precio-se-pide-bajo-demanda-fuera-del-ciclo-el-disparo-y-el-aviso-siguen-siendo-del-ciclo | 2026-08-25 (humano (Alberto Fojo)) |
 
 ## Resumen
 
-- hecho: 51
+- hecho: 52
 - aprobada: 1
 - bloqueada: 1
