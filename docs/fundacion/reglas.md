@@ -137,3 +137,25 @@
   esto autoriza a aflojar: cuando una guardia caduca, las únicas salidas siguen siendo
   las dos de `FOUNDATION.md` —re-encuadrar o borrar— y quien la toca no es quien se
   beneficia. Fuente: ADR-031.
+
+  **Precisión del 2026-08-25, para el vector que no usa `git`** (SPEC-057): la distinción de
+  arriba —criterio de gate contra propiedad— **no depende de que haya un `git` de por medio**.
+  Un conjunto esperado que **enumera lo que hay dentro de un directorio que crece por mano
+  ajena** (`docs/adr/`, `docs/epicas/`, `tests/`) es la misma afirmación *«este cambio está
+  bien acotado»*, escrita leyendo el disco: caduca igual, pero **a rojo falso** —acusa a quien
+  no ha tocado nada y le para la CI— en vez de a verde vacío. Le aplican **las mismas tres
+  salidas y en el mismo orden**: propiedad, gate con evidencia al ledger, o script en
+  `scripts/`. Lo que **no** le aplican son las cuatro condiciones (1)-(4) de arriba, que son
+  **para guardias con `git`** y no se extienden — **salvo el centinela de no-vacuidad (2)**,
+  que vale para cualquier barrido. **En una línea: si el valor que afirmas sale de recorrer un
+  directorio, la aserción tiene que sobrevivir a que ese directorio crezca.** Sobreviven cuatro
+  formas: conjunto esperado **vacío**, aserción **por elemento**, **pertenencia** (*«estos
+  siguen ahí»*, incluido el prefijo) y **búsqueda por nombre**; no sobrevive la **igualdad
+  exacta contra una lista literal no vacía**. Y se reconoce con una pregunta, no con una lista
+  de matchers: **¿de quién es la mano que puede poner esto rojo?** — si es la de cualquiera
+  que trabaje en otra spec, es criterio de gate. **Esta mitad NO lleva meta-guardia, y es
+  decisión registrada, no olvido**: el discriminante exige saber quién escribe en el
+  directorio, que es un hecho del **proceso** y no del texto, y el mejor mecanismo textual
+  conocido da **tres inocentes por un culpable**. Su disparador es `FOUNDATION.md` (3.er
+  corolario), que se lee en el paso 1 de `CLAUDE.md`. Fuente: **ADR-037**, que **precisa**
+  ADR-031 pto. 1 y no lo supersede; esta regla **conserva su número** y no nace `RI-04`.

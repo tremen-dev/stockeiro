@@ -169,3 +169,50 @@ sobre cómo se escriben los tests. Ya ha costado **cuatro rondas rojas** en dos 
   casilla.**
 - **El listón, en una línea: un CA está bien escrito si se puede violar de una forma que no se
   le ocurrió a quien lo escribió, y aun así falla.**
+
+Y un **tercer corolario**, gemelo del primero —aquél sobre **leer** un fichero ajeno, éste
+sobre **enumerar** un directorio ajeno—. Ya ha costado **dos** veces, con el mismo molde y
+distinto sujeto, y se fija el **2026-08-25** (cierra SPEC-057; fuente **ADR-037**, que
+**precisa** ADR-031 pto. 1 sin superseder nada):
+
+- **Enumerar un directorio que otros hacen crecer y congelar el resultado es criterio de
+  gate, no un test.** Afirma *«el árbol estaba así el día de la entrega»*: una **foto**, no
+  una propiedad. Es el mismo criterio que `RI-03` ya prohibía —*«este cambio está bien
+  acotado»*—, sólo que escrito **sin `git`**: por eso ni ADR-031 ni la meta-guardia de
+  SPEC-048 lo veían, y por eso hay que nombrarlo aparte. Los dos casos, para que esto sea
+  comprobable y no una moraleja: **SPEC-050 CA-20** exigía que ningún fichero de `docs/adr/`
+  contuviera jamás la cadena `SPEC-050`, y la disparó `ADR-033` **al citar `F-SPEC-050-4`**,
+  el hallazgo que lo origina; **SPEC-051 CA-17.1** congelaba la lista de ficheros de `tests/`
+  que mencionan `SPEC-051`, y la rompía cualquier spec posterior que la citase. Coste
+  conjunto: dos escaladas al humano y seis rondas de rol. **Defectos reales cazados: cero.**
+- **El defecto es un error de converso.** La guardia declara —y lo declara bien, en su propio
+  comentario— *«todo re-encuadre autorizado menciona a X»*, y el código la usa como *«toda
+  mención de X es un re-encuadre»*: condición **necesaria** tratada como **suficiente**. Y
+  como citar a la spec que te precede es el comportamiento **sano** de este proyecto —unas
+  levantan hallazgos y otras los recogen—, la guardia queda calibrada para castigar justo lo
+  que el método pide hacer. Caduca **a rojo falso**, no a verde vacío: el que paga es un
+  tercero que no ha tocado nada, y le para la CI.
+- **La regla, en una línea: si el valor que afirmas sale de recorrer un directorio, la
+  aserción tiene que sobrevivir a que ese directorio crezca.** Sobreviven cuatro formas, y las
+  cuatro están ya en este repositorio: conjunto esperado **vacío**
+  (`tests/revision-movil-en-tests.test.ts`), aserción **por elemento**
+  (`tests/version-bump-gate.test.ts`), **pertenencia** —*«estos siguen ahí»*, incluido el
+  prefijo— (`tests/spec-032-frontera.test.ts`) y **búsqueda por nombre**
+  (`readdirSync(...).find(n => n.startsWith('ADR-024-'))`). No sobrevive **la igualdad exacta
+  contra una lista literal no vacía**. Y sigue en pie lo de siempre: todo barrido lleva su
+  **centinela de no-vacuidad**, porque un barrido sobre el directorio equivocado es verde sin
+  haber mirado nada.
+- **Se reconoce con una pregunta, no con una lista de matchers** —enumerar formas prohibidas
+  sigue prohibido (2.º corolario)—: **¿de quién es la mano que puede poner esto rojo?** Si es
+  la mía, o la de quien toque el fichero del que estoy afirmando algo, es una **propiedad** y
+  su sitio es la suite. Si es **la de cualquiera que trabaje en otra spec**, es un criterio de
+  gate disfrazado y su sitio es el gate.
+- **Y esto NO lleva guardia, a propósito.** El discriminante necesita saber **quién escribe en
+  ese directorio**, que es un hecho del **proceso** y no del texto del fuente; el mejor
+  mecanismo textual que se sabe escribir da, medido sobre el árbol, **tres inocentes por un
+  culpable** —y uno de los inocentes es `tests/spec-032-frontera.test.ts`, que este mismo
+  documento cita más arriba como molde de re-encuadre **correcto**—. Se prefiere **una regla
+  escrita sin guardia a una guardia que acusa a inocentes**: ya acusó a dos. El disparador,
+  por tanto, es **este sitio**, que se lee en el paso 1 de `CLAUDE.md`, antes de escribir
+  nada. Quien quiera mecanizarlo tiene que traer un discriminante que separe los tres
+  inocentes que **ADR-037** nombra por línea; no basta con proponerlo mejor.
