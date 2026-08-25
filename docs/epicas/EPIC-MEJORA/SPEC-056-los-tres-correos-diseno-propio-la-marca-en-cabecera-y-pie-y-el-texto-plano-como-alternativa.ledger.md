@@ -36,29 +36,133 @@ epica: EPIC-MEJORA
 <!-- Un CA está ✅ solo cuando Implementado + Test + Verif. aplicables están en verde. Una salvedad se marca ⚠️, nunca ✅. -->
 | CA | Implementado (fichero) | Test (fichero/caso) | Verif. | Estado |
 |---|---|---|---|---|
-| CA-1 (el puerto admite dos cuerpos) | `src/lib/notifications/sender.ts` — `html?: string` | `tests/spec056-puerto-y-remitente.test.ts` › CA-1 (4 casos) + el `@ts-expect-error` que ejerce `npm run typecheck` | | ❌ |
-| CA-2 (ResendSender manda `text` y `html`) | `src/lib/notifications/resend-sender.ts` | `tests/spec056-puerto-y-remitente.test.ts` › CA-2 (3 casos, `fetchImpl` inyectado) | | ❌ |
-| CA-3 (la plantilla es pura y vive sobre el puerto) | `src/lib/notifications/templates/` (4 ficheros) | `tests/spec056-plantillas.test.ts` › CA-3 (4 casos, grafo transitivo + centinela) | | ❌ |
-| CA-4 (marca en cabecera, en los tres) | `templates/marco.ts` › `cabecera()` | `tests/spec056-plantillas.test.ts` › CA-4 (7 casos) | | ❌ |
-| CA-5 (marca en pie, con la fórmula de la app) | `templates/marco.ts` › `pie()` y `componer()` | `tests/spec056-plantillas.test.ts` › CA-5 (9 casos) | | ❌ |
-| CA-6 (fuente única: nada tecleado) | `templates/marco.ts` (lee `MARCA`); `resend-sender.ts` | `tests/spec056-plantillas.test.ts` › CA-6 (5 casos). **Con una excepción declarada** — ver Salvedades | | ❌ |
-| CA-7 (documento declarado + preheader) | `templates/marco.ts` › `documento()`, `preheader()` | `tests/spec056-plantillas.test.ts` › CA-7 (9 casos) | | ❌ |
-| CA-8 (maquetación de correo: tablas, 600 px, estilo en línea) | `templates/marco.ts`, `templates/paleta.ts` (`ANCHO_MAXIMO`) | `tests/spec056-plantillas.test.ts` › CA-8 (12 casos) | | ❌ |
-| CA-9 (nada que el cliente tire ni ejecute) | `templates/marco.ts`, `templates/correos.ts` | `tests/spec056-plantillas.test.ts` › CA-9 (3 casos + **control positivo** de los doce patrones) | | ❌ |
-| CA-10 (cero terceros; toda URL absoluta es un `href`) | `templates/marco.ts`, `templates/correos.ts` | `tests/spec056-plantillas.test.ts` › CA-10 (6 casos) | | ❌ |
-| CA-11 (paleta derivada de los tokens) | `templates/paleta.ts` › `COLOR`, `PILA_DE_FUENTES` | `tests/spec056-plantillas.test.ts` › CA-11 (8 casos; deriva de `colors_and_type.css` en cada ejecución) | | ❌ |
-| CA-12 (contraste medido) | `templates/paleta.ts` (los seis tokens que se usan) | `tests/spec056-plantillas.test.ts` › CA-12 (5 casos + **control** negro/blanco = 21:1) | | ❌ |
-| CA-13 (dos cuerpos; el de texto sin etiquetas) | `templates/marco.ts` › `componer()` | `tests/spec056-plantillas.test.ts` › CA-13 (9 casos) | | ❌ |
-| CA-14 (los dos cuerpos dicen lo mismo) | `templates/correos.ts` (una función devuelve los dos) | `tests/spec056-plantillas.test.ts` › CA-14 (3 casos, dato a dato) | | ❌ |
-| CA-15 (el enlace de reset, primero en el texto y visible en el HTML) | `templates/correos.ts` › `correoDeRecuperacion`; `src/lib/auth/password-reset.ts` | `tests/spec056-plantillas.test.ts` › CA-15 (4 casos) y `tests/spec056-emisores.test.ts` (el flujo real) | | ❌ |
-| CA-16 (asuntos byte-idénticos) | `templates/correos.ts` (los tres `subject`) | `tests/spec056-plantillas.test.ts` › CA-16 (4 casos) | | ❌ |
-| CA-17 (el registro in-app sigue siendo texto; sin migración) | `src/lib/notifications/service.ts` — el `payload` NO se toca | `tests/spec056-emisores.test.ts` › CA-17 (5 casos, sobre la base de test) | | ❌ |
-| CA-18 (cero regresión; ninguna guardia aflojada) | — (no hay código propio: es la propiedad de la entrega) | Las cuatro suites nombradas, verdes y **sin tocar**; ver Salvedades para el `numstat` | | ❌ |
-| CA-19 (el remitente por defecto ya no cita `stockeiro.app`) | `src/lib/notifications/resend-sender.ts` › `REMITENTE_POR_DEFECTO` | `tests/spec056-puerto-y-remitente.test.ts` › CA-19 (6 casos) | | ❌ |
-| CA-20 (código, `.env.example` y `despliegue.md` coinciden; siguen once claves) | `.env.example` (1 línea), `docs/despliegue.md` (§2, §3.2, §7) | `tests/spec056-puerto-y-remitente.test.ts` › CA-20 (5 casos, comparados entre sí) | | ❌ |
+| CA-1 (el puerto admite dos cuerpos) | `src/lib/notifications/sender.ts` — `html?: string` | `tests/spec056-puerto-y-remitente.test.ts` › CA-1 (4 casos) + el `@ts-expect-error` que ejerce `npm run typecheck` | `npm run typecheck` verde. Mutación `body?: string` en `sender.ts` → **7 errores de tsc**, incluido `Unused '@ts-expect-error'` en `tests/spec056-puerto-y-remitente.test.ts:63`. `fake-sender.ts` y `outbox-file-sender.ts` **no aparecen en el diff** contra `825046f`: los dos siguen exactamente como estaban. | ✅ |
+| CA-2 (ResendSender manda `text` y `html`) | `src/lib/notifications/resend-sender.ts` | `tests/spec056-puerto-y-remitente.test.ts` › CA-2 (3 casos, `fetchImpl` inyectado) | 18/18 en su fichero. Mutación «`ResendSender` deja de mandar `html`» → **1 rojo**. Ninguna de las dos llamadas usa `fetch` real: el espía recibe las dos. | ✅ |
+| CA-3 (la plantilla es pura y vive sobre el puerto) | `src/lib/notifications/templates/` (4 ficheros) | `tests/spec056-plantillas.test.ts` › CA-3 (4 casos, grafo transitivo + centinela) | 92/92 en `spec056-plantillas`. Mutación «`marco.ts` importa `@/db/schema`» → **1 rojo**. El centinela de no-vacuidad del recorrido está en el propio fichero. | ✅ |
+| CA-4 (marca en cabecera, en los tres) | `templates/marco.ts` › `cabecera()` | `tests/spec056-plantillas.test.ts` › CA-4 (7 casos) | Mutación «entra un `<img src>` de seguimiento tras la cabecera» → **6 rojos**. Capturas propias a 900 px y 360 px: `Stockeiro.` + `tremen.dev` arriba, antes del contenido, en los tres. | ✅ |
+| CA-5 (marca en pie, con la fórmula de la app) | `templates/marco.ts` › `pie()` y `componer()` | `tests/spec056-plantillas.test.ts` › CA-5 (9 casos) | Mutación «se cae `pie()`» → **7 rojos**. Volcado de los tres cuerpos de texto leído a mano: los tres terminan en `Stockeiro, un proyecto de tremen.dev`. | ✅ |
+| CA-6 (fuente única: nada tecleado) | `templates/marco.ts` (lee `MARCA`); `resend-sender.ts` | `tests/spec056-plantillas.test.ts` › CA-6 (5 casos). **Con una excepción declarada** — ver Salvedades | Mutación «se teclea la marca a mano en `marco.ts`» → **1 rojo**; «se cae el pie» → 7 rojos. **Pero queda UNA aparición tecleada** del literal `tremen.dev`: `<stockeiro@tremen.dev>` en `resend-sender.ts:44`. Es la S-1 del implementador y **la exige D-11 razón 5**, que prohíbe derivar la dirección de `MARCA`. La spec pide aquí dos cosas incompatibles; la excepción está acotada a una línea y un caso la vigila. **Salvedad aceptada, no ✅** (ver Veredicto). | ⚠️ |
+| CA-7 (documento declarado + preheader) | `templates/marco.ts` › `documento()`, `preheader()` | `tests/spec056-plantillas.test.ts` › CA-7 (9 casos) | Mutación «se cae el `preheader`» → **6 rojos**. Escaneo propio de los tres HTML de `_qa/`: `<!DOCTYPE html>`, `lang="es"`, charset, viewport, `color-scheme`/`supported-color-schemes` con `dark light` y `<title>` = asunto. | ✅ |
+| CA-8 (maquetación de correo: tablas, 600 px, estilo en línea) | `templates/marco.ts`, `templates/paleta.ts` (`ANCHO_MAXIMO`) | `tests/spec056-plantillas.test.ts` › CA-8 (12 casos) | Mutación «`max-width:600px` → `width:900px`» → **3 rojos**. Medido en Chromium: tarjeta **600 px** a 900 px de viewport y **336 px** a 360 px; `scrollWidth == clientWidth` en los seis casos (sin scroll horizontal). Escaneo propio: **0** `<table>` sin `role="presentation"`, **0** `<style>`. | ✅ |
+| CA-9 (nada que el cliente tire ni ejecute) | `templates/marco.ts`, `templates/correos.ts` | `tests/spec056-plantillas.test.ts` › CA-9 (3 casos + **control positivo** de los doce patrones) | Mutación «entra un `display:flex`» → **3 rojos**. Escaneo propio e independiente de los tres HTML con las doce construcciones: **ninguna aparición**. El control positivo del fichero (fragmento infractor construido a propósito) impide que la lista pase sin mirar nada. | ✅ |
+| CA-10 (cero terceros; toda URL absoluta es un `href`) | `templates/marco.ts`, `templates/correos.ts` | `tests/spec056-plantillas.test.ts` › CA-10 (6 casos) | Mutación «entra un `<img src>`» → **6 rojos**. Escaneo propio: cero `<img`, cero ` src=`, cero `url(`, cero `<link`. Todas las URL absolutas: `https://tremen.dev` ×2 (cabecera y pie, las dos `href`) y, en recuperación, la del reset ×2 — una como `href` del botón y otra como texto visible. | ✅ |
+| CA-11 (paleta derivada de los tokens) | `templates/paleta.ts` › `COLOR`, `PILA_DE_FUENTES` | `tests/spec056-plantillas.test.ts` › CA-11 (8 casos; deriva de `colors_and_type.css` en cada ejecución) | Mutación «séptimo color `#FFFFFF` en `filete`» → **3 rojos**. Escaneo propio de los tres HTML: exactamente `#111110 #1A1815 #2A2620 #F5F1EA #FF6B00 rgba(245, 241, 234, 0.66)`, que es lo que yo mismo leí de `design/tremen-ds/colors_and_type.css` (`:root` 45/48; `.v-tremendo` 78/79/82/84/86, resolviendo `--accent → --ember`). `PILA_DE_FUENTES` = `--font-sans` sin `Geist`. | ✅ |
+| CA-12 (contraste medido) | `templates/paleta.ts` (los seis tokens que se usan) | `tests/spec056-plantillas.test.ts` › CA-12 (5 casos + **control** negro/blanco = 21:1) | **Recalculado por mí** con una implementación WCAG 2.x propia, componiendo el alfa del secundario sobre cada fondo — sobre lienzo `#111110` / tarjeta `#1A1815`: hueso **16,78 / 15,74**; acento **6,62 / 6,20**; secundario **7,68 / 7,41**; rótulo del botón sobre acento **6,62**. Umbrales ≥ 15 / ≥ 6 / ≥ 4,5 cumplidos en los dos fondos. Control: negro sobre blanco = **21,0000**. | ✅ |
+| CA-13 (dos cuerpos; el de texto sin etiquetas) | `templates/marco.ts` › `componer()` | `tests/spec056-plantillas.test.ts` › CA-13 (9 casos) | Mutación «una etiqueta `<b>` se cuela en el texto plano» → **6 rojos**. Volcado de los tres cuerpos: ninguna `<`, ninguna entidad, ninguna coartada de «si no ves bien este correo». | ✅ |
+| CA-14 (los dos cuerpos dicen lo mismo) | `templates/correos.ts` (una función devuelve los dos) | `tests/spec056-plantillas.test.ts` › CA-14 (3 casos, dato a dato) | Volcado de los tres cuerpos leído a mano: entrada (ticker, precio, zona, `asOf`), resumen (los tres tickers con su zona, el recuento y el `asOf`) y recuperación (URL y `30`) aparecen en **los dos** cuerpos. El resumen gana **una línea** en el texto para llevar el recuento (S-2): usa las palabras exactas del asunto, y la primera línea sigue siendo la de hoy byte a byte. | ✅ |
+| CA-15 (el enlace de reset, primero en el texto y visible en el HTML) | `templates/correos.ts` › `correoDeRecuperacion`; `src/lib/auth/password-reset.ts` | `tests/spec056-plantillas.test.ts` › CA-15 (4 casos) y `tests/spec056-emisores.test.ts` (el flujo real) | Mutación «`MARCA.url` por delante en el texto» → **5 rojos**; «una URL de marca en la primera línea» → **3 rojos**. Volcado: la primera URL absoluta del texto es el enlace, desnudo y en su propia línea. En el HTML aparece dos veces (botón + texto copiable). Botón medido en Chromium: **297 × 48 px** a 900 px y **280 × 68 px** a 360 px (suelo de 44 px de ADR-034). | ✅ |
+| CA-16 (asuntos byte-idénticos) | `templates/correos.ts` (los tres `subject`) | `tests/spec056-plantillas.test.ts` › CA-16 (4 casos) | Comparados **byte a byte contra `825046f`**: `service.ts:100` y `:139` y `password-reset.ts:46` de la base dan las mismas tres cadenas que `correos.ts` produce hoy. Mutación «alguien “mejora” un asunto» → **1 rojo**. | ✅ |
+| CA-17 (el registro in-app sigue siendo texto; sin migración) | `src/lib/notifications/service.ts` — el `payload` NO se toca | `tests/spec056-emisores.test.ts` › CA-17 (5 casos, sobre la base de test) | `payload` en `service.ts:129` y `:173` **idéntico** al de `825046f:109` y `:148` (el diff no toca esas líneas). Mutaciones «el payload gana una etiqueta» → 2 rojos y «el payload cambia de formato» → 1 rojo. `git diff --name-status` no lista **ningún** fichero bajo `drizzle/`; `npm run db:scan` → 11 migraciones, las de siempre. La fila sale con sus once columnas de siempre. | ✅ |
+| CA-18 (cero regresión; ninguna guardia aflojada) | — (no hay código propio: es la propiedad de la entrega) | Las cuatro suites nombradas, verdes y **sin tocar**; ver Salvedades para el `numstat` | **Medido sobre el diff real**, no sobre el relato: `git diff --name-status 825046f..HEAD` lista 21 ficheros y **ninguno** es un test preexistente; `--numstat -- tests/` da `185/0`, `772/0`, `316/0` — tres ficheros nuevos, **cero borrados**. Ninguna aserción sobre `body` pudo modificarse porque ningún fichero que las contiene se abrió. Gates **tras commitear**: typecheck ✔, lint ✔, `npm test` **1820/1820 (115 ficheros)**, `npm run test:e2e` **323 passed (4.6 m)** incluido `tests/e2e/recuperacion.spec.ts`, `npm run version:check` → *La version sube de 0.4.1 a 0.4.2*. | ✅ |
+| CA-19 (el remitente por defecto ya no cita `stockeiro.app`) | `src/lib/notifications/resend-sender.ts` › `REMITENTE_POR_DEFECTO` | `tests/spec056-puerto-y-remitente.test.ts` › CA-19 (6 casos) | Mutaciones: «la dirección vuelve a `stockeiro.app`» → **4 rojos**; «el nombre visible pasa de 25 caracteres» → **4 rojos**; «el separador pasa a ` · `» → el fichero **ni colecta** (rojo). `grep -rn "stockeiro.app" src/` → **ninguna aparición**. El nombre visible mide 22 caracteres y es ASCII puro. | ✅ |
+| CA-20 (código, `.env.example` y `despliegue.md` coinciden; siguen once claves) | `.env.example` (1 línea), `docs/despliegue.md` (§2, §3.2, §7) | `tests/spec056-puerto-y-remitente.test.ts` › CA-20 (5 casos, comparados entre sí) | Los tres valores **extraídos a mano** por mí coinciden byte a byte: `resend-sender.ts:44`, `.env.example:58` y `docs/despliegue.md:189`, `:218` y `:394`. `git diff --numstat -- .env.example` = **`1 1`**: una línea, y es la de `RESEND_FROM`; **`APP_BASE_URL` sigue intacto** en `:30` — esa es la comprobación de la propiedad sobre el diff, que ningún test puede hacer. Once claves. Las únicas menciones vivas a `stockeiro.app` son `.env.example:30` y `docs/despliegue.md:107`, las dos de `APP_BASE_URL` (SPEC-052/055). Mutaciones: env viejo → 3 rojos, guía vieja → 1 rojo, clave nueva → 1 rojo. | ✅ |
 
 ## Veredicto del verificador
 <!-- GREEN/RED + fecha + resumen. Lo escribe SOLO sdd-verificador. -->
+
+**GREEN — 2026-08-25**, con **una salvedad declarada y aceptada (CA-6 ⚠️)**. 19 CA en ✅, 1 en ⚠️.
+Verificado en el worktree `D:/src/wt-56`, rama
+`ft/SPEC-056-los-tres-correos-diseno-marca-y-texto-plano`, contra la base de la rama `825046f`.
+No leí el informe del implementador antes de medir: lo que sigue sale de ejecutar y de mirar el diff.
+
+### Los gates, ejecutados por mí
+
+| Gate | Salida |
+|---|---|
+| `npm run typecheck` | sin salida (verde) |
+| `npm run lint` | sin salida (verde) |
+| `npm test` | `Test Files 115 passed (115)` · `Tests 1820 passed (1820)` |
+| `npm run build` + `npm run test:e2e` | `323 passed (4.6m)` |
+| `npm run version:check` | `La version sube de 0.4.1 a 0.4.2.` |
+| `npm run db:scan` | 11 migraciones, 2 con SQL destructivo ya desbloqueadas (SPEC-008, SPEC-024) |
+| `core/scripts/valida.mjs` | `[valida] OK` |
+
+Tras la e2e, las capturas ajenas de `_qa/` (SPEC-001…054) quedaron modificadas y las restauré con
+`git checkout -- _qa/`. En mi commit entra **solo** `_qa/SPEC-056/`.
+
+### Las guardias no son ciegas: 24 mutaciones, 24 rojos
+
+No me fié de que el ledger dijera que ya se había hecho: **volví a mutar yo**, una a una, revirtiendo
+después (`git status` limpio entre tandas). Este proyecto tiene precedente de guardias que pasaban
+sin medir nada (SPEC-040, SPEC-055), así que esto no es ceremonia.
+
+| Mutación | Se pone rojo |
+|---|---|
+| `filete` pasa a `#FFFFFF` (séptimo color) | CA-11, 3 casos |
+| entra un `display:flex` en cada párrafo | CA-9, 3 casos |
+| se cae `pie()` del marco | CA-5 y CA-6, 7 casos |
+| alguien «mejora» el asunto del reset | CA-16, 1 caso |
+| la primera línea del texto del reset lleva una URL de marca | CA-15, 3 casos |
+| se cae el `preheader` | CA-7, 6 casos |
+| entra un `<img src="https://px…/o.gif">` tras la cabecera | CA-4 y CA-10, 6 casos |
+| `marco.ts` importa `@/db/schema` | CA-3, 1 caso |
+| `MARCA.url` se cuela por delante del enlace en el texto | CA-15, 5 casos |
+| una etiqueta `<b>` se cuela en el texto plano | CA-13, 6 casos |
+| la marca se teclea a mano en `marco.ts` | CA-6, 1 caso |
+| el contenedor pierde el `max-width:600px` | CA-8, 3 casos |
+| `ResendSender` deja de mandar `html` | CA-2, 1 caso |
+| la dirección vuelve a `avisos@stockeiro.app` | CA-19 y CA-20, 4 casos |
+| `.env.example` vuelve al remitente viejo | CA-20, 3 casos |
+| `docs/despliegue.md` vuelve al remitente viejo | CA-20, 1 caso |
+| el nombre visible pasa a `MARCA.linea` (38 caracteres) | CA-19, 4 casos |
+| entra una clave nueva en `.env.example` | CA-20, 1 caso |
+| el nombre visible usa ` · ` (U+00B7, sin comillas) | el fichero **ni colecta**: rojo |
+| `body` pasa a opcional en el puerto | **`tsc`: 7 errores**, incluido el `@ts-expect-error` sin error que esperar |
+| el `payload` de entrada gana un `<b>` | CA-17, 2 casos |
+| el `payload` de resumen cambia de formato | CA-17, 1 caso |
+| `service.ts` deja de mandar `html` | 2 casos |
+| `password-reset.ts` deja de mandar `html` | 1 caso |
+
+Y dos controles positivos viven **dentro** de los propios ficheros de test, que es lo que impide que
+pasen sin mirar nada: CA-9 comprueba que sus doce patrones reconocen un fragmento infractor hecho a
+propósito, y CA-12 que su fórmula reproduce negro-sobre-blanco = 21:1 y blanco-sobre-blanco = 1:1.
+
+### Lo que medí sin pasar por los tests del proyecto
+
+Porque hay CA que son propiedades que **ningún test puede afirmar sobre sí mismo**:
+
+- **CA-18 es una propiedad del diff.** `git diff --name-status 825046f..HEAD` lista 21 ficheros y
+  **ninguno** es un test preexistente; `--numstat -- tests/` da `185/0`, `772/0`, `316/0`. Cero
+  borrados, cero modificaciones: el diff sobre `tests/` **solo añade**. Ninguna aserción sobre
+  `body` pudo aflojarse porque ningún fichero que las contiene se abrió.
+- **CA-20 y el acotado de R-6.** `git diff --numstat -- .env.example` = `1 1`. Una línea, y es
+  `RESEND_FROM`. `APP_BASE_URL="https://stockeiro.app"` sigue en `:30` sin tocar — territorio de
+  SPEC-052. Nota sobre S-4: el implementador re-encuadró su propia guardia para dejar de congelar el
+  literal de esa línea vecina; el re-encuadre es correcto (habría caducado con SPEC-052 sin defecto
+  detrás) **y la propiedad que dejó de vigilar la he verificado yo donde corresponde, en el diff**.
+- **CA-16 y CA-17 contra la base.** Comparé los tres `subject` y las dos plantillas de `payload`
+  con `git show 825046f:…`: idénticos.
+- **CA-11 y CA-12 con mis propias lecturas.** Derivé los seis tokens de
+  `design/tremen-ds/colors_and_type.css` y recalculé el contraste con una implementación WCAG propia.
+
+### La salvedad: CA-6 (⚠️, aceptada)
+
+CA-6 pide que en `src/lib/notifications/` **no** aparezca tecleado el literal `tremen.dev`. Queda
+exactamente **una** aparición: `<stockeiro@tremen.dev>` dentro de `REMITENTE_POR_DEFECTO`
+(`src/lib/notifications/resend-sender.ts:44`).
+
+No es un descuido ni un atajo: **la spec pide aquí dos cosas incompatibles**. D-11 razón 5 —arbitrada
+por el humano el 2026-08-25— prohíbe derivar la **dirección** de `MARCA`, y CA-19 exige que su
+dominio sea `tremen.dev`. Lo tecleado se reduce al **buzón**; el **nombre visible** sí sale de
+`MARCA.nombre`. La guardia no se ablandó para que pasara: un caso exige que la excepción sea
+**exactamente una línea y exactamente en ese fichero**, y una segunda la pondría roja. La acepto
+porque la alternativa —derivar la dirección de `MARCA`— es precisamente lo que la spec prohíbe; si
+el humano prefiere la lectura estricta, eso es un cambio de spec, no un defecto de la entrega.
+
+### Dos cosas que el humano tiene que ver, y ninguna bloquea
+
+1. **El texto del resumen gana una línea** (S-2): `Resumen: N acción(es) en zona.` detrás de la de
+   hoy. **La exige CA-14**, que pide el recuento en los dos cuerpos y hoy el texto no lo llevaba.
+   Usa las palabras exactas del asunto, la primera línea sigue siendo byte a byte la de hoy y
+   ninguna aserción existente miraba ese cuerpo. Lo verifiqué en el volcado, no en el ledger.
+2. **ADR-036 sigue con `estado: borrador`** mientras la spec que lo estrena está entregada. No es
+   un CA y no lo firma quien implementa ni quien verifica: queda **para el orquestador/humano**,
+   igual que ADR-034 y ADR-035 en SPEC-054 (`d32a4dc`).
+
+Y lo que esta verificación **no** prueba, dicho sin rodeos: **cómo se ve en Outlook** y **que Resend
+entregue de verdad la parte HTML**. `ResendSender` no se ejerce contra la red en ninguna suite. Eso
+lo cierran **F-SPEC-056-1** y **F-SPEC-056-4**, y hasta que F-SPEC-056-4 se haga, el remitente real
+en Production **no ha cambiado** por muy `hecho` que esté esta spec.
 
 ## Evidencia visual
 <!-- Tabla CA → captura en _qa/SPEC-056/. Informe HTML opcional: _qa/SPEC-056/informe.html -->
@@ -80,6 +184,23 @@ ejecuta, restaurar lo que no es de esta spec con `git checkout -- _qa/` y commit
 `_qa/SPEC-056/`.
 
 **Entregado por la implementación** (2026-08-25): los tres ficheros están en disco y committeados.
+
+**Capturado por el verificador** (2026-08-25) con el Chromium de `@playwright/test` del propio
+proyecto, abriendo los tres HTML como `file://`. Seis capturas, y las medidas que las acompañan:
+
+| Captura | CA que sostiene | Qué se ve / qué se midió |
+|---|---|---|
+| `_qa/SPEC-056/entrada.png` (900 px) | CA-4, CA-5, CA-8, CA-11 | Marca arriba (`Stockeiro.` + `tremen.dev`), `ITX a 45.20` con el precio en ember, `(asOf 2026-08-24)` y el pie con la fórmula de la app. Tarjeta **600 px** sobre lienzo a sangre. |
+| `_qa/SPEC-056/resumen.png` (900 px) | CA-4, CA-5, CA-8 | `Resumen: 3 acción(es) en zona`, las tres posiciones con filete entre ellas y su zona a la derecha, `asOf` y pie. Tarjeta **600 px**. |
+| `_qa/SPEC-056/recuperacion.png` (900 px) | CA-4, CA-5, CA-15 | Botón ember `Establecer una contraseña nueva` (**297 × 48 px**), la **misma URL debajo, desnuda y copiable**, el plazo de 30 min y el pie. |
+| `_qa/SPEC-056/entrada-360.png` | CA-8 | Tarjeta fluida a **336 px**; `scrollWidth == clientWidth == 360`: **sin scroll horizontal**. |
+| `_qa/SPEC-056/resumen-360.png` | CA-8 | Igual: **336 px**, la lista de posiciones no desborda. |
+| `_qa/SPEC-056/recuperacion-360.png` | CA-8, CA-15 | **La captura que pedía el gate.** A 360 px la URL del reset se parte por `word-break` y cabe entera; el botón crece a **280 × 68 px** (≥ 44, ADR-034) y sigue dentro. `scrollWidth == clientWidth == 360`. |
+
+Fondo de página medido en los seis: `rgb(17, 17, 16)` = `#111110` = `--bg` de `.v-tremendo`.
+
+Los tres `.html` **no cambiaron** al correr la suite completa dos veces: la salida es determinista,
+como decía el implementador, y eso lo comprobé con `git status` limpio, no de palabra.
 
 | Fichero | Qué enseña |
 |---|---|
