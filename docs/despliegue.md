@@ -180,11 +180,13 @@ DATABASE_URL="postgresql://…?sslmode=require" npm run db:migrate
 El aviso proactivo (SPEC-006) sale por email. Requiere **dominio verificado** (deliverability).
 
 1. Crea cuenta en <https://resend.com>.
-2. **Domains → Add Domain** con tu dominio (p. ej. `stockeiro.app`). Resend te da registros
+2. **Domains → Add Domain** con tu dominio (p. ej. `tremen.dev`, que es el que este
+   proyecto tiene verificado — ver §0). Resend te da registros
    **DNS** (SPF/`MX` de retorno y **DKIM**); añádelos en tu registrador/gestor DNS y espera a
    que Resend marque el dominio **Verified** (minutos–horas).
 3. **API Keys → Create** → copia la key (será `RESEND_API_KEY`).
-4. Fija `RESEND_FROM` a una dirección de ese dominio, p. ej. `Stockeiro <avisos@stockeiro.app>`.
+4. Fija `RESEND_FROM` a una dirección de ese dominio. El valor que el código trae por
+   defecto (SPEC-056 CA-19) es `"Stockeiro - tremen.dev" <stockeiro@tremen.dev>`.
 
 > Sin dominio verificado, Resend solo permite enviar a tu propio email (modo test). Para los
 > testers necesitas el dominio verificado. Free tier: 3.000 emails/mes, 100/día (suficiente MVP).
@@ -213,7 +215,7 @@ vercel env add MARKETSTACK_API_KEY production   # key de Marketstack (plan Basic
 vercel env add TWELVE_DATA_API_KEY production   # key de Twelve Data (free, solo búsqueda)
 vercel env add CRON_SECRET production           # el generado
 vercel env add RESEND_API_KEY production        # key de Resend
-vercel env add RESEND_FROM production           # Stockeiro <avisos@tu-dominio>
+vercel env add RESEND_FROM production           # "Stockeiro - tremen.dev" <stockeiro@tremen.dev>
 # Si NO usas la integración de Neon, añade también:
 vercel env add DATABASE_URL production          # connection string de Neon
 ```
@@ -388,8 +390,8 @@ Pasos para incorporarlo cuando quieras (cierra **F-SPEC-006-1**):
 2. **Añade las variables a Vercel** (Production; repite en Preview si lo usas):
 
    ```bash
-   printf '%s' "re_XXXX_tu_api_key"                 | vercel env add RESEND_API_KEY production
-   printf '%s' "Stockeiro <avisos@tu-dominio.com>"  | vercel env add RESEND_FROM production
+   printf '%s' "re_XXXX_tu_api_key" | vercel env add RESEND_API_KEY production
+   printf '%s' '"Stockeiro - tremen.dev" <stockeiro@tremen.dev>' | vercel env add RESEND_FROM production
    ```
 
    Confirma con `vercel env ls production`.
