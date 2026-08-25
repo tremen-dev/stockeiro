@@ -37,10 +37,20 @@ const geistMono = Geist_Mono({
  * porque parece que funciona. Las tres alternativas (una clave nueva, el dominio del
  * aviso legal, `VERCEL_URL`) están rechazadas por escrito en §Diseño D-4 de la spec.
  *
- * `appBaseUrl()` **lanza** si falta `APP_BASE_URL`, así que un build sin `.env` falla
- * ruidosamente. Es el diseño y no un descuido (R-2): una tarjeta que en producción
- * apunta a `localhost` es peor que un build rojo. CI la define (`ci.yml`, job `E2E`) y
- * producción también (`docs/despliegue.md`).
+ * `appBaseUrl()` **lanza si falta o si el valor no es un origen absoluto `http`/`https`**,
+ * así que un build sin `.env` —o con la clave envenenada— falla ruidosamente. Es el diseño
+ * y no un descuido (R-2): una tarjeta que en producción apunta a `localhost` es peor que un
+ * build rojo. CI la define (`ci.yml`, job `E2E`) y producción también
+ * (`docs/despliegue.md`).
+ *
+ * La segunda mitad de esa frase es de SPEC-055, y es la que se paga aquí: esta expresión se
+ * evalúa **en tiempo de build**, así que un valor presente pero inválido no da un error de
+ * configuración sino un `Invalid URL` sin sujeto en mitad de `next build`. El caso real es
+ * `APP_BASE_URL="[SENSITIVE]"`, el marcador que `vercel env pull` escribe en
+ * `.env.production.local` cuando la variable está marcada como *Sensitive* en Vercel — y
+ * como ese fichero manda sobre `.env` sólo en builds de producción, `npm run dev` va bien
+ * y `npm run build` no. Quien valida es `appBaseUrl()` y nadie más (SPEC-055 D-2): aquí no
+ * hay guardia, y no debe haberla.
  *
  * **Aquí NO se declaran `openGraph.title` ni `openGraph.description`, y es el punto
  * entero de CA-3.** Cada página pone las suyas (`title`/`description`), y Next las

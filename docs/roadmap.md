@@ -150,9 +150,29 @@ tipo: roadmap
   Lo que se topó el implementador de SPEC-054 es el caso **contrario y peor**: la clave
   **está**, pero **envenenada**. `.env.production.local` —que Next carga **por encima** de
   `.env`— trae `APP_BASE_URL=[SENSITIVE]`, el literal, de un `vercel env pull`. El build
-  muere con `Invalid URL` en `/_not-found`, un mensaje que **no nombra ni la clave ni el
-  fichero**, y que aparece justo cuando el desarrollador cree haber hecho lo correcto
-  (definir `DATABASE_URL`). Se arranca con `APP_BASE_URL=http://localhost:3200 npm run build`.
+  muere con un `Invalid URL` que **no nombra ni la clave ni el fichero**, y que aparece justo
+  cuando el desarrollador cree haber hecho lo correcto (definir `DATABASE_URL`). Se arranca
+  con `APP_BASE_URL=http://localhost:3200 npm run build`.
+  ✅ **CERRADO por SPEC-055** (`hecho`, GREEN 13/13 el 2026-08-24). `appBaseUrl()` valida
+  ahora el **valor** y no sólo su presencia, y el mensaje nombra clave, valor, forma esperada
+  y la precedencia de `.env.production.local` sobre `.env`.
+  ↳ **Y lo que destapó al especificarlo pesa más que el build**: con la clave envenenada el
+  valor entraba **vivo** en `requestPasswordReset`, y el estallido caía **después** de las dos
+  salidas tempranas (`src/lib/auth/password-reset.ts:79-107`). Email inexistente → acuse
+  normal; email existente → `invalidateLiveTokens`, insert, y `buildResetUrl` lanza. **200 vs
+  500 es un oráculo de enumeración de cuentas**, justo lo que SPEC-023 CA-1/CA-12 cerró por
+  diseño, y de propina el usuario legítimo perdía su enlace vivo. Con la clave **ausente** no
+  ocurría: `appBaseUrl()` se evalúa como argumento en `src/app/(auth)/actions.ts:128`, antes
+  de entrar. **Era el envenenamiento, y sólo él, el que movía el fallo al lado malo.**
+  ⚠️ **Era LATENTE, no vivo**, y conviene decirlo con todas las letras: `metadataBase` se
+  evalúa en tiempo de **build**, así que un despliegue de producción con la clave envenenada
+  **no llega a existir**. Medido, no deducido: `curl https://stockeiro.tremen.dev/login`
+  devuelve `og:url = https://stockeiro.tremen.dev`, que sale de `metadataBase` ← `appBaseUrl()`.
+  No hubo incidente que investigar ni usuarios a los que avisar.
+  ↳ *Corregido el 2026-08-25: esta entrada decía que el build muere en `/_not-found`. La ruta
+  es **variable** —Next genera con quince workers y nombra la del que estalla primero; se han
+  medido `/register`, `/admin`, `/ayuda` y `/_not-found` en corridas distintas de la misma
+  escena—, y el diagnóstico bueno viaja dentro de `[cause]`, en la segunda línea.*
   Comprobado que SPEC-052 **no lo menciona**: su texto no cita `.env.production.local`, ni
   `vercel env pull`, ni el marcador `[SENSITIVE]`, ni la precedencia entre ficheros de
   entorno. Es la misma superficie y merece entrar por la misma puerta —probablemente ampliando
