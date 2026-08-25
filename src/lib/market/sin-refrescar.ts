@@ -32,10 +32,15 @@ import type { QuoteFailureReason } from './provider';
  *  - `as_of` es la fecha **de mercado** del precio. Se queda legítimamente en el
  *    viernes durante todo el fin de semana, y en el martes durante un festivo. Medir
  *    por ahí marcaría el universo entero cada sábado.
- *  - `updated_at` es **el momento en que el ciclo escribió la fila**, y se mueve en
- *    **todo ciclo con éxito** —festivo incluido— porque el upsert reescribe la fila
- *    aunque el precio no haya cambiado. Por eso **no hace falta un calendario de
- *    sesiones por mercado**, que la app no tiene y que esta spec se niega a introducir.
+ *  - `updated_at` es **el momento en que se escribió la fila**, y se mueve en **todo
+ *    ciclo con éxito** —festivo incluido— porque el upsert reescribe la fila aunque el
+ *    precio no haya cambiado. Por eso **no hace falta un calendario de sesiones por
+ *    mercado**, que la app no tiene y que esta spec se niega a introducir.
+ *    **Precisión de ADR-038 (SPEC-058)**: desde el **refresco bajo demanda** (RN-17) hay
+ *    **dos escritores** de la fila —el ciclo diario y el alta de una vigilada—, así que
+ *    la medida se enuncia como *«cuándo se escribió la fila»* y ya no *«cuándo la
+ *    escribió el ciclo»*. Es redacción y nada más: **umbral, medida y motivos, intactos**,
+ *    y un refresco bajo demanda con éxito quita la marca por la misma vía que el ciclo.
  *  - Y un tercer motivo, **medido el 2026-08-21 en una sola llamada**: el proveedor
  *    publica el EOD con **retraso desigual por símbolo** (`APP` traía `date`
  *    `2026-08-19` mientras `AAPL` e `ITX` ya traían `2026-08-20`). Por `as_of` habría
@@ -88,7 +93,8 @@ export const UMBRAL_SIN_REFRESCAR_MS = UMBRAL_SIN_REFRESCAR_HORAS * 60 * 60 * 10
 /**
  * ¿Está esa cotización **sin refrescar**? (RN-16, CA-7)
  *
- * @param updatedAt cuándo **escribió el ciclo** la fila. `null`/`undefined` = no hay
+ * @param updatedAt cuándo **se escribió** la fila (el ciclo o el refresco bajo demanda,
+ *   RN-17: la medida no distingue escritor). `null`/`undefined` = no hay
  *   cotización, que **no** es lo mismo: eso es «sin cotización» y lo dice SPEC-016 con
  *   su propio aviso. Un símbolo que nunca tuvo precio no *dejó* de refrescarse.
  * @param ahora inyectable para que los tests no dependan del reloj.
@@ -99,6 +105,35 @@ export function estaSinRefrescar(
 ): boolean {
   if (!updatedAt) return false;
   return ahora.getTime() - updatedAt.getTime() > UMBRAL_SIN_REFRESCAR_MS;
+}
+
+/**
+ * ¿Es **vigente** esa cotización? (**RN-17(b)**, ADR-038 pto. 6)
+ *
+ * Vigente = **existe** y **no** está *sin refrescar*. Es la condición que decide si el
+ * **refresco bajo demanda** gasta una unidad de cuota o se calla, y vive aquí —pegada a
+ * `estaSinRefrescar` y sin un número propio— por la razón que CA-14 convierte en test:
+ * *«la pantalla la presenta como vigente»* y *«el alta no la vuelve a pedir»* tienen que
+ * ser **la misma respuesta para toda antigüedad**, sin zona intermedia. Con un segundo
+ * umbral habría un rango de horas en el que la fila diría *al día* y el alta la
+ * consideraría caducada, o al revés; con esta función eso es imposible por construcción,
+ * porque es literalmente la negación de la otra.
+ *
+ * El caso de la cotización **ausente** es el que justifica que esto no sea un `!` escrito
+ * en la acción: `estaSinRefrescar(null)` es `false` —*«no hay cotización» no es «dejó de
+ * refrescarse»*, SPEC-016 tiene su propio aviso para eso— pero un símbolo sin precio es
+ * exactamente el que **sí** hay que pedir. Negar la otra función a mano habría dicho lo
+ * contrario, y el símbolo nuevo —el caso central de esta spec— no se habría pedido nunca.
+ *
+ * @param updatedAt cuándo se escribió la fila. `null`/`undefined` = no hay cotización.
+ * @param ahora inyectable para que los tests no dependan del reloj.
+ */
+export function cotizacionVigente(
+  updatedAt: Date | null | undefined,
+  ahora: Date = new Date(),
+): boolean {
+  if (!updatedAt) return false; // no hay cotización: no hay nada vigente que reutilizar
+  return !estaSinRefrescar(updatedAt, ahora);
 }
 
 /** La fecha de la marca, en el mismo formato ISO corto que la columna «A fecha». */

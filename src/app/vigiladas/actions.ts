@@ -9,6 +9,8 @@ import {
   updateWatchedZones,
   type WatchInput,
 } from '@/lib/watchlist/service';
+import { refreshSymbolOnDemand } from '@/lib/market/refresh';
+import { quoteProvider } from '@/lib/market/quote-provider-factory';
 import { readSymbolSelection } from '@/lib/market/symbol-selection';
 import { readDecimalField } from '@/lib/format/decimal-input';
 import { toFormError } from '@/lib/format/action-error';
@@ -35,7 +37,36 @@ function readZones(formData: FormData): WatchInput {
   };
 }
 
-/** Vigilar un ticker con zonas opcionales (CA-1/CA-2/CA-4). */
+/**
+ * Vigilar un ticker con zonas opcionales (CA-1/CA-2/CA-4).
+ *
+ * ## SPEC-058 / ADR-038 — el alta **trae su precio**, y el orden no es casual
+ *
+ * Hasta esta spec el alta metía el símbolo en el universo del ciclo y ahí acababa su
+ * trabajo: hasta **24 h** de fila muda, o enseñando el precio congelado del día en que
+ * ese símbolo salió del universo. Ahora el alta **pide el precio de ese símbolo** por el
+ * **mismo camino que el ciclo** —`refreshSymbolOnDemand`, que es `ingerir` con universo
+ * de uno (RN-17, ADR-038 pto. 2)— y lo persiste.
+ *
+ * El orden es **escribir la vigilada → pedir el precio → revalidar**, y las tres cosas
+ * están donde están a propósito:
+ *
+ *  - **La vigilada se persiste ANTES.** El precio es un extra, **jamás** un requisito del
+ *    alta (RN-17 c, ADR-038 pto. 4): acierte el proveedor, falle clasificado, lance o se
+ *    quede sin presupuesto, lo que queda en `watched_symbols` y lo que esta action
+ *    devuelve son **indistinguibles** en los cuatro casos (CA-9).
+ *  - **El refresco va en su propio `try/catch`.** Es defensa en profundidad sobre una
+ *    función que ya degrada por dentro: si algún día deja de hacerlo, el alta sigue sin
+ *    enterarse. Un fallo del tercero no puede convertirse en un error de formulario.
+ *  - **La revalidación va DESPUÉS del refresco**, y esa es la línea que cumple CE-1: es
+ *    lo que hace que el precio y el color de zona aparezcan en la respuesta a este mismo
+ *    envío, sin que el usuario recargue (CA-3).
+ *
+ * Lo que esta action **sigue sin hacer** es comparar con las zonas y avisar: **RN-13** y
+ * **RN-14** son del ciclo (D-2, ADR-038 pto. 3, gemelo de ADR-028 pto. 3). La pantalla
+ * puede decir «En compra» hoy y el correo salir esta noche; eso es el diseño, y CA-11 se
+ * encarga de que el usuario lo lea en la pantalla en vez de descubrirlo.
+ */
 export async function watchAction(_prev: FormState, formData: FormData): Promise<FormState> {
   const userId = await requireUserId();
   const selection = readSymbolSelection(formData);
@@ -51,8 +82,9 @@ export async function watchAction(_prev: FormState, formData: FormData): Promise
     return toFormError('vigilar', e);
   }
 
+  let vigilada;
   try {
-    await watchSymbol(
+    vigilada = await watchSymbol(
       db,
       userId,
       selection.ticker,
@@ -63,6 +95,14 @@ export async function watchAction(_prev: FormState, formData: FormData): Promise
   } catch (e) {
     return toFormError('vigilar', e);
   }
+
+  try {
+    await refreshSymbolOnDemand(db, quoteProvider(), vigilada.symbolId);
+  } catch {
+    // El precio es un extra (RN-17 c): si el refresco se cae de una forma que ni él
+    // mismo contempla, el alta ya está hecha y no se entera.
+  }
+
   revalidatePath('/vigiladas');
   return { ok: true };
 }
