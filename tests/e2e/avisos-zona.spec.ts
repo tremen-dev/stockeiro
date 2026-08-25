@@ -35,6 +35,22 @@ async function withSql<T>(fn: (sql: ReturnType<typeof postgres>) => Promise<T>):
     await sql.end();
   }
 }
+/**
+ * Deja el símbolo **sin cotización**, que es el escenario que CA-2 necesita.
+ *
+ * Hace falta desde **SPEC-058**: el alta de una vigilada **trae su precio** (RN-17), así
+ * que dar de alta `TEF` ya no deja la fila muda — el catálogo del e2e lo cotiza. Lo que
+ * CA-2 mide sigue siendo lo mismo —*sin cotización → neutro*— y su aserción no se toca;
+ * lo que hay que reconstruir es la **premisa**, que el producto ya no produce sola por
+ * esta puerta.
+ */
+const borrarCotizacion = (ticker: string) =>
+  withSql(async (sql) => {
+    const [s] = await sql`SELECT id FROM symbols WHERE ticker = ${ticker}`;
+    await sql`DELETE FROM quotes WHERE symbol_id = ${s.id}`;
+    await sql`DELETE FROM quote_diagnostics WHERE symbol_id = ${s.id}`;
+  });
+
 const seedQuote = (ticker: string, price: string) =>
   withSql(async (sql) => {
     const [s] = await sql`SELECT id FROM symbols WHERE ticker = ${ticker}`;
@@ -58,6 +74,7 @@ test('SPEC-007: /vigiladas colorea la fila según el estado de zona', async ({ p
   await vigilar(page, 'REP', '20', '25'); // en zona con precio 22
   await vigilar(page, 'TEF', '10', '15'); // sin cotización -> neutro
   await seedQuote('REP', '22');
+  await borrarCotizacion('TEF'); // SPEC-058: el alta ya trae precio; CA-2 quiere una fila sin él
   await page.reload();
 
   // CA-1: REP en zona de compra -> fila con clase zone-buy y etiqueta de texto.

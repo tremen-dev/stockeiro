@@ -20,6 +20,28 @@ async function registrarYEntrar(page: Page, email: string) {
   await ponerRol(email, 'completo');
 }
 
+/**
+ * Deja el símbolo **sin precio y sin motivo**: el estado «aún no ha pasado el ciclo».
+ *
+ * Hace falta desde **SPEC-058**: el alta de una vigilada **pide el precio en el acto**
+ * (RN-17), y `MSFT` está en el catálogo de fallos del e2e, así que su motivo se escribe
+ * ya en el alta — que es justamente la mejora que esa spec entrega (CE-2: *el silencio
+ * deja de ser mudo desde el primer minuto*). Lo que CA-3 mide —que la pantalla
+ * **distinga** «aún sin datos» de «no se puede cotizar»— no cambia y su aserción no se
+ * toca; lo que se reconstruye aquí es la **premisa**, porque por esta puerta el producto
+ * ya no la produce sola.
+ */
+async function borrarDiagnostico(ticker: string) {
+  const sql = postgres(DB_URL, { ssl: false, max: 1 });
+  try {
+    const [sym] = await sql`SELECT id FROM symbols WHERE ticker = ${ticker}`;
+    await sql`DELETE FROM quote_diagnostics WHERE symbol_id = ${sym.id}`;
+    await sql`DELETE FROM quotes WHERE symbol_id = ${sym.id}`;
+  } finally {
+    await sql.end();
+  }
+}
+
 /** Simula el resultado del ciclo: el símbolo no se pudo cotizar y queda su motivo. */
 async function sembrarDiagnostico(ticker: string, reason: string) {
   const sql = postgres(DB_URL, { ssl: false, max: 1 });
@@ -48,6 +70,12 @@ test('SPEC-016 · CA-3/CA-4: /vigiladas distingue "aún sin datos" de "no se pue
 
   const fila = page.locator('tr', { hasText: 'MSFT' });
   await expect(fila).toContainText('Sin cotización');
+
+  // SPEC-058: el alta ya intentó cotizarlo y dejó su motivo. Se retira para reconstruir
+  // el estado que CA-3 describe —nadie le ha preguntado nada al proveedor todavía—, que
+  // es el que llega por `/cartera` y el que dejan las filas anteriores a esta spec.
+  await borrarDiagnostico('MSFT');
+  await page.reload();
 
   // CA-3: aún NO ha corrido el ciclo → se dice que faltan datos, sin culpar a nadie.
   await expect(fila.getByTestId('sin-datos-aun')).toBeVisible();
