@@ -126,10 +126,22 @@ describe('SPEC-032 CA-15: y las RN de dominio siguen intactas', () => {
     ['RN-14', 'Tipos de aviso e idempotencia del envío'],
     ['RN-15', 'Canal proactivo con registro y fallback'],
     ['RN-16', 'Cotización sin refrescar'],
+    ['RN-17', 'Refresco bajo demanda'],
   ];
 
+  /**
+   * El ENCABEZADO de cada regla, que es lo que esta guardia congela: el guion de la
+   * lista, el id en negrita y su nombre entre paréntesis. Antes se buscaba `**RN-nn**`
+   * en cualquier posición, y eso contaba como *presencia* una simple **mención**: RN-17
+   * cita a **RN-13** y **RN-14** en su cuerpo para decir que el disparo y el aviso
+   * siguen siendo del ciclo, y la lista salía con tres reglas de más. Anclar al
+   * encabezado no afloja nada —las diecisiete siguen teniendo que estar, y en su
+   * orden—: deja de confundir «se la nombra» con «existe».
+   */
+  const ENCABEZADO_DE_REGLA = /^- \*\*(RN-\d+)\*\* \(/gm;
+
   it('siguen estando todas, y en el mismo orden', () => {
-    const encontradas = [...seccionDeDominio().matchAll(/\*\*(RN-\d+)\*\*/g)].map((m) => m[1]);
+    const encontradas = [...seccionDeDominio().matchAll(ENCABEZADO_DE_REGLA)].map((m) => m[1]);
     expect(encontradas).toEqual(DOMINIO.map(([id]) => id));
   });
 
