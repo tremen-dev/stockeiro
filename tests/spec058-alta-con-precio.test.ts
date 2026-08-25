@@ -321,24 +321,41 @@ describe('SPEC-058 CA-6: fallo inesperado — el alta tampoco se entera', () => 
 
 describe('SPEC-058 CA-7: presupuesto de tiempo, y su agotamiento no inventa nada', () => {
   it(
-    'un proveedor que NO responde nunca: la acción termina dentro del presupuesto y degrada igual',
+    'un proveedor que NO responde nunca: el alta TERMINA, devuelve éxito y degrada igual',
     async () => {
       const mudo = new ProveedorMudo();
       contexto.provider = mudo;
 
-      const t0 = Date.now();
       const resultado = await watchAction(undefined, ITX(ZONA_QUE_CONTIENE));
-      const tardado = Date.now() - t0;
 
       expect(resultado).toEqual({ ok: true });
       expect(mudo.llamadas).toBe(1); // la petición SALIÓ: el presupuesto ahorra espera, no cuota
-      // Termina dentro del presupuesto declarado, con holgura para la base y el arranque.
-      expect(tardado).toBeLessThan(PRESUPUESTO_REFRESCO_BAJO_DEMANDA_MS + 2_000);
       const [w] = await db.select().from(watchedSymbols).where(eq(watchedSymbols.userId, userA));
       // MISMO tratamiento que CA-6: sin motivo `tiempo_agotado` en el vocabulario.
       expect(await diagnostico(w.symbolId)).toBe('proveedor_no_disponible');
     },
-    20_000,
+    60_000,
+  );
+
+  it(
+    'y lo que acota la espera es el presupuesto DECLARADO: ~3 s, no una eternidad',
+    async () => {
+      // El reloj se mide sobre el refresco y no sobre la action, que además hace dos
+      // escrituras en la base: sumarlas al cronómetro convierte la propiedad en una
+      // carrera contra el arnés. Aquí NO se inyecta presupuesto — se ejerce el que la
+      // spec declara, que es lo que CA-7 quiere ver acotando la espera de verdad.
+      const w = await watchSymbol(db, userA, 'ITX', 'EUR', ZONA_QUE_CONTIENE, BMEX);
+      const t0 = Date.now();
+      await refreshSymbolOnDemand(db, new ProveedorMudo(), w.symbolId);
+      const tardado = Date.now() - t0;
+
+      expect(tardado, 'esperó menos que el presupuesto: entonces no lo aplicó')
+        .toBeGreaterThanOrEqual(PRESUPUESTO_REFRESCO_BAJO_DEMANDA_MS - 100);
+      expect(tardado, 'esperó bastante más que el presupuesto')
+        .toBeLessThan(PRESUPUESTO_REFRESCO_BAJO_DEMANDA_MS + 4_000);
+      expect(await diagnostico(w.symbolId)).toBe('proveedor_no_disponible');
+    },
+    60_000,
   );
 
   it('el presupuesto es inyectable donde se aplica: agotado degrada, sin esperar segundos reales', async () => {
@@ -455,7 +472,7 @@ describe('SPEC-058 CA-9: el resultado del refresco no puede alterar el alta', ()
       expect(primero.filas).toBe(1);
       expect(primero.fila).toEqual({ buyMin: '20', buyMax: '25', sellMin: '35', sellMax: '40' });
     },
-    20_000,
+    90_000, // cuatro bases PGlite y una espera de presupuesto: holgura para la suite entera
   );
 });
 
