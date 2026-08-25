@@ -1,7 +1,7 @@
 <!-- GENERADO por tremen-sdd (scripts/tablero.mjs). NO EDITAR A MANO. -->
 # Tablero
 
-Actualizado: 2026-08-24
+Actualizado: 2026-08-25
 
 ## EPIC-001 — vigilancia-de-zonas-de-compra-venta-con-cartera-y-avisos (hecho)
 
@@ -101,6 +101,7 @@ Actualizado: 2026-08-24
 | SPEC-047 — el-icono-de-la-app | hecho | 2026-08-22 (sdd-verificador) |
 | SPEC-050 — la-primera-pantalla-la-marca-visible-una-entrada-clara-y-la-advertencia-fuera-del-hero | hecho | 2026-08-23 (sdd-verificador) |
 | SPEC-051 — la-vista-previa-del-enlace-la-tarjeta-que-el-foro-ve-antes-de-entrar | hecho | 2026-08-23 (sdd-verificador) |
+| SPEC-056 — los-tres-correos-diseno-propio-la-marca-en-cabecera-y-pie-y-el-texto-plano-como-alternativa | hecho | 2026-08-25 (sdd-verificador) |
 
 ## ADRs
 
@@ -140,8 +141,9 @@ Actualizado: 2026-08-24
 | ADR-033 | aprobada | el-package-lock-json-lleva-la-version-de-producto-el-bump-commitea-los-dos-ficheros-y-una-propiedad-lo-vigila-enmienda-pto-8-de-adr-024 | 2026-08-23 (humano (Alberto Fojo)) |
 | ADR-034 | aprobada | la-tabla-de-datos-conmuta-a-tarjetas-por-debajo-de-720-px-que-es-el-unico-breakpoint-de-modo-del-producto-y-el-area-tactil-se-mide | 2026-08-24 (humano (Alberto Fojo)) |
 | ADR-035 | aprobada | un-suelo-declarado-se-afirma-sin-holgura-la-tolerancia-de-redondeo-compara-dos-medidas-nunca-una-medida-contra-un-umbral-precisa-adr-026-y-adr-034-6 | 2026-08-24 (humano (Alberto Fojo)) |
+| ADR-036 | aprobada | el-correo-lleva-dos-cuerpos-html-opcional-en-el-puerto-el-texto-plano-intacto-y-la-plantilla-sobre-el-puerto-enmienda-a-adr-006 | 2026-08-25 (humano (Alberto Fojo)) |
 
 ## Resumen
 
-- hecho: 48
+- hecho: 49
 - aprobada: 1
