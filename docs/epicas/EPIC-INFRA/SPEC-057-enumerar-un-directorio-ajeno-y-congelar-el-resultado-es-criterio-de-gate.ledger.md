@@ -8,9 +8,10 @@ epica: EPIC-INFRA
 ## Resumen
 - Fase: **en revisión** — spec y `ADR-037` **aprobados por el humano (Alberto Fojo) el
   2026-08-25**. **CA-1, CA-2 y CA-4 implementados** ese mismo día por sdd-implementador.
-  **CA-3 sigue sin escribir, y no es del implementador**: `FOUNDATION.md` es documento
-  locked y lo escribe el arquitecto en el gate (ADR-025, y la propia letra de CA-3). Ver
-  `F-SPEC-057-4`, que además señala la contradicción interna de este ledger.
+  **CA-3 lo escribió el arquitecto ese mismo día**, tras la escalada correcta del
+  implementador: `FOUNDATION.md` es documento locked y su pluma es del arquitecto en el
+  gate (ADR-025, y la propia letra de CA-3). `F-SPEC-057-4` queda **cerrado**; se conserva
+  entero porque documenta la contradicción interna de este ledger y cómo se resolvió.
 - Rama: `ft/SPEC-057-enumerar-un-directorio-ajeno-y-congelar-el-resultado-es-criterio-de-gate`
   (creada desde `origin/main` = `778f189`).
 - **Saldo comprometido: −2 comprobaciones / +0.** Es condición de aceptación
@@ -25,7 +26,7 @@ epica: EPIC-INFRA
 |---|---|---|---|---|
 | CA-1 (la retirada, con las cuatro condiciones) | `tests/tarjeta-guardias-ampliadas.test.ts` — **retirado** el bloque `SPEC-051 CA-17.1` entero (111-139 en `778f189`) con sus **dos** casos; en su hueco, el porqué en prosa (**91-162** del árbol entregado); **cabecera corregida** (**29-39**); y los ocho símbolos que quedaban sin uso, fuera. Único fichero de código tocado | **n-a a propósito** — lo que sustituye al bloque es **prosa en el sitio** (cond. 2). Un test en su lugar sería el verde vacío que ADR-031 prohíbe; molde `F-SPEC-042-9` y SPEC-053 CA-13 | Se **lee el fichero** en el gate y se contrastan las cuatro condiciones una a una | ❌ |
 | CA-2 (recuento y suite verde) | — (no hay código que implementar: es el efecto de CA-1) | `npx vitest run` — **antes 1897 / después 1895**, Δ **−2**; **116 ficheros verdes, cero rojos**; el fichero tocado pasa de **12** a **10**. Detalle en §Recuentos | Recuentos **antes (12)** y **después (10)** del fichero, y que **ningún otro fichero de `tests/` cambie su número de casos**. Los dos recuentos se pegan abajo | ❌ |
-| CA-3 (la regla escrita, con su fuente) | **Parcial y no del implementador**: `docs/adr/ADR-037-*.md` ✅ (escrito y aprobado). `FOUNDATION.md` (3.er corolario) y `docs/fundacion/reglas.md` (`RI-03` + fuente ADR-037) **siguen sin tocar en la rama** — los escribe el **arquitecto** en el gate (ADR-025 y la letra del propio CA-3). `F-SPEC-057-4` | **n-a a propósito** — no se añade un test que compruebe que un documento contiene una frase: sería una casilla, y esta spec no añade comprobaciones (CA-4) | Se **leen los dos documentos** en el gate contra los tres puntos de CA-3 | ❌ |
+| CA-3 (la regla escrita, con su fuente) | **Los tres, y los tres del arquitecto**: `docs/adr/ADR-037-*.md` (aprobado el 2026-08-25); `FOUNDATION.md` **3.er corolario** datado 2026-08-25, pegado a los otros dos, al final de § *Cómo se trabaja aquí*; `docs/fundacion/reglas.md` **`RI-03`**, párrafo *«Precisión del 2026-08-25»* con **Fuente: ADR-037** y sin `RI-04`. Escritos por sdd-arquitecto tras la escalada `F-SPEC-057-4`, no por la implementación (ADR-025) | **n-a a propósito** — no se añade un test que compruebe que un documento contiene una frase: sería una casilla, y esta spec no añade comprobaciones (CA-4) | Se **leen los dos documentos** en el gate contra los tres puntos de CA-3 | ❌ |
 | CA-4 (el saldo, −2 / +0) | — | **Saldo −2 / +0**, medido contra `778f189`: dos casos de `vitest` retirados, **cero** añadidos; ni un fichero nuevo en `tests/`, ni en `tests/e2e/`, ni un script en `scripts/`, ni un step en `.github/workflows/ci.yml`, ni un `toContain` sobre un documento | Recuento de casos retirados y añadidos contra `778f189`, y comprobación de que no hay script de gate nuevo en `scripts/` ni step nuevo en `.github/workflows/ci.yml`. **Saldo no negativo = RED** | ❌ |
 | CA-5 (acotación) | **n-a** | **n-a — por ADR-031 pto. 1.2 / `RI-03`, con el porqué escrito debajo; no es una omisión** | Diff de la rama con el árbol limpio, revisado a mano; salida pegada en §Acotación | ❌ |
 
@@ -143,8 +144,19 @@ Levantadas por el **arquitecto al especificar**, antes de implementar:
 
 Levantadas por el **implementador**, el 2026-08-25:
 
-- **`F-SPEC-057-4` (bloqueante de CA-3, y es del arquitecto) — la regla NO está escrita
-  en `FOUNDATION.md` ni en `RI-03`, y el implementador no la ha escrito a propósito.**
+- **`F-SPEC-057-4` — ✅ CERRADO el 2026-08-25 por sdd-arquitecto.** Se conserva entero
+  porque su valor es el precedente: **el implementador escaló en vez de escribir, y hizo
+  bien**. *Lo escrito para cerrarlo*: el **3.er corolario** de `FOUNDATION.md` —datado
+  2026-08-25, pegado a los otros dos, con la forma que caduca, la pregunta *«¿de quién es
+  la mano que puede poner esto rojo?»*, las cuatro formas que sobreviven y la que no, los
+  dos incidentes con su coste, y que **no lleva guardia y por qué**— y el párrafo
+  *«Precisión del 2026-08-25, para el vector que no usa `git`»* en **`RI-03`**, con
+  **Fuente: ADR-037** y dejando dicho que las condiciones (1)-(4) siguen siendo para
+  guardias con `git`, salvo el centinela de no-vacuidad. `RI-03` **conserva su número**.
+  **Saldo intacto: −2 / +0** — no se añadió ningún `toContain` que vigile que esos
+  párrafos existen, porque sería la casilla que ADR-037 pto. 4 ya descartó.
+  *El hallazgo, tal y como se levantó*: — la regla NO estaba escrita
+  en `FOUNDATION.md` ni en `RI-03`, y el implementador no la escribió a propósito.
   Sobre el árbol entregado, `FOUNDATION.md` § *Cómo se trabaja aquí* sigue con **dos**
   corolarios (2026-08-24) y **ningún tercero datado el 2026-08-25**; y `RI-03`
   (`docs/fundacion/reglas.md`:114-139) sigue cerrando con *«Fuente: ADR-031»*, sin
