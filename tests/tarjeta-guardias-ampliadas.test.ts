@@ -1,6 +1,6 @@
 import { describe, it, expect } from 'vitest';
-import { readFileSync, readdirSync, statSync } from 'node:fs';
-import { dirname, join, relative, resolve } from 'node:path';
+import { readFileSync } from 'node:fs';
+import { dirname, join, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
 
 /**
@@ -28,17 +28,20 @@ import { fileURLToPath } from 'node:url';
  *
  * Este fichero es lo que impide que esa autorización se convierta en barra libre. Y no
  * mira ningún diff: **todo lo que afirma es una propiedad del árbol de hoy** (ADR-031
- * pto. 1.1). La condición 1 de CA-17 en su versión «el diff sólo toca estos dos ficheros»
- * es criterio de acotación y vive en el gate (CA-20, ADR-031 pto. 1.2); lo que sí cabe
- * aquí —y está— es su forma comprobable sin git: *nadie más ha sido re-encuadrado por
- * esta spec*.
+ * pto. 1.1). La condición 1 de CA-17 —«el diff sólo toca estos dos ficheros»— es criterio
+ * de acotación y vive **entera** en el gate (CA-20, ADR-031 pto. 1.2). Aquí llegó a haber
+ * una forma suya sin git —*«nadie más ha sido re-encuadrado por esta spec»*—, y **se
+ * retiró el 2026-08-25 por SPEC-057 CA-1**: enumeraba `tests/` y congelaba el resultado,
+ * y eso, aun sin `git`, sigue siendo criterio de gate (**ADR-037**). El porqué entero
+ * está escrito en el hueco que dejó, más abajo. Lo que este fichero afirma hoy son las
+ * condiciones 2, 3 y 4 de CA-17: que cada ampliación lleve su porqué al lado de la
+ * aserción (17.2), que la guardia siga cerrada ante una exclusión inventada (17.3), y que
+ * la hermana que mide la propiedad siga mirando (17.4).
  */
 
 const rootDir = resolve(dirname(fileURLToPath(import.meta.url)), '..');
-const testsDir = join(rootDir, 'tests');
 
 const fuente = (ruta: string) => readFileSync(join(rootDir, ruta), 'utf8');
-const rel = (f: string) => relative(rootDir, f).replace(/\\/g, '/');
 
 /** Las DOS, nombradas una a una — CA-17.1. Ni una más. */
 const GUARDIAS = [
@@ -54,18 +57,6 @@ const GUARDIAS = [
     ampliada: 'sigue siendo el de siempre — quien decide es el guard, no el matcher',
     hermana: 'ni `cuenta` ni `cuenta-borrada` aparecen dentro del literal del matcher',
   },
-];
-
-/** La que NO se toca, y el motivo por el que no hace falta (D-8). */
-const NO_SE_TOCA = 'tests/deploy-gate-workflow.test.ts';
-
-/** Los ficheros de `tests/` que esta spec ESTRENA. Todo lo demás que la nombre es ajeno. */
-const PROPIOS = [
-  'tests/e2e/tarjeta.spec.ts',
-  'tests/tarjeta-frontera.test.ts',
-  'tests/tarjeta-guardias-ampliadas.test.ts',
-  'tests/tarjeta-imagen.test.ts',
-  'tests/tarjeta-raster.ts',
 ];
 
 /**
@@ -97,46 +88,78 @@ function caso(src: string, titulo: string): string {
   return encontrado!;
 }
 
-/** Todos los fuentes bajo `tests/`, incluidos los de e2e y los helpers. */
-function fuentesDeTests(dir = testsDir): string[] {
-  const out: string[] = [];
-  for (const entrada of readdirSync(dir).sort()) {
-    const ruta = join(dir, entrada);
-    if (statSync(ruta).isDirectory()) out.push(...fuentesDeTests(ruta));
-    else if (entrada.endsWith('.ts')) out.push(ruta);
-  }
-  return out;
-}
-
-describe('SPEC-051 CA-17.1: son DOS guardias ajenas, y la tercera no ha hecho falta', () => {
-  it('los únicos ficheros ajenos de tests/ que esta spec nombra son esos dos', () => {
-    // La versión comprobable sin git de «están nombradas, una a una, y son dos». Si
-    // alguien re-encuadrara un tercer fichero ajeno tendría que escribir su porqué al
-    // lado —lo exige CA-17.2 y `FOUNDATION.md`—, y ese porqué nombra la spec. Así que la
-    // lista de ficheros de `tests/` que dicen «SPEC-051» es exactamente: los dos
-    // autorizados más los que esta entrega estrena. Un tercero ajeno aquí es RED.
-    const nombran = fuentesDeTests()
-      .filter((f) => readFileSync(f, 'utf8').includes('SPEC-051'))
-      .map(rel)
-      .sort();
-    const esperados = [...GUARDIAS.map((g) => g.fichero), ...PROPIOS].sort();
-    expect(
-      nombran,
-      'un TERCER fichero ajeno re-encuadrado es RED: se escala al gate, no se toca',
-    ).toEqual(esperados);
-    expect(
-      [...nombran, 'tests/ci-workflow.test.ts'].sort(),
-      'la comparación no distingue un tercero: habría dejado de ser una lista cerrada',
-    ).not.toEqual(esperados);
-  });
-
-  it(`${NO_SE_TOCA} ni siquiera sabe que esta spec existe`, () => {
-    // D-8, y es el punto entero de la elección del humano: la tercera guardia de SPEC-047
-    // no se ha ampliado, se ha vuelto innecesaria. Si esta spec hubiera estrenado un
-    // `npm run`, tendría que aparecer aquí — y su ausencia es la prueba de que no lo hizo.
-    expect(fuente(NO_SE_TOCA)).not.toContain('SPEC-051');
-  });
-});
+/**
+ * ⚠️ **Bloque RETIRADO el 2026-08-25 por SPEC-057, bajo su CA-1.** Aquí vivía
+ * `describe('SPEC-051 CA-17.1: son DOS guardias ajenas, y la tercera no ha hecho falta')`
+ * con sus **dos** casos, y no se ha sustituido por nada: **este hueco es la retirada.**
+ *
+ * - **Qué vigilaba antes**, los dos, que decían lo mismo sobre distinto universo:
+ *   1. *«los únicos ficheros ajenos de tests/ que esta spec nombra son esos dos»* —
+ *      barría `tests/` entero, se quedaba con los fuentes que contienen la cadena
+ *      `SPEC-051` y **congelaba la lista** con `toEqual` contra `GUARDIAS` + `PROPIOS`.
+ *   2. *«`tests/deploy-gate-workflow.test.ts` ni siquiera sabe que esta spec existe»* —
+ *      la misma afirmación sobre un universo de un solo fichero: *«esta entrega no lo
+ *      tocó»*, cierta sobre el **delta** de aquel día.
+ *
+ *   Los dos afirmaban **«este cambio está bien acotado»**, que es palabra por palabra la
+ *   forma que **ADR-031 pto. 1** llama **criterio de gate, no test permanente**.
+ * - **Qué vigila ahora**: **nada en la suite.** La afirmación vuelve al **gate**, que es
+ *   donde le tocaba por **ADR-031 pto. 1.2** / **RI-03**, y donde **ya se consumó**: el
+ *   ledger de SPEC-051 lleva su **GREEN 20/20 del 2026-08-23** con la revisión del diff
+ *   pegada —*«los únicos ficheros ajenos tocados son los dos autorizados»*— y su **CA-20**
+ *   lo verificó a mano, fichero por fichero. Es la segunda salida legítima de
+ *   `FOUNDATION.md` —*borrar, si lo que vigilaba era del momento de la entrega y ya no
+ *   puede volver a ser cierto*—, molde `F-SPEC-042-9` y **SPEC-053 CA-13**.
+ * - **Por qué ya no puede volver a ser cierto**: **SPEC-051 está en `hecho`, y una spec en
+ *   `hecho` no se reabre** (**ADR-025**). No puede re-encuadrar una tercera guardia ajena
+ *   nunca más. Lo que el bloque negaba está zanjado; lo único que podía hacer ya era dar
+ *   **rojos falsos**, y de la peor clase: `tests/` **sólo crece, y crece por mano ajena**,
+ *   así que la primera spec que citara a `SPEC-051` legítimamente —citar a la spec que te
+ *   precede es el comportamiento sano de este proyecto— paraba la CI de quien no había
+ *   hecho nada. Es el **error de converso** que **ADR-037** nombra: *«todo re-encuadre
+ *   autorizado menciona a X»* usado como *«toda mención de X es un re-encuadre
+ *   autorizado»*, una condición necesaria tratada como suficiente.
+ * - **Por qué se retira en vez de re-encuadrarse**: el re-encuadre existe, está escrito y
+ *   es correcto —**SPEC-052 CA-18**, derivar el conjunto de la *firma de un re-encuadre
+ *   autorizado* en vez de la cadena—, y costó **+185 líneas** en la guardia y **+212** en
+ *   el fichero que la vigila: **397 líneas de maquinaria para conservar un criterio de
+ *   gate ya consumido** sobre una spec que **ADR-025** impide reabrir. Lo que ese
+ *   re-encuadre vigilaría —*«SPEC-051 no re-encuadró una tercera guardia»*— ya no puede
+ *   volverse falso.
+ * - **Por qué se retiran los DOS y no sólo el primero**: el segundo es la **misma
+ *   enfermedad sobre un universo más estrecho**. Hoy no está rojo, pero se pondría el día
+ *   que alguien re-encuadre `tests/deploy-gate-workflow.test.ts` citando a SPEC-051 como
+ *   precedente. Retirar uno solo dejaría la clase viva, y **SPEC-057 CA-1** cond. 1 lo
+ *   declara **RED**.
+ * - **Lo que NO se ha hecho, y está prohibido hacer** (CA-1 cond. 3): **excluir por
+ *   nombre** el fichero o la spec que rompieran el barrido. Dejaría el molde vivo para el
+ *   siguiente. Lo descartó el humano explícitamente el 2026-08-24 (SPEC-053 CA-13
+ *   cond. 3).
+ * - **En virtud de qué entra**: **SPEC-057 CA-1** y **ADR-037 pto. 7**, que autoriza esta
+ *   retirada *«y no autoriza nada más de ese fichero»*. Los dos **aprobados nominalmente
+ *   por el humano (Alberto Fojo) el 2026-08-25**, y escritos **antes** de implementarse.
+ *   **Quien lo escribe no es quien se beneficia**: lo redactó el **arquitecto** en la spec
+ *   y en ADR-037; el implementador lo ejecuta y no lo decide (`FOUNDATION.md`, ADR-031
+ *   pto. 5).
+ * - **Qué se pierde**: cazar automáticamente a quien re-encuadrara una tercera guardia
+ *   ajena en nombre de SPEC-051 sin pasar por el gate. Aceptado: SPEC-051 está en `hecho`
+ *   y ya no puede hacerlo, y cualquier re-encuadre pasa por el gate humano de su propia
+ *   spec.
+ * - **Qué NO se pierde**: los **diez** casos restantes de este fichero siguen verdes y sin
+ *   una línea tocada —**CA-17.2** (cada ampliación lleva su porqué al lado de la
+ *   aserción), **CA-17.3** (la guardia sigue cerrada ante una exclusión inventada, con su
+ *   mutación de control) y **CA-17.4** (la hermana que mide la propiedad sigue mirando,
+ *   incluidas `PUBLIC_PREFIXES` y las doce rutas de producto)—. No se ha marcado nada
+ *   `.skip`, `.only` ni `.todo`, ninguna comparación exacta se ha cambiado por una laxa, y
+ *   no se ha tocado ningún otro fichero de `tests/`.
+ *
+ * *Nota mecánica, para que no se lea como cambio de criterio*: la retirada deja sin uso
+ * `readdirSync`, `statSync`, `relative`, `testsDir`, `rel`, `NO_SE_TOCA`, `PROPIOS` y
+ * `fuentesDeTests`. Se eliminan **porque `eslint --max-warnings=0` rechaza un símbolo sin
+ * usar**, no porque se decida nada sobre ellos. `casos()`, `sinComentarios()`, `caso()`,
+ * `fuente()` y `GUARDIAS` **se quedan**: los usan los tres bloques que sobreviven. Es la
+ * misma nota que SPEC-053 CA-13 dejó escrita para su `readdirSync`.
+ */
 
 describe('SPEC-051 CA-17.2: cada ampliación lleva su porqué al lado de la aserción', () => {
   for (const { fichero, ampliada } of GUARDIAS) {

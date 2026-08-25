@@ -2,11 +2,12 @@
 id: SPEC-057
 tipo: spec
 epica: EPIC-INFRA
-estado: aprobada
+estado: en-progreso
 aprobada-por: humano (Alberto Fojo)
 historial:
   - {estado: borrador, fecha: 2026-08-25, por: sdd-arquitecto}
   - {estado: aprobada, fecha: 2026-08-25, por: humano (Alberto Fojo)}
+  - {estado: en-progreso, fecha: 2026-08-25, por: sdd-implementador}
 ---
 # SPEC-057 — Enumerar un directorio ajeno y congelar el resultado es criterio de gate
 
