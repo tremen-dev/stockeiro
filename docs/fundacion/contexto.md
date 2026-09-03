@@ -1,121 +1,166 @@
 # Contexto maestro — Stockeiro
 
 > Documento vivo: TODO lo que un agente (o una persona) necesita para situarse.
-> Se actualiza al cambiar el rumbo; la historia fina vive en ADRs y specs.
+> **Y un documento que no guarda copias** (**ADR-040**): lo que se puede derivar se deriva
+> —y una guardia compara las dos mitades—, lo que tiene dueño lo **nombra** en vez de
+> copiarlo, y lo que no es ni una cosa ni la otra es prosa, que se corrige en el diff y no
+> se vigila. Se escribió así el 2026-09-03, después de que este fichero acumulara **once
+> afirmaciones falsas** por copiar valores cuyo dueño era otro sitio (**SPEC-060**).
 
-## Qué es y en qué punto está
+## Dónde vive cada verdad
 
-Stockeiro es un gestor de inversiones en bolsa a largo plazo (Next.js) que
-**vigila cotizaciones y avisa, no opera**: avisa cuando una acción entra en una
-zona de compra/venta definida por el usuario y mantiene su cartera con P/L actual
-y realizado (ver `vision.md`, FOUNDATION D-1..D-7 — **D-7 supersedida por
-ADR-020** el 2026-08-18: el filtro es el mercado, no el tipo de instrumento). Estado: **EPIC-001** (núcleo:
-vigilancia + avisos + cartera) en curso. **SPEC-001 (Cuentas y multiusuario)
-HECHA GREEN** (8/8 CA) y **SPEC-002 (Cartera y P/L) HECHA GREEN** (11/11 CA:
-ledger de transacciones, P/L actual/realizado con `decimal.js` y redondeo
-monetario, `/cartera`). **SPEC-003 (Acciones vigiladas y zonas)** en `borrador`
-(cierra la definición de "zona", R-2). Faltan por crear: Ingesta, Motor de
-disparo, Notificaciones y UI — el desglose de `_epica.md` es orientativo.
-**EPIC-003 (Recuperación y cambio de contraseña)** iniciada: **SPEC-023
-(Recuperación por email) HECHA GREEN** (16/16 CA, aprobada 2026-08-12).
+Antes de escribir aquí un valor, mira si su dueño ya lo dice. Si lo dice, nómbralo.
+
+| Qué | Dueño |
+|---|---|
+| Estado de specs y épicas | `docs/tablero.md` (generado, nunca a mano) y el frontmatter de cada spec |
+| Evidencia de verificación de una spec | su `*.ledger.md` en `docs/epicas/` |
+| Censo de decisiones técnicas | `docs/adr/` — un fichero por ADR, inmutables |
+| Claves de entorno y para qué sirve cada una | `.env.example` |
+| Esquema de base de datos | `src/db/schema.ts` (y las migraciones de `drizzle/`) |
+| Cadencia y hora del ciclo diario | `vercel.json` (`crons`), decidida en **ADR-004** y **ADR-039** |
+| Versión del producto y de las dependencias | `package.json` |
+| Reglas de negocio (RN) y de ingeniería (RI) | `docs/fundacion/reglas.md` |
+| Términos del dominio | `docs/fundacion/dominio.md` |
+| Visión y qué NO es el producto | `docs/fundacion/vision.md` |
+| Decisiones *locked* del proyecto | `FOUNDATION.md` |
+| Cómo se despliega y qué variables pide | `docs/despliegue.md` |
+| Qué viene ahora | `docs/roadmap.md` |
+
+## Qué es Stockeiro
+
+Un gestor de inversiones en bolsa a largo plazo que **vigila cotizaciones y avisa, no
+opera**: avisa cuando una acción entra en una zona de compra o de venta definida por el
+usuario, y mantiene su cartera con P/L actual y realizado (ver `docs/fundacion/vision.md`
+y las decisiones **D-1**…**D-7** de `FOUNDATION.md` — **D-7 supersedida por ADR-020** el
+2026-08-18: el filtro es el mercado, no el tipo de instrumento).
+
+Los invariantes que no se negocian están en `FOUNDATION.md` («No-negociables») y en
+`docs/fundacion/reglas.md`: aislamiento por usuario, acceso autenticado, nunca ejecutar
+órdenes, mostrar siempre el `asOf` del dato, y P/L actual separado del realizado.
+
+**En qué punto está el proyecto no se cuenta aquí**: lo dice `docs/tablero.md`, que se
+genera, y el frontmatter de cada spec. Este documento llegó a narrar como *en curso* una
+épica terminada hacía treinta y seis specs; no vuelve a intentarlo.
 
 ## Stack y arquitectura (resumen as-built)
 
-Lo realmente montado (decisión en **ADR-001**; ingesta en **ADR-002**):
+Decisión de stack en **ADR-001**; ingesta de mercado en **ADR-002**.
 
-- **Next.js 15 App Router** (React 19) sobre Vercel; Server Components + Server
-  Actions. Rutas en `src/app/`: grupo `(auth)/` (login, register, forgot-password,
-  reset-password + `actions.ts`), `dashboard/`, `api/auth/[...nextauth]/route.ts`.
-- **Auth.js v5 (NextAuth beta) con split-config**: `src/lib/auth/base-config.ts`
-  edge-safe (solo callbacks jwt/session, sin DB ni bcrypt) para
-  `src/middleware.ts`; `src/lib/auth/config.ts` en Node añade provider
-  **Credentials** con bcrypt (`passwords.ts`) + Postgres. Sesión JWT con
-  **época de credencial** (`passwordChangedAt`, ADR-016) para invalidación de
-  sesiones previas al cambiar contraseña.
-- **Drizzle ORM** (`src/db/schema.ts`, `drizzle.config.ts`); migraciones
-  versionadas (`db:generate`/`db:migrate`). Tabla nueva **`password_reset_tokens`**
-  (token hasheado, un solo uso, caducidad 30 min, ADR-015).
-- **Cliente de datos INTERCAMBIABLE por `DB_DRIVER`** (`src/db/client.ts`):
-  `neon-http` (Neon serverless) en prod / `postgres-js` en local y e2e.
-- **Persistencia por entorno**: **Neon Postgres** (prod), **PGlite**
-  (`src/db/test-db.ts`, unit) y **embedded-postgres** (e2e efímero).
+- **Next.js 16 App Router** (React 19) sobre Vercel; Server Components + Server Actions.
+  La línea 16.x es piso de seguridad por **ADR-008**. Rutas en `src/app/`: grupo
+  `src/app/(auth)/` (login, registro, recuperación y cambio de contraseña),
+  `src/app/dashboard/`, `src/app/vigiladas/`, `src/app/cartera/` (con
+  `src/app/cartera/importar/`), `src/app/avisos/`, `src/app/cuenta/`, `src/app/admin/`,
+  `src/app/ayuda/`, `src/app/legal/`, y las de API:
+  `src/app/api/auth/[...nextauth]/route.ts`, `src/app/api/cron/refresh/route.ts` y
+  `src/app/api/version/route.ts`.
+- **Auth.js v5 (NextAuth beta) con split-config**: `src/lib/auth/base-config.ts` edge-safe
+  (solo callbacks jwt/session, sin DB ni bcrypt) para `src/proxy.ts` —el middleware, que
+  Next 16 renombró así—; `src/lib/auth/config.ts` en Node añade provider **Credentials**
+  con bcrypt (`src/lib/auth/passwords.ts`) + Postgres. Sesión JWT con **época de
+  credencial** (`passwordChangedAt`, **ADR-016**) para invalidar sesiones previas al
+  cambiar la contraseña.
+- **Drizzle ORM** (`drizzle.config.ts`) con migraciones versionadas (`db:generate` /
+  `db:migrate`) en `drizzle/`. **El esquema lo posee `src/db/schema.ts`**: ahí están las
+  tablas y sus relaciones, y ahí se mira — este documento no las enumera ni califica de
+  *nueva* a ninguna.
+- **Cliente de datos INTERCAMBIABLE por `DB_DRIVER`** (`src/db/client.ts`), con **tres
+  desenlaces y ninguno silencioso**:
+  1. **variable ausente** → Neon serverless, que es como corre producción;
+  2. **`DB_DRIVER=neon`** → lo mismo, dicho explícitamente;
+  3. **`DB_DRIVER=pg`** → Postgres estándar (driver postgres-js), para desarrollo y para
+     el e2e contra una instancia efímera;
+  4. **cualquier otro valor** → **falla al arrancar**, nombrando la clave, el valor
+     recibido, los valores reconocidos y dónde mirar (`.env.example` y `src/db/client.ts`).
+     Hasta **SPEC-060** todo lo no reconocido caía en Neon **en silencio**, así que un
+     nombre mal escrito mandaba a la base de producción a quien creía estar en local.
+- **Persistencia por entorno**: **Neon Postgres** en producción, **PGlite**
+  (`src/db/test-db.ts`) en los unitarios y **embedded-postgres** efímero en el e2e.
 - **Aislamiento por `userId` en capa de app** (no RLS): `src/lib/data/ownership.ts`
-  (listForOwner / findByIdForOwner); `userId` como ancla en el esquema.
-- **Tests**: **Vitest** (`tests/*.test.ts`, PGlite) y **Playwright** e2e
-  (`tests/e2e/`, `playwright.config.ts`) contra Postgres real efímero.
+  (`listForOwner` / `findByIdForOwner`), con `userId` como ancla en el esquema.
+- **Las capas del producto** viven en `src/lib/`, una carpeta por capacidad:
+  `src/lib/market/` (proveedores, refresco y diagnóstico de cotizaciones),
+  `src/lib/triggers/` (motor de zonas), `src/lib/notifications/` (avisos),
+  `src/lib/portfolio/` (cartera y P/L), `src/lib/watchlist/` (vigiladas),
+  `src/lib/import/` (import de posiciones desde bróker), `src/lib/ops/` (operación y
+  panel de admin), `src/lib/help/` (ayuda), `src/lib/legal/`, `src/lib/version/`,
+  `src/lib/feedback/`, `src/lib/account/`, `src/lib/registration/` y `src/lib/config/`.
+  La lista de arriba orienta; el directorio manda.
+- **Ciclo diario, ya implementado** (lo estuvo desde **SPEC-004**; este documento lo dio
+  por *«previsto, aún no implementado»* durante cincuenta specs). Es un **Vercel Cron**
+  declarado en `vercel.json` que llama a `src/app/api/cron/refresh/route.ts`, protegido
+  por `CRON_SECRET`; cada ejecución deja constancia en la tabla `cron_runs` (**ADR-023**).
+  **La cadencia y la hora no se escriben aquí**: las declara `vercel.json` y las deciden
+  **ADR-004** y **ADR-039** (que **SPEC-059** aplicó al mover el disparo a la mañana UTC,
+  porque el proveedor aún no había publicado el cierre a la hora anterior). Desde
+  **SPEC-058** el ciclo **ya no es el único escritor de `quotes`**: el alta de una vigilada
+  pide precio en el acto (**ADR-038**).
+- **Proveedores de mercado tras puerto** (**ADR-002**): los precios los trae **Marketstack**
+  (**ADR-012**) y la búsqueda de símbolos, **Twelve Data**. Desde el 2026-08-23 las
+  cotizaciones corren sobre **plan de pago** (**ADR-032**), así que la premisa de *«capa
+  gratuita»* ya no rige para ellas; el presupuesto se mide en `símbolos distintos × ciclos`
+  y no en llamadas (**ADR-027**). Que el cambio de plan no tocara una línea de código es la
+  prueba de que el puerto estaba bien puesto.
+- **Enlaces absolutos desde configuración, nunca desde el `Host`** de la petición
+  (`src/lib/config/app-url.ts`): la clave `APP_BASE_URL` es la que los compone, y un valor
+  ausente o envenenado se rechaza nombrando la clave y el fichero (**ADR-015**,
+  **SPEC-055**).
+- **Tests**: **Vitest** (`vitest.config.ts`, unitarios sobre PGlite) y **Playwright** e2e
+  (`playwright.config.ts`, `tests/e2e/`) contra Postgres real efímero. Todo vive en
+  `tests/`.
 - **Design system**: `design/tremen-ds` como capa de UI.
-- **Scheduler** previsto: Vercel Cron para el refresco diario (ADR-001/ADR-002),
-  aún no implementado.
-- Env real: `.env.example` → `DATABASE_URL` (+ `DB_DRIVER`), `AUTH_SECRET`
-  (+ `AUTH_TRUST_HOST`), **`APP_BASE_URL`** (origen absoluto de enlaces de
-  recuperación, ADR-015); ingesta (SPEC-004): `TWELVE_DATA_API_KEY` y
-  `CRON_SECRET` (protege `/api/cron/refresh`). Provisión de producción en
-  roadmap → "Antes de desplegar".
+- **Variables de entorno**: **las declara `.env.example`**, una a una, con su ADR y su
+  porqué; `docs/despliegue.md` dice cuáles hay que dar de alta en Vercel y en qué entorno.
+  Este documento **no las enumera** — llegó a listar dos de las once, y sin la que trae los
+  precios. Nombra alguna suelta sólo cuando la prosa necesita explicar una decisión.
 
-## Decisiones clave hasta hoy
-<!-- Referencias a ADR-NNN, no duplicar su contenido. -->
+## Decisiones: dónde están y cuáles orientan
 
-- **ADR-001** — Stack y plataforma: Next.js App Router en Vercel, Neon Postgres,
-  Drizzle, Auth.js v5, Vercel Cron, `design/tremen-ds`.
-- **ADR-002** — Ingesta de mercado: puerto `MarketDataProvider`, primer adaptador
-  **Twelve Data**, registro de símbolos compartido y **caché de cotizaciones
-  deduplicada** (1 símbolo = 1 llamada por ciclo), `asOf` explícito, refresco
-  diario por Cron.
-- **FOUNDATION D-1..D-7** (locked): avisa no opera; no tiempo real; disparo por
-  **zona** (rango), no por valor; la app no calcula zonas; multiusuario aislado;
-  P/L actual vs. realizado siempre separado; el instrumento es el que cotice en
-  un **mercado soportado** (**D-7 supersedida por ADR-020** el 2026-08-18: se
-  retira la lista blanca de tipos y el tipo se **muestra**; el **modelo** sigue
-  siendo el de la acción, ADR-003 y D-6 intactos).
-- Resoluciones del gate de **SPEC-001**: política de contraseña **delegada en
-  Auth.js** (sin política propia); aislamiento **en capa de app** con test (CA-6),
-  **RLS a futuro** (refuerzo, no ahora); errores de login genéricos; sin
-  recuperación de contraseña en esta spec.
-- **ADR-015** — Token de recuperación: opaco, de un solo uso, almacenado hasheado,
-  caducidad corta (30 min), 3 solicitudes/hora por cuenta. Sin el token en claro,
-  enlace fuera de cabeceras `Referer`, usando `APP_BASE_URL` no de `Host`.
-- **ADR-016** — Invalidación de sesiones: época de credencial (`passwordChangedAt`)
-  en JWT, revalidada en Node; al cambiar contraseña, todas las sesiones previas
-  dejan de autenticar. Precio: revalidación DB por petición, sin estado JWT, todo
-  el mundo cierra sesión el día del despliegue.
+**El censo completo es `docs/adr/`**, un fichero por decisión, inmutables y con su estado
+en el frontmatter. Este documento no lo reproduce: la copia que llevaba se quedó en cuatro
+ADR mientras el directorio crecía hasta cuarenta.
 
-## Riesgos y preguntas abiertas
+Lo que sí conviene saber de entrada, porque enmarca todo lo demás:
 
-Riesgos vigentes de EPIC-001 (`_epica.md`):
+- **`FOUNDATION.md`, D-1…D-7** (*locked*): avisa, no opera; no es tiempo real; el disparo es
+  por **zona** (un rango), no por valor; la app no calcula zonas; multiusuario aislado; P/L
+  actual y realizado siempre separados; y el instrumento es el que cotice en un **mercado
+  soportado** (**D-7 supersedida por ADR-020**: se retira la lista blanca de tipos y el tipo
+  se **muestra**; el modelo sigue siendo el de la acción, **ADR-003**).
+- **Resoluciones del gate de SPEC-001**: política de contraseña **delegada en Auth.js** (sin
+  política propia); aislamiento **en capa de app** con test, con **RLS a futuro** como
+  refuerzo; errores de login genéricos.
+- **ADR-015** — token de recuperación opaco, de un solo uso, guardado hasheado, de
+  caducidad corta y con límite de solicitudes por cuenta; el enlace se compone con
+  `APP_BASE_URL` y no con la cabecera `Host`.
+- **ADR-016** — invalidación de sesiones por época de credencial. Precio asumido:
+  revalidación contra la base en cada petición.
+- **ADR-018** — *mergear es desplegar*: no hay paso manual entre el merge y producción, y
+  el runbook de `docs/despliegue.md` es parte del trabajo, no un anexo.
+- **ADR-025** — una spec en `hecho` no se reabre; los rótulos caducados se agrupan en
+  **EPIC-FIX**.
+- **ADR-033** — la versión del producto sube en el mismo commit en los dos ficheros que la
+  llevan.
+- **ADR-037** y **ADR-040** — qué se puede vigilar con un test y qué no. Se leen antes de
+  escribir una guardia sobre un documento o sobre un directorio ajeno.
 
-- **R-1** Fuente de datos: sin API oficial gratuita fiable en Yahoo/Google;
-  mitigado por ADR-002 (**proveedor tras puerto**, intercambiable). El adaptador
-  de precios ya no es Twelve Data sino **Marketstack** (ADR-012; Twelve Data se
-  queda solo para la búsqueda), y desde el **2026-08-23** corre sobre el **plan de
-  pago Basic (10.000/mes)** en cuenta propia (**ADR-032**): la premisa de "capa
-  gratuita" **ya no rige** para las cotizaciones. El presupuesto se mide en
-  `símbolos distintos × ciclos`, no en llamadas (**ADR-027** pto. 1): hoy ~400
-  unidades/mes de 10.000, margen ~25×. Que el puerto hiciera ese cambio de plan
-  **sin tocar código** es la prueba de que la mitigación estaba bien puesta.
-- **R-2** Definición formal de **"zona"** (rango [min,max] vs. umbral con
-  dirección; tocar vs. cerrar dentro): abierta, debe cerrarse en la spec de zonas.
-- **R-3** Latencia de aviso vs. cadencia del refresco: el ciclo elegido decide si
-  se cumple CE-1 (hipótesis 1×/día tras cierre, a fijar en spec de ingesta).
-- **R-4** Entrega de notificación (canal fiable, posible fallback in-app): abierto.
-- **R-5** Exactitud de P/L (comisiones, ventas parciales, splits, dividendos):
-  alcance inicial debe declarar qué contempla.
-- **R-6** Datos personales/financieros: mitigado por SPEC-001 (auth + aislamiento).
+## Riesgos y salvedades
 
-Salvedades del ledger SPEC-001 pendientes:
+**El estado de un riesgo o de una salvedad vive donde se decide, no aquí.** Este documento
+llegó a presentar como *«pendientes de spec»* tres preguntas cerradas hacía meses, y a
+listar salvedades de dos specs cuyo estado real estaba en sus ledgers.
 
-- **F-SPEC-001-1** (futuro): reforzar aislamiento con **RLS** en Postgres; no
-  bloquea (CA-6 cubierto en capa de app).
-- **F-SPEC-001-2** (para DESPLIEGUE): aprovisionar **Neon + `AUTH_SECRET` reales**
-  antes de producción; ya no bloquea la verificación (e2e usa Postgres efímero).
+- Los **riesgos de épica** están en el fichero de la épica que los levantó, bajo
+  `docs/epicas/`.
+- Las **salvedades** (`F-SPEC-nnn-n`) están en el ledger de la spec que las levantó, con su
+  destino escrito.
+- Las **decisiones de gate** están en el ADR o en la propia spec, y en su historial.
 
-Salvedades de SPEC-023 (Recuperación por email):
+Lo único que se dice aquí es lo que **sigue abierto y afecta a cualquiera que trabaje**:
 
-- **F-SPEC-023-1** (DESPLIEGUE, bloqueante del merge): `DATABASE_URL` compartida
-  entre Production y Preview; abrir PR migra producción. Migraciones aditivas,
-  compatibles hacia atrás.
-- **F-SPEC-023-2** (higiene): purgar tokens caducados/consumidos en cron diario.
-- **F-SPEC-023-3** (DESPLIEGUE): variable `APP_BASE_URL` en Vercel; sin ella o
-  mal configurada, los enlaces no funcionan.
-
-Preguntas abiertas pendientes de spec: definición formal de "zona" (R-2), cadencia
-exacta del refresco (R-3) y canal de aviso proactivo (R-4/CE-2).
+- **La `DATABASE_URL` es compartida entre Production y Preview** (`F-SPEC-023-1`): abrir una
+  PR migra producción. Por eso las migraciones son aditivas y compatibles hacia atrás
+  (**RI-01**), y por eso un `DB_DRIVER` mal escrito era tan caro antes de **SPEC-060**.
+- **El aislamiento es en capa de app, no RLS.** Está cubierto por tests, y reforzarlo con
+  RLS sigue siendo un refuerzo pendiente, no un agujero conocido.
