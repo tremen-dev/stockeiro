@@ -9,8 +9,9 @@ historial:
 
 ## Objetivo
 Que **dar de alta una vigilada devuelva su precio en el acto**, en vez de dejar la fila
-muda hasta las 22:00. Es la primera capacidad de **refresco bajo demanda** del producto:
-hasta hoy el único camino por el que un precio entra en la base es el ciclo diario.
+muda hasta el ciclo diario siguiente. Es la primera capacidad de **refresco bajo demanda**
+del producto: hasta SPEC-058, el único camino por el que un precio entraba en la base era
+el ciclo diario.
 
 ### El roce, observado sobre la pantalla real (2026-08-25, Alberto Fojo)
 > *«Cuando añadimos una acción que todavía no está registrada o tiene un valor antiguo
@@ -18,16 +19,23 @@ hasta hoy el único camino por el que un precio entra en la base es el ciclo dia
 > gasta una llamada, pero si no el usuario queda con sensación de desactualización durante
 > todo el día (hasta esa noche).»*
 
-La mecánica que lo produce está medida, no supuesta:
+La mecánica que lo produce estaba medida, no supuesta.
 
-- El **único** refresco es el cron `0 22 * * *` (`vercel.json`), que llama a
+*(Entregado: SPEC-058 salió GREEN 17/17 el 2026-08-25, y lo que sigue describe el estado
+**ANTES** de esa entrega — se conserva porque es el problema que la épica vino a resolver.
+Desde entonces `quotes` tiene **dos escritores**, el ciclo y el alta (RN-17, **ADR-038**),
+y la hora del ciclo se movió a la mañana UTC en SPEC-059 (**ADR-039**): la hora vive en
+`vercel.json` y sólo ahí. Misma cura que recibió `docs/roadmap.md` en `20ffd72`; el
+análisis no se reescribe.)*
+
+- El **único** refresco era el cron declarado en `vercel.json`, que llamaba a
   `refreshQuotes` (`src/lib/market/refresh.ts`) sobre el universo
   `watched_symbols ∪ transactions`.
 - El alta —`watchAction` (`src/app/vigiladas/actions.ts`) → `watchSymbol`
-  (`src/lib/watchlist/service.ts:51`)— **crea el símbolo y la vigilada y no pide precio**.
-  Mete el símbolo en el universo del ciclo y ahí acaba su trabajo.
-- Así que entre el alta y el ciclo siguiente hay **hasta 24 horas** en las que la fila
-  recién creada enseña una de estas dos cosas:
+  (`src/lib/watchlist/service.ts:51`)— **creaba el símbolo y la vigilada y no pedía
+  precio**. Metía el símbolo en el universo del ciclo y ahí acababa su trabajo.
+- Así que entre el alta y el ciclo siguiente había **hasta 24 horas** en las que la fila
+  recién creada enseñaba una de estas dos cosas:
   1. **Símbolo nuevo**: sin cotización. La columna de estado queda en neutro
      (`state: 'none'`, `zone-status.ts`) y el diagnóstico de SPEC-016 está vacío porque
      **nunca ha fallado nada** — el ciclo simplemente no ha corrido todavía.
