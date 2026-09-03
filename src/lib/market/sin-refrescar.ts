@@ -57,7 +57,15 @@ import type { QuoteFailureReason } from './provider';
 
 /**
  * Horas por ciclo de la **cadencia declarada**: uno al día, después del cierre
- * (ADR-004 pto. 1; el cron de `vercel.json` es `0 22 * * *`, todos los días).
+ * (ADR-004 pto. 1, precisado por **ADR-039**).
+ *
+ * **La hora a la que corre no se escribe aquí.** La declara `vercel.json`, en su
+ * `crons`, y ése es su **único hogar** (ADR-039 pto. 8): mover la hora no tiene por qué
+ * obligar a editar este módulo. Y no es una precaución teórica — este comentario llevaba
+ * una copia del valor, y **SPEC-059** la encontró desfasada el día que la hora se movió.
+ *
+ * Lo que este umbral **sí** necesita, y por eso sigue dicho, es la **premisa**: un ciclo
+ * al día, todos los días, sin saltos.
  */
 export const HORAS_POR_CICLO = 24;
 

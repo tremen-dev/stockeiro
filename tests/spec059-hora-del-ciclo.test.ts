@@ -5,6 +5,9 @@ import { fileURLToPath } from 'node:url';
 import {
   declaraUnaEjecucionDiariaAHoraFija,
   cronsDelRunbook,
+  copiasDelSchedule,
+  COPIAS_QUE_HAY_QUE_CAZAR,
+  MENCIONES_LEGITIMAS,
   CADENCIAS_QUE_HAY_QUE_CAZAR,
   CADENCIAS_LEGITIMAS,
 } from './spec059-hora-del-ciclo';
@@ -131,5 +134,39 @@ describe('SPEC-059 CA-4: el runbook dice lo mismo que vercel.json, y lo dice der
     expect(seccion, 'el «nos vale» es justo lo que hizo que nadie mirara').not.toMatch(
       /nos vale/i,
     );
+  });
+});
+
+describe('SPEC-059 CA-5: la hora se escribe una vez, y el fuente no lleva una segunda copia', () => {
+  const modulo = () =>
+    readFileSync(join(rootDir, 'src', 'lib', 'market', 'sin-refrescar.ts'), 'utf8');
+
+  it('el detector caza una copia del schedule, con la hora vieja o con la nueva', () => {
+    // Lo que se prohíbe es la SEGUNDA COPIA, no una hora concreta: por eso los dos
+    // especímenes dicen horas distintas y los dos tienen que caer. «Actualizar» la copia
+    // en vez de quitarla es la reparación barata que esto impide.
+    for (const copia of COPIAS_QUE_HAY_QUE_CAZAR) {
+      expect(copiasDelSchedule(copia), copia).not.toHaveLength(0);
+    }
+  });
+
+  it('y NO caza nombrar al dueño del valor sin teclearlo', () => {
+    // La segunda dirección: mencionar `vercel.json` o `crons` sin valor es EXACTAMENTE
+    // lo que la corrección deja escrito. Si esto cayera, la guardia prohibiría la cura.
+    for (const mencion of MENCIONES_LEGITIMAS) {
+      expect(copiasDelSchedule(mencion), mencion).toHaveLength(0);
+    }
+  });
+
+  it('`sin-refrescar.ts` sigue nombrando al fichero que posee la hora', () => {
+    // Centinela: si el módulo dejara de hablar del cron no habría nada que analizar, y
+    // el caso de abajo pasaría a ser verde de vacío. La premisa que el umbral SÍ
+    // necesita —un ciclo al día, sin saltos— tiene que seguir dicha.
+    expect(modulo()).toMatch(/vercel\.json/);
+    expect(modulo()).toMatch(/uno al d[íi]a/i);
+  });
+
+  it('…y no lleva ni una copia del schedule: mover la hora no obliga a editarlo', () => {
+    expect(copiasDelSchedule(modulo())).toEqual([]);
   });
 });
