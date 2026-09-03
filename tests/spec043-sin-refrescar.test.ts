@@ -66,8 +66,9 @@ describe('SPEC-043 CA-7: qué es una cotización sin refrescar', () => {
   });
 
   it('un cron que llega unas horas tarde NO dispara la marca (por eso 36 y no 24)', () => {
-    // El ciclo de anoche entró a las 22:00 UTC; a las 09:00 del día siguiente han pasado
-    // 11 h. Con umbral de 24 h bastaría un retraso de 13 h para mentir en pantalla.
+    // El ciclo corre una vez al día (RN-16), así que entre dos ejecuciones cabe menos de
+    // un día: 11 h desde el último dato es normalidad, no sequía. Con umbral de 24 h
+    // bastaría un retraso de 13 h para mentir en pantalla — por eso 36 y no 24.
     expect(estaSinRefrescar(haceHoras(11), AHORA)).toBe(false);
     expect(estaSinRefrescar(haceHoras(26), AHORA)).toBe(false); // se saltó un rato, no un ciclo
   });
