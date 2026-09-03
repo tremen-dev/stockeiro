@@ -6,7 +6,9 @@ epica: EPIC-FIX
 # Ledger — SPEC-059 El ciclo diario deja de traer el cierre de anteayer: la hora del cron se mueve a la mañana UTC
 
 ## Resumen
-- Fase: **en-revisión** — escrita por sdd-arquitecto el 2026-09-03 junto con **ADR-039** y
+- Fase: **hecho** — GREEN de `sdd-verificador` el 2026-09-03, con **CA-8 abierto a propósito**
+  (observación post-deploy) y **CA-10 con una salvedad declarada**; ver «Veredicto del
+  verificador». Escrita por sdd-arquitecto el 2026-09-03 junto con **ADR-039** y
   **aprobada por el humano (Alberto Fojo) ese mismo día**; **implementada el 2026-09-03** por
   sdd-implementador, con **CA-1 a CA-7, CA-9, CA-10 y CA-11 en verde** y **CA-8 abierto a
   propósito** hasta que haya dos filas de `cron_runs` bajo el horario nuevo. *(La fuente de verdad
@@ -49,17 +51,17 @@ epica: EPIC-FIX
 <!-- Un CA está ✅ solo cuando Implementado + Test + Verif. aplicables están en verde. Una salvedad se marca ⚠️, nunca ✅. -->
 | CA | Qué exige (resumen; la fuente es la spec) | Implementado (fichero) | Test (fichero/caso) | Verif. | Estado |
 |---|---|---|---|---|---|
-| CA-1 | `vercel.json` → `crons[0].schedule` pasa a **`0 6 * * *`**; **nada más** del fichero cambia | `vercel.json` → `crons[0].schedule` = `0 6 * * *` | `tests/deploy-gate-workflow.test.ts` *9.2*, `tests/spec-031-frontera.test.ts` *CA-13.2* y `tests/version-bump-gate.test.ts` *«vercel.json no cambia por culpa de este gate»* — las tres comparan el fichero **entero**; `tests/spec059-hora-del-ciclo.test.ts` *«hay un solo cron»* | | ❌ |
-| CA-2 | La expresión declara **una sola ejecución diaria a hora fija**; eficacia en los dos sentidos (`0,30 6 * * *` y `0 */6 * * *` sí; `0 6 * * *` y `30 11 * * *` no) | `vercel.json` (la expresión) | `tests/spec059-hora-del-ciclo.ts` → `declaraUnaEjecucionDiariaAHoraFija`; `tests/spec059-hora-del-ciclo.test.ts` *«el detector caza…»*, *«y NO caza…»*, *«la cadencia declarada en vercel.json…»* | | ❌ |
-| CA-3 | Las **tres** guardias que congelan `vercel.json` entero se **re-congelan** al valor nuevo, sin relajar ni derivar del propio fichero; qué vigilaban antes / ahora, escrito aquí | `tests/deploy-gate-workflow.test.ts`, `tests/spec-031-frontera.test.ts`, `tests/version-bump-gate.test.ts` (solo el valor del `schedule`) | ellos mismos; antes/ahora escrito abajo en «Las tres guardias re-congeladas» | | ❌ |
-| CA-4 | `docs/despliegue.md` §3.3: el bloque JSON **derivado** coincide con `crons`, con centinela; y la nota de plan recoge Hobby (minuto arbitrario, día no garantizado) vs Pro (clavado) | `docs/despliegue.md` §3.3 (bloque JSON + nota de plan) | `tests/spec059-hora-del-ciclo.ts` → `cronsDelRunbook`; `tests/spec059-hora-del-ciclo.test.ts` *«el extractor devuelve el bloque de VERDAD…»*, *«el bloque JSON de §3.3, parseado, ES el `crons`…»*, *«la nota de plan recoge lo MEDIDO…»* | | ❌ |
-| CA-5 | `src/lib/market/sin-refrescar.ts` deja de llevar una **segunda copia** del valor: nombra el fichero dueño, no la hora; eficacia en los dos sentidos | `src/lib/market/sin-refrescar.ts` (comentario de `HORAS_POR_CICLO`) | `tests/spec059-hora-del-ciclo.ts` → `copiasDelSchedule`; `tests/spec059-hora-del-ciclo.test.ts` *«el detector caza una copia…»*, *«y NO caza nombrar al dueño…»*, *«…sigue nombrando al fichero que posee la hora»* (centinela), *«…y no lleva ni una copia del schedule»* | | ❌ |
-| CA-6 | Ningún texto visible nombra franja horaria del ciclo (*«sin esperar a la noche»* fuera); `CADENCIA_LINEA` y `AVISO_LO_EMITE_EL_CICLO` **sin tocar** y sus guardias verdes | `src/lib/help/content.ts` (copia + comentario del ejemplo), `src/app/vigiladas/actions.ts` (comentario) | `tests/spec059-hora-del-ciclo.ts` → `franjasHorariasEn`; `tests/spec059-hora-del-ciclo.test.ts` *«el detector caza las frases…»*, *«y NO caza la cadencia…»*, *«el barrido encuentra copia de verdad»* (centinela), *«la copia visible no nombra ninguna franja horaria»*, *«las dos frases que NO cambian…»* | | ❌ |
-| CA-7 | El hueco de transición no supera `UMBRAL_SIN_REFRESCAR_HORAS`. **Con `0 6 * * *`: 31 h 12 min contra 36 h → se cumple con holgura y el merge no tiene condición de horario.** Por recálculo, **sin guardia permanente** | Recálculo escrito abajo en «El hueco de transición, recalculado» | n-a (a propósito) | | ❌ |
-| CA-8 | **Observación post-deploy**: dos filas de `cron_runs` **a las 06:00 UTC** con `outcome=success`, y `as_of` = D-1 contrastado con un símbolo y su serie; desenlace de ADR-039 pto. 4 si sigue D-2. **Es la condición de la hora elegida, no un extra** | Pendiente del merge — nada que implementar | n-a (no automatizable) | | ❌ |
-| CA-9 | `docs/roadmap.md`: las dos frases en **pasado** no se tocan; la que está en **presente** (*«el aviso sigue saliendo a las 22:00»*) deja de nombrar la hora. Sin guardia | `docs/roadmap.md` línea ~39 | n-a (ADR-037) | | ❌ |
-| CA-10 | Ledgers, ADR y `dominio.md` que citan las 22:00 **en pasado** no se tocan. Criterio de gate (`RI-03`), por `git diff --name-only`. **Sin guardia** (ADR-037) | El diff de la rama; comprobación escrita abajo en «El diff, acotado» | n-a (a propósito) | | ❌ |
-| CA-11 | Subida de versión **patch** con los dos ficheros en el mismo commit (ADR-033) y `version:check` sobre árbol limpio (SPEC-049) | `package.json` + `package-lock.json` (0.5.0 → **0.5.1**, mismo commit) | `tests/version-en-los-dos-ficheros.test.ts` (SPEC-053 CA-1) y `npm run version:check` sobre árbol limpio | | ❌ |
+| CA-1 | `vercel.json` → `crons[0].schedule` pasa a **`0 6 * * *`**; **nada más** del fichero cambia | `vercel.json` → `crons[0].schedule` = `0 6 * * *` | `tests/deploy-gate-workflow.test.ts` *9.2*, `tests/spec-031-frontera.test.ts` *CA-13.2* y `tests/version-bump-gate.test.ts` *«vercel.json no cambia por culpa de este gate»* — las tres comparan el fichero **entero**; `tests/spec059-hora-del-ciclo.test.ts` *«hay un solo cron»* | El diff de `vercel.json` es **una línea**: `0 22 * * *` → `0 6 * * *`. `$schema`, `buildCommand`, el número de entradas de `crons` y el `path` **idénticos**. Las tres guardias hacen `toEqual` sobre el `JSON.parse` del fichero **entero** y pasan; mutado a mano a `0 7 * * *` se ponen **rojas** (ver CA-3) | ✅ |
+| CA-2 | La expresión declara **una sola ejecución diaria a hora fija**; eficacia en los dos sentidos (`0,30 6 * * *` y `0 */6 * * *` sí; `0 6 * * *` y `30 11 * * *` no) | `vercel.json` (la expresión) | `tests/spec059-hora-del-ciclo.ts` → `declaraUnaEjecucionDiariaAHoraFija`; `tests/spec059-hora-del-ciclo.test.ts` *«el detector caza…»*, *«y NO caza…»*, *«la cadencia declarada en vercel.json…»* | Los dos sentidos ejercitados por el test sobre los cuatro especímenes del CA, **y además contra el fichero real**: con `0,30 6 * * *` en `vercel.json` el caso *«la cadencia declarada…»* se pone **rojo**; con `30 11 * * *` —el destino pactado en ADR-039 pto. 4— sigue **verde**. El detector no teclea la hora: mira la forma de los cinco campos y su rango | ✅ |
+| CA-3 | Las **tres** guardias que congelan `vercel.json` entero se **re-congelan** al valor nuevo, sin relajar ni derivar del propio fichero; qué vigilaban antes / ahora, escrito aquí | `tests/deploy-gate-workflow.test.ts`, `tests/spec-031-frontera.test.ts`, `tests/version-bump-gate.test.ts` (solo el valor del `schedule`) | ellos mismos; antes/ahora escrito abajo en «Las tres guardias re-congeladas» | Leídas una a una: las tres siguen con `toEqual` sobre el `JSON.parse` del fichero **entero** —ni `toContain`, ni `objectContaining`, ni valor derivado del propio `vercel.json`— y el diff de cada una es **una línea**, la del literal del `schedule`. Los dos sentidos **ejecutados por el verificador**: con el árbol de la entrega, verdes; con `vercel.json` mutado a mano a `0 7 * * *`, **rojas las tres** (y con ellas CA-4, que deriva). `tests/spec043-sin-refrescar.test.ts` **verde y sin una línea tocada**. Antes/ahora escrito abajo | ✅ |
+| CA-4 | `docs/despliegue.md` §3.3: el bloque JSON **derivado** coincide con `crons`, con centinela; y la nota de plan recoge Hobby (minuto arbitrario, día no garantizado) vs Pro (clavado) | `docs/despliegue.md` §3.3 (bloque JSON + nota de plan) | `tests/spec059-hora-del-ciclo.ts` → `cronsDelRunbook`; `tests/spec059-hora-del-ciclo.test.ts` *«el extractor devuelve el bloque de VERDAD…»*, *«el bloque JSON de §3.3, parseado, ES el `crons`…»*, *«la nota de plan recoge lo MEDIDO…»* | El caso **deriva las dos mitades** y no teclea la hora. Los dos sentidos ejecutados: mutado el bloque JSON de §3.3 a `0 9 * * *` → **rojo**; mutado `vercel.json` → **rojo**. Centinela ejercitado sobre cuatro especímenes sintéticos (bloque ausente, JSON no parseable, sección equivocada, `crons` vacío) → `null`, no `[]`. La nota de plan trae *Hobby*, *Pro*, *minuto*, *no garantiza*, `2026-08-24` y *clavado*, y el *«nos vale»* ya no está | ✅ |
+| CA-5 | `src/lib/market/sin-refrescar.ts` deja de llevar una **segunda copia** del valor: nombra el fichero dueño, no la hora; eficacia en los dos sentidos | `src/lib/market/sin-refrescar.ts` (comentario de `HORAS_POR_CICLO`) | `tests/spec059-hora-del-ciclo.ts` → `copiasDelSchedule`; `tests/spec059-hora-del-ciclo.test.ts` *«el detector caza una copia…»*, *«y NO caza nombrar al dueño…»*, *«…sigue nombrando al fichero que posee la hora»* (centinela), *«…y no lleva ni una copia del schedule»* | Reintroducida **a mano** en el comentario de `HORAS_POR_CICLO` la copia *«el cron de `vercel.json` es `0 6 * * *`»* → **rojo**. El otro sentido: las tres menciones legítimas —incluida la aritmética `UMBRAL_SIN_REFRESCAR_HORAS * 60 * 60 * 1000` que escribe el propio módulo vigilado— **no** se cazan. Centinela vivo: el módulo sigue nombrando `vercel.json` y sigue diciendo la premisa *«uno al día»* | ✅ |
+| CA-6 | Ningún texto visible nombra franja horaria del ciclo (*«sin esperar a la noche»* fuera); `CADENCIA_LINEA` y `AVISO_LO_EMITE_EL_CICLO` **sin tocar** y sus guardias verdes | `src/lib/help/content.ts` (copia + comentario del ejemplo), `src/app/vigiladas/actions.ts` (comentario) | `tests/spec059-hora-del-ciclo.ts` → `franjasHorariasEn`; `tests/spec059-hora-del-ciclo.test.ts` *«el detector caza las frases…»*, *«y NO caza la cadencia…»*, *«el barrido encuentra copia de verdad»* (centinela), *«la copia visible no nombra ninguna franja horaria»*, *«las dos frases que NO cambian…»* | Reintroducida **a mano** *«sin esperar a la noche»* en `CADENCIA.parrafos` → **rojo**. El otro sentido: *«cada mañana»* y *«esperar a mañana»*, que están en la copia de hoy y hablan de un día, **no** se cazan. El barrido es **recursivo sobre todo el módulo exportado**, no una lista de constantes, con centinela que exige encontrar dentro las dos frases con guardia propia. `CADENCIA_LINEA` y `AVISO_LO_EMITE_EL_CICLO` **no están en el diff**; `tests/ayuda-contenido.test.ts` verde en la batería y `tests/e2e/ayuda.spec.ts` + `tests/e2e/primera-pantalla.spec.ts` → **50 passed** sin una línea tocada. Barrido propio del verificador por `src/`: ningún otro texto visible nombra franja horaria | ✅ |
+| CA-7 | El hueco de transición no supera `UMBRAL_SIN_REFRESCAR_HORAS`. **Con `0 6 * * *`: 31 h 12 min contra 36 h → se cumple con holgura y el merge no tiene condición de horario.** Por recálculo, **sin guardia permanente** | Recálculo escrito abajo en «El hueco de transición, recalculado» | n-a (a propósito) | **Recalculado por el verificador con el módulo del proyecto**, no con un arné propio: importando `UMBRAL_SIN_REFRESCAR_HORAS` de `@/lib/market/sin-refrescar` (36, derivado de 24 × 1,5) y leyendo el `schedule` de `vercel.json`. `22:48 D-1 → 06:00 D+1` = **31,2 h** < **36 h**, holgura **4,8 h** → **no cruza**, el merge no tiene condición de horario. Contraste con la opción (C): `0 12 * * *` = **37,2 h** → **sí cruza**. El fichero de medida se borró y el árbol quedó limpio | ✅ |
+| CA-8 | **Observación post-deploy**: dos filas de `cron_runs` **a las 06:00 UTC** con `outcome=success`, y `as_of` = D-1 contrastado con un símbolo y su serie; desenlace de ADR-039 pto. 4 si sigue D-2. **Es la condición de la hora elegida, no un extra** | Pendiente del merge — nada que implementar | n-a (no automatizable) | **No verificable antes del merge, y está escrito como tal en los dos sitios**: la spec lo dice en voz alta y `tests/spec059-hora-del-ciclo.test.ts` lo declara en su cabecera. **Lo que el verificador sí comprobó es lo contrario**: ningún caso de la batería finge cubrirlo — no hay ningún test que afirme nada sobre qué `as_of` traerá el proveedor. El procedimiento post-merge (4 pasos, con el desenlace de ADR-039 pto. 4) está escrito en el handoff | ⚠️ pendiente post-deploy |
+| CA-9 | `docs/roadmap.md`: las dos frases en **pasado** no se tocan; la que está en **presente** (*«el aviso sigue saliendo a las 22:00»*) deja de nombrar la hora. Sin guardia | `docs/roadmap.md` línea ~39 | n-a (ADR-037) | Por diff: **una sola línea tocada**, la del presente — *«sigue saliendo a las 22:00»* → *«sigue saliendo en el ciclo diario»*. Las dos en pasado (líneas 16 y 18: *«era el cron `0 22 * * *`»*, *«Entre el alta y las 22:00 había»*) están **intactas**, y el párrafo que las contiene se declara a sí mismo *«el estado ANTES de esa entrega»*. `grep` sobre el roadmap: no queda **ninguna** afirmación en presente que nombre la hora del ciclo. Sin guardia, como pide el CA | ✅ |
+| CA-10 | Ledgers, ADR y `dominio.md` que citan las 22:00 **en pasado** no se tocan. Criterio de gate (`RI-03`), por `git diff --name-only`. **Sin guardia** (ADR-037) | El diff de la rama; comprobación escrita abajo en «El diff, acotado» | n-a (a propósito) | `git diff --name-only origin/main...HEAD` = **17 ficheros**, exactamente los que el ledger lista. `SPEC-004.ledger`, `SPEC-035.ledger`, `SPEC-039.ledger`, `SPEC-058`, `ADR-038`, `docs/fundacion/dominio.md` y `tests/spec043-sin-refrescar.test.ts` **no aparecen**: sus citas en pasado siguen intactas. **Salvedad, ver abajo**: `ADR-004` sí aparece, y el CA lo nombra entre los que no se tocan | ⚠️ con salvedad declarada |
+| CA-11 | Subida de versión **patch** con los dos ficheros en el mismo commit (ADR-033) y `version:check` sobre árbol limpio (SPEC-049) | `package.json` + `package-lock.json` (0.5.0 → **0.5.1**, mismo commit) | `tests/version-en-los-dos-ficheros.test.ts` (SPEC-053 CA-1) y `npm run version:check` sobre árbol limpio | `0.5.0` → `0.5.1` (**patch**), los dos ficheros en el **mismo commit** (`50daa71`, y solo esos dos), con `package-lock.json` coherente en `version` y en `packages['']`. `npm run version:check` **con el árbol limpio** (verificado con `git status` vacío antes de correrlo): *«La version sube de 0.5.0 a 0.5.1»* — un verde con contenido, no la abstención de SPEC-049 | ✅ |
 
 ## Las tres guardias re-congeladas (CA-3)
 
@@ -162,6 +164,70 @@ commit de la spec, antes de la implementación.
 
 ## Veredicto del verificador
 <!-- GREEN/RED + fecha + resumen. Lo escribe SOLO sdd-verificador. -->
+
+**GREEN — 2026-09-03, `sdd-verificador`.** 9 CA en ✅ y 2 en ⚠️, las dos con su salvedad
+justificada, declarada por escrito antes de llegar aquí y aceptada en el gate humano del
+2026-09-03. Ninguna de las dos es un «casi».
+
+### Los gates, corridos por el verificador sobre la rama
+
+| Gate | Resultado |
+|---|---|
+| `npm run typecheck` | verde |
+| `npm run lint` (`--max-warnings=0`) | verde |
+| `npm test` | **121 ficheros, 1952 casos, 0 fallos** |
+| `npx playwright test tests/e2e/ayuda.spec.ts tests/e2e/primera-pantalla.spec.ts` | **50 passed** |
+| `npm run version:check` **con `git status` vacío** | verde, `0.5.0 → 0.5.1` |
+
+La e2e reescribió capturas de `_qa/SPEC-039` y `_qa/SPEC-050` que **no son de esta spec**: se
+restauraron con `git checkout -- _qa/` y el árbol quedó limpio. Esta entrega no genera evidencia
+visual propia.
+
+### Lo que se comprobó ejecutando, y no leyendo
+
+Ninguna guardia de esta entrega se dio por buena porque estuviera verde. Las cinco que congelan o
+detectan algo se pusieron **rojas a mano** antes de aceptarlas —una guardia que solo se comprueba
+en un sentido no está comprobada—:
+
+| Mutación aplicada al árbol | Qué se puso rojo |
+|---|---|
+| `vercel.json` → `0 7 * * *` | las **tres** guardias de CA-3 **y** el caso derivado de CA-4 (4 ficheros); `tests/spec043-sin-refrescar.test.ts` siguió **verde**, que es su encuadre correcto |
+| `vercel.json` → `0,30 6 * * *` | CA-2 *«la cadencia declarada…»* |
+| `vercel.json` → `30 11 * * *` (destino de ADR-039 pto. 4) | **nada**: sigue verde, como tiene que ser |
+| bloque JSON de `docs/despliegue.md` §3.3 → `0 9 * * *` | CA-4 (el lado del runbook) |
+| copia del `schedule` reintroducida en `sin-refrescar.ts` | CA-5 |
+| *«sin esperar a la noche»* reintroducida en `CADENCIA.parrafos` | CA-6 |
+
+Y **CA-7 se recalculó con el módulo del proyecto**, importando `UMBRAL_SIN_REFRESCAR_HORAS` en
+vez de teclear 36: **31,2 h** de hueco contra **36 h**, holgura de **4,8 h**; la opción (C)
+descartada daría **37,2 h** y sí cruzaría. El fichero de medida se borró al terminar.
+
+### Las dos salvedades, dichas enteras
+
+1. **CA-8 queda abierto, y el veredicto no lo tapa.** Es observación post-deploy y así está
+   escrito en la spec y en la cabecera de `tests/spec059-hora-del-ciclo.test.ts`. Lo que este
+   verificador sí buscó —y no encontró— es lo contrario: **ningún caso de la batería finge
+   probar qué `as_of` traerá el proveedor**. El GREEN es sobre *«la hora declarada es la
+   aprobada y nada en el repositorio dice otra cosa»*, que es exactamente lo que la batería
+   puede sostener. **Esta spec pasa a `hecho` con una deuda nombrada**: las dos filas de
+   `cron_runs` del handoff. Quien las mire y vea D-2 aplica ADR-039 pto. 4 y **rehace CA-7**,
+   porque a ≥ 11:00 UTC el hueco sí cruza el umbral de RN-16.
+2. **CA-10 se cumple en la propiedad y tiene una excepción en la letra.** La propiedad —*«la
+   evidencia histórica no se reescribe»*— está **entera**: ni una de las citas en pasado de
+   `SPEC-004.ledger`, `SPEC-035.ledger`, `SPEC-039.ledger`, `SPEC-058`, `ADR-038` ni
+   `docs/fundacion/dominio.md` aparece en el diff. La excepción es **`ADR-004`**, que el CA
+   nombra entre los intocables y que **sí** está en el diff: solo su **frontmatter**
+   (`borrador` → `aprobada`, con su línea de historial), que es la transición que **§Notas para
+   el gate humano pto. 3 de esta misma spec ordena**, entró en el commit del arquitecto
+   (`d1e3cdb`) **antes de la implementación** y está declarada en «El diff, acotado». Su cuerpo
+   no cambia — y, comprobado, **ADR-004 no contiene ninguna cita del horario**: la lista del CA
+   lo incluyó de más. No hay evidencia falseada, así que no es motivo de RED; queda ⚠️ y escrito
+   para que nadie lo lea como un descuido dentro de seis meses.
+
+### Lo que este verificador NO puede afirmar
+
+Que el ciclo ya trae el cierre de la sesión anterior. Eso no lo dice la batería, no lo dice este
+veredicto y no lo va a decir ningún test: lo dirán dos filas de `cron_runs`.
 
 ## Evidencia visual
 <!-- Tabla CA → captura en _qa/SPEC-059/. Informe HTML opcional: _qa/SPEC-059/informe.html -->
