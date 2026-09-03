@@ -79,7 +79,7 @@ test('SPEC-058 CA-3/CA-11: el alta trae el precio en la misma respuesta, y la es
   // ── CA-3, con la zona FUERA del precio ────────────────────────────────────────────
   // ITX cotiza a 53,72 en el catálogo del e2e; la zona 10–15 no lo contiene, así que el
   // color que le corresponde es el de «fuera de zona». Que la fila lleve precio y fecha
-  // es lo que hasta esta spec no pasaba hasta el ciclo de las 22:00.
+  // es lo que hasta esta spec no pasaba hasta el ciclo diario siguiente.
   await vigilar(page, 'Inditex', 'ITX', '10', '15');
 
   const itx = page.locator('tr', { hasText: 'ITX' });

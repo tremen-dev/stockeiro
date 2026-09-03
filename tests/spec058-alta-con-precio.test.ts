@@ -299,7 +299,7 @@ describe('SPEC-058 CA-5: fallo clasificado — el alta se completa y el silencio
     const [w] = await db.select().from(watchedSymbols).where(eq(watchedSymbols.userId, userA));
     expect([w.buyMin, w.buyMax, w.sellMin, w.sellMax]).toEqual(['20', '25', '35', '40']);
     expect(await cotizacion(w.symbolId)).toBeNull();
-    // La fila explica su silencio DESDE EL PRIMER MINUTO, no a las 22:00.
+    // La fila explica su silencio DESDE EL PRIMER MINUTO, no en el ciclo diario siguiente.
     expect(await diagnostico(w.symbolId)).toBe('simbolo_no_admitido');
   });
 });
