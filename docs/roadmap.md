@@ -36,7 +36,7 @@ tipo: roadmap
   precio se puede pedir bajo demanda; el disparo sigue evaluándose en el ciclo*.
   ⚠️ **La pantalla y el correo van desacompasados, a propósito** (R-3). El estado de zona se
   computa en render (`zoneStatusForUser`), así que un precio fresco pinta «En compra» al
-  instante — pero el **aviso** sigue saliendo a las 22:00. Decisión del humano del
+  instante — pero el **aviso** sigue saliendo en el ciclo diario. Decisión del humano del
   2026-08-25: avisar al momento reinterpretaría D-2 (*locked*) y el modelo *edge-triggered*
   de ADR-005, y eso necesita su propio gate.
   ⚠️ **Coste medido, no temido** (R-2): en la unidad de ADR-027 pto. 1 hoy son **13 × 31 ≈

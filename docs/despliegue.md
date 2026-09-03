@@ -236,11 +236,29 @@ Comprobar: `vercel env ls`.
 `vercel.json` declara el cron diario:
 
 ```json
-{ "crons": [{ "path": "/api/cron/refresh", "schedule": "0 22 * * *" }] }
+{ "crons": [{ "path": "/api/cron/refresh", "schedule": "0 6 * * *" }] }
 ```
 
 Vercel invoca esa ruta 1×/día y **envía `Authorization: Bearer $CRON_SECRET`** automáticamente
-(por eso basta con tener `CRON_SECRET` en las envs). En plan Hobby el cron es diario (nos vale).
+(por eso basta con tener `CRON_SECRET` en las envs).
+
+> **La hora la posee `vercel.json`, y solo él** (ADR-039 pto. 8). Este bloque es una copia del
+> fichero y **no es una segunda fuente**: `tests/spec059-hora-del-ciclo.test.ts` deriva los dos
+> lados y los compara, así que si se mueve la hora hay que mover el fichero y traer este bloque
+> detrás. No hay un tercer sitio donde teclearla.
+>
+> **De qué cuelga la hora**: de **cuándo publica el proveedor**, no del cierre de mercado
+> (ADR-039 pto. 1). La hora anterior era posterior al cierre de los siete mercados soportados y
+> aun así el ciclo guardaba **el cierre de anteayer**: a las 22:48 UTC Marketstack todavía no
+> había publicado el EOD de esa sesión (evidencia del 2026-09-03, SPEC-059).
+>
+> **Lo que el plan cambia, medido y no supuesto** (SPEC-059):
+>
+> - **Hobby**: el disparo cae en **un minuto cualquiera dentro de la hora declarada** —las filas
+>   de `cron_runs` estaban todas a las 22:48, no a las 22:00— y **no garantiza el día**: falta la
+>   ejecución del **2026-08-24**, con un salto del `2026-08-23T22:50Z` al `2026-08-25T07:38Z`.
+> - **Pro**: se dispara **clavado** a la hora declarada y garantiza el día. La cuenta está en Pro,
+>   así que la fila de `cron_runs` tiene que aparecer a la hora que declara el bloque de arriba.
 
 ### 3.4 Desplegar
 
