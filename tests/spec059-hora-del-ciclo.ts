@@ -59,3 +59,40 @@ export const CADENCIAS_QUE_HAY_QUE_CAZAR: readonly string[] = ['0,30 6 * * *', '
  * entre sí**. La segunda es el destino pactado de ADR-039 pto. 4.
  */
 export const CADENCIAS_LEGITIMAS: readonly string[] = ['0 6 * * *', '30 11 * * *'];
+
+/**
+ * **CA-4** — el `crons` que **documenta** `docs/despliegue.md` §3.3, sacado del bloque
+ * JSON que la sección enseña.
+ *
+ * Se **deriva**, no se teclea: es la mitad del par que el test compara contra el
+ * `crons` de `vercel.json`, y ninguna de las dos mitades lleva la hora escrita en el
+ * test. Así el día que **ADR-039 pto. 4** obligue a mover la hora, esto sigue verde
+ * tocando un fichero — y rojo si alguien se olvida del runbook, que es justo lo que
+ * había pasado.
+ *
+ * Devuelve **`null`** —y nunca `[]`— cuando la sección no está, el bloque no está, no
+ * parsea o viene vacío. Es el **centinela de extracción no vacía**: sin él, un
+ * documento reescrito dejaría el caso comparando dos vacíos, que es verde sin haber
+ * mirado nada.
+ */
+export function cronsDelRunbook(markdown: string): { path: string; schedule: string }[] | null {
+  const seccion = markdown
+    .split(/^### /m)
+    .slice(1)
+    .find((parte) => parte.startsWith('3.3'));
+  if (!seccion) return null;
+
+  const bloque = /```json\s*\n([\s\S]*?)```/.exec(seccion);
+  if (!bloque) return null;
+
+  let contenido: unknown;
+  try {
+    contenido = JSON.parse(bloque[1]);
+  } catch {
+    return null;
+  }
+
+  const crons = (contenido as { crons?: unknown }).crons;
+  if (!Array.isArray(crons) || crons.length === 0) return null;
+  return crons as { path: string; schedule: string }[];
+}

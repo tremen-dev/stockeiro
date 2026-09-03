@@ -4,6 +4,7 @@ import { dirname, join, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import {
   declaraUnaEjecucionDiariaAHoraFija,
+  cronsDelRunbook,
   CADENCIAS_QUE_HAY_QUE_CAZAR,
   CADENCIAS_LEGITIMAS,
 } from './spec059-hora-del-ciclo';
@@ -79,5 +80,56 @@ describe('SPEC-059 CA-2: sigue siendo UNA ejecución al día a hora fija', () =>
 
   it('hay un solo cron: un ciclo, una hora UTC (ADR-039 pto. 9)', () => {
     expect(cronsDeclarados()).toHaveLength(1);
+  });
+});
+
+describe('SPEC-059 CA-4: el runbook dice lo mismo que vercel.json, y lo dice derivándolo', () => {
+  const runbook = () => readFileSync(join(rootDir, 'docs', 'despliegue.md'), 'utf8');
+
+  /** El cuerpo de §3.3, con centinela: si la sección no está, no hay nada que afirmar. */
+  function seccionDelCron(): string {
+    const partes = runbook().split(/^### /m).slice(1);
+    const encontrada = partes.find((p) => p.startsWith('3.3'));
+    expect(encontrada, 'docs/despliegue.md ya no tiene §3.3').toBeDefined();
+    return encontrada!;
+  }
+
+  it('el extractor devuelve el bloque de VERDAD, y `null` cuando no hay nada que leer', () => {
+    // Centinela de extracción no vacía, ejercitado sobre especímenes sintéticos ANTES de
+    // mirar el documento real: si el bloque no se encuentra o no parsea, esto tiene que
+    // ponerse ROJO y no verde de vacío. Un extractor que devuelve `[]` cuando no
+    // encuentra nada convierte el caso de abajo en una comparación de dos vacíos.
+    expect(
+      cronsDelRunbook('### 3.3 Cron\n\n```json\n{ "crons": [{ "path": "/x", "schedule": "9 9 * * *" }] }\n```\n'),
+    ).toEqual([{ path: '/x', schedule: '9 9 * * *' }]);
+    expect(cronsDelRunbook('### 3.3 Cron\n\nsin bloque ninguno\n')).toBeNull();
+    expect(cronsDelRunbook('### 3.3 Cron\n\n```json\n{ esto no parsea }\n```\n')).toBeNull();
+    expect(cronsDelRunbook('### 3.4 Otra cosa\n\n```json\n{ "crons": [] }\n```\n')).toBeNull();
+  });
+
+  it('el bloque JSON de §3.3, parseado, ES el `crons` de vercel.json', () => {
+    // Las dos partes se DERIVAN: ni el bloque ni el test teclean la hora. El día que
+    // ADR-039 pto. 4 obligue a moverla, esto sigue verde con solo tocar `vercel.json`…
+    // y rojo si alguien se olvida del runbook, que es lo que acaba de pasar.
+    const delRunbook = cronsDelRunbook(runbook());
+    expect(delRunbook, 'el bloque de §3.3 no se encontró o no parsea').not.toBeNull();
+    expect(delRunbook).toEqual(cronsDeclarados());
+  });
+
+  it('la nota de plan recoge lo MEDIDO de Hobby y de Pro, no un «nos vale»', () => {
+    // Lo que decía —«En plan Hobby el cron es diario (nos vale)»— es lo que dejó pasar
+    // nueve semanas de dato viejo: en Hobby el disparo cae en un minuto cualquiera dentro
+    // de la hora (todas las filas de `cron_runs` a las 22:48, no a las 22:00) y NO
+    // garantiza el día (falta la ejecución del 2026-08-24). En Pro se dispara clavado.
+    const seccion = seccionDelCron();
+    expect(seccion).toMatch(/Hobby/);
+    expect(seccion).toMatch(/Pro\b/);
+    expect(seccion).toMatch(/minuto/i);
+    expect(seccion).toMatch(/no garantiza/i);
+    expect(seccion).toMatch(/2026-08-24/);
+    expect(seccion).toMatch(/clavad/i);
+    expect(seccion, 'el «nos vale» es justo lo que hizo que nadie mirara').not.toMatch(
+      /nos vale/i,
+    );
   });
 });
