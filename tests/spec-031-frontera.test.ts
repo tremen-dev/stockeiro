@@ -106,7 +106,7 @@ describe('SPEC-031 CA-13.2: vercel.json solo cambia cuando una spec lo cambia', 
     expect(JSON.parse(readFileSync(join(rootDir, 'vercel.json'), 'utf8'))).toEqual({
       $schema: 'https://openapi.vercel.sh/vercel.json',
       buildCommand: 'node scripts/guard-migrate.mjs && npm run db:migrate && npm run build',
-      crons: [{ path: '/api/cron/refresh', schedule: '0 22 * * *' }],
+      crons: [{ path: '/api/cron/refresh', schedule: '0 6 * * *' }],
     });
   });
 });
