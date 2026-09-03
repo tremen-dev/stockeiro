@@ -186,7 +186,7 @@ Abiertas ya desde el diseño (las dos nacen en ADR-039 y se anotan aquí para qu
 
 **Hecho: CA-1 a CA-7, CA-9, CA-10 y CA-11.** La implementación está completa en la rama
 `ft/SPEC-059-el-ciclo-diario-deja-de-traer-el-cierre-de-anteayer-la-hora-del-cron-se-mueve-a-la-manana-utc`,
-en ocho commits con `Refs: SPEC-059`, **sin push y sin PR** — eso es del orquestador.
+con todos los commits marcados `Refs: SPEC-059`, **sin push y sin PR** — eso es del orquestador.
 
 Los gates, ejecutados en este orden y todos verdes:
 
