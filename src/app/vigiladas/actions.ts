@@ -64,7 +64,7 @@ function readZones(formData: FormData): WatchInput {
  *
  * Lo que esta action **sigue sin hacer** es comparar con las zonas y avisar: **RN-13** y
  * **RN-14** son del ciclo (D-2, ADR-038 pto. 3, gemelo de ADR-028 pto. 3). La pantalla
- * puede decir «En compra» hoy y el correo salir esta noche; eso es el diseño, y CA-11 se
+ * puede decir «En compra» hoy y el correo salir en el ciclo; eso es el diseño, y CA-11 se
  * encarga de que el usuario lo lea en la pantalla en vez de descubrirlo.
  */
 export async function watchAction(_prev: FormState, formData: FormData): Promise<FormState> {

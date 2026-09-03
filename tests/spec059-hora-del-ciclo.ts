@@ -176,3 +176,65 @@ export const MENCIONES_LEGITIMAS: readonly string[] = [
   // acusara sería la que acaba aflojada. Es la aritmética del umbral, no un schedule.
   'export const UMBRAL_SIN_REFRESCAR_MS = UMBRAL_SIN_REFRESCAR_HORAS * 60 * 60 * 1000;',
 ];
+
+/**
+ * **CA-6** — expresiones que nombran **un momento del día**.
+ *
+ * La copia visible cuenta la **cadencia** (una vez al día), su relación con el
+ * **cierre** y el carácter **diferido** del dato (D-2). Todo eso es verdad a cualquier
+ * hora. *«sin esperar a la noche»* **no**: quedó falsa el día que el ciclo dejó de ser
+ * nocturno, y ese acoplamiento es el que **ADR-039 pto. 8** elimina.
+ *
+ * Aquí **no** hay regla de la negación —al contrario que en
+ * `tests/ayuda-afirmaciones-prohibidas.ts`—, y es a propósito: allí la spec **exige**
+ * escribir *«esto no es tiempo real»*, así que la raíz negada es la cura. Aquí no hay
+ * ninguna frase que el producto necesite decir sobre la franja horaria del ciclo, ni
+ * afirmándola ni negándola. Lo que se prohíbe es **nombrarla**.
+ *
+ * `mañana` y `tarde` solo cuentan dentro del giro *«de/por/a la …»*, que es el que
+ * nombra la franja. *«cada mañana»* y *«esperar a mañana»* hablan de un **día**, no de
+ * una hora, son verdad a cualquier hora del ciclo y están en la copia de hoy.
+ */
+const FRANJAS_HORARIAS: readonly RegExp[] = [
+  /\bnoches?\b/gi,
+  /\bnocturn\w*/gi,
+  /\bmadrugadas?\b/gi,
+  /\bmedianoche\b/gi,
+  /\bmediod[íi]as?\b/gi,
+  /\b(?:amanecer|anochecer)\b/gi,
+  /\b(?:de|por|a)\s+la\s+(?:ma[ñn]ana|tarde)\b/gi,
+  /\b\d{1,2}:\d{2}\b/g,
+  /\ba\s+las\s+(?:\d{1,2}|una|dos|tres|cuatro|cinco|seis|siete|ocho|nueve|diez|once|doce)\b/gi,
+];
+
+/** Los trozos de `texto` que nombran un momento del día. Vacío = la copia está limpia. */
+export function franjasHorariasEn(texto: string): string[] {
+  return FRANJAS_HORARIAS.flatMap((patron) => [
+    ...texto.matchAll(new RegExp(patron.source, patron.flags)),
+  ]).map((m) => m[0]);
+}
+
+/**
+ * Lo que el detector de CA-6 **debe cazar**. La primera es literalmente la frase que
+ * esta spec quita; las demás son lo que alguien escribiría al «actualizarla» a la hora
+ * nueva en vez de dejar de nombrar la hora.
+ */
+export const COPIAS_CON_FRANJA_HORARIA: readonly string[] = [
+  'Trae su precio sin esperar a la noche.',
+  'El aviso sale a las 22:00, cuando cierra el mercado.',
+  'El ciclo corre de madrugada, así que por la mañana ya tienes el precio.',
+  'Los precios se refrescan en el ciclo nocturno.',
+];
+
+/**
+ * Lo que el detector de CA-6 **no debe cazar**: la cadencia, el cierre y el carácter
+ * diferido, más las dos frases de la copia de hoy que hablan de un **día** y no de una
+ * franja. Si un patrón nuevo rompe una de estas, el patrón está mal.
+ */
+export const COPIAS_SIN_FRANJA_HORARIA: readonly string[] = [
+  'Los precios son de cierre y se refrescan una vez al día, después del cierre de mercado.',
+  'Los avisos se emiten en el ciclo diario, después del cierre.',
+  'Sirve para acordarse de lo que lleva días esperando sin llenar el buzón con lo mismo cada mañana.',
+  'No hay nada que arreglar: hay que esperar a mañana.',
+  'Se ingiere en el próximo ciclo diario y a partir de ahí tendrá precio como las demás.',
+];

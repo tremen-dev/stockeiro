@@ -8,9 +8,13 @@ import {
   copiasDelSchedule,
   COPIAS_QUE_HAY_QUE_CAZAR,
   MENCIONES_LEGITIMAS,
+  franjasHorariasEn,
+  COPIAS_CON_FRANJA_HORARIA,
+  COPIAS_SIN_FRANJA_HORARIA,
   CADENCIAS_QUE_HAY_QUE_CAZAR,
   CADENCIAS_LEGITIMAS,
 } from './spec059-hora-del-ciclo';
+import * as contenido from '@/lib/help/content';
 
 /**
  * SPEC-059 — **la hora del ciclo se declara una vez, y nada la contradice**.
@@ -168,5 +172,60 @@ describe('SPEC-059 CA-5: la hora se escribe una vez, y el fuente no lleva una se
 
   it('…y no lleva ni una copia del schedule: mover la hora no obliga a editarlo', () => {
     expect(copiasDelSchedule(modulo())).toEqual([]);
+  });
+});
+
+describe('SPEC-059 CA-6: ningun texto visible nombra un momento del dia para el ciclo', () => {
+  /**
+   * **Toda** la copia exportada por el modulo, recorrida sin enumerarla: cadenas
+   * sueltas, parrafos de seccion y textos anidados. Se recorre en vez de listarse para
+   * que una seccion nueva quede vigilada sin tocar este fichero — y para que la guardia
+   * no caduque el dia que la ayuda crezca, que es lo que ADR-037 documenta.
+   */
+  function textoVisible(): string {
+    const trozos: string[] = [];
+    const recorrer = (valor: unknown) => {
+      if (typeof valor === 'string') trozos.push(valor);
+      else if (Array.isArray(valor)) valor.forEach(recorrer);
+      else if (valor && typeof valor === 'object') Object.values(valor).forEach(recorrer);
+    };
+    recorrer(contenido);
+    return trozos.join('\n');
+  }
+
+  it('el detector caza las frases que atan la copia a una franja horaria', () => {
+    // La primera es LITERALMENTE la que esta spec quita. Las demas son lo que alguien
+    // escribiria al «actualizar» la frase a la hora nueva en vez de dejar de nombrarla.
+    for (const copia of COPIAS_CON_FRANJA_HORARIA) {
+      expect(franjasHorariasEn(copia), copia).not.toHaveLength(0);
+    }
+  });
+
+  it('y NO caza la cadencia, el cierre, ni hablar de un dia en vez de una hora', () => {
+    // Segunda direccion, y aqui pesa: las dos ultimas estan en la copia de HOY —«cada
+    // manana» y «esperar a manana»— y hablan de un DIA. Si cayeran, esta guardia estaria
+    // pidiendo reescribir copia que es verdad a cualquier hora.
+    for (const copia of COPIAS_SIN_FRANJA_HORARIA) {
+      expect(franjasHorariasEn(copia), copia).toHaveLength(0);
+    }
+  });
+
+  it('el barrido encuentra copia de verdad: las dos frases con guardia propia estan dentro', () => {
+    // Centinela de no-vacuidad. Sin el, un recorrido que no encontrara nada dejaria el
+    // caso de abajo verde sin haber mirado un solo parrafo.
+    expect(textoVisible()).toContain(contenido.CADENCIA_LINEA);
+    expect(textoVisible()).toContain(contenido.AVISO_LO_EMITE_EL_CICLO);
+  });
+
+  it('la copia visible no nombra ninguna franja horaria', () => {
+    expect(franjasHorariasEn(textoVisible())).toEqual([]);
+  });
+
+  it('las dos frases que NO cambian siguen siendo verdad a cualquier hora', () => {
+    // CA-6 las deja intactas a proposito: dicen cadencia, cierre y quien emite el aviso,
+    // y ninguna de las tres cosas depende de la hora. Sus guardias —ayuda-contenido,
+    // e2e/ayuda, e2e/primera-pantalla— siguen verdes sin una linea modificada.
+    expect(franjasHorariasEn(contenido.CADENCIA_LINEA)).toEqual([]);
+    expect(franjasHorariasEn(contenido.AVISO_LO_EMITE_EL_CICLO)).toEqual([]);
   });
 });
