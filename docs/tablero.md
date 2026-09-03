@@ -1,7 +1,7 @@
 <!-- GENERADO por tremen-sdd (scripts/tablero.mjs). NO EDITAR A MANO. -->
 # Tablero
 
-Actualizado: 2026-08-25
+Actualizado: 2026-09-03
 
 ## EPIC-001 — vigilancia-de-zonas-de-compra-venta-con-cartera-y-avisos (hecho)
 
@@ -86,6 +86,7 @@ Actualizado: 2026-08-25
 | SPEC-049 — el-gate-de-version-no-dice-verde-sobre-un-arbol-sucio-si-lo-que-juzga-no-esta-commiteado-se-abstiene | hecho | 2026-08-23 (sdd-verificador) |
 | SPEC-052 — sin-app-base-url-el-build-ya-no-sale-verde-el-runbook-deja-de-decir-lo-contrario-y-la-asimetria-preview-production-se-escribe | bloqueada | 2026-08-25 (humano (Alberto Fojo)) |
 | SPEC-055 — app-base-url-envenenada-appbaseurl-valida-el-valor-y-no-solo-su-presencia-y-el-build-dice-que-clave-y-que-fichero | hecho | 2026-08-24 (sdd-verificador) |
+| SPEC-059 — el-ciclo-diario-deja-de-traer-el-cierre-de-anteayer-la-hora-del-cron-se-mueve-a-la-manana-utc | hecho | 2026-09-03 (sdd-verificador) |
 
 ## EPIC-INFRA (aprobada)
 
@@ -119,7 +120,7 @@ Actualizado: 2026-08-25
 | ADR-001 | aprobada | stack-y-plataforma-next-js-en-vercel-neon-postgres-auth-js | 2026-07-13 (humano) |
 | ADR-002 | aprobada | ingesta-de-mercado-twelve-data-tras-puerto-con-simbolos-compartidos-y-cache-deduplicada | 2026-07-13 (humano) |
 | ADR-003 | aprobada | modelo-de-cartera-ledger-de-transacciones-precio-medio-gastos-y-p-l | 2026-07-13 (humano) |
-| ADR-004 | borrador | cadencia-diaria-y-base-no-ajustada-de-la-ingesta-persistencia-de-cotizaciones | 2026-07-14 (sdd-arquitecto) |
+| ADR-004 | aprobada | cadencia-diaria-y-base-no-ajustada-de-la-ingesta-persistencia-de-cotizaciones | 2026-09-03 (Alberto Fojo) |
 | ADR-005 | aprobada | evaluacion-de-disparos-dentro-del-ciclo-de-refresco-con-episodios-edge-triggered | 2026-07-14 (humano (Alberto Fojo)) |
 | ADR-006 | aprobada | canal-de-aviso-email-resend-tras-puerto-con-registro-in-app-y-fallback | 2026-07-14 (humano (Alberto Fojo)) |
 | ADR-007 | aprobada | identidad-de-simbolo-por-ticker-mas-mic-code-y-busqueda-de-simbolos-tras-puerto | 2026-07-14 (humano (Alberto Fojo)) |
@@ -153,9 +154,10 @@ Actualizado: 2026-08-25
 | ADR-036 | aprobada | el-correo-lleva-dos-cuerpos-html-opcional-en-el-puerto-el-texto-plano-intacto-y-la-plantilla-sobre-el-puerto-enmienda-a-adr-006 | 2026-08-25 (humano (Alberto Fojo)) |
 | ADR-037 | aprobada | enumerar-un-directorio-que-otros-hacen-crecer-y-congelar-el-resultado-es-criterio-de-gate-la-regla-se-escribe-y-no-se-mecaniza-precisa-adr-031-pto-1 | 2026-08-25 (humano (Alberto Fojo)) |
 | ADR-038 | aprobada | el-precio-se-pide-bajo-demanda-fuera-del-ciclo-el-disparo-y-el-aviso-siguen-siendo-del-ciclo | 2026-08-25 (humano (Alberto Fojo)) |
+| ADR-039 | aprobada | la-hora-del-ciclo-la-fija-cuando-publica-el-proveedor-no-el-cierre-de-mercado-precisa-adr-004-pto-1 | 2026-09-03 (Alberto Fojo) |
 
 ## Resumen
 
-- hecho: 52
+- hecho: 53
 - aprobada: 1
 - bloqueada: 1
