@@ -87,6 +87,7 @@ Actualizado: 2026-09-03
 | SPEC-052 — sin-app-base-url-el-build-ya-no-sale-verde-el-runbook-deja-de-decir-lo-contrario-y-la-asimetria-preview-production-se-escribe | bloqueada | 2026-08-25 (humano (Alberto Fojo)) |
 | SPEC-055 — app-base-url-envenenada-appbaseurl-valida-el-valor-y-no-solo-su-presencia-y-el-build-dice-que-clave-y-que-fichero | hecho | 2026-08-24 (sdd-verificador) |
 | SPEC-059 — el-ciclo-diario-deja-de-traer-el-cierre-de-anteayer-la-hora-del-cron-se-mueve-a-la-manana-utc | hecho | 2026-09-03 (sdd-verificador) |
+| SPEC-060 — el-contexto-maestro-deja-de-mentir-lo-que-se-puede-derivar-se-deriva-lo-que-no-nombra-a-su-dueno | hecho | 2026-09-03 (sdd-verificador) |
 
 ## EPIC-INFRA (aprobada)
 
@@ -155,9 +156,10 @@ Actualizado: 2026-09-03
 | ADR-037 | aprobada | enumerar-un-directorio-que-otros-hacen-crecer-y-congelar-el-resultado-es-criterio-de-gate-la-regla-se-escribe-y-no-se-mecaniza-precisa-adr-031-pto-1 | 2026-08-25 (humano (Alberto Fojo)) |
 | ADR-038 | aprobada | el-precio-se-pide-bajo-demanda-fuera-del-ciclo-el-disparo-y-el-aviso-siguen-siendo-del-ciclo | 2026-08-25 (humano (Alberto Fojo)) |
 | ADR-039 | aprobada | la-hora-del-ciclo-la-fija-cuando-publica-el-proveedor-no-el-cierre-de-mercado-precisa-adr-004-pto-1 | 2026-09-03 (Alberto Fojo) |
+| ADR-040 | aprobada | un-documento-de-verdad-no-copia-lo-que-otro-fichero-posee-se-deriva-o-se-delega-y-la-guardia-vigila-la-copia-no-la-prosa | 2026-09-03 (Alberto Fojo) |
 
 ## Resumen
 
-- hecho: 53
+- hecho: 54
 - aprobada: 1
 - bloqueada: 1
