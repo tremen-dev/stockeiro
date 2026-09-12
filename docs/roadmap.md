@@ -373,6 +373,13 @@ y subió a "Ahora" el mismo día por decisión del humano. -->
   "caliente" para seguirla de cerca; no dispara todavía, pero anticipa la entrada. Complementa
   el motor de disparo (SPEC-005) sin sustituirlo. Requeriría definir el umbral (% o distancia)
   y si genera aviso propio o solo señal en la UI.
+  **De las dos preguntas que dejó abiertas, la segunda ya está contestada** (humano,
+  2026-09-12): **solo señal en la UI**. Esa mitad entra por **SPEC-062** (EPIC-MEJORA), que
+  pinta lo cerca que está cada vigilada de cada zona y deja ordenar por cercanía — pendiente
+  de su gate. **El aviso sigue aquí, como idea sin compromiso**, y sigue necesitando gate y
+  ADR propios: avisar por acercamiento cambia la promesa del producto (D-1/D-2 y el modelo
+  *edge-triggered* de ADR-005). El "umbral" de SPEC-062 **no es esto**: es una escala de
+  lectura de la barra, no un criterio que dispare nada.
 - **Mejoras de la bandeja de avisos** (aparcadas en SPEC-007, para no bloquear el MVP):
   filtros y paginación del inbox (por tipo/ticker/fecha), archivar/borrar avisos, y
   actualización en vivo del estado de zona / contador (hoy se refresca al navegar; el tiempo
