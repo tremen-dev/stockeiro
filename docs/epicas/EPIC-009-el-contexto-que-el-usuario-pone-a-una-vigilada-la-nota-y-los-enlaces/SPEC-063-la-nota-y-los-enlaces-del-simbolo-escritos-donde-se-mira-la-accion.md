@@ -2,9 +2,11 @@
 id: SPEC-063
 tipo: spec
 epica: EPIC-009
-estado: borrador
+estado: aprobada
+aprobada-por: humano (Alberto Fojo)
 historial:
   - {estado: borrador, fecha: 2026-09-13, por: sdd-arquitecto}
+  - {estado: aprobada, fecha: 2026-09-13, por: humano (Alberto Fojo)}
 ---
 # SPEC-063 — La nota y los enlaces del símbolo, escritos donde se mira la acción
 
@@ -151,8 +153,9 @@ Unitarios con **Vitest** sobre PGlite con el esquema de las migraciones reales (
 ### Rebanada 5 — Los límites, escritos, y los errores que distinguen el dato del fallo
 
 - **CA-14 (Hay un tope, y el usuario lo sabe antes de chocar).**
-  La nota tiene un **máximo de caracteres** y los enlaces un **máximo por símbolo**, los dos
-  declarados **en un solo sitio del código**. Al acercarse o pasarse, la pantalla lo dice con
+  La nota tiene un máximo de **1 000 caracteres** y los enlaces un máximo de **5 por
+  símbolo** (decidido en el gate del 2026-09-13), los dos declarados **en un solo sitio del
+  código** — de modo que cambiarlos sea cambiar un número y no buscar por el árbol. Al acercarse o pasarse, la pantalla lo dice con
   el número real —no «error»— y **lo ya escrito no se pierde**. La misma cortesía que SPEC-030
   fijó para el alta manual: el mensaje distingue *lo que escribiste no vale* de *algo ha
   fallado*.
@@ -215,6 +218,6 @@ Unitarios con **Vitest** sobre PGlite con el esquema de las migraciones reales (
 2. **Colisión conocida**: **SPEC-045** (silenciar) está aprobada y sin implementar sobre el
    **mismo panel**, y **SPEC-062** acaba de tocar la misma fila. Quien llegue el segundo
    rebasa y reconcilia; el panel no se rediseña, se le añade un sitio.
-3. **Los dos topes** —cuántos caracteres tiene la nota y cuántos enlaces caben— los propongo
-   en la implementación y quedan declarados en un solo sitio (CA-14). Si tienes un número en
-   la cabeza, dilo en el gate y se escribe ahí.
+3. **Los dos topes, decididos en el gate**: **1 000 caracteres** de nota y **5 enlaces** por
+   acción. Quedan declarados en un solo sitio del código (CA-14) y contados al usuario antes
+   de que choque con ellos, no después.
