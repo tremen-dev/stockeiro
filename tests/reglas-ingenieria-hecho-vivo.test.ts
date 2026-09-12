@@ -211,6 +211,11 @@ describe('SPEC-028 CA-14.3: alcance estricto — nada más se mueve', () => {
       // procedencia y mismo trato: dictamen de sdd-mercados detrás, y su hueco lo abre
       // el arquitecto al aprobar (ADR-025).
       'RN-17',
+      // SPEC-062, gate humano del 2026-09-13: «Distancia a zona». De dominio por la misma
+      // vara que las dos de arriba —dictamen de sdd-mercados detrás, y el hueco lo abre el
+      // arquitecto al aprobar (ADR-025)—, y con la cautela de que la medida NO dispara ni
+      // recomienda: es una resta sobre RN-11 y RN-12, no un criterio (D-4).
+      'RN-18',
     ]);
   });
 

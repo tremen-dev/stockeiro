@@ -131,9 +131,12 @@ export function WatchedTable({ filas }: { filas: ZoneStatusView[] }) {
 
   // «Ticker» y «Nombre» ordenan por la MISMA columna de la tabla —el nombre vive bajo el
   // ticker, en la celda «Activo» (CA-2)—, así que las dos marcan ese `<th>`.
+  // «Estado» y «Cercanía» ordenan por la MISMA celda —la barra de SPEC-062 vive bajo la
+  // etiqueta de estado, CA-6—, así que las dos marcan ese `<th>`. Es el mismo caso que
+  // «Ticker» y «Nombre» sobre la celda de activo, y por el mismo motivo.
   const columnas = columnasDeVigiladas({
     activoOrdenado: clave === 'ticker' || clave === 'name',
-    estadoOrdenado: clave === 'state',
+    estadoOrdenado: clave === 'state' || clave === 'cercania',
     direccion,
     abrir,
   });

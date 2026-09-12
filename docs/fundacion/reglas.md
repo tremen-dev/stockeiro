@@ -114,6 +114,30 @@
   habría traído el ciclo. Fuente: sdd-mercados (dictamen del 2026-08-25); D-2; ADR-038;
   SPEC-058.
 
+- **RN-18** (Distancia a zona): para una acción vigilada **con cotización** y una zona **con
+  sus dos extremos**, la **distancia a esa zona** es la separación entre el precio y el borde
+  más cercano del rango, **dividida por el precio**, con el **sentido** en que el precio
+  tendría que moverse para entrar: *bajar* si está por encima del rango, *subir* si está por
+  debajo. Es **cero, y sin sentido**, cuando el precio está **dentro** (RN-11, que es
+  inclusiva en los extremos). Se calcula sobre **el mismo precio que evalúa RN-11** —el
+  último cierre no ajustado, RN-12— y en aritmética **decimal**. Lleva **tres límites**:
+  **(a) No está definida si falta el dato.** Sin cotización, con la zona incompleta o con un
+  precio no positivo **no hay distancia**, y *no hay distancia* **no es cero**: es una
+  ausencia, y quien la presente tiene que distinguirla de un cero (un cero significa *dentro
+  de la zona*, que es lo contrario de *no lo sé*).
+  **(b) No dispara, no avisa y no recomienda.** Es una **resta**, no un criterio: la entrada
+  en zona la siguen decidiendo **RN-11** dentro del ciclo y **RN-13**/**RN-14** el episodio y
+  el aviso. Ninguna presentación suya puede leerse como *«ya puedes comprar»* — la zona la
+  sigue poniendo entera el usuario (**D-4**). De aquí se sigue que **el redondeo con que se
+  muestre no puede hacer que una fila fuera de zona parezca estar dentro**.
+  **(c) Hereda la vejez del precio del que sale.** Si la cotización está **sin refrescar**
+  (RN-16), la distancia **no se presenta como vigente**: lleva la misma marca que el precio,
+  y no se borra — marcar no es borrar. Y no se **agregan** distancias entre símbolos (ni se
+  suman ni se promedian): son adimensionales dentro de una fila, pero cada una nace de una
+  divisa y de un mercado distintos. Ordenar por ellas **sí** es legítimo.
+  Fuente: sdd-mercados (dictamen del 2026-09-12); RN-10, RN-11, RN-12, RN-16; D-2, D-3, D-4;
+  SPEC-062.
+
 ## Reglas de ingeniería (RI-xx)
 
 > Serie aparte de la de dominio. Las **RN-xx** de arriba son reglas de negocio

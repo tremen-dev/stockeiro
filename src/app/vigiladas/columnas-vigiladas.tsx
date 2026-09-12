@@ -2,6 +2,11 @@ import { failReasonText } from '@/lib/market/fail-reason-text';
 import { instrumentTypeText } from '@/lib/market/instrument-type-text';
 import { marketName } from '@/lib/market/market-name';
 import { marcaSinRefrescar } from '@/lib/market/sin-refrescar';
+import {
+  fraccionDeBarra,
+  nombreAccesibleDeAcercamiento,
+  textoDeAcercamiento,
+} from '@/lib/watchlist/acercamiento';
 import type { ZoneStatusView, ZoneState } from '@/lib/watchlist/zone-status';
 import type { DireccionOrden } from '@/lib/watchlist/sort';
 import { asa, type Columna } from '../columnas';
@@ -126,6 +131,61 @@ export function columnasDeVigiladas(ctx: ContextoVigiladas): Columna<ZoneStatusV
             <span className="dot" aria-hidden="true" />
             {LABEL[r.state]}
           </span>
+          {/* SPEC-062 CA-6 — **lo que le falta al precio**, bajo la etiqueta que dice cómo
+              está. Aquí y no en una columna propia: la tabla de nueve columnas ya no cabe a
+              730–760 px, y esta celda responde la misma pregunta que la barra.
+
+              El bloque entero es UNA imagen con su texto alternativo (CA-10): la barra es
+              forma y la flecha es adorno, así que lo que se anuncia es la frase completa de
+              `nombreAccesibleDeAcercamiento` y no «▼ 3,2% hasta compra» leído a trozos. El
+              texto sigue VISIBLE, que es lo que impide que la información viaje sólo en la
+              forma o sólo en el color.
+
+              `data-porcentaje` lleva el valor EXACTO, sin redondear: es lo que permite que
+              la guardia de geometría compare la fracción medida del relleno contra la que
+              la función pura calcula para ese mismo dato — dos medidas, nunca una medida
+              contra un número escrito a mano (ADR-035).
+
+              Y `data-sin-refrescar` es CA-14: la medida es tan reciente como el precio del
+              que sale, así que sobre una cotización que dejó de refrescarse (RN-16) la
+              barra se apaga con él. No se borra — marcar no es borrar (SPEC-043). */}
+          {r.acercamiento && (
+            <div
+              className="acercamiento"
+              data-testid={asa('acercamiento', forma)}
+              data-zona={r.acercamiento.zona}
+              data-dentro={r.acercamiento.dentro ? 'true' : 'false'}
+              data-sentido={r.acercamiento.sentido ?? undefined}
+              data-porcentaje={r.acercamiento.porcentaje}
+              data-sin-refrescar={r.sinRefrescar ? 'true' : undefined}
+              role="img"
+              aria-label={nombreAccesibleDeAcercamiento(r.acercamiento)}
+            >
+              <span
+                className="acercamiento-carril"
+                data-testid={asa('acercamiento-carril', forma)}
+                aria-hidden="true"
+              >
+                <span
+                  className="acercamiento-relleno"
+                  data-testid={asa('acercamiento-relleno', forma)}
+                  style={{ width: `${(fraccionDeBarra(r.acercamiento) * 100).toFixed(4)}%` }}
+                />
+              </span>
+              {/* Dentro de zona no se escribe porcentaje: lo dice la etiqueta de arriba
+                  (CA-7). Fuera, el número es el dato y nunca se acota, aunque la barra sí
+                  (CA-8). */}
+              {textoDeAcercamiento(r.acercamiento) !== '' && (
+                <span
+                  className="acercamiento-texto"
+                  data-testid={asa('acercamiento-texto', forma)}
+                  aria-hidden="true"
+                >
+                  {textoDeAcercamiento(r.acercamiento)}
+                </span>
+              )}
+            </div>
+          )}
           {r.state === 'none' && (
             <p
               className={r.failReason ? 'quote-fail' : 'quote-pending'}

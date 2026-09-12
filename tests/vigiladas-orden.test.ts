@@ -38,14 +38,35 @@ const fila = (
   state: FilaOrdenable['state'] = 'out',
   failReason: string | null = null,
   id = `id-${ticker}-${name ?? 'sin'}`,
-): FilaOrdenable => ({ id, ticker, name, state, failReason });
+): FilaOrdenable => ({ id, ticker, name, state, failReason, acercamiento: null });
 
 const tickers = (filas: FilaOrdenable[]) => filas.map((f) => f.ticker);
 
 describe('SPEC-041 CA-6: el orden por defecto es el de hoy — ticker ascendente', () => {
+  /*
+    RE-ENCUADRE declarado (SPEC-062 CA-19, FOUNDATION «un test de frontera fija una
+    propiedad, no un estado del árbol»).
+
+    ANTES vigilaba: `CRITERIOS_ORDEN.map(c => c.clave)` es EXACTAMENTE
+    `['ticker', 'name', 'state']` — una igualdad contra una lista literal, o sea una FOTO
+    del árbol el día de SPEC-041. Caducaba con el primer criterio que alguien añadiera, sin
+    que nada estuviera roto: es el patrón que ADR-037 declara no superviviente.
+
+    AHORA vigila: la propiedad que CA-6 quería de verdad — «Ticker» es el PRIMERO (y por
+    tanto el orden por defecto de la pantalla), y los tres criterios de SPEC-041 siguen
+    ofrecidos EN SU ORDEN RELATIVO. Es pertenencia + posición, que sobrevive a que la lista
+    crezca y sigue poniéndose roja si alguien quita «Nombre», los reordena o destrona a
+    «Ticker». Lo que NO se ha hecho —y era la reparación barata— es alargar la lista literal
+    con el criterio nuevo: eso es la misma foto un día más tarde.
+  */
   it('«Ticker» es un criterio ofrecido y es el primero de la lista', () => {
-    expect(CRITERIOS_ORDEN[0].clave).toBe('ticker');
-    expect(CRITERIOS_ORDEN.map((c) => c.clave)).toEqual(['ticker', 'name', 'state']);
+    const claves = CRITERIOS_ORDEN.map((c) => c.clave);
+    const posicion = (clave: (typeof claves)[number]) => claves.indexOf(clave);
+
+    expect(claves[0]).toBe('ticker');
+    for (const clave of ['ticker', 'name', 'state'] as const) expect(claves).toContain(clave);
+    expect(posicion('ticker')).toBeLessThan(posicion('name'));
+    expect(posicion('name')).toBeLessThan(posicion('state'));
   });
 
   it('ordena por ticker ascendente, que es lo que hacía `orderBy(symbols.ticker)`', () => {
