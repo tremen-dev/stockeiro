@@ -3,6 +3,7 @@ import type { PgDatabase } from 'drizzle-orm/pg-core';
 import { watchedSymbols, symbols, quotes, quoteDiagnostics } from '@/db/schema';
 import type { QuoteFailureReason } from '@/lib/market/provider';
 import { estaSinRefrescar } from '@/lib/market/sin-refrescar';
+import { acercamientoDeVigilada, type Acercamiento } from './acercamiento';
 import { entraEnZona, type Zona } from './zones';
 
 type Db = PgDatabase<any, any, any>;
@@ -62,6 +63,20 @@ export interface ZoneStatusView {
   inSell: boolean;
   /** Estado resumido para pintar el color de fondo: none = sin dato. */
   state: ZoneState;
+  /**
+   * **Lo que le falta al precio para entrar en zona** (SPEC-062, RN-18): la zona más
+   * cercana de las que el usuario haya definido, la distancia relativa a ella y el sentido
+   * en que el precio tendría que moverse.
+   *
+   * `null` es **ausencia de medida** —sin cotización, o sin ninguna zona completa— y NO es
+   * un cero: el cero significa *dentro de la zona*. Son lo contrario, y la pantalla los
+   * distingue.
+   *
+   * Se resuelve **aquí, en el servidor**, por el mismo motivo por el que se resuelve aquí
+   * el `state`: el orden por cercanía se hace en el cliente (`sort.ts`), y si el cliente
+   * tuviera que recalcularlo habría **dos definiciones de RN-18** condenadas a divergir.
+   */
+  acercamiento: Acercamiento | null;
   /**
    * Por qué NO se puede cotizar este símbolo (SPEC-016). `null` = nunca ha fallado, así
    * que un `state:'none'` sin motivo significa "el ciclo aún no ha corrido" y con motivo
@@ -129,6 +144,9 @@ export async function zoneStatusForUser(db: Db, userId: string): Promise<ZoneSta
       inBuy,
       inSell,
       state: stateOf(hasQuote, inBuy, inSell),
+      // SPEC-062 CA-6: ninguna columna más en la base, ninguna llamada más al proveedor.
+      // La resta se hace una vez, aquí, sobre lo que la fila ya trae.
+      acercamiento: acercamientoDeVigilada(r),
       // RN-16. Una sola función y un solo umbral, compartidos con `/cartera` (CA-12).
       sinRefrescar: estaSinRefrescar(r.updatedAt),
       failReason: (r.failReason as QuoteFailureReason | null) ?? null,

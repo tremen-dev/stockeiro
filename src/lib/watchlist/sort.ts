@@ -1,3 +1,4 @@
+import type { Acercamiento } from './acercamiento';
 import type { ZoneState } from './zone-status';
 
 /**
@@ -22,8 +23,11 @@ import type { ZoneState } from './zone-status';
  * ni un dato, ni un cálculo, ni una regla.
  */
 
-/** Criterio de orden elegible por el usuario (CA-6/CA-7/CA-8). */
-export type ClaveOrden = 'ticker' | 'name' | 'state';
+/**
+ * Criterio de orden elegible por el usuario (SPEC-041 CA-6/CA-7/CA-8; `cercania` la añade
+ * SPEC-062 CA-11).
+ */
+export type ClaveOrden = 'ticker' | 'name' | 'state' | 'cercania';
 
 export type DireccionOrden = 'asc' | 'desc';
 
@@ -36,6 +40,9 @@ export const CRITERIOS_ORDEN: readonly { clave: ClaveOrden; etiqueta: string }[]
   { clave: 'ticker', etiqueta: 'Ticker' },
   { clave: 'name', etiqueta: 'Nombre' },
   { clave: 'state', etiqueta: 'Estado' },
+  // SPEC-062 CA-11 — *un criterio más, y ninguno menos*: se añade AL FINAL, así que ni el
+  // orden por defecto (ticker, el primero) ni la posición de los otros tres cambian.
+  { clave: 'cercania', etiqueta: 'Cercanía' },
 ] as const;
 
 /**
@@ -63,7 +70,38 @@ export interface FilaOrdenable {
   state: ZoneState;
   /** SPEC-016: motivo por el que el símbolo no se puede cotizar; null = nunca falló. */
   failReason: string | null;
+  /**
+   * SPEC-062 — el acercamiento **ya resuelto** por el servidor (RN-18). `null` = sin
+   * medida. Aquí no se calcula nada: ordenar es presentación (CE-M1), igual que con
+   * `state`.
+   */
+  acercamiento: Acercamiento | null;
 }
+
+/**
+ * SPEC-062 CA-11 — **la ausencia va al final, y no se invierte**.
+ *
+ * Devuelve el orden entre dos filas cuando alguna no tiene medida, o `0` si las dos están
+ * en la misma situación. Se aplica **antes** de multiplicar por el signo de la dirección,
+ * a propósito: una fila sin cotización o sin zonas no es «la más lejana», es que **no se
+ * sabe**, y darle la vuelta a la lista no puede convertir un *no se sabe* en la respuesta
+ * a «¿qué tengo más cerca?».
+ */
+function ausenciaAlFinal(a: FilaOrdenable, b: FilaOrdenable): number {
+  const sinA = a.acercamiento == null;
+  const sinB = b.acercamiento == null;
+  if (sinA === sinB) return 0;
+  return sinA ? 1 : -1;
+}
+
+/**
+ * La distancia con la que ordena `cercania`, en puntos porcentuales.
+ *
+ * Se pasa por `Number` **sólo para comparar**. El valor exacto vive en la cadena decimal
+ * y es el que se enseña (`porcentajeVisible`): aquí no se muestra nada, se decide quién va
+ * antes, y para eso la precisión de un `double` sobra por muchos órdenes de magnitud.
+ */
+const distancia = (f: FilaOrdenable): number => Number(f.acercamiento?.porcentaje ?? 0);
 
 /**
  * La clave de texto de una fila: **su nombre, o su ticker si no tiene nombre** (CA-7).
@@ -94,6 +132,8 @@ const estorbo = (fila: FilaOrdenable): number => (fila.state === 'none' && fila.
 function compararPrimario(a: FilaOrdenable, b: FilaOrdenable, clave: ClaveOrden): number {
   if (clave === 'ticker') return colador.compare(a.ticker, b.ticker);
   if (clave === 'name') return colador.compare(claveDeNombre(a), claveDeNombre(b));
+  // Menor distancia primero, y `dentro` es distancia 0: lo que ya está en zona encabeza.
+  if (clave === 'cercania') return distancia(a) - distancia(b);
   const porEstado = PRIORIDAD_ESTADO[a.state] - PRIORIDAD_ESTADO[b.state];
   if (porEstado !== 0) return porEstado;
   return estorbo(a) - estorbo(b);
@@ -121,6 +161,12 @@ export function compararVigiladas(
 ): (a: FilaOrdenable, b: FilaOrdenable) => number {
   const signo = direccion === 'desc' ? -1 : 1;
   return (a, b) => {
+    // SPEC-062 CA-11: fuera del juego del signo, porque una ausencia no se invierte.
+    if (clave === 'cercania') {
+      const ausencia = ausenciaAlFinal(a, b);
+      if (ausencia !== 0) return ausencia;
+    }
+
     const primario = compararPrimario(a, b, clave);
     if (primario !== 0) return signo * primario;
 

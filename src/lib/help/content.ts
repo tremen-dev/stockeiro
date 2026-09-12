@@ -1,3 +1,4 @@
+import { ESCALA_ACERCAMIENTO_PCT } from '@/lib/config/escala-acercamiento';
 import { OPERATING_MICS, type OperatingMic } from '@/lib/market/mic';
 import { marketName } from '@/lib/market/market-name';
 import { FAIL_REASON_TEXT } from '@/lib/market/fail-reason-text';
@@ -112,6 +113,20 @@ export const ZONAS: Seccion = {
     'Las zonas las pones tú. Stockeiro no las calcula, no las sugiere y no las recomienda: ' +
       'se limita a comparar el último precio conocido con los rangos que has escrito. Tráete ' +
       'los números de donde los saques; aquí solo se vigilan.',
+    // SPEC-062 CA-17 — el tramo se DERIVA de la constante que pinta la barra
+    // (`src/lib/config/escala-acercamiento.ts`), nunca se teclea aquí: es la misma cura
+    // que ADR-040 aplicó al contexto maestro, y el motivo por el que la ayuda no puede
+    // envejecer en silencio.
+    'En tu lista de vigiladas, cada acción enseña además lo cerca que está de su zona más ' +
+      'próxima: una barra que se llena según el precio se acerca —del todo cuando ya está ' +
+      `dentro, y vacía a partir de un ${ESCALA_ACERCAMIENTO_PCT}% de distancia— y, al lado, ` +
+      'el porcentaje exacto que le falta al precio y en qué sentido tendría que moverse. ' +
+      'Puedes ordenar la lista por esa cercanía.',
+    'Esa barra es solo una forma de leer la lista de un vistazo: no es una señal de nada, ' +
+      'no adelanta ni cambia cuándo se avisa, y el porcentaje se mide sobre el último ' +
+      'precio conocido, con lo que es tan reciente como él. Si la acción ha pasado por un ' +
+      'split desde que escribiste la zona, los dos números están en escalas distintas y el ' +
+      'porcentaje no te dice lo que parece: revisa la zona.',
   ],
 };
 

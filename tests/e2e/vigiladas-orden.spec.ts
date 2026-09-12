@@ -329,9 +329,19 @@ test('SPEC-041 CA-11: el control de orden se alcanza en móvil, fuera de la tabl
   expect(caja.izquierda).toBeGreaterThanOrEqual(-1);
   expect(await page.evaluate(() => window.scrollX), 'la página está desplazada a lo ancho').toBe(0);
 
-  // (c) Los tres criterios y las dos direcciones, todos alcanzables.
+  /* (c) Los criterios de esta spec y las dos direcciones, todos alcanzables.
+
+     RE-ENCUADRE declarado (SPEC-062 CA-19). ANTES: `toEqual(['Ticker', 'Nombre',
+     'Estado'])`, una foto del selector el día de SPEC-041, que caduca con el primer
+     criterio que añada cualquier spec posterior. AHORA: los tres siguen ofrecidos, en su
+     orden relativo, y «Ticker» sigue el primero —que es lo que CA-6 afirma—. Sigue
+     poniéndose roja si alguno desaparece, si se reordenan o si «Ticker» deja de encabezar;
+     deja de ponerse roja porque alguien amplíe la lista, que no es un defecto. */
   const criterios = await page.getByTestId('orden-criterio').locator('option').allInnerTexts();
-  expect(criterios).toEqual(['Ticker', 'Nombre', 'Estado']);
+  expect(criterios[0]).toBe('Ticker');
+  for (const rotulo of ['Ticker', 'Nombre', 'Estado']) expect(criterios).toContain(rotulo);
+  expect(criterios.indexOf('Ticker')).toBeLessThan(criterios.indexOf('Nombre'));
+  expect(criterios.indexOf('Nombre')).toBeLessThan(criterios.indexOf('Estado'));
 
   // (d) La columna por la que se ordena queda marcada con `aria-sort` para el lector de
   //     pantalla — que es lo que se ofrece a cambio de no tener cabeceras pinchables.

@@ -127,6 +127,7 @@ describe('SPEC-032 CA-15: y las RN de dominio siguen intactas', () => {
     ['RN-15', 'Canal proactivo con registro y fallback'],
     ['RN-16', 'Cotización sin refrescar'],
     ['RN-17', 'Refresco bajo demanda'],
+    ['RN-18', 'Distancia a zona'],
   ];
 
   /**

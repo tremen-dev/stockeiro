@@ -457,6 +457,63 @@ dialog.editar-vigilada .card:hover {
 .zone-label.is-none { color: var(--fg-dim); }
 .zone-label.is-none .dot { background: var(--fg-dim); opacity: .5; }
 
+/* SPEC-062 — la barra de acercamiento a la zona (RN-18).
+
+   Es una ESCALA DE LECTURA, no un semáforo: no estrena colores ni significados. Reutiliza
+   los dos que la pantalla ya asocia a cada zona —`--live` para compra, `--amber` para
+   venta, los mismos de `.zone-label`— para que la barra se lea como «cuánto falta para
+   ESA zona» y no como un juicio nuevo sobre la acción (D-4).
+
+   Sin `overflow: hidden` en el carril a propósito (ADR-026 §1): el relleno nunca es más
+   ancho que su carril —la fracción está acotada en `fraccionDeBarra`— y recortar por CSS
+   dejaría ciega a M1 justo aquí dentro. */
+.acercamiento {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-top: 4px;
+  flex-wrap: wrap;
+}
+
+.acercamiento-carril {
+  position: relative;
+  display: block;
+  width: 64px;
+  height: 6px;
+  flex: none;
+  border-radius: 999px;
+  /* SIN borde, y no es estético: con `border` el carril mide 64 px por fuera y 62 por
+     dentro, así que un relleno al 100 % —que se posiciona contra la caja interior— cubría
+     el 96,9 % de lo que se ve. Lo cazó la guardia de CA-8 al comparar la fracción pintada
+     contra la calculada, que es exactamente para lo que está. El contraste lo da el color,
+     que es lo que no miente sobre la medida. */
+  background: var(--line-strong);
+}
+
+.acercamiento-relleno {
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  left: 0;
+  border-radius: 999px;
+  background: var(--fg-dim);
+}
+
+.acercamiento[data-zona='compra'] .acercamiento-relleno { background: var(--live); }
+.acercamiento[data-zona='venta']  .acercamiento-relleno { background: var(--amber); }
+
+/* SPEC-062 CA-14 — sobre una cotización sin refrescar (RN-16), la barra se apaga con
+   ella: el número sigue ahí, pero deja de presentarse como vigente. Es lo mismo que hace
+   `.quote-stale`, que vive en esta misma celda y dice desde cuándo. */
+.acercamiento[data-sin-refrescar='true'] { opacity: .55; }
+
+.acercamiento-texto {
+  font-size: .78rem;
+  color: var(--fg-muted);
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+}
+
 /* --- Bandeja de avisos --- */
 .toolbar { display: flex; align-items: center; justify-content: space-between; gap: 12px; flex-wrap: wrap; }
 .notif-list { display: grid; gap: 10px; }
