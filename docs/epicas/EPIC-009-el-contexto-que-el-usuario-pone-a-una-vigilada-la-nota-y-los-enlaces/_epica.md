@@ -1,9 +1,11 @@
 ---
 id: EPIC-009
 tipo: epica
-estado: borrador
+estado: aprobada
+aprobada-por: humano (Alberto Fojo)
 historial:
   - {estado: borrador, fecha: 2026-09-12, por: sdd-producto}
+  - {estado: aprobada, fecha: 2026-09-13, por: humano (Alberto Fojo)}
 ---
 # EPIC-009 — El contexto que el usuario pone a una vigilada: la nota y los enlaces
 

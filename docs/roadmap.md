@@ -47,6 +47,23 @@ tipo: roadmap
   que ya usa el ciclo. **Cartera, import y un botón de «actualizar ahora» quedan FUERA**, por
   decisión del mismo día — la épica es el sitio donde se gobiernan cuando se pidan.
 
+- **EPIC-009 — El contexto que el usuario pone a una vigilada: la nota y los enlaces**
+  (estado: **aprobada** el 2026-09-13 por el humano; nace el 2026-09-12 a petición suya, con
+  sus palabras dentro del documento de la épica).
+  **Qué entrega.** Que una vigilada lleve encima **por qué se vigila**: una nota del usuario
+  y los enlaces a donde la analiza (TradingView, el hilo del foro, el informe del bróker).
+  Hoy la app guarda sus **números** —las zonas— y tira su **razonamiento**: lo único que un
+  usuario puede escribir sobre una acción son los cuatro límites de sus zonas.
+  **Por qué es capacidad nueva y no mejora.** Dato que no está en la base y acción que la app
+  no sabe hacer: las dos exclusiones que EPIC-MEJORA escribe de su puño, más su CE-M3
+  (*una mejora que necesita migración de esquema no es una mejora*).
+  **Cuelga del símbolo del usuario, no de la fila de vigilada** (decisión del humano del
+  2026-09-12): sobrevive a dejar de vigilar y se ve también desde Cartera.
+  ⚠️ **Adelanta a SPEC-045**, que sigue aprobada y sin implementar desde el 2026-08-21 y que
+  toca el **mismo panel** de `/vigiladas`. La alternativa —esperar a SPEC-045— se puso sobre
+  la mesa en el gate y **se descartó** (humano, 2026-09-13). Quien llegue el segundo rebasa y
+  reconcilia; el panel no se rediseña, se le añade un sitio (R-2 de la épica).
+
 - **EPIC-007 — La app en el teléfono** (estado: borrador; nace el 2026-08-24 por decisión
   del humano, con su primera spec **ya aprobada**).
   **Qué entrega.** Que Stockeiro se pueda **usar** desde un móvil, no solo abrir. Hoy la
@@ -320,21 +337,6 @@ tipo: roadmap
 ha cumplido, pero eso no la convierte en barra libre: lo único que subió por su cuenta fue
 EPIC-003, por las razones propias que allí se argumentan. EPIC-005 nació aquí el 2026-08-22
 y subió a "Ahora" el mismo día por decisión del humano. -->
-
-- **EPIC-009 — El contexto que el usuario pone a una vigilada: la nota y los enlaces**
-  (estado: **borrador — pendiente del gate humano**; nace el 2026-09-12 a petición del
-  humano, con sus palabras dentro del documento de la épica).
-  **Qué entrega.** Que una vigilada lleve encima **por qué se vigila**: una nota del usuario
-  y los enlaces a donde la analiza (TradingView, el hilo del foro, el informe del bróker).
-  Hoy la app guarda sus **números** —las zonas— y tira su **razonamiento**.
-  **Por qué es capacidad nueva y no mejora.** Dato que no está en la base y acción que la app
-  no sabe hacer: las dos exclusiones que EPIC-MEJORA escribe de su puño, más su CE-M3
-  (*una mejora que necesita migración de esquema no es una mejora*).
-  **Cuelga del símbolo del usuario, no de la fila de vigilada** (decisión del humano del
-  2026-09-12): sobrevive a dejar de vigilar y se ve también desde Cartera.
-  ⚠️ **No está aprobada**: sube a "Ahora" el día que el humano firme su gate, y se retira
-  con un renglón si no la quiere. Alcance nuevo por delante de **SPEC-045**, que sigue
-  aprobada y sin implementar (R-5 de la épica).
 
 - **EPIC-006 — El historial de una vigilada** (estado: **borrador — sin gate humano**; nace
   el 2026-08-22 a petición del humano).
