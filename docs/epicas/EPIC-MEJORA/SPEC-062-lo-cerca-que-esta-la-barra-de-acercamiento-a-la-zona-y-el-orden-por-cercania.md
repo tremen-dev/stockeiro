@@ -2,9 +2,11 @@
 id: SPEC-062
 tipo: spec
 epica: EPIC-MEJORA
-estado: borrador
+estado: aprobada
+aprobada-por: humano (Alberto Fojo)
 historial:
   - {estado: borrador, fecha: 2026-09-12, por: sdd-arquitecto}
+  - {estado: aprobada, fecha: 2026-09-13, por: humano (Alberto Fojo)}
 ---
 # SPEC-062 — Lo cerca que está: la barra de acercamiento a la zona y el orden por cercanía
 
@@ -26,8 +28,8 @@ No es capacidad nueva: **los dos números ya están en la fila**. El precio lo t
 `zoneStatusForUser` y el rango lo pinta la celda de zona desde `watched_symbols`. Lo que
 falta es hacer la resta **una vez, bien y en un solo sitio**, en vez de dejársela al ojo del
 usuario. Esta spec entrega esa resta —la **distancia relativa a la zona**—, la pinta como
-**barra de proximidad con su porcentaje** en las celdas que ya muestran cada zona, y añade
-**un criterio de orden más**: por cercanía.
+**una barra de proximidad con su porcentaje** que apunta a la zona más cercana, y añade **un
+criterio de orden más**: por cercanía.
 
 Cubre **CE-M1** (presentación, no dato), **CE-M2** (el roce está observado, y es cita
 textual), **CE-M3** (cabe en una sesión: sin esquema, sin proveedor) y **CE-M4** (Vigiladas
@@ -48,8 +50,8 @@ distancia se deriva en render sobre datos que ya viajan, igual que el estado de 
 ## Usuarios / roles afectados
 
 - **Usuario final** (cualquier rol con la sección Vigiladas, incluido `tester`, ADR-021):
-  recorre su lista y ve, por zona, **cuánto le falta al precio y en qué sentido**; puede
-  poner arriba lo más cercano sin leer la tabla entera.
+  recorre su lista y ve, en cada fila, **cuánto le falta al precio, en qué sentido y hacia
+  qué zona**; puede poner arriba lo más cercano sin leer la tabla entera.
 - **Sistema (ciclo de refresco, motor de disparo, avisos)**: **no cambia ni una línea**. La
   entrada en zona la sigue decidiendo `entraEnZona` dentro del ciclo (RN-11, RN-13) y el
   aviso sigue siendo del ciclo. Una barra casi llena **no es un disparo** y no emite nada.
@@ -103,55 +105,77 @@ umbral (ADR-035).
 
 ### Rebanada 2 — La barra y el número en pantalla
 
-- **CA-6 (Cada zona lleva su acercamiento donde ya lleva su rango).**
-  En `/vigiladas`, las celdas **Zona compra** y **Zona venta** muestran, junto al rango que
-  ya muestran, la **barra** y el **porcentaje con su sentido**. Sale de **una sola
-  descripción** de columnas (ADR-034 §3), de modo que **tabla** (>720 px) y **tarjeta**
-  (≤720 px) enseñan el mismo dato con el mismo rótulo, comprobado dato a dato en las dos
-  formas. Una zona sin definir sigue mostrando lo que muestra hoy y **no** gana barra.
+> **Decidido en el gate del 2026-09-13**: **una sola barra por fila**, apuntando a la zona
+> **más cercana**, y **`ESCALA` = 10%**.
 
-- **CA-7 (La barra es una escala; el número es el dato).**
-  El relleno de la barra es la fracción `1 − distancia / ESCALA`, acotada a `[0, 1]`, con
-  **`ESCALA` declarada en un solo sitio del código**. El **porcentaje que se lee es siempre
-  el real**, también cuando la barra ya está vacía. Especímenes: distancia `0` → barra llena;
-  distancia `= ESCALA` → barra vacía; distancia `> ESCALA` (p. ej. 23,4%) → barra vacía y el
-  texto diciendo **23,4%**, no «lejos» ni un tope inventado.
+- **CA-6 (Una barra por fila, y vive con el estado).**
+  Cada fila de `/vigiladas` muestra **una** barra con su porcentaje y su sentido, dentro de
+  la **celda de Estado** —bajo la etiqueta de zona que ya está ahí—, y **no** en una columna
+  nueva. Sale de la **descripción única de columnas**, así que **tabla** (>720 px) y
+  **tarjeta** (≤720 px) enseñan lo mismo con el mismo rótulo, comprobado dato a dato en las
+  dos formas (ADR-034 §3).
+  **Por qué ahí y no en una columna propia**, que es lo primero que se piensa: la tabla ya
+  tiene nueve columnas y **no cabe** a 730–760 px —lo dicen las guardias de geometría que ya
+  existen—, así que una décima columna empuja justo donde más aprieta. Además el
+  acercamiento **responde a la misma pregunta** que la celda de estado —*¿cómo está esto
+  respecto a sus zonas?*— y esa celda ya es un bloque con su etiqueta y sus avisos
+  (SPEC-040 CA-4).
+
+- **CA-7 (Qué zona elige la barra, y el empate no se decide al azar).**
+  La barra apunta a la zona **más cercana** por distancia relativa. Propiedades, todas
+  verificables por separado:
+  - con las **dos** zonas definidas y el precio fuera de ambas → la de **menor** distancia;
+  - con **una sola** zona definida → esa, aunque esté lejos;
+  - con el precio **dentro** de cualquiera de las dos → **en zona**: barra llena y sin
+    porcentaje, porque la etiqueta que tiene encima ya dice en cuál está (SPEC-007);
+  - **empate exacto** entre las dos distancias → **compra**, declarado y **estable**: no
+    depende del orden en que se evalúen las zonas ni de la posición de la fila.
+
+- **CA-8 (La barra es una escala; el número es el dato).**
+  El relleno es la fracción `1 − distancia / ESCALA`, acotada a `[0, 1]`, con **`ESCALA`
+  declarada en un solo sitio del código** y con valor **10%** (decisión del gate). El
+  **porcentaje que se lee es siempre el real**, también con la barra vacía. Especímenes:
+  distancia `0` → llena; distancia `= ESCALA` → vacía; distancia `> ESCALA` (p. ej. 23,4%) →
+  vacía y el texto diciendo **23,4%**, no «lejos» ni un tope inventado.
   **Medida de la geometría** (ADR-026 §1, ADR-035): la fracción **medida** del relleno
-  respecto a su carril coincide —dentro de `TOLERANCIA_PX`— con la fracción que la función
-  pura devuelve **para esos mismos datos**. Son **dos medidas comparadas entre sí**, nunca una
+  respecto a su carril coincide —dentro de `TOLERANCIA_PX`— con la que la función pura
+  devuelve **para esos mismos datos**. Son **dos medidas comparadas entre sí**, nunca una
   medida contra un número escrito en el test.
 
-- **CA-8 (El sentido se dice, porque un 3% hacia abajo y un 3% hacia arriba no son la misma
+- **CA-9 (El sentido se dice, porque un 3% hacia abajo y un 3% hacia arriba no son la misma
   noticia).**
   Una acción **por debajo** de su zona de compra —el precio ya cayó por debajo del rango— no
   puede leerse igual que una que está por encima y bajando hacia ella. El texto dice **qué
-  tiene que hacer el precio** para entrar. Especímenes en las dos direcciones, con la misma
-  zona y dos precios, uno a cada lado.
+  tiene que hacer el precio** para entrar y **a qué zona**. Especímenes en las dos
+  direcciones, con la misma zona y dos precios, uno a cada lado.
 
-- **CA-9 (Ni el color ni la forma llevan solos la información).**
-  Siempre que hay medida hay **texto** con el porcentaje, y la barra tiene un nombre
-  accesible que dice lo mismo que el texto. Una fila sin medida no deja un hueco mudo: dice
-  lo que ya dice hoy (sin cotización, con su motivo si lo hay; zona sin definir, «—»).
+- **CA-10 (Ni el color ni la forma llevan solos la información).**
+  Siempre que hay medida hay **texto** con el porcentaje y con el destino, y la barra tiene
+  un nombre accesible que dice lo mismo. En zona, el texto que lo dice es la **etiqueta de
+  estado** que ya está en esa celda. Una fila sin medida no deja un hueco mudo: dice lo que
+  ya dice hoy (sin cotización, con su motivo si lo hay; sin zonas, nada).
 
 ### Rebanada 3 — El orden por cercanía
 
-- **CA-10 (Un criterio más, y ninguno menos).**
-  A los tres criterios de SPEC-041 (`ticker`, `nombre`, `estado`) se suma **cercanía**, que
-  ordena por la **menor** de las dos distancias de la fila. Propiedades, en las **dos**
-  direcciones: lo que está **en zona** (distancia 0) encabeza el ascendente; las filas con
-  medida se ordenan por distancia creciente; y una fila **sin medida nunca se cuela entre
-  filas con medida** —va al final tanto en ascendente como en descendente, porque una
-  ausencia no se invierte—. El desempate sigue siendo el estable de SPEC-041 CA-9 (nombre o
-  ticker → ticker → `id`), así que dos filas empatadas **no bailan** entre ejecuciones.
+- **CA-11 (Un criterio más, y ninguno menos).**
+  A los criterios de orden de SPEC-041 se suma **cercanía**, que ordena por la distancia de
+  la fila —la misma que elige la barra, CA-7—. Propiedades, en las **dos** direcciones: lo
+  que está **en zona** (distancia 0) encabeza el ascendente; las filas con medida se ordenan
+  por distancia creciente; y una fila **sin medida nunca se cuela entre filas con medida** —va
+  al final tanto en ascendente como en descendente, porque una ausencia no se invierte—. El
+  desempate sigue siendo el estable de SPEC-041 CA-9 (nombre o ticker → ticker → `id`), así
+  que dos filas empatadas **no bailan** entre ejecuciones.
+  Y **ninguno menos**: los criterios que ya existían siguen ofrecidos, en su orden, y el
+  **orden por defecto de la pantalla no cambia** (ticker ascendente, SPEC-041 CA-6).
 
-- **CA-11 (Ordenar no cambia lo que dice ninguna fila — CE-M1).**
+- **CA-12 (Ordenar no cambia lo que dice ninguna fila — CE-M1).**
   Tras ordenar por cercanía, el conjunto de filas es **el mismo** y cada fila conserva su
   precio, su estado, su color de fondo y su porcentaje: es la misma lista permutada. Se
   afirma comparando el contenido antes y después, no contando filas.
 
 ### Rebanada 4 — Honestidad de la medida
 
-- **CA-12 (El redondeo no puede fabricar una entrada en zona).**
+- **CA-13 (El redondeo no puede fabricar una entrada en zona).**
   Ninguna fila que esté **fuera** puede mostrar un texto que se lea como *cero*. Por debajo
   de la resolución que se muestra, se dice **«menos de 0,1%»** y la fila sigue siendo, en
   todo lo demás, una fila fuera de zona. Especímenes en las dos direcciones: distancia
@@ -159,13 +183,13 @@ umbral (ADR-035).
   el fondo y el estado de SPEC-007. Sin esto, el usuario leería **dos filas idénticas** —una
   en zona y otra no— y concluiría que el motor de disparo falla.
 
-- **CA-13 (La medida hereda la vejez del precio del que sale).**
+- **CA-14 (La medida hereda la vejez del precio del que sale).**
   En una fila marcada **sin refrescar** (RN-16), el acercamiento **no se presenta como
   vigente**: lleva la misma marca que el precio. Direcciones: fila vigente → sin marca; fila
   sin refrescar → con marca **y con su número**, porque marcar no es borrar (SPEC-043). La
   marca se decide con la función que ya existe y su único umbral; no se introduce un segundo.
 
-- **CA-14 (La app sigue sin recomendar — D-4).**
+- **CA-15 (La app sigue sin recomendar — D-4).**
   Ni la barra, ni el porcentaje, ni el orden introducen **juicio**: no hay umbral de
   «oportunidad», ni rótulo que sugiera comprar o vender, ni semántica de decisión nueva en el
   color (el fondo de fila sigue siendo exactamente el de SPEC-007). Los textos que esta spec
@@ -176,25 +200,44 @@ umbral (ADR-035).
 
 ### Rebanada 5 — Dominio, ayuda y cero regresión
 
-- **CA-15 (El término existe antes que la pantalla).**
+- **CA-16 (El término existe antes que la pantalla).**
   **Acercamiento a zona** entra en `docs/fundacion/dominio.md` y **RN-18** en
   `docs/fundacion/reglas.md`, escritos por **sdd-arquitecto en el gate** (ADR-025) y **antes**
   de la primera línea de implementación. El rótulo de la UI se **copia** de ahí; la
   implementación no escribe en los documentos de verdad.
 
-- **CA-16 (La ayuda dice qué es la barra, y qué no es).**
+- **CA-17 (La ayuda dice qué es la barra, y qué no es).**
   `/ayuda` explica que la barra mide contra el **último cierre** (D-2), que es una **escala de
   lectura** y no un consejo (D-4), y **deriva del código** el valor de `ESCALA` en vez de
   copiarlo — como ya hace con la cadencia y con los mercados. Propiedad verificable: cambiar
   `ESCALA` **no puede** dejar la ayuda diciendo otra cosa.
 
-- **CA-17 (Cero regresión).**
+- **CA-18 (Cero regresión).**
   La batería completa queda verde y **ninguna guardia ajena se afloja ni se borra** para que
   esto pase. Siguen cumpliéndose sobre `/vigiladas`: SPEC-007 (color de fondo), SPEC-041
   (los tres criterios de orden y su desempate), SPEC-043 (sin refrescar), SPEC-016 (el
   silencio con motivo) y ADR-034/ADR-035 (conmutación a tarjetas por debajo de 720 px, área
   táctil y suelos tipográficos). Se verifica **en el gate** corriendo la batería completa y
   revisando el diff sobre tests ajenos, no con una guardia congelada (ADR-031, ADR-037).
+
+- **CA-19 (Las dos guardias que este cambio caduca se re-encuadran a la vista, y no se
+  aflojan).**
+  Añadir un cuarto criterio de orden pone en rojo **dos guardias de SPEC-041** que congelan
+  la lista de criterios por **igualdad exacta contra una lista literal** —una unitaria sobre
+  la constante y una e2e sobre las opciones del selector—. Es el patrón que **ADR-037**
+  declara no superviviente, y la salida legítima es **re-encuadrarlas**, porque la propiedad
+  que SPEC-041 quería sigue viva y sólo estaba mal expresada: *«Ticker es el primero y es el
+  orden por defecto, y los criterios de SPEC-041 siguen ofrecidos en su orden»*. Eso es
+  **pertenencia**, que sí sobrevive a que la lista crezca.
+  Tres condiciones, las tres exigibles: queda escrito en el ledger **qué vigilaba antes y qué
+  vigila después** (FOUNDATION, tercera convención); la guardia re-encuadrada **se puede
+  poner roja** —quitar «Nombre» del selector, o mover «Ticker» del primer puesto, tiene que
+  seguir fallando—; y **no se toca ningún otro `expect` ajeno**. Lo que **no** vale es
+  ampliar la lista literal con el criterio nuevo: eso es la misma foto, un día más tarde.
+  ⚠️ Y una advertencia de proceso que se declara en vez de disimularse: aquí **quien toca la
+  guardia es quien se beneficia** —la misma sesión que la rompe—, que es justo lo que
+  FOUNDATION pide no hacer en silencio. Por eso está escrito como CA, se verifica en el gate
+  y se cuenta en el ledger.
 
 ## Entidades y reglas afectadas
 
@@ -269,31 +312,25 @@ están arriba convertidas en CA:
 - **Histórico de la distancia** (cómo se ha ido acercando): eso es EPIC-006, que sigue sin
   firmar.
 
-## Notas para el gate humano
+## Decisiones del gate (2026-09-13, humano — Alberto Fojo)
 
-Tres decisiones que conviene que firmes, y una frontera que puede sacar esta spec de su
-épica:
+Las cuatro preguntas que llevaba esta spec al gate, con su respuesta:
 
-1. **La frontera con EPIC-MEJORA (CE-M1 / CE-M3).** CE-M3 corta por *migración de esquema,
-   proveedor nuevo o ADR*, y aquí **no hay ninguno de los tres**: cero tablas, cero llamadas,
-   ninguna decisión de arquitectura que no quepa en la spec. Pero CE-M1 dice que una mejora
-   *«no altera un dato, un cálculo ni una regla»*, y esto **añade una magnitud derivada y
-   propone una RN**. Mi lectura como arquitecto: cabe, porque no aparece dato nuevo en la base
-   ni acción nueva y lo que se entrega es cómo se presenta lo que ya se sabe. **Si prefieres
-   la lectura estricta**, esto sale del bucket y se convierte en épica propia — «Zonas
-   calientes», que el roadmap ya tiene escrita— y entonces conviene meter ahí también el
-   aviso. Es tu llamada y no cuesta nada cambiarla ahora; cuesta después.
-2. **Dónde va la barra.** La spec la pone **en cada celda de zona** (compra y venta), y no una
-   sola por fila. Lo que compra: no hay que inventar la regla de *«cuál de las dos zonas te
-   importa»* —que la app no puede saber sin adivinar tu intención— y cada zona dice lo suyo.
-   Lo que cuesta: dos barras por fila, más densidad visual, sobre todo en tarjeta. La
-   alternativa que pediste en el boceto —**una** barra por fila, apuntando a la zona más
-   cercana— es más limpia de leer y obliga a esa regla. Si la prefieres, se cambia CA-6 y
-   CA-10 sigue igual.
-3. **El valor de `ESCALA`.** Propongo **10%**: por debajo de eso la barra dice algo y por
-   encima está vacía, con el número siempre exacto al lado. Es un parámetro **de escala
-   visual**, no un umbral del dominio — no significa *«a partir de aquí, compra»—, y por eso
-   vive en el código y se explica en `/ayuda` (CA-16).
-4. **Y lo que no entra**: el **aviso** cuando una acción se acerca. Lo dejaste fuera
-   expresamente el 2026-09-12 («solo se ve»). Queda escrito arriba, en Fuera de alcance, para
-   que se pida con su gate el día que lo quieras.
+1. **Encaje en EPIC-MEJORA: se queda.** CE-M3 corta por *migración de esquema, proveedor
+   nuevo o ADR*, y aquí no hay ninguno de los tres. La lectura estricta de CE-M1 —que habría
+   mandado esto a una épica propia, «Zonas calientes»— se consideró y **se descartó**.
+2. **Una sola barra por fila, apuntando a la zona más cercana** (no una por zona). Lo que se
+   compra: una fila más limpia de leer, sobre todo en tarjeta. Lo que cuesta: la app decide
+   **cuál de las dos zonas te importa**, y por eso esa regla —incluido el empate— está
+   escrita como propiedad verificable en **CA-7** y no dejada al orden de evaluación.
+3. **`ESCALA` = 10%**: la barra se llena a distancia 0 y queda vacía a partir de un 10%. Es
+   **escala de lectura**, no umbral del dominio: no significa *«a partir de aquí, compra»*,
+   vive en el código y se explica en `/ayuda` (CA-17).
+4. **El aviso por acercamiento queda fuera** («solo se ve»). Sigue en el roadmap como idea
+   sin compromiso, y necesitará gate y ADR propios cuando se pida.
+
+Decisión de arquitecto tomada **después** del gate, y que conviene que se vea (CA-6): la
+barra va **dentro de la celda de Estado** y no en una columna nueva, porque la tabla de
+nueve columnas ya no cabe a 730–760 px y una décima empujaría justo ahí. Si en la revisión
+visual la celda queda apretada, la salida **no** es encoger la barra: es apilar, como ya
+decidió ADR-034 §10 para el pie de la tarjeta.
