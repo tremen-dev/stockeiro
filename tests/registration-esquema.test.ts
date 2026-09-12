@@ -139,15 +139,25 @@ describe('SPEC-037 CA-1: la migración es ADITIVA (RI-01)', () => {
     const { fileURLToPath } = await import('node:url');
 
     const drizzleDir = resolve(dirname(fileURLToPath(import.meta.url)), '..', 'drizzle');
+    /*
+      RE-ENCUADRE declarado (SPEC-063; ADR-037, FOUNDATION 3.er corolario).
+
+      ANTES cogía **la última** migración del directorio y exigía que empezara por `0010_`.
+      Eso afirmaba «nadie ha migrado después de SPEC-037», que es una FOTO del árbol el día
+      de su entrega: caducaba con la primera spec posterior que trajera esquema —caducó con
+      SPEC-063— y lo hacía poniendo rojo a un tercero que no había tocado nada de SPEC-037.
+
+      AHORA busca **la suya por nombre** y afirma lo que CA-1 quería de verdad: que la
+      migración de esta spec **es aditiva**. Sobrevive a que el directorio crezca —es
+      búsqueda por nombre, una de las cuatro formas que ADR-037 declara supervivientes— y
+      sigue poniéndose roja si alguien la edita para tocar una tabla anterior, que es el
+      defecto que vigila.
+    */
     const nueva = readdirSync(drizzleDir)
       .filter((f) => f.endsWith('.sql'))
-      .sort()
-      .at(-1)!;
+      .find((f) => f.startsWith('0010_'))!;
+    expect(nueva, 'la migración de SPEC-037 tiene que seguir estando en drizzle/').toBeDefined();
     const sql = readFileSync(join(drizzleDir, nueva), 'utf8');
-
-    expect(nueva, 'la migración de SPEC-037 debe ser la última del directorio').toMatch(
-      /^0010_/,
-    );
     // Solo crea y siembra. Ni ALTER de tablas existentes, ni DROP, ni RENAME.
     expect(sql).toMatch(/CREATE TABLE[\s\S]*"registration_settings"/);
     expect(sql).toMatch(/CREATE TABLE[\s\S]*"cron_runs"/);

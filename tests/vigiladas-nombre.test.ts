@@ -73,24 +73,40 @@ describe('SPEC-041 CA-1: la vista trae el nombre del activo', () => {
 });
 
 describe('SPEC-041 CA-1: y sin tocar el esquema — CE-M3', () => {
-  /**
-   * El último tramo del historial de migraciones, escrito aquí a propósito. Si alguien
-   * genera una migración mientras implementa esta spec, este test se pone rojo y **hay
-   * que ir al gate**: una mejora que necesita esquema nuevo no es una mejora, es
-   * alcance nuevo y se va a su épica de producto (CE-M3).
-   */
-  const ULTIMA_MIGRACION = '0010_registration_gate_and_cron_runs';
+  /*
+    RE-ENCUADRE declarado (SPEC-063; ADR-037, FOUNDATION 3.er corolario).
 
-  it('no hay ninguna migración nueva en `drizzle/`', () => {
+    ANTES congelaba **la última migración del árbol** en `0010_registration_gate_and_cron_runs`
+    para demostrar que SPEC-041 no había traído esquema. Funcionaba el día de su entrega y
+    caducaba con la primera spec posterior que migrase —caducó con SPEC-063, que sí tiene
+    épica de producto y sí puede migrar—, poniendo rojo a quien no había tocado SPEC-041.
+
+    AHORA afirma la propiedad que CE-M3 pedía, y que sigue siendo verdad para siempre: **el
+    nombre del activo vive en una columna que ya existía ANTES de SPEC-041**, así que esta
+    spec no necesitó esquema. Se comprueba buscando la migración que creó `symbols.name` y
+    exigiendo que sea **anterior** a la entrega de SPEC-041; y el diario y el directorio se
+    siguen comparando entre sí, que es una medida contra otra medida y no contra una foto.
+  */
+  /** Lo último que había en `drizzle/` cuando SPEC-041 entró. Es historia, no un tope. */
+  const ANTES_DE_SPEC_041 = '0010_registration_gate_and_cron_runs';
+
+  it('el nombre del activo ya estaba en el esquema: esta spec no trajo migración (CE-M3)', () => {
     const diario = JSON.parse(readFileSync('drizzle/meta/_journal.json', 'utf8')) as {
       entries: { tag: string }[];
     };
+
+    const conNombre = readdirSync('drizzle')
+      .filter((n) => n.endsWith('.sql'))
+      .sort()
+      .filter((n) => /add column[^;]*"name"|"name" text/i.test(readFileSync(`drizzle/${n}`, 'utf8')));
+
+    expect(conNombre.length, 'ninguna migración crea `symbols.name`: el barrido mira mal').toBeGreaterThan(0);
     expect(
-      diario.entries.at(-1)?.tag,
-      `el historial de migraciones ha crecido hasta «${diario.entries.at(-1)?.tag}». ` +
-        `SPEC-041 no puede traer esquema nuevo (CE-M3): el nombre del activo ya estaba ` +
-        `en \`symbols.name\``,
-    ).toBe(ULTIMA_MIGRACION);
+      conNombre[0] <= `${ANTES_DE_SPEC_041}.sql`,
+      `la columna del nombre aparece en «${conNombre[0]}», posterior a la entrega de ` +
+        `SPEC-041: si el nombre necesitó esquema, esta spec dejó de ser una mejora (CE-M3)`,
+    ).toBe(true);
+
     expect(
       readdirSync('drizzle').filter((n) => n.endsWith('.sql')).length,
       'apareció un fichero .sql de migración que el diario no lista, o al revés',

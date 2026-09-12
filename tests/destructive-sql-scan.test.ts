@@ -243,10 +243,21 @@ describe('SPEC-032 CA-7: y no marca folklore', () => {
 });
 
 describe('SPEC-032 CA-8: calibración medida sobre el árbol de hoy', () => {
-  it('el drizzle/ real tiene once migraciones en el journal', () => {
-    // Nueve hasta SPEC-032; la décima es `0009_user_role` (SPEC-034) y la undécima
-    // `0010_registration_gate_and_cron_runs` (SPEC-037). Las dos, aditivas.
-    expect(escanear(drizzleDir).ficheros).toHaveLength(11);
+  it('el escáner ve exactamente las migraciones que el diario declara', () => {
+    /*
+      RE-ENCUADRE declarado (SPEC-063; ADR-037). ANTES: «el drizzle/ real tiene ONCE
+      migraciones», un recuento congelado que caduca con cada spec que migra —y que sólo
+      calibraba que el escáner había mirado algo—. AHORA compara **dos medidas**: lo que el
+      escáner recorre y lo que el diario declara. Sigue calibrando lo mismo, caza además el
+      fichero suelto que nadie registró, y no lo rompe quien migre mañana.
+    */
+    const diario = JSON.parse(
+      readFileSync(join(drizzleDir, 'meta', '_journal.json'), 'utf8'),
+    ) as { entries: { tag: string }[] };
+
+    const ficheros = escanear(drizzleDir).ficheros;
+    expect(ficheros.length, 'el escáner no encontró ninguna migración: está mirando mal').toBeGreaterThan(0);
+    expect(ficheros.map((f) => f.tag).sort()).toEqual(diario.entries.map((e) => e.tag).sort());
   });
 
   it('marca exactamente 0001 y 0007, y ninguna de las otras nueve', () => {

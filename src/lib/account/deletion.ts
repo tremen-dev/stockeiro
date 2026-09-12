@@ -5,6 +5,8 @@ import {
   notifications,
   passwordResetTokens,
   symbolAliases,
+  symbolLinks,
+  symbolNotes,
   transactions,
   watchedSymbols,
 } from '@/db/schema';
@@ -84,6 +86,16 @@ export const ACCOUNT_DELETION_COVERAGE: readonly CoveredTable[] = [
     label: 'Las equivalencias que aprendió el import entre los nombres de tu bróker y cada valor',
   },
   {
+    table: 'symbol_notes',
+    via: 'delete',
+    label: 'Las notas que hubieras escrito sobre cada valor',
+  },
+  {
+    table: 'symbol_links',
+    via: 'delete',
+    label: 'Los enlaces que hubieras guardado en cada valor',
+  },
+  {
     table: 'password_reset_tokens',
     via: 'delete',
     label: 'Los enlaces de recuperación de contraseña que tuvieras pendientes',
@@ -149,6 +161,11 @@ function deleteStatements(d: Db, userId: string) {
     d.delete(watchedSymbols).where(eq(watchedSymbols.userId, userId)),
     d.delete(transactions).where(eq(transactions.userId, userId)),
     d.delete(symbolAliases).where(eq(symbolAliases.userId, userId)),
+    // SPEC-063: la nota y los enlaces son SUYOS y se van con él (ADR-022). Van aquí, entre
+    // lo propio y la fila de `users`, porque referencian `users.id` con `no action`: sin
+    // borrarlos antes, la cuenta no podría caer.
+    d.delete(symbolNotes).where(eq(symbolNotes.userId, userId)),
+    d.delete(symbolLinks).where(eq(symbolLinks.userId, userId)),
     d.delete(passwordResetTokens).where(eq(passwordResetTokens.userId, userId)),
     d.delete(users).where(eq(users.id, userId)),
   ] as const;

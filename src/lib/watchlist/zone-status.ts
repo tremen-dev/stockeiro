@@ -13,6 +13,12 @@ export type ZoneState = 'buy' | 'sell' | 'both' | 'out' | 'none';
 
 export interface ZoneStatusView {
   id: string;
+  /**
+   * El símbolo al que apunta esta vigilada. Viaja desde SPEC-063 porque el **contexto del
+   * usuario** —su nota y sus enlaces— cuelga del símbolo y no de la fila: sin esto, la
+   * pantalla no podría emparejar una cosa con la otra sin volver a la base.
+   */
+  symbolId: string;
   ticker: string;
   /**
    * Operating MIC canónico del símbolo (ADR-012). Es LA MITAD DE LA IDENTIDAD, o sea
@@ -108,6 +114,7 @@ export async function zoneStatusForUser(db: Db, userId: string): Promise<ZoneSta
   const rows = await db
     .select({
       id: watchedSymbols.id,
+      symbolId: watchedSymbols.symbolId,
       ticker: symbols.ticker,
       micCode: symbols.micCode,
       instrumentType: symbols.instrumentType,
