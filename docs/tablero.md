@@ -94,6 +94,7 @@ Actualizado: 2026-09-13
 | SPEC-055 — app-base-url-envenenada-appbaseurl-valida-el-valor-y-no-solo-su-presencia-y-el-build-dice-que-clave-y-que-fichero | hecho | 2026-08-24 (sdd-verificador) |
 | SPEC-059 — el-ciclo-diario-deja-de-traer-el-cierre-de-anteayer-la-hora-del-cron-se-mueve-a-la-manana-utc | hecho | 2026-09-03 (sdd-verificador) |
 | SPEC-060 — el-contexto-maestro-deja-de-mentir-lo-que-se-puede-derivar-se-deriva-lo-que-no-nombra-a-su-dueno | hecho | 2026-09-03 (sdd-verificador) |
+| SPEC-064 — el-bloque-de-contexto-se-pinta-sobre-el-vacio-la-capa-no-tiene-fondo-y-solo-la-tarjeta-de-zonas-lo-tenia | hecho | 2026-09-13 (sdd-verificador) |
 
 ## EPIC-INFRA (aprobada)
 
@@ -167,6 +168,6 @@ Actualizado: 2026-09-13
 
 ## Resumen
 
-- hecho: 56
+- hecho: 57
 - aprobada: 1
 - bloqueada: 1

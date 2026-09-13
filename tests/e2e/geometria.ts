@@ -1600,3 +1600,164 @@ export async function medirPropiedadesComputadas(
     { selector, propiedades: [...propiedades] },
   );
 }
+
+/* ────────────────────────────────────────────────────────────────────────────
+   M6 — SUPERFICIE: ¿hay algo debajo de lo que se pinta? (SPEC-064)
+   ──────────────────────────────────────────────────────────────────────────── */
+
+/** Un elemento con texto propio, y qué tiene debajo. */
+export interface TextoConSuperficie {
+  selector: string;
+  texto: string;
+  /** El color del texto, ya compuesto. */
+  color: string;
+  /**
+   * El fondo **compuesto** que tiene debajo dentro de la raíz medida, o `null` si nunca
+   * llega a ser opaco: eso significa que lo que hay detrás de la raíz **se ve a través**.
+   */
+  fondo: string | null;
+  /** Razón de contraste WCAG contra ese fondo. `null` si no hay fondo opaco que medir. */
+  contraste: number | null;
+}
+
+export interface MedidaM6 {
+  /** Todos los elementos con texto propio que se han mirado. */
+  medidos: TextoConSuperficie[];
+  /** Los que **no** tienen ninguna superficie opaca debajo: el defecto de SPEC-064. */
+  sinSuperficie: TextoConSuperficie[];
+  /** Los que la tienen, pero con contraste por debajo del mínimo pedido. */
+  ilegibles: TextoConSuperficie[];
+}
+
+/**
+ * **M6 — lo que se pinta encima de algo** (SPEC-064, ADR-026 §1: la medida vive aquí).
+ *
+ * ## Qué mide, y por qué ninguna de las otras cinco lo veía
+ *
+ * M1/M2 miden **desborde**, M3 **integridad de palabra**, M5 **área táctil**, y el cálculo
+ * de contraste de SPEC-046 CA-6(f) mide **el texto de la tabla con el velo puesto** — o
+ * sea, lo que se ve *por detrás* de la capa. Ninguna pregunta lo más elemental: **¿lo que
+ * la capa muestra tiene algo debajo?**
+ *
+ * Costó una pantalla en producción. `dialog.editar-vigilada` va **sin fondo a propósito**
+ * (SPEC-046): la superficie la pone la tarjeta que contiene. Cuando SPEC-063 metió un
+ * segundo bloque dentro de la capa y fuera de esa tarjeta, ese bloque se pintó sobre el
+ * velo translúcido y la tabla se leía a través del texto. La suite entera, en verde.
+ *
+ * ## Cómo lo mide
+ *
+ * Por cada elemento con **texto propio** dentro de `raiz`, sube por sus ancestros
+ * componiendo los fondos hasta encontrar uno **opaco**. Si sale de `raiz` sin encontrarlo,
+ * es una violación: lo que haya detrás se transparenta. Si lo encuentra, compone el color
+ * del texto sobre ese fondo y saca la **razón de contraste de WCAG**, con la misma fórmula
+ * que ya usa la guardia del velo — no una segunda.
+ *
+ * Se mide sobre lo que la raíz **contenga**, no sobre una lista de bloques conocidos: así
+ * el próximo bloque que alguien añada ahí queda vigilado sin tocar esta función ni la
+ * guardia que la llama.
+ */
+export async function medirSuperficieDeTexto(
+  page: Page,
+  raiz: string,
+  contrasteMinimo = 4.5,
+): Promise<MedidaM6> {
+  const medidos = await page.evaluate(
+    ({ raiz, contrasteMinimo }) => {
+      const rgba = (css: string) => {
+        const n = (css.match(/[\d.]+/g) ?? []).map(Number);
+        return { r: n[0] ?? 0, g: n[1] ?? 0, b: n[2] ?? 0, a: n[3] ?? (n.length >= 3 ? 1 : 0) };
+      };
+      type Color = { r: number; g: number; b: number; a: number };
+      const sobre = (frente: Color, fondo: Color): Color => ({
+        r: frente.r * frente.a + fondo.r * (1 - frente.a),
+        g: frente.g * frente.a + fondo.g * (1 - frente.a),
+        b: frente.b * frente.a + fondo.b * (1 - frente.a),
+        a: 1,
+      });
+      const luminancia = (c: Color) => {
+        const canal = (v: number) => {
+          const s = v / 255;
+          return s <= 0.03928 ? s / 12.92 : ((s + 0.055) / 1.055) ** 2.4;
+        };
+        return 0.2126 * canal(c.r) + 0.7152 * canal(c.g) + 0.0722 * canal(c.b);
+      };
+      const razon = (a: Color, b: Color) => {
+        const [x, y] = [luminancia(a), luminancia(b)].sort((p, q) => q - p);
+        return (x + 0.05) / (y + 0.05);
+      };
+      const aCss = (c: Color) =>
+        `rgb(${Math.round(c.r)}, ${Math.round(c.g)}, ${Math.round(c.b)})`;
+
+      const contenedor = document.querySelector(raiz);
+      if (!contenedor) return [];
+
+      /** Los fondos acumulados hasta el primero OPACO, o null si nunca lo hay. */
+      const fondoDebajo = (desde: Element): Color | null => {
+        const capas: Color[] = [];
+        let n: Element | null = desde;
+        while (n) {
+          const bg = rgba(getComputedStyle(n).backgroundColor);
+          if (bg.a > 0) capas.push(bg);
+          // Opaco: aquí para el recorrido, lo de detrás ya no se ve.
+          if (bg.a >= 0.999) {
+            return capas.reduceRight((acc, capa) => sobre(capa, acc), bg);
+          }
+          if (n === contenedor) return null; // salió de la raíz sin fondo opaco
+          n = n.parentElement;
+        }
+        return null;
+      };
+
+      /** Un elemento «con texto propio»: tiene al menos un nodo de texto no vacío. */
+      const conTextoPropio = (el: Element) =>
+        [...el.childNodes].some((n) => n.nodeType === 3 && (n.textContent ?? '').trim() !== '');
+
+      return [...contenedor.querySelectorAll('*')]
+        .filter((el) => {
+          if (!conTextoPropio(el)) return false;
+          const caja = el.getBoundingClientRect();
+          const estilo = getComputedStyle(el);
+          // Lo invisible no se juzga: ni cajas a cero, ni lo oculto, ni lo que el
+          // navegador no pinta (un `<summary>` cerrado sigue pintándose; un `<details>`
+          // plegado esconde su contenido y ése no cuenta).
+          return caja.width > 0 && caja.height > 0 && estilo.visibility !== 'hidden';
+        })
+        .map((el) => {
+          const estilo = getComputedStyle(el);
+          const fondo = fondoDebajo(el);
+          const texto = fondo ? sobre(rgba(estilo.color), fondo) : null;
+          const clases = [...el.classList].slice(0, 2).join('.');
+          const testid = el.getAttribute('data-testid');
+          return {
+            selector:
+              el.tagName.toLowerCase() +
+              (clases ? `.${clases}` : '') +
+              (testid ? `[data-testid="${testid}"]` : ''),
+            texto: (el.textContent ?? '').trim().replace(/\s+/g, ' ').slice(0, 50),
+            color: estilo.color,
+            fondo: fondo ? aCss(fondo) : null,
+            contraste: fondo && texto ? Math.round(razon(texto, fondo) * 100) / 100 : null,
+          };
+        })
+        .map((m) => ({ ...m, contrasteMinimo }));
+    },
+    { raiz, contrasteMinimo },
+  );
+
+  return {
+    medidos,
+    sinSuperficie: medidos.filter((m) => m.fondo === null),
+    ilegibles: medidos.filter((m) => m.contraste !== null && m.contraste < contrasteMinimo),
+  };
+}
+
+/** El fallo de M6, leíble sin abrir el navegador. */
+export const describirSuperficie = (m: MedidaM6): string =>
+  [
+    `medidos=${m.medidos.length} · sin superficie=${m.sinSuperficie.length} · ilegibles=${m.ilegibles.length}`,
+    ...m.sinSuperficie.map((s) => `  ${s.selector} «${s.texto}»: NADA debajo — se ve lo de detrás`),
+    ...m.ilegibles.map((s) => `  ${s.selector} «${s.texto}»: ${s.contraste}:1 sobre ${s.fondo}`),
+  ].join('\n');
+
+/** El defecto de SPEC-064, para la prueba de eficacia (ADR-026 §7). */
+export const DEFECTO_SIN_SUPERFICIE = `.contexto-bloque { background: transparent !important }`;
