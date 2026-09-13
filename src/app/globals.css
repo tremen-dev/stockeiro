@@ -495,12 +495,18 @@ dialog.editar-vigilada .card:hover {
 }
 
 .contexto-bloque {
-  margin-top: 16px;
-  padding-top: 16px;
-  border-top: 1px solid var(--line);
   display: flex;
   flex-direction: column;
   gap: 10px;
+  /* SPEC-064 — **superficie propia**. La capa (`dialog.editar-vigilada`) va SIN fondo a
+     propósito desde SPEC-046 —lo que se ve es la tarjeta del formulario de zonas—, así que
+     un bloque que viva en la capa y fuera de esa tarjeta se pinta sobre el velo y deja leer
+     la tabla a través de él. Los tokens son los de `.card`, y el borde superior hace de
+     junta con la tarjeta de arriba: lo que se ve es UNA hoja, no dos tarjetas sueltas. */
+  background: var(--bg-elev);
+  border: 1px solid var(--line);
+  border-top: 1px solid var(--line);
+  padding: 18px 24px 24px;
 }
 
 /* El resumen es un control: se pulsa para abrir, así que llega al suelo táctil de 44 px
@@ -565,10 +571,18 @@ dialog.editar-vigilada .card:hover {
   flex-wrap: wrap;
 }
 
+/* SPEC-064 — el enlace usa el acento de la app, no el azul del navegador. Es el mismo
+   trato que reciben los enlaces de texto del resto del producto (`.auth-wrap p a`): un
+   bloque nuevo no estrena paleta. */
 .contexto-enlace a {
   overflow-wrap: anywhere;
   max-width: 100%;
+  color: var(--accent);
+  text-decoration: underline;
+  text-decoration-color: color-mix(in srgb, var(--accent) 45%, transparent);
+  text-underline-offset: 3px;
 }
+.contexto-enlace a:hover { text-decoration-color: var(--accent); }
 
 /* SPEC-062 — la barra de acercamiento a la zona (RN-18).
 
