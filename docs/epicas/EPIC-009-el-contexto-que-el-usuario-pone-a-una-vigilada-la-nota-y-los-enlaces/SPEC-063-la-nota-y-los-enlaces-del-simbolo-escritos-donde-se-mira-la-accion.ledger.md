@@ -6,7 +6,7 @@ epica: EPIC-009
 # Ledger — SPEC-063 La nota y los enlaces del simbolo, escritos donde se mira la accion
 
 ## Resumen
-- Fase: **en-revisión** — implementada el 2026-09-13, pendiente del veredicto del verificador
+- Fase: **hecho** — verificada en GREEN el 2026-09-13 por sdd-verificador
 - Rama: `ft/SPEC-063-la-nota-y-los-enlaces-del-simbolo`
 - Versión: **0.7.0** (minor: capacidad nueva; `package.json` + `package-lock.json` en el mismo commit, ADR-033)
 - Migración: `drizzle/0011_symbol_notes_and_links.sql` — **aditiva**, dos `CREATE TABLE` y nada más
@@ -17,27 +17,63 @@ epica: EPIC-009
 <!-- Un CA está ✅ solo cuando Implementado + Test + Verif. aplicables están en verde. Una salvedad se marca ⚠️, nunca ✅. -->
 | CA | Implementado (fichero) | Test (fichero/caso) | Verif. | Estado |
 |---|---|---|---|---|
-| CA-1 | `drizzle/0011_symbol_notes_and_links.sql` · `src/db/schema.ts` (`symbolNotes`, `symbolLinks`) | `tests/spec063-contexto.test.ts` › «CA-1 …» × 2 (la migración solo CREA · las tablas de siempre siguen aceptando lo de siempre) · `npm run db:scan` | | 🚧 |
-| CA-2 | `src/lib/contexto/service.ts` (`guardarNota` con `onConflictDoUpdate`; `position` = uno más que el mayor) | `tests/spec063-contexto.test.ts` › «CA-2 …» × 3 (sustituye y no duplica · orden estable entre lecturas · quitar el del medio no descoloca) | | 🚧 |
-| CA-3 | `service.ts` (todo filtra por `userId`; `simboloDeVigiladaPropia`) | `tests/spec063-contexto.test.ts` › «CA-3 …» × 3 (dos usuarios, mismo símbolo · borrar con id ajeno no borra · escribir desde fila ajena es imposible) | | 🚧 |
-| CA-4 | El modelo entero (cuelga del símbolo) · `src/lib/account/deletion.ts` (censo + sentencias) | `tests/spec063-contexto.test.ts` › «CA-4 …» × 3 (unwatch conserva y devuelve · borrar cuenta se lo lleva sin tocar lo compartido ni al vecino · las dos tablas en el censo) · `tests/account-deletion-coverage.test.ts` (guardia ajena que ya existía) | | 🚧 |
-| CA-5 | `src/app/vigiladas/contexto-form.tsx` · `watched-table.tsx` (dentro del `<dialog>` de ADR-030) · `actions.ts` | `tests/e2e/spec063-contexto.spec.ts` › «la nota se escribe en el panel de la fila, y sigue ahí al reabrirlo» | | 🚧 |
-| CA-6 | `service.ts` (vaciar **borra** la fila) · `contexto-form.tsx` (dos formularios, no uno) | `tests/spec063-contexto.test.ts` › «CA-6 …» × 2 · e2e › «un enlace se añade, se ve con su etiqueta y se quita» | | 🚧 |
-| CA-7 | `contexto-form.tsx` **fuera** del bloque que conmuta con la confirmación de zonas | `tests/e2e/spec063-contexto.spec.ts` › «guardar la nota deja las cuatro zonas donde estaban» | | 🚧 |
-| CA-8 | `globals.css` (`.contexto-*`, apilar y no encoger) | e2e › «con el bloque nuevo dentro, nada se sale de la pantalla a ningún ancho» (M1 a los ocho anchos) y «el foco vuelve a su fila al cerrar» | | 🚧 |
-| CA-9 | `columnas-vigiladas.tsx` (señal en la celda de activo) · `page.tsx` (`contextosDeUsuario`, dos consultas) | `tests/spec063-contexto.test.ts` › «CA-9 …» × 2 · e2e › «con contexto aparece la señal, sin contexto no hay marca» | | 🚧 |
-| CA-10 | `src/lib/contexto/senal.ts` (`textoDeContexto`) · `columnas-vigiladas.tsx` (`role="img"` + `aria-label`) | `tests/spec063-vocabulario-y-ayuda.test.ts` › «CA-10 …» × 2 · e2e › `aria-label` = «Tiene nota tuya» y «Tiene nota tuya y 1 enlace» | | 🚧 |
-| CA-11 | `src/lib/contexto/enlace.ts` (`normalizarEnlace`: parser + lista cerrada de esquemas) | `tests/spec063-enlace.test.ts` › **9 especímenes que deben rechazarse** y **6 que no**, más los motivos · e2e › `javascript:` rechazado y el bueno aceptado sin recargar | | 🚧 |
-| CA-12 | `contexto-form.tsx` (texto como contenido; sin `dangerouslySetInnerHTML`) | `tests/spec063-vocabulario-y-ayuda.test.ts` › «CA-12 …» × 2 · e2e › una nota con `<script>` se ve tal cual y **no** deja rastro en `window` | | 🚧 |
-| CA-13 | `enlace.ts` y `service.ts` (ninguno pide la red) · `contexto-form.tsx` (`rel="noopener noreferrer"`) | `tests/spec063-enlace.test.ts` › «CA-13 …» (guardia estructural) · e2e › «guardar un enlace no hace que el navegador pida esa dirección» | | 🚧 |
-| CA-14 | `src/lib/config/limites-contexto.ts` (1000 / 5, un solo hogar) · `service.ts` (los aplica el servidor) | `tests/spec063-contexto.test.ts` › «CA-14 …» × 3 (nota justa y pasada · el enlace 6 se rechaza contando · quitar abre hueco) · `tests/spec063-enlace.test.ts` › topes de URL y etiqueta | | 🚧 |
-| CA-15 | `enlace.ts` (`rotuloDeEnlace`: dominio sin `www.`) | `tests/spec063-enlace.test.ts` › «CA-15 …» × 3 · e2e › «sin etiqueta, el enlace se presenta por su dominio» | | 🚧 |
-| CA-16 | `docs/fundacion/dominio.md` («Nota de un símbolo», «Enlace de un símbolo») | `tests/spec063-vocabulario-y-ayuda.test.ts` › «CA-16 …» × 3 | | 🚧 |
-| CA-17 | `src/lib/help/content.ts` (dos párrafos, con los topes **derivados**) | `tests/spec063-vocabulario-y-ayuda.test.ts` › «CA-17 …» × 3 (qué es y qué no · derivación · afirmaciones prohibidas) | | 🚧 |
-| CA-18 | — (propiedad de no-regresión) | Batería completa: `npm test` y `npx playwright test` sobre un build del árbol commiteado | | 🚧 |
+| CA-1 | `drizzle/0011_symbol_notes_and_links.sql` · `src/db/schema.ts` (`symbolNotes`, `symbolLinks`) | `tests/spec063-contexto.test.ts` › «CA-1 …» × 2 (la migración solo CREA · las tablas de siempre siguen aceptando lo de siempre) · `npm run db:scan` | Ejecutado: los 2 casos pasan, y `npm run db:scan` da las dos migraciones destructivas de siempre —0001 y 0007, las dos con permiso escrito— y ninguna nueva. Leído el `.sql`: **dos `CREATE TABLE`, sus claves ajenas y un índice**. Ni un `ALTER` sobre tabla viva, ni un `DROP`. | ✅ |
+| CA-2 | `src/lib/contexto/service.ts` (`guardarNota` con `onConflictDoUpdate`; `position` = uno más que el mayor) | `tests/spec063-contexto.test.ts` › «CA-2 …» × 3 (sustituye y no duplica · orden estable entre lecturas · quitar el del medio no descoloca) | Ejecutado: los 3 casos pasan. El de sustitución cuenta las **filas** de la tabla (1, no 2) además de leer el valor, así que no pasa por machacar en memoria; el de orden compara **dos lecturas seguidas** entre sí y luego añade una tercera fila para probar que no reordena. | ✅ |
+| CA-3 | `service.ts` (todo filtra por `userId`; `simboloDeVigiladaPropia`) | `tests/spec063-contexto.test.ts` › «CA-3 …» × 3 (dos usuarios, mismo símbolo · borrar con id ajeno no borra · escribir desde fila ajena es imposible) | Ejecutado: los 3 casos pasan. El del borrado ajeno usa el **id real** del enlace de A pedido por B —no un id inventado— y comprueba que el de A **sigue ahí**: el silencio no es «no existía», es «no es tuyo». | ✅ |
+| CA-4 | El modelo entero (cuelga del símbolo) · `src/lib/account/deletion.ts` (censo + sentencias) | `tests/spec063-contexto.test.ts` › «CA-4 …» × 3 (unwatch conserva y devuelve · borrar cuenta se lo lleva sin tocar lo compartido ni al vecino · las dos tablas en el censo) · `tests/account-deletion-coverage.test.ts` (guardia ajena que ya existía) | Ejecutado: los 3 casos pasan. El primero es el que sostiene la decisión de la épica: tras `unwatch` la lista queda vacía **y** la nota sigue, y al volver a vigilar vuelve con su enlace. El segundo comprueba lo contrario para el borrado de cuenta, y además que `symbols` sigue en pie y que la nota del vecino no se ha movido. | ✅ |
+| CA-5 | `src/app/vigiladas/contexto-form.tsx` · `watched-table.tsx` (dentro del `<dialog>` de ADR-030) · `actions.ts` | `tests/e2e/spec063-contexto.spec.ts` › «la nota se escribe en el panel de la fila, y sigue ahí al reabrirlo» | Verificado en navegador. La guardia **cierra y reabre el panel sin recargar**, que es justo lo que destapó el defecto de sincronización (ver handoff pto. 4). Espera al acuse «Nota guardada» en vez de a un reloj. | ✅ |
+| CA-6 | `service.ts` (vaciar **borra** la fila) · `contexto-form.tsx` (dos formularios, no uno) | `tests/spec063-contexto.test.ts` › «CA-6 …» × 2 · e2e › «un enlace se añade, se ve con su etiqueta y se quita» | Ejecutado y verificado en navegador: vaciar la nota **borra la fila** —no deja una cadena vacía que haría mentir a la señal de la lista— y no toca los enlaces; quitar todos los enlaces no toca la nota. | ✅ |
+| CA-7 | `contexto-form.tsx` **fuera** del bloque que conmuta con la confirmación de zonas | `tests/e2e/spec063-contexto.spec.ts` › «guardar la nota deja las cuatro zonas donde estaban» | Verificado en navegador: tras guardar la nota, **todas las celdas de la fila menos la de Activo** son idénticas —se comparan los textos, no un recuento—, y la de Activo cambia sólo porque gana la señal de contexto. | ✅ |
+| CA-8 | `globals.css` (`.contexto-*`, apilar y no encoger) | e2e › «con el bloque nuevo dentro, nada se sale de la pantalla a ningún ancho» (M1 a los ocho anchos) y «el foco vuelve a su fila al cerrar» | Verificado en navegador a los **ocho anchos** con M1 (ADR-026 §1) y con el foco de vuelta al control que abrió la capa. **Aquí apareció el hallazgo serio de la ronda** (handoff pto. 10): el panel crecido tapaba la lista entera y ponía roja a SPEC-046 CA-6(f). Arreglado plegando el bloque **siempre** y acotando la capa por encima del canto; y con una guardia **propia** que mide la propiedad de la vecina en el caso que esta spec introduce (nota llena + bloque desplegado). | ✅ |
+| CA-9 | `columnas-vigiladas.tsx` (señal en la celda de activo) · `page.tsx` (`contextosDeUsuario`, dos consultas) | `tests/spec063-contexto.test.ts` › «CA-9 …» × 2 · e2e › «con contexto aparece la señal, sin contexto no hay marca» | Ejecutado y verificado en navegador, en **las dos direcciones y en la misma pantalla**: la fila con contexto lleva señal y la de al lado no. Comprobado que la señal sale de la **misma lectura** que el panel (un caso lo afirma comparando los dos), así que no pueden discrepar. | ✅ |
+| CA-10 | `src/lib/contexto/senal.ts` (`textoDeContexto`) · `columnas-vigiladas.tsx` (`role="img"` + `aria-label`) | `tests/spec063-vocabulario-y-ayuda.test.ts` › «CA-10 …» × 2 · e2e › `aria-label` = «Tiene nota tuya» y «Tiene nota tuya y 1 enlace» | Ejecutado: la frase se construye bien en singular y en plural, y no contiene ningún glifo. Leído el marcado: `role="img"` con `aria-label`, y el clip va `aria-hidden`. En navegador se leen las dos frases reales sobre la fila. | ✅ |
+| CA-11 | `src/lib/contexto/enlace.ts` (`normalizarEnlace`: parser + lista cerrada de esquemas) | `tests/spec063-enlace.test.ts` › **9 especímenes que deben rechazarse** y **6 que no**, más los motivos · e2e › `javascript:` rechazado y el bueno aceptado sin recargar | Ejecutado: **15 especímenes**, 9 que deben rechazarse y 6 que no. **Falsificado a mano**: neutralizando la comprobación de esquema caen los 9 del bloque «debe rechazarse» y **ninguno** del otro — la guardia mira lo que dice mirar. En navegador, el rechazo se ve, no guarda nada, y el enlace legítimo entra a continuación sin recargar. | ✅ |
+| CA-12 | `contexto-form.tsx` (texto como contenido; sin `dangerouslySetInnerHTML`) | `tests/spec063-vocabulario-y-ayuda.test.ts` › «CA-12 …» × 2 · e2e › una nota con `<script>` se ve tal cual y **no** deja rastro en `window` | Ejecutado y verificado en navegador: una nota con `<script>` y `<b>` se relee **literal** en el campo, `window.__colado` sigue sin definir y no hay ningún `<b>` dentro del bloque. La guardia estructural descuenta comentarios, así que la explicación de por qué no hay `dangerouslySetInnerHTML` no cuenta como infracción. | ✅ |
+| CA-13 | `enlace.ts` y `service.ts` (ninguno pide la red) · `contexto-form.tsx` (`rel="noopener noreferrer"`) | `tests/spec063-enlace.test.ts` › «CA-13 …» (guardia estructural) · e2e › «guardar un enlace no hace que el navegador pida esa dirección» | Ejecutado (estructural) y verificado en navegador **escuchando todas las peticiones**: guardar un enlace no genera ni una a ese dominio. Leído el código: ni `enlace.ts` ni `service.ts` importan nada de red. | ✅ |
+| CA-14 | `src/lib/config/limites-contexto.ts` (1000 / 5, un solo hogar) · `service.ts` (los aplica el servidor) | `tests/spec063-contexto.test.ts` › «CA-14 …» × 3 (nota justa y pasada · el enlace 6 se rechaza contando · quitar abre hueco) · `tests/spec063-enlace.test.ts` › topes de URL y etiqueta | Ejecutado: los 3 casos de la base y los 2 de la dirección/etiqueta pasan, cada uno con su **caso justo en el tope** al lado del que se pasa. **Falsificado a mano**: si el tope de enlaces deja de contar, el caso se pone rojo. Comprobado además que el tope es **por símbolo**: con cinco en una acción, en otra sigue habiendo sitio. | ✅ |
+| CA-15 | `enlace.ts` (`rotuloDeEnlace`: dominio sin `www.`) | `tests/spec063-enlace.test.ts` › «CA-15 …» × 3 · e2e › «sin etiqueta, el enlace se presenta por su dominio» | Ejecutado y verificado en navegador: sin etiqueta se lee `eldiariodelabolsa.example.com`, sin `www.`, y no aparece ni «Enlace 1» ni la URL entera. | ✅ |
+| CA-16 | `docs/fundacion/dominio.md` («Nota de un símbolo», «Enlace de un símbolo») | `tests/spec063-vocabulario-y-ayuda.test.ts` › «CA-16 …» × 3 | Verificado en git: los dos términos entran en `147ebcb` (commit del gate), **antes** de la primera línea de implementación. Ejecutado: los 3 casos pasan, incluido el que exige que cada término diga lo que la app **no** hace. | ✅ |
+| CA-17 | `src/lib/help/content.ts` (dos párrafos, con los topes **derivados**) | `tests/spec063-vocabulario-y-ayuda.test.ts` › «CA-17 …» × 3 (qué es y qué no · derivación · afirmaciones prohibidas) | Ejecutado: los 3 casos pasan. Comprobado que `content.ts` **interpola** los dos topes desde `@/lib/config/limites-contexto` en vez de teclearlos, y que el grafo de imports de `/ayuda` sigue verde — que es la razón de que los topes vivan en `config/` y no junto al servicio. | ✅ |
+| CA-18 | — (propiedad de no-regresión) | Batería completa: `npm test` y `npx playwright test` sobre un build del árbol commiteado | Verificado en el gate: `npm test` **2089/2089** (128 ficheros) y `npx playwright test` **349/349** sobre un build del árbol commiteado; typecheck y lint limpios; `version:check` 0.6.0 → 0.7.0 con el árbol limpio. Esta ronda **destapó cinco cosas que la spec no había previsto** y están todas en el handoff: el hueco de `/legal/privacidad`, dos censos que crecen, la siembra incompleta del test de borrado, el suelo táctil y la capa que tapaba la lista. Ninguna se resolvió aflojando nada. | ✅ |
 
 ## Veredicto del verificador
 <!-- GREEN/RED + fecha + resumen. Lo escribe SOLO sdd-verificador. -->
+
+**GREEN — 2026-09-13, sdd-verificador.** Los 18 CA verificados sobre el árbol commiteado en
+`838c7c8`, con la batería entera corrida **después** de commitear y sobre un `next build` de
+ese mismo árbol.
+
+### Gates, literales
+
+- `npm run typecheck` y `npm run lint` → limpios.
+- `npm test` → **2089/2089**, 128 ficheros.
+- `npx playwright test` → **349/349** (338 antes de esta spec + 11 suyas).
+- `npm run db:scan` → 12 migraciones, las dos destructivas de siempre con su permiso escrito;
+  la de esta spec, **sin nada que desbloquear**.
+- `npm run version:check` → *«La version sube de 0.6.0 a 0.7.0»*, con el árbol limpio.
+
+### Los tres sitios donde se apretó
+
+1. **El filtro de enlaces, falsificado.** Neutralizada la comprobación de esquema: caen los
+   **nueve** especímenes del bloque «debe rechazarse» y **ninguno** de los seis del bloque
+   «no debe rechazarse». La guardia mira el esquema, no la forma de la cadena.
+2. **El tope de enlaces, falsificado.** Si deja de contar lo que hay, el caso se pone rojo.
+3. **Una de las guardias RE-ENCUADRADAS, falsificada.** La de SPEC-041 —la que ahora afirma
+   que la columna del nombre existía antes de su entrega— se pone roja al mover el ancla. No
+   es una casilla: se puede violar y falla.
+
+### Lo que esta ronda destapó, y que es lo que más valor tiene del gate
+
+La primera pasada completa puso rojas **nueve pruebas unitarias y dos e2e**, y **ninguna era
+ruido**: un hueco legal real (`/legal/privacidad` no describía las tablas nuevas), dos censos
+que crecen con cada tabla con dueño, una siembra que dejaba de probar lo que decía probar, un
+control **por debajo del suelo táctil** —21 px primero, 43,00 después, y un 43 no es un 44 mal
+redondeado— y, la seria, **la capa tapando la lista entera** y rompiendo la promesa de
+ADR-030 §1 que SPEC-046 CA-6(f) mide. Están todas en el handoff con su arreglo.
+
+**Ninguna se resolvió aflojando una guardia ajena.** Las tres que sí caducaban por congelar el
+directorio de migraciones —SPEC-032, SPEC-037 y SPEC-041— se **re-encuadraron** con su antes y
+su después escritos, y se comprobó que siguen pudiendo ponerse rojas.
 
 ## Evidencia visual
 <!-- Tabla CA → captura en _qa/SPEC-063/. Informe HTML opcional: _qa/SPEC-063/informe.html -->

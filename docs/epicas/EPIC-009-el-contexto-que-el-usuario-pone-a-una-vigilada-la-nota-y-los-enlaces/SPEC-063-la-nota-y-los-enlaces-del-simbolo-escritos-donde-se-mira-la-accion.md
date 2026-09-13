@@ -2,11 +2,14 @@
 id: SPEC-063
 tipo: spec
 epica: EPIC-009
-estado: aprobada
+estado: hecho
 aprobada-por: humano (Alberto Fojo)
 historial:
   - {estado: borrador, fecha: 2026-09-13, por: sdd-arquitecto}
   - {estado: aprobada, fecha: 2026-09-13, por: humano (Alberto Fojo)}
+  - {estado: en-progreso, fecha: 2026-09-13, por: sdd-implementador}
+  - {estado: en-revision, fecha: 2026-09-13, por: sdd-implementador}
+  - {estado: hecho, fecha: 2026-09-13, por: sdd-verificador}
 ---
 # SPEC-063 — La nota y los enlaces del símbolo, escritos donde se mira la acción
 
