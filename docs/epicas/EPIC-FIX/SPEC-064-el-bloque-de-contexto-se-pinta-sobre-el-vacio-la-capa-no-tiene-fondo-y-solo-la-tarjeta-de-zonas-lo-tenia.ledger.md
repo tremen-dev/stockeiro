@@ -6,7 +6,7 @@ epica: EPIC-FIX
 # Ledger — SPEC-064 El bloque de contexto se pinta sobre el vacio
 
 ## Resumen
-- Fase: **en-revisión** — implementada el 2026-09-13, pendiente del veredicto del verificador
+- Fase: **hecho** — verificada en GREEN el 2026-09-13 por sdd-verificador
 - Rama: `fix/SPEC-064-el-panel-sin-fondo`
 - Versión: **0.7.1** (patch: arreglo visual, sin capacidad nueva; ADR-033)
 
@@ -15,14 +15,41 @@ epica: EPIC-FIX
 <!-- Estados por CA: ✅ cerrado · ⚠️ parcial/con salvedad · 🚧 en curso · ❌ sin empezar · n-a -->
 | CA | Implementado (fichero) | Test (fichero/caso) | Verif. | Estado |
 |---|---|---|---|---|
-| CA-1 | `src/app/globals.css` (`.contexto-bloque`: `background: var(--bg-elev)` + `border: 1px solid var(--line)`) | `tests/e2e/geometria.ts` (**M6**, `medirSuperficieDeTexto`) · `tests/e2e/spec064-superficie.spec.ts` › «ni un texto de la capa se pinta sobre el vacío» y «a los ocho anchos» | | 🚧 |
-| CA-2 | — (es la prueba de eficacia de la guardia, ADR-026 §7) | `spec064-superficie.spec.ts` › «quitarle el fondo la pone roja, y devolverlo la deja verde», con `DEFECTO_SIN_SUPERFICIE` | | 🚧 |
-| CA-3 | La misma superficie | M6 calcula el contraste sobre el fondo **compuesto**, con la misma fórmula WCAG de SPEC-046 CA-6(f) | | 🚧 |
-| CA-4 | `globals.css` (nada del anclaje ni del acotado se toca) | `tests/e2e/vigiladas-capa-edicion.spec.ts` (SPEC-046 entera) · `tests/e2e/spec063-contexto.spec.ts` › «la lista SIGUE leyéndose detrás» · `tarjetas-geometria.spec.ts` (M5) | | 🚧 |
-| CA-5 | — | Batería completa | | 🚧 |
+| CA-1 | `src/app/globals.css` (`.contexto-bloque`: `background: var(--bg-elev)` + `border: 1px solid var(--line)`) | `tests/e2e/geometria.ts` (**M6**, `medirSuperficieDeTexto`) · `tests/e2e/spec064-superficie.spec.ts` › «ni un texto de la capa se pinta sobre el vacío» y «a los ocho anchos» | Ejecutado en navegador: **17 elementos con texto propio** medidos dentro de la capa y **ninguno** sin superficie opaca debajo, a 1280 px y a los **ocho anchos**. El centinela de no-vacuidad (>8 medidos) impide que un selector equivocado dé verde sin mirar nada — que es el modo de fallo exacto que esta spec cierra. | ✅ |
+| CA-2 | — (es la prueba de eficacia de la guardia, ADR-026 §7) | `spec064-superficie.spec.ts` › «quitarle el fondo la pone roja, y devolverlo la deja verde», con `DEFECTO_SIN_SUPERFICIE` | Ejecutado: con `DEFECTO_SIN_SUPERFICIE` inyectado la medida señala violaciones **y una de ellas es el bloque de contexto**; al retirarlo vuelve a cero. La guardia ve el defecto que hubo en producción, así que no es una casilla. | ✅ |
+| CA-3 | La misma superficie | M6 calcula el contraste sobre el fondo **compuesto**, con la misma fórmula WCAG de SPEC-046 CA-6(f) | Ejecutado: ningún texto de la capa baja del mínimo de 4,5:1 contra su fondo **compuesto**. El cálculo es el de SPEC-046 CA-6(f), reutilizado desde el módulo compartido y no reescrito. | ✅ |
+| CA-4 | `globals.css` (nada del anclaje ni del acotado se toca) | `tests/e2e/vigiladas-capa-edicion.spec.ts` (SPEC-046 entera) · `tests/e2e/spec063-contexto.spec.ts` › «la lista SIGUE leyéndose detrás» · `tarjetas-geometria.spec.ts` (M5) | Ejecutado: SPEC-046 entera en verde —incluido CA-6(f), que es la que se puso roja durante SPEC-063—, la guardia de SPEC-063 que mide la lista visible con el bloque lleno, M5 de SPEC-054 y M1/M2/M3 a los ocho anchos. Ni el anclaje ni el acotado de la capa se tocan. | ✅ |
+| CA-5 | — | Batería completa | Verificado en el gate: `npm test` **2089/2089** (128 ficheros) y `npx playwright test` **353/353** (349 antes + 4 de esta spec) sobre un build del árbol commiteado; typecheck y lint limpios; `version:check` 0.7.0 → 0.7.1 con el árbol limpio. Revisado el diff: **sólo CSS, el módulo de medida y el fichero de guardia nuevo**; ni un `expect` ajeno tocado. | ✅ |
 
 ## Veredicto del verificador
 <!-- GREEN/RED + fecha + resumen. Lo escribe SOLO sdd-verificador. -->
+
+**GREEN — 2026-09-13, sdd-verificador.** Los 5 CA verificados sobre el árbol commiteado en
+`10e3d04`, con la batería corrida después de commitear y sobre un build de ese mismo árbol.
+
+### Gates, literales
+
+- `npm run typecheck` y `npm run lint` → limpios.
+- `npm test` → **2089/2089**, 128 ficheros (ni uno más ni uno menos que antes: esta spec no
+  añade unitarios, y no debía).
+- `npx playwright test` → **353/353** (349 previos + 4 de esta spec).
+- `npm run version:check` → 0.7.0 → **0.7.1**, con el árbol limpio.
+
+### Lo que se apretó
+
+**La guardia nueva, contra el defecto real.** No es una falsificación inventada: se inyecta
+`background: transparent` en el bloque de contexto —**exactamente lo que había en
+producción**— y M6 lo señala por su nombre; al retirarlo, vuelve a verde. Es lo que separa
+esta spec de un arreglo de tres líneas: el arreglo lo veía cualquiera mirando la pantalla; lo
+que no había forma de ver era **que nadie lo estuviera mirando**.
+
+### Una nota sobre el alcance
+
+El humano firmó el gate **con el arreglo ya visto en pantalla** y con alcance completo. En esa
+revisión visual salió un segundo defecto de la misma familia —enlaces en el azul por defecto
+del navegador— y entra aquí por ser el mismo patrón. Lo que **no** entra, y queda escrito como
+`F-SPEC-064-1` con tres candidatos concretos, es la densidad del panel: eso es mejora sobre
+algo que funciona, y su sitio es EPIC-MEJORA.
 
 ## Evidencia visual
 
