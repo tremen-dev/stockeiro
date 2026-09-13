@@ -1,7 +1,7 @@
 <!-- GENERADO por tremen-sdd (scripts/tablero.mjs). NO EDITAR A MANO. -->
 # Tablero
 
-Actualizado: 2026-09-03
+Actualizado: 2026-09-13
 
 ## EPIC-001 — vigilancia-de-zonas-de-compra-venta-con-cartera-y-avisos (hecho)
 
@@ -66,13 +66,19 @@ Actualizado: 2026-09-03
 |---|---|---|
 | SPEC-058 — el-alta-de-una-vigilada-trae-su-precio | hecho | 2026-08-25 (sdd-verificador) |
 
+## EPIC-009 — el-contexto-que-el-usuario-pone-a-una-vigilada-la-nota-y-los-enlaces (aprobada)
+
+| Spec | Estado | Último cambio |
+|---|---|---|
+| SPEC-063 — la-nota-y-los-enlaces-del-simbolo-escritos-donde-se-mira-la-accion | aprobada | 2026-09-13 (humano (Alberto Fojo)) |
+
 ## EPIC-FIX (aprobada)
 
 | Spec | Estado | Último cambio |
 |---|---|---|
 | SPEC-015 — proveedor-de-cotizaciones-con-cobertura-del-mercado-real | hecho | 2026-07-15 (sdd-verificador) |
 | SPEC-016 — diagnostico-visible-del-simbolo-sin-cotizacion | hecho | 2026-07-15 (sdd-verificador) |
-| SPEC-020 — dialecto-de-simbolo-del-proveedor-por-mercado | hecho | 2026-08-11 (humano (Alberto Fojo) — FIRMA RETROACTIVA del gate: aprobo la spec despues de estar implementada) |
+| SPEC-020 — dialecto-de-simbolo-del-proveedor-por-mercado | hecho | 2026-08-11 (humano (Alberto Fojo) — FIRMA RETROACTIVA del gate: aprobo la spec despues de estar implementada, verificada GREEN 10/10 y desplegada en produccion, tras planteársele que la aprobacion original era por delegacion y no por lectura. Se conserva la entrada anterior a proposito: el rastro no se reescribe) |
 | SPEC-021 — precio-de-cadena-inambigua-en-mercados-pelados | hecho | 2026-08-11 (sdd-verificador) |
 | SPEC-024 — quitar-de-vigiladas-la-accion-correcta-haya-estado-o-no-en-zona | hecho | 2026-08-17 (sdd-verificador) |
 | SPEC-025 — cartera-vender-dividir-y-cobrar-dividendo-sobre-la-posicion-del-mercado-correcto | hecho | 2026-08-17 (sdd-verificador) |
@@ -113,6 +119,7 @@ Actualizado: 2026-09-03
 | SPEC-050 — la-primera-pantalla-la-marca-visible-una-entrada-clara-y-la-advertencia-fuera-del-hero | hecho | 2026-08-23 (sdd-verificador) |
 | SPEC-051 — la-vista-previa-del-enlace-la-tarjeta-que-el-foro-ve-antes-de-entrar | hecho | 2026-08-23 (sdd-verificador) |
 | SPEC-056 — los-tres-correos-diseno-propio-la-marca-en-cabecera-y-pie-y-el-texto-plano-como-alternativa | hecho | 2026-08-25 (sdd-verificador) |
+| SPEC-062 — lo-cerca-que-esta-la-barra-de-acercamiento-a-la-zona-y-el-orden-por-cercania | hecho | 2026-09-13 (sdd-verificador) |
 
 ## ADRs
 
@@ -130,7 +137,7 @@ Actualizado: 2026-09-03
 | ADR-010 | aprobada | idempotencia-del-import-por-clave-derivada-de-la-operacion | 2026-07-14 (humano (Alberto Fojo)) |
 | ADR-011 | aprobada | divisa-y-coste-de-las-transacciones-importadas-divisa-nativa-y-gastos-en-euro | 2026-07-14 (humano (Alberto Fojo)) |
 | ADR-012 | aprobada | marketstack-para-cotizaciones-e-identidad-de-mercado-canonica-por-operating-mic | 2026-07-15 (humano (Alberto Fojo)) |
-| ADR-014 | aprobada | confianza-en-el-eco-de-mercado-dentro-de-un-grupo-de-mercados-equivalentes-del-proveedor | 2026-08-11 (humano (Alberto Fojo) — aprobado en el mismo gate que SPEC-021) |
+| ADR-014 | aprobada | confianza-en-el-eco-de-mercado-dentro-de-un-grupo-de-mercados-equivalentes-del-proveedor | 2026-08-11 (humano (Alberto Fojo) — aprobado en el mismo gate que SPEC-021, tras plantearle que la excepcion a ADR-012 se documenta aqui y no dentro de la spec) |
 | ADR-015 | aprobada | token-de-recuperacion-opaco-de-un-solo-uso-almacenado-hasheado-y-con-caducidad-corta | 2026-08-12 (humano (Alberto Fojo)) |
 | ADR-016 | aprobada | invalidacion-de-sesiones-previas-al-cambiar-la-contrasena-mediante-epoca-de-credencial-en-el-jwt | 2026-08-12 (humano (Alberto Fojo)) |
 | ADR-017 | aprobada | baja-de-una-accion-vigilada-los-episodios-de-zona-son-derivados-y-el-historial-de-avisos-se-conserva | 2026-08-17 (Alberto Fojo) |
@@ -160,6 +167,6 @@ Actualizado: 2026-09-03
 
 ## Resumen
 
-- hecho: 54
-- aprobada: 1
+- hecho: 55
+- aprobada: 2
 - bloqueada: 1
