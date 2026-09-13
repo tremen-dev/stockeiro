@@ -10,6 +10,8 @@ import {
   quoteDiagnostics,
   quotes,
   symbolAliases,
+  symbolLinks,
+  symbolNotes,
   symbols,
   transactions,
   watchedSymbols,
@@ -151,6 +153,21 @@ async function sembrar(email: string, ticker: string): Promise<Habitante> {
     symbolId,
   });
 
+  // Su nota y su enlace sobre ese valor (SPEC-063). Cuelgan del SÍMBOLO, así que son
+  // justo las dos tablas que sobreviven a dejar de vigilar — y que el borrado de cuenta
+  // sí tiene que llevarse (ADR-022).
+  await db().insert(symbolNotes).values({
+    userId: creado.id,
+    symbolId,
+    note: `por qué sigo ${ticker}`,
+  });
+  await db().insert(symbolLinks).values({
+    userId: creado.id,
+    symbolId,
+    url: 'https://foro.example.com/hilo/1',
+    label: 'El hilo',
+  });
+
   // Un enlace de recuperación vivo (ADR-015).
   await db().insert(passwordResetTokens).values({
     userId: creado.id,
@@ -212,14 +229,14 @@ async function fotoDeLoCompartido() {
 // ---------------------------------------------------------------------------
 
 describe('SPEC-036 CA-4: con la contraseña correcta no queda ninguna fila suya', () => {
-  it('la siembra deja filas en las SIETE tablas — si no, el test de abajo no prueba nada', async () => {
+  it('la siembra deja filas en TODAS las tablas cubiertas — si no, el test de abajo no prueba nada', async () => {
     const yo = await sembrar('ca4@example.com', 'ITX');
     const antes = await censo(yo.id);
 
     for (const tabla of Object.keys(antes)) {
       expect(antes[tabla], `la siembra no dejó ninguna fila en "${tabla}"`).toBeGreaterThan(0);
     }
-    // Y las siete son las siete: ni una tabla del esquema se queda fuera del censo.
+    // Y son exactamente las del censo: ni una tabla del esquema se queda fuera.
     expect(Object.keys(antes).sort()).toEqual(
       ACCOUNT_DELETION_COVERAGE.map((c) => c.table).sort(),
     );

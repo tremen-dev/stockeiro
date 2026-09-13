@@ -70,7 +70,7 @@ Actualizado: 2026-09-13
 
 | Spec | Estado | Último cambio |
 |---|---|---|
-| SPEC-063 — la-nota-y-los-enlaces-del-simbolo-escritos-donde-se-mira-la-accion | aprobada | 2026-09-13 (humano (Alberto Fojo)) |
+| SPEC-063 — la-nota-y-los-enlaces-del-simbolo-escritos-donde-se-mira-la-accion | hecho | 2026-09-13 (sdd-verificador) |
 
 ## EPIC-FIX (aprobada)
 
@@ -167,6 +167,6 @@ Actualizado: 2026-09-13
 
 ## Resumen
 
-- hecho: 55
-- aprobada: 2
+- hecho: 56
+- aprobada: 1
 - bloqueada: 1

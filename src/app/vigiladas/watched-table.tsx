@@ -10,8 +10,10 @@ import {
   type DireccionOrden,
 } from '@/lib/watchlist/sort';
 import { CADENCIA_LINEA } from '@/lib/help/content';
+import { CONTEXTO_VACIO, type ContextoDeSimbolo } from '@/lib/contexto/service';
 import { columnaEn, paresDeLaTarjeta } from '../columnas';
 import { columnasDeVigiladas } from './columnas-vigiladas';
+import { ContextoForm } from './contexto-form';
 import { WatchForm } from './watch-form';
 
 /**
@@ -55,7 +57,14 @@ import { WatchForm } from './watch-form';
  * la representación oculta no ensucia el recuento (`tests/e2e/geometria.ts`).
  */
 
-export function WatchedTable({ filas }: { filas: ZoneStatusView[] }) {
+export function WatchedTable({
+  filas,
+  contextos = {},
+}: {
+  filas: ZoneStatusView[];
+  /** SPEC-063 — el contexto de cada símbolo, por `symbolId`. Lo resuelve el servidor. */
+  contextos?: Record<string, ContextoDeSimbolo>;
+}) {
   const [clave, setClave] = useState<ClaveOrden>('ticker');
   const [direccion, setDireccion] = useState<DireccionOrden>('asc');
   /*
@@ -139,6 +148,7 @@ export function WatchedTable({ filas }: { filas: ZoneStatusView[] }) {
     estadoOrdenado: clave === 'state' || clave === 'cercania',
     direccion,
     abrir,
+    contextos,
   });
   const cabecera = columnaEn(columnas, 'cabecera');
   const estado = columnaEn(columnas, 'estado');
@@ -349,6 +359,18 @@ export function WatchedTable({ filas }: { filas: ZoneStatusView[] }) {
               }}
             />
           )}
+          {/*
+            SPEC-063 CA-5/CA-7 — el contexto vive DEBAJO de las zonas, en la misma capa, y
+            **fuera del bloque que conmuta con la confirmación**: guardar zonas enseña su
+            acuse (SPEC-046 CA-13) y la nota sigue ahí, porque son dos cosas que no se
+            pisan. Se remonta con la fila (`key`) por el mismo motivo que el formulario de
+            arriba: sin eso, el textarea conservaría la nota de la vigilada anterior.
+          */}
+          <ContextoForm
+            key={`contexto-${enEdicion.id}`}
+            watchedId={enEdicion.id}
+            contexto={contextos[enEdicion.symbolId] ?? CONTEXTO_VACIO}
+          />
         </dialog>
       )}
     </>

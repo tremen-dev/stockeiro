@@ -14,6 +14,22 @@ import { quoteProvider } from '@/lib/market/quote-provider-factory';
 import { readSymbolSelection } from '@/lib/market/symbol-selection';
 import { readDecimalField } from '@/lib/format/decimal-input';
 import { toFormError } from '@/lib/format/action-error';
+import {
+  anadirEnlace,
+  guardarNota,
+  quitarEnlace,
+  simboloDeVigiladaPropia,
+  type MotivoRechazo,
+  MOTIVO_RECHAZO_TEXTO,
+} from '@/lib/contexto/service';
+import { MOTIVO_ENLACE_TEXTO } from '@/lib/contexto/enlace';
+
+/** El texto que lee el usuario cuando su escritura se rechaza (SPEC-063 CA-11/CA-14). */
+function textoDeRechazo(motivo: MotivoRechazo): string {
+  return motivo in MOTIVO_RECHAZO_TEXTO
+    ? MOTIVO_RECHAZO_TEXTO[motivo as keyof typeof MOTIVO_RECHAZO_TEXTO]
+    : MOTIVO_ENLACE_TEXTO[motivo as keyof typeof MOTIVO_ENLACE_TEXTO];
+}
 
 export type FormState = { error: string } | { ok: true } | undefined;
 
@@ -166,6 +182,83 @@ export async function removeAction(formData: FormData): Promise<void> {
   const watchedId = String(formData.get('watchedId') ?? '').trim();
   if (watchedId) {
     await unwatch(db, userId, watchedId);
+    revalidatePath('/vigiladas');
+  }
+}
+
+/* ────────────────────────────────────────────────────────────────────────────
+   SPEC-063 — el contexto del símbolo: la nota y los enlaces
+   ──────────────────────────────────────────────────────────────────────────── */
+
+/**
+ * Traduce el id de **la fila** —que es lo que viaja desde la pantalla desde SPEC-024— al
+ * id del **símbolo**, comprobando de paso que esa fila es de quien la pide (RN-01).
+ *
+ * Si no lo es, devuelve `null` y quien llama responde lo mismo que respondería ante una
+ * fila inexistente: un id ajeno **no se distingue** de uno que no existe, que es la misma
+ * discreción de `findByIdForOwner`.
+ */
+async function simboloPropio(userId: string, formData: FormData): Promise<string | null> {
+  const watchedId = String(formData.get('watchedId') ?? '').trim();
+  if (!watchedId) return null;
+  return simboloDeVigiladaPropia(db, userId, watchedId);
+}
+
+const NO_ES_TUYA = 'Esa acción vigilada ya no está en tu lista.';
+
+/**
+ * Guardar la nota de un símbolo (CA-5, CA-6, CA-14).
+ *
+ * Vaciar el campo **borra** la nota, y no toca los enlaces: son dos cosas. El tope de
+ * caracteres lo aplica el servicio, no la pantalla — un `maxlength` en el HTML es una
+ * cortesía, no un límite, porque esta acción se alcanza sin pasar por el formulario.
+ */
+export async function guardarNotaAction(_prev: FormState, formData: FormData): Promise<FormState> {
+  const userId = await requireUserId();
+  const symbolId = await simboloPropio(userId, formData);
+  if (!symbolId) return { error: NO_ES_TUYA };
+
+  const resultado = await guardarNota(db, userId, symbolId, String(formData.get('nota') ?? ''));
+  if (!resultado.ok) return { error: textoDeRechazo(resultado.motivo) };
+
+  revalidatePath('/vigiladas');
+  return { ok: true };
+}
+
+/**
+ * Añadir un enlace (CA-11, CA-14).
+ *
+ * El rechazo **dice qué pasa con lo que el usuario escribió** —no «error»— y no guarda
+ * nada: ni el esquema prohibido, ni la dirección a medias. Es la cortesía que SPEC-030
+ * fijó para el alta manual, aplicada aquí.
+ */
+export async function anadirEnlaceAction(_prev: FormState, formData: FormData): Promise<FormState> {
+  const userId = await requireUserId();
+  const symbolId = await simboloPropio(userId, formData);
+  if (!symbolId) return { error: NO_ES_TUYA };
+
+  const resultado = await anadirEnlace(
+    db,
+    userId,
+    symbolId,
+    String(formData.get('url') ?? ''),
+    String(formData.get('etiqueta') ?? ''),
+  );
+  if (!resultado.ok) return { error: textoDeRechazo(resultado.motivo) };
+
+  revalidatePath('/vigiladas');
+  return { ok: true };
+}
+
+/**
+ * Quitar un enlace (CA-6). Viaja el id del enlace, y el servicio filtra además por dueño:
+ * un id ajeno no borra nada y tampoco confirma que exista (RN-01).
+ */
+export async function quitarEnlaceAction(formData: FormData): Promise<void> {
+  const userId = await requireUserId();
+  const enlaceId = String(formData.get('enlaceId') ?? '').trim();
+  if (enlaceId) {
+    await quitarEnlace(db, userId, enlaceId);
     revalidatePath('/vigiladas');
   }
 }

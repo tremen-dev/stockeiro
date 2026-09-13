@@ -171,6 +171,30 @@ dialog.editar-vigilada {
   /* El desplazamiento de la capa no se propaga a la página que hay detrás. */
   overscroll-behavior: contain;
 }
+
+/* SPEC-063 — **la capa se acota para que la lista se siga viendo**, por encima del canto.
+
+   ADR-030 §1 promete que lo que queda a la vista por encima de la capa es la parte alta de
+   la lista, y SPEC-046 CA-6(f) lo mide. Ese margen era de unos 30 px ANTES de esta spec: el
+   bloque de contexto —aun plegado— se lo comía, y la guardia de la vecina se puso roja con
+   toda la razón. La salida legítima no es aflojar esa guardia: es **acotar la capa y
+   desplazarla por dentro**, que es lo que el propio ADR-030 dice que se hace cuando el
+   contenido no cabe (y ADR-026 §4, segunda salida).
+
+   Los 470 px son **medidos, no elegidos**: es lo que ocupan la cabecera de la página, el
+   control de orden y la primera fila de la tabla a 1280 px. Se restan del alto de la
+   ventana en vez de fijar un porcentaje porque esa cabecera mide lo mismo en una pantalla
+   de 720 que en una de 1200: un `dvh` fijo dejaría de cumplir la promesa en la pantalla
+   corta, que es justo donde más aprieta.
+
+   Sólo por encima del canto de 720 px: por debajo la lista son tarjetas, no hay tabla que
+   tapar, y la hoja sigue con los 92dvh que eligió SPEC-046 para no obligar a desplazar en
+   un teléfono. */
+@media (min-width: 721px) {
+  dialog.editar-vigilada {
+    max-height: max(320px, min(92dvh, calc(100dvh - 470px)));
+  }
+}
 /* El velo **atenúa, no oculta**: la lista se sigue leyendo detrás, que es la devolución
    parcial —y honesta— del contexto que se le debe a la fila desplegable, la opción que el
    humano prefería (ADR-030 §1). Recupera la VISTA de la lista, no la interacción con ella,
@@ -456,6 +480,95 @@ dialog.editar-vigilada .card:hover {
 .zone-label.is-out  .dot { background: var(--line-strong); }
 .zone-label.is-none { color: var(--fg-dim); }
 .zone-label.is-none .dot { background: var(--fg-dim); opacity: .5; }
+
+/* SPEC-063 — el contexto del usuario: la señal de la fila y el bloque del panel.
+
+   La señal va PEGADA al ticker, dentro de su caja, y no en una columna propia: la tabla de
+   nueve columnas no cabe a 730–760 px y la celda de activo ya es la que identifica la fila.
+   Es un glifo pequeño y de bajo contraste a propósito — informa de que hay algo, no compite
+   con el estado de zona, que es lo que la pantalla existe para decir. */
+.contexto-senal {
+  margin-left: 6px;
+  font-size: .8em;
+  color: var(--fg-dim);
+  cursor: default;
+}
+
+.contexto-bloque {
+  margin-top: 16px;
+  padding-top: 16px;
+  border-top: 1px solid var(--line);
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+/* El resumen es un control: se pulsa para abrir, así que llega al suelo táctil de 44 px
+   como cualquier otro (ADR-034 §7). */
+.contexto-resumen {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+  min-height: 44px;
+  cursor: pointer;
+}
+
+.contexto-titulo { font-size: .95rem; margin: 0; font-weight: 600; }
+.contexto-subtitulo { font-size: .85rem; margin: 0; }
+.contexto-ayuda, .contexto-cuenta { font-size: .78rem; color: var(--fg-muted); margin: 0; }
+
+.contexto-nota-form, .contexto-enlace-form {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+/* Los campos del contexto comparten el trato de los del formulario de al lado —el de
+   zonas— en vez de estrenar uno propio. No es estética: sin ese `padding`, un `input`
+   mide 21 px de alto y **no llega al suelo táctil de 44 px** que ADR-034 §7 exige para
+   todo control. Lo cazó la guardia M5 de SPEC-054 antes de que llegara a un teléfono. */
+.contexto-nota-form input,
+.contexto-nota-form textarea,
+.contexto-enlace-form input {
+  padding: 10px 12px;
+  border-radius: var(--r-md);
+  border: 1px solid var(--ink-line);
+  background: var(--ink-soft);
+  color: var(--bone);
+  font: inherit;
+  min-width: 0;
+  /* 44 px es el suelo táctil declarado (ADR-034 §7), y se afirma SIN holgura: con el
+     `padding` de arriba estos campos median 43,00 y un 43 no es un 44 mal redondeado
+     (ADR-035 §1). Se agranda el control, que es la salida legítima; bajar el suelo o
+     subir la tolerancia sería F-ADR-026-1 cumpliéndose por escrito. */
+  min-height: 44px;
+}
+
+.contexto-nota-form textarea {
+  width: 100%;
+  resize: vertical;
+  min-height: 80px;
+}
+
+.contexto-guardada { font-size: .78rem; color: var(--live); margin: 0; }
+
+.contexto-lista { list-style: none; padding: 0; margin: 0; display: flex; flex-direction: column; gap: 6px; }
+
+/* Apilar, nunca encoger (ADR-034 §10): con un enlace largo y una pantalla estrecha, el
+   rótulo y su control se reparten en dos líneas en vez de recortarse. */
+.contexto-enlace {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+.contexto-enlace a {
+  overflow-wrap: anywhere;
+  max-width: 100%;
+}
 
 /* SPEC-062 — la barra de acercamiento a la zona (RN-18).
 

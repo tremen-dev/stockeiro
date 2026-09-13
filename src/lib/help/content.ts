@@ -1,4 +1,8 @@
 import { ESCALA_ACERCAMIENTO_PCT } from '@/lib/config/escala-acercamiento';
+import {
+  LIMITE_ENLACES_POR_SIMBOLO,
+  LIMITE_NOTA_CARACTERES,
+} from '@/lib/config/limites-contexto';
 import { OPERATING_MICS, type OperatingMic } from '@/lib/market/mic';
 import { marketName } from '@/lib/market/market-name';
 import { FAIL_REASON_TEXT } from '@/lib/market/fail-reason-text';
@@ -122,6 +126,15 @@ export const ZONAS: Seccion = {
       `dentro, y vacía a partir de un ${ESCALA_ACERCAMIENTO_PCT}% de distancia— y, al lado, ` +
       'el porcentaje exacto que le falta al precio y en qué sentido tendría que moverse. ' +
       'Puedes ordenar la lista por esa cercanía.',
+    // SPEC-063 CA-17 — los dos topes se DERIVAN de donde viven (`limites-contexto.ts`),
+    // como la escala de la barra: la ayuda no puede envejecer en silencio (ADR-040).
+    'En cada acción vigilada puedes guardar además tu propia nota —hasta ' +
+      `${LIMITE_NOTA_CARACTERES} caracteres— y hasta ${LIMITE_ENLACES_POR_SIMBOLO} enlaces ` +
+      'a donde la analices: tu gráfico, el hilo del foro, el informe de tu bróker. Se ' +
+      'escriben desde el botón Editar de su fila y se quedan ahí aunque dejes de vigilarla.',
+    'Eso es tuyo y privado: nadie más lo ve, Stockeiro no lo usa para nada —ni avisa por ' +
+      'ello, ni entra en ningún cálculo— y no abre tus enlaces: los guarda tal cual y los ' +
+      'abres tú cuando quieras. Si borras tu cuenta, se van con ella.',
     'Esa barra es solo una forma de leer la lista de un vistazo: no es una señal de nada, ' +
       'no adelanta ni cambia cuándo se avisa, y el porcentaje se mide sobre el último ' +
       'precio conocido, con lo que es tan reciente como él. Si la acción ha pasado por un ' +

@@ -297,4 +297,20 @@ export const CATEGORIAS_DE_DATO: CategoriaDeDato[] = [
       'Cuando resuelves a mano a qué valor corresponde una fila del extracto de tu bróker, esa ' +
       'equivalencia se recuerda para no volver a preguntártela. Es tuya y no la reutiliza nadie más.',
   },
+  {
+    tabla: 'symbol_notes',
+    titulo: 'Tus notas sobre cada valor',
+    descripcion:
+      'El texto que escribes sobre un valor: por qué lo vigilas, de dónde salen tus zonas o lo ' +
+      'que esperas de él. Lo guardamos tal cual y te lo enseñamos a ti; no lo lee nadie más, no ' +
+      'entra en ningún cálculo y no se usa para decidir cuándo avisarte.',
+  },
+  {
+    tabla: 'symbol_links',
+    titulo: 'Tus enlaces guardados en cada valor',
+    descripcion:
+      'Las direcciones web que asocias a un valor —tu gráfico, un hilo de un foro, un informe— ' +
+      'con la etiqueta que les pongas. Se guardan tal cual y las abres tú: Stockeiro no visita ' +
+      'esas direcciones ni le cuenta a nadie que las tienes.',
+  },
 ];

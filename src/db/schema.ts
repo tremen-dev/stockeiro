@@ -440,3 +440,95 @@ export const cronRuns = pgTable('cron_runs', {
 
 export type CronRun = typeof cronRuns.$inferSelect;
 export type NewCronRun = typeof cronRuns.$inferInsert;
+
+/**
+ * `symbol_notes` — **la nota que un usuario escribe sobre un símbolo** (SPEC-063,
+ * EPIC-009).
+ *
+ * ## Por qué cuelga del SÍMBOLO y no de la acción vigilada
+ *
+ * Decisión del humano del 2026-09-12. `watched_symbols` es la vigilancia, y quitar de
+ * vigiladas es una acción **limpia y reversible** desde SPEC-024: si la nota colgara de
+ * ahí, dejar de seguir un valor un mes borraría en silencio el trabajo de análisis de su
+ * dueño — justo el dato que más caro le ha salido. Colgando del símbolo **sobrevive**, y
+ * la misma nota podrá verse desde Cartera sin mover una fila.
+ *
+ * `(user_id, symbol_id)` es único: **una** nota por usuario y símbolo. Escribir otra la
+ * sustituye; no se acumulan versiones, que sería un historial y esto no lo es.
+ *
+ * ## Lo que la app NO hace con esto
+ *
+ * No la lee para nada más que enseñársela a su dueño: **no entra en ningún cálculo, en
+ * ningún aviso y en ninguna petición al proveedor** (glosario, «Nota de un símbolo»). Es
+ * texto llano, y como tal se guarda y como tal se pinta.
+ *
+ * El símbolo es COMPARTIDO (ADR-007) y la nota no: el aislamiento es por `user_id`
+ * (RN-01) y el borrado de cuenta se la lleva entera (ADR-022).
+ */
+export const symbolNotes = pgTable(
+  'symbol_notes',
+  {
+    id: uuid('id').defaultRandom().primaryKey(),
+    userId: uuid('user_id')
+      .notNull()
+      .references(() => users.id),
+    symbolId: uuid('symbol_id')
+      .notNull()
+      .references(() => symbols.id),
+    /** Texto llano del usuario. El tope vive en `src/lib/config/limites-contexto.ts`. */
+    note: text('note').notNull(),
+    createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
+    updatedAt: timestamp('updated_at', { withTimezone: true }).notNull().defaultNow(),
+  },
+  (t) => ({
+    uniqUserSymbol: unique('symbol_notes_user_symbol').on(t.userId, t.symbolId),
+  }),
+);
+
+export type SymbolNote = typeof symbolNotes.$inferSelect;
+export type NewSymbolNote = typeof symbolNotes.$inferInsert;
+
+/**
+ * `symbol_links` — **los enlaces que un usuario asocia a un símbolo** (SPEC-063).
+ *
+ * Mismo dueño, mismo aislamiento y mismo borrado que `symbol_notes`. Varios por
+ * `(user_id, symbol_id)`, con tope declarado en
+ * `src/lib/config/limites-contexto.ts` — el tope se aplica en la capa de aplicación y no
+ * como restricción de la base, porque es una **decisión de producto** (se subió o se baja
+ * cambiando un número, no migrando).
+ *
+ * `position` da el **orden estable** que pide CA-2: sin él, dos lecturas seguidas podrían
+ * devolver los enlaces en orden distinto y la lista bailaría sola. Se desempata por
+ * `created_at` y por `id`, de modo que el orden es **total**.
+ *
+ * `label` es NULLABLE a propósito: un enlace sin etiqueta se presenta por su **dominio**
+ * (CA-15), que es dato suyo. No se inventa un nombre, igual que no se inventa el del
+ * activo (SPEC-041 CA-3).
+ *
+ * **El esquema de la URL lo valida la aplicación** (`http`/`https`, CA-11) antes de
+ * escribir aquí: la base guarda texto, y una restricción `CHECK` con una expresión
+ * regular de URLs sería una segunda definición de la regla, condenada a divergir de la
+ * que aplica el código.
+ */
+export const symbolLinks = pgTable(
+  'symbol_links',
+  {
+    id: uuid('id').defaultRandom().primaryKey(),
+    userId: uuid('user_id')
+      .notNull()
+      .references(() => users.id),
+    symbolId: uuid('symbol_id')
+      .notNull()
+      .references(() => symbols.id),
+    url: text('url').notNull(),
+    label: text('label'),
+    position: integer('position').notNull().default(0),
+    createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
+  },
+  (t) => ({
+    porUsuarioYSimbolo: index('symbol_links_user_symbol_idx').on(t.userId, t.symbolId),
+  }),
+);
+
+export type SymbolLink = typeof symbolLinks.$inferSelect;
+export type NewSymbolLink = typeof symbolLinks.$inferInsert;

@@ -9,6 +9,8 @@ import {
 } from '@/lib/watchlist/acercamiento';
 import type { ZoneStatusView, ZoneState } from '@/lib/watchlist/zone-status';
 import type { DireccionOrden } from '@/lib/watchlist/sort';
+import { textoDeContexto } from '@/lib/contexto/senal';
+import { tieneContexto, type ContextoDeSimbolo } from '@/lib/contexto/service';
 import { asa, type Columna } from '../columnas';
 import { removeAction } from './actions';
 
@@ -58,6 +60,8 @@ export interface ContextoVigiladas {
   direccion: DireccionOrden;
   /** Abre la capa de edición desde el control de ESA fila (ADR-030 §2). */
   abrir: (id: string, boton: HTMLButtonElement) => void;
+  /** SPEC-063 — el contexto de cada símbolo, por `symbolId`. De aquí sale la señal. */
+  contextos?: Record<string, ContextoDeSimbolo>;
 }
 
 export function columnasDeVigiladas(ctx: ContextoVigiladas): Columna<ZoneStatusView>[] {
@@ -76,9 +80,33 @@ export function columnasDeVigiladas(ctx: ContextoVigiladas): Columna<ZoneStatusV
         // CA-3 de SPEC-041: sin nombre NO se inventa un nombre. Ni «—», ni «Sin nombre»,
         // ni el `exchange`, ni el ticker repetido: el elemento no se pinta.
         const nombre = (r.name ?? '').trim();
+        const contexto = ctx.contextos?.[r.symbolId];
         return (
           <div className="activo-caja">
-            <span className="ticker">{r.ticker}</span>
+            <span className="ticker">
+              {r.ticker}
+              {/*
+                SPEC-063 CA-9/CA-10 — **la señal de que esta acción lleva contexto**, en la
+                celda que ya identifica la fila y NO en una columna nueva: la tabla de nueve
+                columnas no cabe a 730–760 px (mismo motivo que la barra de SPEC-062).
+
+                No la lleva el color ni la forma sola: es un `role="img"` con su frase
+                entera, y el glifo va `aria-hidden` porque quien escucha no ve un clip.
+              */}
+              {contexto && tieneContexto(contexto) && (
+                <span
+                  className="contexto-senal"
+                  data-testid={asa('contexto-senal', forma)}
+                  data-nota={contexto.note !== null ? 'true' : undefined}
+                  data-enlaces={contexto.enlaces.length}
+                  role="img"
+                  aria-label={textoDeContexto(contexto)}
+                  title={textoDeContexto(contexto)}
+                >
+                  <span aria-hidden="true">✎</span>
+                </span>
+              )}
+            </span>
             {nombre !== '' && (
               <span className="activo-nombre" data-testid={asa('row-name', forma)}>
                 {nombre}

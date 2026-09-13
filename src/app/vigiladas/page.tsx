@@ -2,6 +2,7 @@ import Link from 'next/link';
 import { requireUser } from '@/lib/auth/session';
 import { db } from '@/db/client';
 import { zoneStatusForUser } from '@/lib/watchlist/zone-status';
+import { contextosDeUsuario } from '@/lib/contexto/service';
 import {
   AVISO_LO_EMITE_EL_CICLO,
   CADENCIA_LINEA,
@@ -25,6 +26,15 @@ export default async function VigiladasPage() {
   const user = await requireUser(); // SPEC-023 CA-13: sesión revocada -> login
   const rows = await zoneStatusForUser(db, user.id);
   const listaVacia = rows.length === 0;
+  /*
+    SPEC-063 — el contexto del usuario (su nota y sus enlaces) en **dos consultas**, no dos
+    por fila. De aquí salen las dos cosas que la pantalla necesita —la señal de cada fila y
+    lo que se edita dentro del panel—, y salen de la MISMA lectura: una señal calculada
+    aparte podría discrepar del panel que abre debajo.
+
+    Cuelga del símbolo, no de la vigilada (EPIC-009), así que se empareja por `symbolId`.
+  */
+  const contextos = await contextosDeUsuario(db, user.id, rows.map((r) => r.symbolId));
   /*
     SPEC-058 CA-11 — la frase del desacompasamiento se enseña **cuando hay algo en zona**,
     que es cuando el usuario puede leer la pantalla como una promesa de correo. Desde
@@ -90,7 +100,7 @@ export default async function VigiladasPage() {
                 {AVISO_LO_EMITE_EL_CICLO}
               </p>
             )}
-            <WatchedTable filas={rows} />
+            <WatchedTable filas={rows} contextos={Object.fromEntries(contextos)} />
           </>
         )}
 

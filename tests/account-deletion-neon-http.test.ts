@@ -183,16 +183,18 @@ describe('SPEC-036 CA-7: con el cliente de producción se toma la rama batch()',
 describe('SPEC-036 CA-7: el borrado entero viaja en UNA sola petición', () => {
   beforeEach(() => instalarDoble(respuestaOk));
 
-  it('una única llamada, POST al endpoint /sql, con las seis sentencias en el cuerpo', async () => {
+  it('una única llamada, POST al endpoint /sql, con TODAS las sentencias en el cuerpo', async () => {
     await purgeUserData(clienteDeProduccion() as any, USUARIO);
 
     expect(peticiones).toHaveLength(1);
     expect(peticiones[0].metodo).toBe('POST');
     expect(peticiones[0].url).toMatch(/^https:\/\/.+\/sql$/);
-    expect(peticiones[0].sentencias).toHaveLength(6);
+    // Cuántas son se DERIVA de la cobertura: el día que alguien añada una tabla con
+    // dueño, esto la exige dentro de la misma petición en vez de caducar por contar.
+    expect(peticiones[0].sentencias).toHaveLength(DELETION_ORDER.length);
   });
 
-  it('las seis, en el orden de ADR-022 pto. 4 — derivado de la cobertura, no copiado', async () => {
+  it('todas, en el orden de ADR-022 pto. 4 — derivado de la cobertura, no copiado', async () => {
     await purgeUserData(clienteDeProduccion() as any, USUARIO);
 
     expect(tablasBorradas(peticiones[0].sentencias)).toEqual([
@@ -200,6 +202,9 @@ describe('SPEC-036 CA-7: el borrado entero viaja en UNA sola petición', () => {
       'watched_symbols',
       'transactions',
       'symbol_aliases',
+      // SPEC-063 — la nota y los enlaces, antes de `users` (ADR-022).
+      'symbol_notes',
+      'symbol_links',
       'password_reset_tokens',
       'users',
     ]);

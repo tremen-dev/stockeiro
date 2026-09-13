@@ -120,6 +120,10 @@ describe('SPEC-036 CA-5: el orden del borrado es el de ADR-022 pto. 4', () => {
       'watched_symbols',
       'transactions',
       'symbol_aliases',
+      // SPEC-063: la nota y los enlaces del usuario. Van antes de `users` porque
+      // referencian `users.id` con `no action`: sin borrarlos, la cuenta no cae.
+      'symbol_notes',
+      'symbol_links',
       'password_reset_tokens',
       'users',
     ]);
