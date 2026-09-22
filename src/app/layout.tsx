@@ -76,6 +76,15 @@ export const metadata: Metadata = {
     url: '/',
   },
   twitter: { card: 'summary_large_image' },
+  // SPEC-065 D-2 — por defecto, `noindex`. Indexar es opt-in: sólo las rutas de
+  // `RUTAS_INDEXABLES` (`src/lib/seo/indexables.ts`) lo sustituyen, cada una en su página y
+  // con su `canonical`. Una página nueva nace invisible para el buscador hasta que alguien
+  // la añade a esa lista: olvidarse cuesta visibilidad, nunca privacidad. `follow` queda
+  // abierto para que el rastreador siga los enlaces hacia las que sí se indexan.
+  //
+  // El `canonical` NUNCA va aquí (CA-4): Next lo heredaría a todas las rutas y haría de
+  // cada una una copia de la raíz.
+  robots: { index: false, follow: true },
 };
 
 /**
