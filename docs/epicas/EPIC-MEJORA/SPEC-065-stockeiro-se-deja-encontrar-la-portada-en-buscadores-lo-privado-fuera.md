@@ -2,10 +2,11 @@
 id: SPEC-065
 tipo: spec
 epica: EPIC-MEJORA
-estado: borrador
-aprobada-por:
+estado: aprobada
+aprobada-por: Alberto Fojo (pre-autorizado en la petición: llevar al PR salvo preguntas bloqueantes)
 historial:
   - {estado: borrador, fecha: 2026-09-23, por: sdd-arquitecto}
+  - {estado: aprobada, fecha: 2026-09-22, por: Alberto Fojo (pre-autorizado en la petición: llevar al PR salvo preguntas bloqueantes)}
 ---
 # SPEC-065 — Stockeiro se deja encontrar: la portada en buscadores, lo privado fuera
 
