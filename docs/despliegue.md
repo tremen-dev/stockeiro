@@ -1257,7 +1257,7 @@ curl -s  https://stockeiro.tremen.dev/robots.txt   # Allow: /, Disallow: /api/ y
 curl -sI https://stockeiro.tremen.dev/sitemap.xml  # 200, content-type application/xml
 curl -s  https://stockeiro.tremen.dev/sitemap.xml  # un <loc> absoluto por ruta indexable, y nada más
 curl -s  https://stockeiro.tremen.dev/ | grep -o '<link rel="canonical"[^>]*>'
-#   → <link rel="canonical" href="https://stockeiro.tremen.dev"/>  (exactamente uno)
+#   → exactamente un <link rel="canonical"> con href sobre https://stockeiro.tremen.dev (con o sin barra final)
 curl -s  https://stockeiro.tremen.dev/login | grep -o '<meta name="robots"[^>]*>'
 #   → content="noindex, follow"
 ```
