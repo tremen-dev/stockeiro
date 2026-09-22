@@ -1256,10 +1256,9 @@ curl -sI https://stockeiro.tremen.dev/robots.txt   # 200, content-type text/plai
 curl -s  https://stockeiro.tremen.dev/robots.txt   # Allow: /, Disallow: /api/ y la línea Sitemap:
 curl -sI https://stockeiro.tremen.dev/sitemap.xml  # 200, content-type application/xml
 curl -s  https://stockeiro.tremen.dev/sitemap.xml  # un <loc> absoluto por ruta indexable, y nada más
-curl -s  https://stockeiro.tremen.dev/ | grep -o '<link rel="canonical"[^>]*>'
-#   → exactamente un <link rel="canonical"> con href sobre https://stockeiro.tremen.dev (con o sin barra final)
-curl -s  https://stockeiro.tremen.dev/login | grep -o '<meta name="robots"[^>]*>'
-#   → content="noindex, follow"
+curl -s  https://stockeiro.tremen.dev/        # en el <head>: exactamente un <link rel="canonical">
+#   con href sobre https://stockeiro.tremen.dev (con o sin barra final) y robots "index, follow"
+curl -s  https://stockeiro.tremen.dev/login   # en el <head>: <meta name="robots" content="noindex, follow">
 ```
 
 Si `/robots.txt` o `/sitemap.xml` responden `307 → /login`, el proxy las está tratando como
