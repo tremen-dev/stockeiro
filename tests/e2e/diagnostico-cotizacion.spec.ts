@@ -1,6 +1,7 @@
 import { test, expect, type Page } from '@playwright/test';
 import postgres from 'postgres';
 import { ponerRol } from './roles';
+import { registrarYEntrar as recorridoDeAlta } from './alta';
 
 // SPEC-016 — el símbolo que no se puede cotizar lo DICE y explica por qué (CE-F2).
 // Antes: "sin cotización" / "—", indistinguible de "el ciclo aún no ha corrido" — por eso
@@ -10,11 +11,8 @@ const SHOTS = '_qa/SPEC-016';
 const PWD = 'clave-secreta-123';
 
 async function registrarYEntrar(page: Page, email: string) {
-  await page.goto('/register');
-  await page.fill('input[name="email"]', email);
-  await page.fill('input[name="password"]', PWD);
-  await page.click('button[type="submit"]');
-  await page.waitForURL('**/dashboard');
+  // SPEC-066 CA-23: alta → buzón → activar → entrar (tests/e2e/alta.ts).
+  await recorridoDeAlta(page, email, PWD);
   // SPEC-034 (F-SPEC-034-4): toda cuenta nueva nace `tester` y un tester NO ve Cartera.
   // Esta prueba la ejercita, así que DECLARA el rol que necesita en vez de heredarlo.
   await ponerRol(email, 'completo');

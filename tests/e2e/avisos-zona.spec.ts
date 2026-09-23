@@ -1,5 +1,6 @@
 import { test, expect, type Page } from '@playwright/test';
 import postgres from 'postgres';
+import { registrarYEntrar as recorridoDeAlta } from './alta';
 
 // Render real de SPEC-007: color de fondo según estado de zona en /vigiladas, y bandeja
 // /avisos con contador de no-leídos y marcar-leído. Se siembran cotizaciones/avisos por SQL
@@ -9,11 +10,8 @@ const SHOTS = '_qa/SPEC-007';
 const PWD = 'clave-secreta-123';
 
 async function registrarYEntrar(page: Page, email: string) {
-  await page.goto('/register');
-  await page.fill('input[name="email"]', email);
-  await page.fill('input[name="password"]', PWD);
-  await page.click('button[type="submit"]');
-  await page.waitForURL('**/dashboard');
+  // SPEC-066 CA-23: alta → buzón → activar → entrar (tests/e2e/alta.ts).
+  await recorridoDeAlta(page, email, PWD);
 }
 
 async function vigilar(page: Page, ticker: string, buyMin?: string, buyMax?: string) {

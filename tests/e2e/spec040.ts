@@ -1,5 +1,6 @@
 import { expect, type Locator, type Page } from '@playwright/test';
 import { rolDe, ponerRol } from './roles';
+import { entrarORegistrar } from './alta';
 
 /**
  * SPEC-040 — cuentas y gestos compartidos por las guardias de esta spec.
@@ -40,11 +41,8 @@ export const SHOTS = '_qa/SPEC-040';
 /** Entra con la cuenta indicada; la registra la primera vez que se necesita. */
 export async function entrar(page: Page, email: string): Promise<void> {
   const yaExiste = (await rolDe(email)) !== null;
-  await page.goto(yaExiste ? '/login' : '/register');
-  await page.fill('input[name="email"]', email);
-  await page.fill('input[name="password"]', PWD);
-  await page.click('button[type="submit"]');
-  await page.waitForURL('**/dashboard');
+  // SPEC-066 CA-23: si no existe, el recorrido completo (tests/e2e/alta.ts).
+  await entrarORegistrar(page, email, yaExiste, PWD);
 }
 
 /**

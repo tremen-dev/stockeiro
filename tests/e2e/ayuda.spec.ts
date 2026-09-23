@@ -11,6 +11,12 @@ import {
   VACIO_PANEL,
   VACIO_VIGILADAS,
 } from '../../src/lib/help/content';
+import {
+  activarDesdeElBuzon,
+  entrarConContrasena,
+  entrarORegistrar,
+  esperarTiempoMinimo,
+} from './alta';
 
 /**
  * SPEC-039 — la ayuda, la primera pantalla, los estados vacíos y el feedback, contra
@@ -67,11 +73,8 @@ const pie = (page: Page) => page.locator('footer.app-footer');
 /** Entra con la cuenta compartida, registrándola solo la primera vez. */
 async function entrarComoGuia(page: Page) {
   const yaExiste = (await rolDe(GUIA)) !== null;
-  await page.goto(yaExiste ? '/login' : '/register');
-  await page.fill('input[name="email"]', GUIA);
-  await page.fill('input[name="password"]', PWD);
-  await page.click('button[type="submit"]');
-  await page.waitForURL('**/dashboard');
+  // SPEC-066 CA-23: si no existe, el recorrido completo (tests/e2e/alta.ts).
+  await entrarORegistrar(page, GUIA, yaExiste, PWD);
 }
 
 /** El texto que de verdad lee una persona: el principal más el pie. */
@@ -498,9 +501,18 @@ test('CA-15: de la raíz a la primera vigilada, sin ayuda humana', async ({ page
   // 3. Se decide. Desde la propia ayuda hay camino a crear cuenta.
   await page.locator('main a[href="/register"]').first().click();
   await page.waitForURL('**/register');
+  const pintado = Date.now();
   await page.fill('input[name="email"]', RECORRIDO);
   await page.fill('input[name="password"]', PWD);
+  await esperarTiempoMinimo(page, pintado);
   await page.click('button[type="submit"]');
+
+  // ⚠️ SPEC-066 CA-25 pto. 2 (re-encuadre autorizado, anotado en su ledger): el alta ya no
+  // entra en la app; se activa desde el correo y se entra con la contraseña (CA-23). Lo
+  // que se afirma al llegar al panel no cambia.
+  await expect(page.getByTestId('alta-enviada')).toBeVisible();
+  await activarDesdeElBuzon(page, RECORRIDO);
+  await entrarConContrasena(page, RECORRIDO, PWD);
 
   // 4. Aterriza en el panel y ahí está el paso siguiente, uno solo.
   await page.waitForURL('**/dashboard');

@@ -10,6 +10,7 @@ import {
   ponerVentana,
   type MedidaM1,
 } from './geometria';
+import { entrarORegistrar } from './alta';
 
 /**
  * SPEC-039 CA-17 (no degradar lo entregado) — la GEOMETRÍA de las dos pantallas
@@ -262,11 +263,8 @@ test('SPEC-039 CA-17: el estado vacío de /vigiladas tampoco desborda ni deja hu
 }) => {
   const email = 'spec039-guia@example.com';
   const yaExiste = (await rolDe(email)) !== null;
-  await page.goto(yaExiste ? '/login' : '/register');
-  await page.fill('input[name="email"]', email);
-  await page.fill('input[name="password"]', 'clave-secreta-123');
-  await page.click('button[type="submit"]');
-  await page.waitForURL('**/dashboard');
+  // SPEC-066 CA-23: si no existe, el recorrido completo (tests/e2e/alta.ts).
+  await entrarORegistrar(page, email, yaExiste, 'clave-secreta-123');
 
   await page.goto('/vigiladas');
   await page.getByTestId('vigiladas-vacio').waitFor({ state: 'visible' });

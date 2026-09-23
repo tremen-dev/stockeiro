@@ -1,6 +1,7 @@
 import { test, expect, type Browser, type Page } from '@playwright/test';
 import { existsSync, readFileSync } from 'node:fs';
 import { ponerRol } from './roles';
+import { registrarYEntrar as recorridoDeAlta } from './alta';
 
 const SHOTS = '_qa/SPEC-023';
 const OUTBOX = './.e2e-outbox.jsonl'; // mismo path que tests/e2e/server.mjs
@@ -45,11 +46,8 @@ async function waitForResetLink(recipient: string, since = 0): Promise<string> {
 const countTo = (recipient: string) => outbox().filter((m) => m.to === recipient).length;
 
 async function registrar(page: Page, email: string, password = PWD) {
-  await page.goto('/register');
-  await page.fill('input[name="email"]', email);
-  await page.fill('input[name="password"]', password);
-  await page.click('button[type="submit"]');
-  await page.waitForURL('**/dashboard');
+  // SPEC-066 CA-23: alta → buzón → activar → entrar (tests/e2e/alta.ts).
+  await recorridoDeAlta(page, email, password);
 }
 
 async function pedirEnlace(page: Page, email: string) {

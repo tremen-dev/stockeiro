@@ -78,7 +78,12 @@ export async function censo(): Promise<{
   sinPrecio: number;
 }> {
   return conSql(async (sql) => {
-    const [{ n: cuentas }] = await sql`SELECT count(*)::int AS n FROM users`;
+    // ⚠️ RE-ENCUADRE AUTORIZADO por SPEC-066 CA-25 pto. 3 (anotado en su ledger).
+    // Antes vigilaba que el cupo y la pantalla contaban TODA fila de `users` (SPEC-037);
+    // ahora, que cuentan las cuentas ACTIVADAS (SPEC-066 CA-15, ADR-042 pto. 10): una
+    // pendiente de activar no ocupa plaza ni sale en el recuento de `/admin`.
+    const [{ n: cuentas }] =
+      await sql`SELECT count(*)::int AS n FROM users WHERE email_verified_at IS NOT NULL`;
     const [{ n: vigiladas }] = await sql`SELECT count(*)::int AS n FROM watched_symbols`;
     const [{ n: simbolos }] = await sql`
       SELECT count(*)::int AS n FROM (

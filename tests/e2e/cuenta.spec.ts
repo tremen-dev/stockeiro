@@ -1,5 +1,6 @@
 import { test, expect, type BrowserContext, type Page } from '@playwright/test';
 import { ponerRol, rolDe, type Rol } from './roles';
+import { registrarYEntrar as recorridoDeAlta } from './alta';
 
 /**
  * SPEC-036 — borrar mi cuenta, contra la app corriendo de verdad.
@@ -26,11 +27,8 @@ const nav = (page: Page) => page.locator('nav.app-nav');
 const zona = (page: Page) => page.locator('[data-testid="zona-de-borrado"]');
 
 async function registrarYEntrar(page: Page, email: string) {
-  await page.goto('/register');
-  await page.fill('input[name="email"]', email);
-  await page.fill('input[name="password"]', PWD);
-  await page.click('button[type="submit"]');
-  await page.waitForURL('**/dashboard');
+  // SPEC-066 CA-23: alta → buzón → activar → entrar (tests/e2e/alta.ts).
+  await recorridoDeAlta(page, email, PWD);
 }
 
 /** Entra con una cuenta ya existente, en el contexto que se le pase. */
@@ -239,9 +237,9 @@ test.describe('CA-10: se aterriza en una página pública, con confirmación', (
 
     await page.click('[data-testid="cuenta-borrada"] a[href="/register"]');
     await page.waitForURL('**/register');
-    await page.fill('input[name="email"]', email);
-    await page.fill('input[name="password"]', 'otra-clave-distinta-1');
-    await page.click('button[type="submit"]');
+    // ⚠️ SPEC-066 CA-25 pto. 2 (re-encuadre autorizado, anotado en su ledger): el alta ya
+    // no entra en la app; el recorrido es alta → correo → activar → entrar (CA-23).
+    await recorridoDeAlta(page, email, 'otra-clave-distinta-1');
 
     await page.waitForURL('**/dashboard');
     expect(await rolDe(email)).toBe('tester');
