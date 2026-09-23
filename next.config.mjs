@@ -1,4 +1,5 @@
 import { readFileSync } from 'node:fs';
+import { withBotId } from 'botid/next/config';
 import { buildIdentity } from './src/lib/version/build-identity.mjs';
 
 /**
@@ -52,8 +53,21 @@ const nextConfig = {
         source: '/reset-password/:token*',
         headers: [{ key: 'Referrer-Policy', value: 'no-referrer' }],
       },
+      {
+        // SPEC-066 D-2 — el enlace de activación también lleva el token en el path, así que
+        // su página tampoco manda `Referer` a nadie (mismo motivo que la de arriba).
+        source: '/register/confirmar/:token*',
+        headers: [{ key: 'Referrer-Policy', value: 'no-referrer' }],
+      },
     ];
   },
 };
 
-export default nextConfig;
+/**
+ * SPEC-066 CA-7 / ADR-042 ptos. 17 y 19 — `withBotId` añade las `rewrites` del reto de
+ * BotID hacia Vercel y una cabecera para esas rutas, CONSERVANDO las que ya había
+ * (`botid@1.5.11`, leído en `dist/next/config`). Envuelve siempre: fuera de Vercel el
+ * cliente no se inicializa y nadie pide esas rutas; dentro, tienen que existir. Las rutas
+ * salen del proxy sin sesión (`src/lib/auth/guard.ts`, `isBotIdPath`).
+ */
+export default withBotId(nextConfig);

@@ -3,6 +3,7 @@ import { makeTestDb, type TestDb } from '@/db/test-db';
 import { registrationSettings, users } from '@/db/schema';
 import { registerUser } from '@/lib/auth/users';
 import { REGISTRO_CERRADO_MOTIVO } from '@/lib/registration/messages';
+import { BASE, SECRETO, formularioDeAlta } from './spec066-arnes';
 
 /**
  * SPEC-037 CA-4 / CA-5 — la server action del alta, invocada DIRECTAMENTE.
@@ -51,15 +52,29 @@ vi.mock('@/lib/auth/config', () => ({
   handlers: {},
 }));
 
+/**
+ * SPEC-066: el correo de activación sale por el puerto; aquí se anula para no depender
+ * de Resend. Y el alta necesita `AUTH_SECRET` (sello del tiempo mínimo) y `APP_BASE_URL`
+ * (origen del enlace), que en la app vienen del entorno.
+ */
+vi.mock('@/lib/notifications/sender-factory', () => ({
+  resolveNotificationSender: () => ({ send: async () => ({ ok: true }) }),
+}));
+process.env.AUTH_SECRET = SECRETO;
+process.env.APP_BASE_URL = BASE;
+
 const { registerAction } = await import('@/app/(auth)/actions');
 
 const PWD = 'clave-secreta-123';
 
+/**
+ * El formulario tal y como lo manda el navegador desde SPEC-066: con su sello de pintado
+ * válido y el campo trampa vacío. Sin sello, el alta toma el envío por un automatismo y
+ * responde la pantalla neutra ANTES de mirar el grifo (ADR-042 pto. 12), y este fichero
+ * dejaría de probar el grifo.
+ */
 function formulario(email: string): FormData {
-  const fd = new FormData();
-  fd.set('email', email);
-  fd.set('password', PWD);
-  return fd;
+  return formularioDeAlta({ email, password: PWD, ahora: Date.now() });
 }
 
 /** Invoca la action y devuelve lo que resolvió, o el error que lanzó. */
@@ -106,26 +121,35 @@ describe('SPEC-037 CA-4: la server action del alta también está cerrada', () =
   });
 });
 
+/**
+ * ⚠️ RE-ENCUADRE AUTORIZADO por SPEC-066 CA-25 ptos. 1 y 2 (anotado en su ledger).
+ *
+ * - **Qué vigilaba antes**: que con el grifo abierto el alta creaba la cuenta e iniciaba
+ *   sesión hacia `/dashboard` (SPEC-001 CA-1), y que un correo duplicado devolvía el
+ *   mensaje de SPEC-001 CA-2 («Ese email ya está registrado») y no el del grifo.
+ * - **Qué vigila ahora**: que con el grifo abierto el alta crea la cuenta PENDIENTE sin
+ *   sesión y responde la pantalla neutra (SPEC-066 CA-8), y que el duplicado responde
+ *   EXACTAMENTE lo mismo que un correo nuevo —ni su mensaje antiguo ni el del grifo—
+ *   (SPEC-066 CA-9). La propiedad del grifo de este fichero (CA-4, arriba) no cambia.
+ */
 describe('SPEC-037 CA-3: con el grifo abierto, la action hace lo de siempre', () => {
-  it('crea la cuenta e inicia sesión hacia el panel (SPEC-001 CA-1)', async () => {
-    await ejecutar('spec037-action-ok@example.com');
+  it('crea la cuenta PENDIENTE, sin sesión, y responde la pantalla neutra (SPEC-066 CA-8)', async () => {
+    const resultado = await ejecutar('spec037-action-ok@example.com');
 
     expect(await cuentas()).toBe(1);
-    expect(signIn).toHaveBeenCalledTimes(1);
-    expect(signIn.mock.calls[0]).toEqual([
-      'credentials',
-      expect.objectContaining({ email: 'spec037-action-ok@example.com', redirectTo: '/dashboard' }),
-    ]);
+    expect(signIn).not.toHaveBeenCalled();
+    expect(resultado).toEqual({ sent: true });
   });
 
-  it('el email duplicado sigue dando el mensaje de SPEC-001 CA-2, no el del grifo', async () => {
+  it('el email duplicado responde lo MISMO que uno nuevo, no el mensaje del grifo (SPEC-066 CA-9)', async () => {
     await registerUser(db, 'ya-esta@example.com', PWD);
 
-    const resultado = (await ejecutar('ya-esta@example.com')) as { error?: string };
+    const duplicado = await ejecutar('ya-esta@example.com');
+    const nuevo = await ejecutar('otro-nuevo@example.com');
 
-    expect(await cuentas()).toBe(1);
-    expect(resultado.error).toBeTruthy();
-    expect(resultado.error).not.toBe(REGISTRO_CERRADO_MOTIVO.manual);
-    expect(resultado.error).not.toBe(REGISTRO_CERRADO_MOTIVO.capacity);
+    expect(await cuentas()).toBe(2);
+    expect(duplicado).toEqual(nuevo);
+    expect(duplicado).not.toEqual({ error: REGISTRO_CERRADO_MOTIVO.manual });
+    expect(duplicado).not.toEqual({ error: REGISTRO_CERRADO_MOTIVO.capacity });
   });
 });
