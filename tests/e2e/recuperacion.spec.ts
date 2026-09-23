@@ -29,7 +29,11 @@ function outbox(): OutboxMessage[] {
   return readFileSync(OUTBOX, 'utf8')
     .split('\n')
     .filter(Boolean)
-    .map((l) => JSON.parse(l) as OutboxMessage);
+    .map((l) => JSON.parse(l) as OutboxMessage)
+    // SPEC-066 (CA-25 pto. 2, anotado en su ledger): desde que el alta manda un correo de
+    // activación, el buzón de una cuenta recién creada ya no está vacío. Este fichero mira
+    // los correos de RECUPERACIÓN, así que el buzón que lee son ésos; ningún `expect` cambia.
+    .filter((m) => /\/reset-password\//.test(m.body));
 }
 
 /** Espera al correo (el envío es diferido, CA-2) y devuelve el enlace recibido. */

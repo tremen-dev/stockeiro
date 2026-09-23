@@ -186,6 +186,7 @@ test('SPEC-066 CA-23 + CA-17: el recorrido completo, y la pendiente en /login an
   await page.screenshot({ path: `${SHOTS}/ca17-login-pendiente.png`, fullPage: true });
 
   // Con una contraseña mala, el genérico de siempre.
+  await page.fill('input[name="email"]', email); // la acción del formulario lo vacía al volver
   await page.fill('input[name="password"]', 'no-es-esta');
   await page.click('button[type="submit"]');
   await expect(page.locator('.auth-error')).toContainText('Email o contraseña incorrectos');
