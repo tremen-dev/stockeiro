@@ -21,6 +21,7 @@
   "dependencies": {
     "@neondatabase/serverless": "^0.10.4",
     "bcryptjs": "^2.4.3",
+    "botid": "1.5.11",
     "decimal.js": "^10.6.0",
     "drizzle-orm": "^0.45.2",
     "next": "^16.2.10",

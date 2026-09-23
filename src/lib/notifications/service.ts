@@ -1,4 +1,4 @@
-import { and, desc, eq, isNull, max } from 'drizzle-orm';
+import { and, desc, eq, isNotNull, isNull, max } from 'drizzle-orm';
 import type { PgDatabase } from 'drizzle-orm/pg-core';
 import { notifications, zoneTriggers, symbols, quotes, users, type Notification } from '@/db/schema';
 import { findByIdForOwner } from '@/lib/data/ownership';
@@ -95,7 +95,8 @@ export async function notifyCycle(
     .from(zoneTriggers)
     .innerJoin(symbols, eq(zoneTriggers.symbolId, symbols.id))
     .innerJoin(users, eq(zoneTriggers.userId, users.id))
-    .where(isNull(zoneTriggers.closedAt))
+    // SPEC-066 CA-18 (RN-19): una cuenta pendiente de activar no recibe avisos.
+    .where(and(isNull(zoneTriggers.closedAt), isNotNull(users.emailVerifiedAt)))
     .orderBy(zoneTriggers.userId, symbols.ticker);
 
   // --- Aviso de ENTRADA: uno por episodio sin aviso previo (idempotente, RN-14) ---

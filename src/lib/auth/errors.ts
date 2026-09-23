@@ -20,3 +20,16 @@ export class InvalidCredentialsError extends Error {
     this.name = 'InvalidCredentialsError';
   }
 }
+
+/**
+ * SPEC-066 CA-17 / ADR-042 pto. 9 — la contraseña es CORRECTA pero la cuenta está
+ * pendiente de activar. Sólo se lanza después de comprobar la contraseña: quien la sabe ya
+ * sabe que la cuenta existe, así que decirle que falta activarla no enumera nada. Con la
+ * contraseña incorrecta, el error sigue siendo el genérico de siempre.
+ */
+export class AccountPendingError extends Error {
+  constructor() {
+    super('La cuenta todavía no está activada.');
+    this.name = 'AccountPendingError';
+  }
+}

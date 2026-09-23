@@ -3,7 +3,7 @@ import type { PgDatabase } from 'drizzle-orm/pg-core';
 import { users, type User } from '@/db/schema';
 import type { Role } from './sections';
 import { hashPassword, verifyPassword } from './passwords';
-import { EmailAlreadyRegisteredError, InvalidCredentialsError } from './errors';
+import { AccountPendingError, EmailAlreadyRegisteredError, InvalidCredentialsError } from './errors';
 
 /** Acepta tanto el cliente Neon (producción) como PGlite (tests). */
 type Db = PgDatabase<any, any, any>;
@@ -37,6 +37,12 @@ function toPublic(u: User): PublicUser {
 }
 
 /**
+ * ⚠️ SPEC-066: **no es el camino de alta de la app** —ése es `signUp`
+ * (`src/lib/registration/signup.ts`), que crea la cuenta PENDIENTE y no dice si el correo
+ * existe—. Esto crea una cuenta ACTIVADA en el acto (inserta sin nombrar
+ * `email_verified_at` y la columna la da por verificada, ADR-042 pto. 2), y lo usan los
+ * tests como semilla de «una cuenta que ya existía».
+ *
  * CA-1 / CA-2: registra un usuario con email único (RN-02).
  * - Normaliza el email (trim + lowercase) para que la unicidad sea real.
  * - Lanza EmailAlreadyRegisteredError si el email ya existe (no crea 2ª cuenta).
@@ -76,6 +82,7 @@ function getDummyHash(): Promise<string> {
 /**
  * CA-3 / CA-4: verifica credenciales.
  * - Éxito: devuelve la identidad pública.
+ * - Contraseña correcta de una cuenta PENDIENTE: lanza `AccountPendingError` (SPEC-066).
  * - Fallo (email inexistente O contraseña incorrecta): lanza el MISMO
  *   InvalidCredentialsError genérico, sin revelar cuál falló.
  */
@@ -92,6 +99,12 @@ export async function verifyCredentials(
   const ok = await verifyPassword(password, user.passwordHash);
   if (!ok) {
     throw new InvalidCredentialsError();
+  }
+  // SPEC-066 CA-17 (ADR-042 pto. 9, RN-19): una cuenta pendiente no entra. Va DESPUÉS de
+  // la contraseña: con una incorrecta, el error es el genérico, indistinguible del de un
+  // correo inexistente (SPEC-001 CA-4 intacto).
+  if (user.emailVerifiedAt === null) {
+    throw new AccountPendingError();
   }
   return toPublic(user);
 }

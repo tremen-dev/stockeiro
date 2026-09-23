@@ -185,3 +185,79 @@ export function correoDeRecuperacion(d: DatosDeRecuperacion): CorreoCompuesto {
     ],
   });
 }
+
+// ---------------------------------------------------------------------------
+// 4. Activación de cuenta — SPEC-066 (ADR-042 ptos. 4, 5 y 8).
+// ---------------------------------------------------------------------------
+
+export interface DatosDeActivacion {
+  /** El enlace completo, compuesto desde `APP_BASE_URL` (ADR-015 pto. 8, SPEC-055). */
+  url: string;
+  /** Las horas del plazo de activación, leídas de su constante y no tecleadas. */
+  horasDePlazo: number;
+}
+
+/**
+ * El correo de activación. Es el ÚNICO que recibe una cuenta pendiente (RN-19), y se
+ * escribe con las mismas restricciones que el de recuperación, que es su gemelo:
+ *
+ *   - En el **texto**, el enlace es la PRIMERA URL absoluta y va desnudo en su línea; la
+ *     marca, detrás (SPEC-056 D-6).
+ *   - En el **HTML**, el enlace aparece como `href` del botón **y** como texto copiable.
+ *   - Dice el plazo, y dice qué hacer si no lo has pedido tú: nada, la cuenta se borra
+ *     sola. Quien recibe esto sin haberlo pedido no tiene que escribir a nadie.
+ */
+export function correoDeActivacion(d: DatosDeActivacion): CorreoCompuesto {
+  const url = escapar(d.url);
+  const rotuloDelBoton = 'Activar mi cuenta';
+  const plazo =
+    `El enlace caduca en ${d.horasDePlazo} horas desde el alta y solo sirve una vez. ` +
+    'Abrirlo no activa nada: la cuenta se activa al pulsar el botón de la página.';
+  const noHasSidoTu =
+    'Si no has sido tú, no hace falta que hagas nada: la cuenta no se activa sin ese clic y ' +
+    `se borra sola pasadas ${d.horasDePlazo} horas.`;
+
+  return componer({
+    subject: 'Activa tu cuenta de Stockeiro',
+    lineas: [
+      'Alguien ha creado una cuenta de Stockeiro con este correo.',
+      '',
+      'Si has sido tú, abre este enlace para activarla:',
+      d.url,
+      '',
+      plazo,
+      noHasSidoTu,
+    ],
+    filas: [
+      fila(
+        `<p style="margin:0;${FUENTE}font-size:22px;line-height:1.45;color:${COLOR.hueso};">` +
+          `Alguien ha creado una cuenta de Stockeiro con este correo.</p>` +
+          parrafo('Si has sido tú, abre este enlace para activarla:', {
+            margenSuperior: 14,
+          }),
+        '32px 28px 22px',
+      ),
+      // El botón, con la misma geometría que el de recuperación: 48 px de alto (ADR-034).
+      fila(
+        `<table role="presentation" cellpadding="0" cellspacing="0" border="0" ` +
+          `style="border-collapse:collapse;"><tr>` +
+          `<td align="center" style="background-color:${COLOR.acento};border-radius:10px;">` +
+          `<a href="${url}" style="display:inline-block;padding:14px 26px;${FUENTE}` +
+          `font-size:16px;line-height:20px;font-weight:700;color:${COLOR.lienzo};` +
+          `text-decoration:none;">${rotuloDelBoton}</a>` +
+          `</td></tr></table>`,
+        '0 28px 18px',
+      ),
+      fila(
+        `<p style="margin:0;${FUENTE}font-size:13px;line-height:1.5;color:${COLOR.apagado};` +
+          `word-break:break-all;">${url}</p>`,
+        '0 28px 22px',
+      ),
+      fila(
+        parrafo(plazo, { tamano: 14, color: COLOR.apagado }) +
+          parrafo(noHasSidoTu, { tamano: 14, color: COLOR.apagado, margenSuperior: 8 }),
+        '0 28px 28px',
+      ),
+    ],
+  });
+}

@@ -1,4 +1,4 @@
-import { count, eq } from 'drizzle-orm';
+import { count, eq, isNotNull } from 'drizzle-orm';
 import type { PgDatabase } from 'drizzle-orm/pg-core';
 import { REGISTRATION_SETTINGS_ID, registrationSettings, users } from '@/db/schema';
 import { registerUser, type PublicUser } from '@/lib/auth/users';
@@ -42,15 +42,23 @@ export async function readRegistrationSettings(db: Db): Promise<RegistrationSett
 }
 
 /**
- * Cuentas VIVAS (ADR-022 pto. 9). Es una agregación, no un recuento en memoria: el
- * cupo no puede pagar una consulta que crezca con el número de usuarios.
+ * Cuentas ACTIVADAS VIVAS (ADR-022 pto. 9, precisado por ADR-042 pto. 10). Es una
+ * agregación, no un recuento en memoria: el cupo no puede pagar una consulta que crezca
+ * con el número de usuarios.
  *
  * Que cuente vivas y no históricas es lo que hace que quien borra su cuenta libere
  * plaza (CA-9). No es una fuga: recuperar la plaza exige haber renunciado antes a
  * todos sus datos.
+ *
+ * SPEC-066 CA-15 — y que cuente sólo ACTIVADAS es lo que impide que un bot llene el cupo
+ * con cuentas que nunca activará (RN-19): una cuenta pendiente no ocupa plaza. La función
+ * pura del grifo no cambia; cambia el número que se le pasa.
  */
 export async function countAccounts(db: Db): Promise<number> {
-  const [fila] = await db.select({ n: count() }).from(users);
+  const [fila] = await db
+    .select({ n: count() })
+    .from(users)
+    .where(isNotNull(users.emailVerifiedAt));
   return Number(fila?.n ?? 0);
 }
 
@@ -110,6 +118,12 @@ export async function readRegistrationAudit(
 export type RegisterOutcome = { ok: true; user: PublicUser } | { ok: false; reason: ClosedReason };
 
 /**
+ * ⚠️ SPEC-066: **este ya no es el camino de alta de la app.** El alta que usa la pantalla
+ * es `signUp` (`./signup.ts`), que crea la cuenta PENDIENTE y no dice si el correo existe
+ * (ADR-042). Esta función queda como el grifo delante de `registerUser` —una cuenta
+ * activada en el acto— y la usan los tests del grifo de SPEC-037; ninguna ruta de `src/`
+ * la llama.
+ *
  * El alta CON el grifo delante (CA-4, CA-5, ADR-023 pto. 5).
  *
  * La comprobación se hace en el CAMINO DE REGISTRO, no solo al pintar el formulario:
