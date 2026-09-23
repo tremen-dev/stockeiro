@@ -128,6 +128,10 @@ describe('SPEC-032 CA-15: y las RN de dominio siguen intactas', () => {
     ['RN-16', 'Cotización sin refrescar'],
     ['RN-17', 'Refresco bajo demanda'],
     ['RN-18', 'Distancia a zona'],
+    // SPEC-066 / ADR-042, gate humano del 2026-09-23: la cuenta pendiente de activar.
+    // Es de dominio (quién es usuario de pleno derecho), no de ingeniería; su hueco lo abre
+    // el arquitecto al aprobar (ADR-025), no la implementación.
+    ['RN-19', 'La cuenta cuenta cuando su correo está verificado'],
   ];
 
   /**

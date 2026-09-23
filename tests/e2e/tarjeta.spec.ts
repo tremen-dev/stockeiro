@@ -2,6 +2,7 @@ import { test, expect, type Page } from '@playwright/test';
 import { mkdirSync } from 'node:fs';
 import { dirname, join, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
+import { registrarYEntrar as recorridoDeAlta } from './alta';
 
 /**
  * SPEC-051 contra la app corriendo de verdad (`next start` + Postgres efímero).
@@ -56,11 +57,8 @@ function unico(lista: Array<{ clave: string; valor: string }>, clave: string): s
 
 /** Entra con una cuenta nueva. Cada test usa su correo: la base es única por ejecución. */
 async function entrar(page: Page, email: string) {
-  await page.goto('/register');
-  await page.fill('input[name="email"]', email);
-  await page.fill('input[name="password"]', PWD);
-  await page.click('button[type="submit"]');
-  await page.waitForURL('**/dashboard');
+  // SPEC-066 CA-23: alta → buzón → activar → entrar (tests/e2e/alta.ts).
+  await recorridoDeAlta(page, email, PWD);
 }
 
 // ---------------------------------------------------------------------------

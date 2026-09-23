@@ -1298,3 +1298,72 @@ Requiere acceso al DNS de `tremen.dev` y a la cuenta de Google del titular; no l
 Orden recomendado en el gate de SPEC-065: hacer antes el anti-abuso del alta (`F-SPEC-065-1`);
 no es bloqueante —el cupo de cuentas limita el daño a *aforo*, no a coste—, pero es lo barato de
 hacer antes de que llegue tráfico.
+
+## 15. El alta defendida: campo trampa, BotID y la cuenta pendiente (SPEC-066)
+
+Desde SPEC-066 (ADR-042) el alta **no entra en la app**: crea una cuenta **pendiente de
+activar** y manda un correo de activación. Delante van tres filtros —campo trampa y tiempo
+mínimo, **Vercel BotID**, y la propia verificación del correo—. Esta sección dice qué es del
+humano y cómo comprobarlo tras mergear (mergear es desplegar, ADR-018).
+
+### 15.1 BotID: Basic, sin activar nada, y Deep Analysis **no**
+
+- **BotID Basic no requiere activarse en el panel.** El código lo fija en los dos lados
+  (`checkLevel: 'basic'` en `src/lib/registration/botid-client.ts` y en
+  `src/lib/registration/bot-check.ts`), y se enciende solo en los despliegues de Vercel
+  (Production y Preview). Fuera de Vercel —local, CI, e2e— el cliente no se inicializa y el
+  servidor responde *humano* por la vía de desarrollo de la librería.
+- **Deep Analysis NO se activa.** No existe en el plan Hobby y, en Pro, se cobra por llamada.
+  Si algún día se pasa a Pro y se quiere, se decide con **otro ADR**, no con un clic: el código
+  seguiría pidiendo `basic` aunque el panel dijera otra cosa.
+- Ninguna variable de entorno nueva (ADR-042 pto. 20): BotID se autentica con el token OIDC que
+  inyecta Vercel, y la firma del tiempo mínimo deriva de `AUTH_SECRET`.
+
+### 15.2 OIDC: la comprobación real depende de él
+
+Sin el token OIDC de Vercel, `checkBotId` **lanza**; el alta hace *fail-open* (deja pasar y lo
+escribe en el log con la etiqueta `[BotID]`), así que el alta no se rompe, pero **BotID no filtra
+nada**. Cómo comprobarlo:
+
+1. Panel de Vercel → proyecto → **Settings → Security → Secure backend access with OIDC
+   federation**: debe estar **habilitado** (modo *Team*, que es el que Vercel propone por
+   defecto en proyectos nuevos).
+2. Tras un alta real (15.3), en **Logs** del despliegue de producción **no** debe aparecer
+   ninguna línea `[BotID] la comprobación anti-bots ha fallado`. Si aparece nombrando OIDC, el
+   paso 1 está apagado.
+
+### 15.3 Comprobación tras mergear
+
+Contra el dominio, en este orden:
+
+1. **Un alta real desde un navegador** (no `curl`: BotID exige JavaScript) en
+   `https://stockeiro.tremen.dev/register`, con un correo que controles. Tiene que llegar el
+   correo *«Activa tu cuenta de Stockeiro»*; su enlace abre una página con el botón *Activar mi
+   cuenta*; al pulsarlo se llega a `/login` con el aviso de cuenta activada, y se entra con la
+   contraseña. Después, borra esa cuenta desde `/cuenta` si era de prueba.
+2. **El reto de BotID sale del proxy sin sesión** (`curl` sin cookies):
+
+   ```bash
+   curl -sI https://stockeiro.tremen.dev/149e9513-01fa-4fb0-aad4-566afd725d1b/2d206a39-8ed7-437e-a3be-862e0f06eea3/a-4-a/c.js
+   ```
+
+   **No** debe responder `307` con `location: /login`. (El prefijo es el que reescribe
+   `withBotId`; si la librería lo cambia al actualizarse, `tests/spec066-proxy-botid.test.ts`
+   se pone rojo antes de llegar aquí.)
+3. Panel de Vercel → **Firewall** → filtro **BotID**: tras el alta del paso 1 deben verse las
+   comprobaciones.
+4. **Las cookies que deja `/register`** en un navegador **anónimo** (ventana privada), antes y
+   después de enviar el alta: anótalas en el ledger de SPEC-066 contra lo que promete
+   `/legal/privacidad` (sección de cookies y la fila de Vercel en «Quién más los ve»). Si BotID
+   deja alguna cookie o carga algún script que el texto no diga, el texto se corrige.
+
+El resultado de esta comprobación se pega en el ledger de SPEC-066. Recomendado **antes** de
+enviar el sitemap en Search Console (§14.4, `F-SPEC-065-3`).
+
+### 15.4 La purga de cuentas pendientes no tiene pantalla
+
+Una cuenta que no se activa en **24 h** desde su alta ya no puede activarse, y la borra —con todo
+lo suyo, igual que una baja— el **ciclo diario** (`/api/cron/refresh`), después de cerrar su fila
+de `cron_runs`. No hay pantalla ni recuento en `/admin` (`F-SPEC-066-2`): si la purga falla, el
+ciclo no se entera (su respuesta no cambia) y queda una línea en el log con la etiqueta
+`[purga de cuentas pendientes]`; lo que no se purgue hoy se purga mañana.

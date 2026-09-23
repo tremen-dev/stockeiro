@@ -15,6 +15,8 @@ export {
   correoDeEntradaEnZona,
   correoDeResumen,
   correoDeRecuperacion,
+  correoDeActivacion,
+  type DatosDeActivacion,
   type DatosDeEntradaEnZona,
   type DatosDelResumen,
   type DatosDeRecuperacion,

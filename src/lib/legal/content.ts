@@ -118,8 +118,13 @@ export const ENCARGADOS: Encargado[] = [
   {
     id: 'vercel',
     nombre: 'Vercel',
-    para: 'Alojamiento del sitio y ejecución del código de servidor.',
-    ve: 'Los datos técnicos de cada petición (dirección IP, navegador) y lo que viaja en ella.',
+    para:
+      'Alojamiento del sitio y ejecución del código de servidor. También hace la comprobación ' +
+      'anti-bots del alta (BotID), que distingue una persona de un programa automático.',
+    ve:
+      'Los datos técnicos de cada petición (dirección IP, navegador) y lo que viaja en ella. ' +
+      'Al darte de alta o al pedir otro correo de activación, además, las señales que tu ' +
+      'navegador aporta a esa comprobación anti-bots.',
   },
   {
     id: 'neon',
@@ -130,7 +135,9 @@ export const ENCARGADOS: Encargado[] = [
   {
     id: 'resend',
     nombre: 'Resend',
-    para: 'Envío del correo de avisos y del correo con el enlace de recuperación de contraseña.',
+    para:
+      'Envío del correo de avisos, del correo con el enlace de recuperación de contraseña y del ' +
+      'correo con el enlace para activar tu cuenta.',
     ve: 'Tu dirección de correo y el contenido del mensaje que se te envía.',
   },
   {
@@ -187,6 +194,9 @@ export const CONSERVACION: string[] = [
   'Mientras tengas la cuenta abierta. Los enlaces de recuperación de contraseña son la ' +
     'excepción: caducan solos a los 30 minutos de emitirse y a partir de ahí no sirven, ni ' +
     'aunque alguien los tenga.',
+  'Una cuenta que no se activa no se conserva: si en las 24 horas siguientes al alta nadie ' +
+    'pulsa el enlace del correo de activación, la cuenta deja de poder activarse y se borra ' +
+    'con todo lo suyo en el siguiente ciclo diario, igual que si la hubieras borrado tú.',
 ];
 
 /**
@@ -225,6 +235,11 @@ export const COOKIES_Y_ANALITICA: string[] = [
     'que enseñar.',
   'Las páginas legales no cargan nada de fuera: ni tipografías, ni scripts, ni imágenes de ' +
     'otros servidores. Se pueden leer sin que nadie más se entere.',
+  'La excepción es el alta y la petición de otro correo de activación: al enviarlas, tu ' +
+    'navegador pasa una comprobación anti-bots invisible de Vercel (BotID), que carga un ' +
+    'pequeño script servido desde el propio dominio de Stockeiro y puede dejar cookies ' +
+    'técnicas de esa comprobación. Sirve sólo para distinguir a una persona de un programa ' +
+    'automático; no es analítica ni publicidad, y no se usa para nada más.',
 ];
 
 /**
@@ -253,7 +268,16 @@ export const CATEGORIAS_DE_DATO: CategoriaDeDato[] = [
     descripcion:
       'Tu dirección de correo electrónico, la huella criptográfica (hash) de tu contraseña ' +
       '—nunca la contraseña en claro—, la fecha en que la cambiaste por última vez, el nivel ' +
-      'de acceso de tu cuenta y la fecha de alta.',
+      'de acceso de tu cuenta, la fecha de alta y la fecha en que verificaste tu correo al ' +
+      'activarla.',
+  },
+  {
+    tabla: 'email_verification_tokens',
+    titulo: 'Enlaces de activación de la cuenta',
+    descripcion:
+      'Cuando te das de alta o pides otro correo de activación se guarda la huella del enlace ' +
+      'enviado, su fecha de caducidad y si ya se usó. El enlace en sí no se almacena en ningún ' +
+      'momento, y caduca como tarde 24 horas después del alta.',
   },
   {
     tabla: 'password_reset_tokens',

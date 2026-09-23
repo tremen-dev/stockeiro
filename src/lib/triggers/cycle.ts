@@ -6,6 +6,7 @@ import { evaluateTriggers, type EvaluationResult } from './service';
 import type { NotificationSender } from '@/lib/notifications/sender';
 import { notifyCycle, type NotifyResult } from '@/lib/notifications/service';
 import { closeCronRun, failCronRun, openCronRun } from '@/lib/ops/cron-runs';
+import { purgeExpiredPendingAccounts } from '@/lib/registration/signup';
 
 type Db = PgDatabase<any, any, any>;
 
@@ -40,6 +41,11 @@ export interface CronCycleDeps {
   provider: MarketDataProvider;
   /** Canal de aviso (SPEC-006). Opcional: sin él, el ciclo no notifica. */
   sender?: NotificationSender;
+  /**
+   * SPEC-066 CA-19 — la purga de cuentas pendientes caducadas. Se inyecta sólo para que
+   * un unitario la haga lanzar; por defecto es la real (ADR-042 pto. 11).
+   */
+  purgePending?: (db: Db) => Promise<number>;
 }
 
 export type CronCycleOutcome =
@@ -97,6 +103,19 @@ export async function runCronCycle(deps: CronCycleDeps): Promise<CronCycleOutcom
     notificationsEntries: body.notifications?.entries ?? 0,
     notificationsDigests: body.notifications?.digests ?? 0,
   });
+
+  // SPEC-066 CA-19 / ADR-042 pto. 11 — la purga de cuentas pendientes caducadas, DESPUÉS
+  // de cerrar la fila de `cron_runs` y con su fallo CONTENIDO: el ciclo es la promesa del
+  // producto y una purga no puede tumbarlo; lo que no se purgue hoy se purga mañana. No
+  // añade nada a la respuesta (ADR-023 pto. 16) ni a `cron_runs`.
+  try {
+    await (deps.purgePending ?? purgeExpiredPendingAccounts)(deps.db);
+  } catch (e) {
+    console.error(
+      '[purga de cuentas pendientes] ha fallado; el ciclo ya había terminado y la respuesta no cambia:',
+      e instanceof Error ? e.message : e,
+    );
+  }
 
   // CA-20: la respuesta NO cambia. La tabla es un registro ADICIONAL, no un
   // sustituto, y ningún consumidor existente se entera de que existe.

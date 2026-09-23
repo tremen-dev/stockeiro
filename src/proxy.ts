@@ -6,7 +6,7 @@ import {
   type NextMiddleware,
 } from 'next/server';
 import { authConfig } from '@/lib/auth/base-config';
-import { isCrawlerPath, isPublicPath, requireSession } from '@/lib/auth/guard';
+import { isBotIdPath, isCrawlerPath, isPublicPath, requireSession } from '@/lib/auth/guard';
 
 // Instancia edge-safe (sin bcrypt/DB): solo lee la sesión JWT de la cookie.
 const { auth } = NextAuth(authConfig);
@@ -48,6 +48,9 @@ export default function proxy(request: NextRequest, event: NextFetchEvent) {
   // SPEC-065 D-5 — `robots.txt` y `sitemap.xml` salen por su lista de emparejamiento
   // exacto, también antes de Auth.js: el rastreador no se lleva `authjs.*`.
   if (isCrawlerPath(request.nextUrl.pathname)) return NextResponse.next();
+  // SPEC-066 CA-6 — el reto de BotID lo pide quien se está dando de alta, sin sesión: sale
+  // por aquí, antes de Auth.js, sin redirección y sin `authjs.*` (ADR-042 pto. 19).
+  if (isBotIdPath(request.nextUrl.pathname)) return NextResponse.next();
   // `auth()` declara la firma de un route handler (`req, { params }`), no la de un
   // middleware; en runtime es lo mismo y Next lo invoca así desde que existe este
   // fichero. El cast dice eso y nada más.

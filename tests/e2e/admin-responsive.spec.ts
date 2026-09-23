@@ -11,6 +11,7 @@ import {
   ponerVentana,
   type MedidaM1,
 } from './geometria';
+import { entrarORegistrar } from './alta';
 
 /**
  * SPEC-037 CA-25 (no degradar lo entregado) — la GEOMETRÍA de `/admin` y de la
@@ -120,11 +121,8 @@ test.describe('SPEC-037 CA-25: /admin no rompe la maquetación a ningún ancho',
   test.beforeEach(async ({ page }) => {
     const email = 'spec037-medidas@example.com';
     const yaExiste = (await rolDe(email)) !== null;
-    await page.goto(yaExiste ? '/login' : '/register');
-    await page.fill('input[name="email"]', email);
-    await page.fill('input[name="password"]', PWD);
-    await page.click('button[type="submit"]');
-    await page.waitForURL('**/dashboard');
+    // SPEC-066 CA-23: si no existe, el recorrido completo (tests/e2e/alta.ts).
+    await entrarORegistrar(page, email, yaExiste, PWD);
     await ponerRol(email, 'admin');
     await page.goto('/admin');
   });

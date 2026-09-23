@@ -1,6 +1,7 @@
 import postgres from 'postgres';
 import { type Page } from '@playwright/test';
 import { DB_URL, rolDe, ponerRol } from './roles';
+import { entrarORegistrar } from './alta';
 
 /**
  * SPEC-043 — siembra y cuentas de las guardias de esta spec.
@@ -188,11 +189,8 @@ export const ESCENARIO: FilaSembrada[] = [
 
 export async function entrar(page: Page, email: string): Promise<void> {
   const yaExiste = (await rolDe(email)) !== null;
-  await page.goto(yaExiste ? '/login' : '/register');
-  await page.fill('input[name="email"]', email);
-  await page.fill('input[name="password"]', PWD);
-  await page.click('button[type="submit"]');
-  await page.waitForURL('**/dashboard');
+  // SPEC-066 CA-23: si no existe, el recorrido completo (tests/e2e/alta.ts).
+  await entrarORegistrar(page, email, yaExiste, PWD);
   // SPEC-034 (F-SPEC-034-4): toda cuenta nueva nace `tester` y un tester NO ve Cartera.
   // Se DECLARA el rol que esta spec necesita en vez de heredarlo por descuido.
   await ponerRol(email, 'completo');

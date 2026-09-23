@@ -75,6 +75,28 @@ export function isCrawlerPath(pathname: string): boolean {
 }
 
 /**
+ * Rutas de BotID (SPEC-066 CA-6, ADR-042 pto. 19): el reto que carga el cliente de BotID
+ * y el proxy hacia Vercel. Tercera familia de excepciones a RN-03, separada por lo mismo
+ * que la de rastreador: **no son páginas** y no llevan dato de usuario. Quien las pide es
+ * quien se está dando de alta, SIN sesión: dentro del `matcher` de `src/proxy.ts` y sin
+ * esta excepción, el reto rebotaría a `/login` y el alta no se enviaría nunca.
+ *
+ * El prefijo es el que `withBotId` (`botid/next/config`) reescribe. NO se copia a ciegas:
+ * `tests/spec066-proxy-botid.test.ts` lo DERIVA de `withBotId(...).rewrites()` en cada
+ * ejecución y exige que toda ruta reescrita salga por aquí (ADR-040). Si la librería lo
+ * cambia al actualizarse, esa guardia se pone roja.
+ *
+ * Empareja por SEGMENTO: el prefijo exacto o el prefijo seguido de `/`. Una ruta que sólo
+ * se le parezca (sin el separador, con un carácter de más) sigue exigiendo sesión.
+ */
+export const BOTID_PATH_PREFIX =
+  '/149e9513-01fa-4fb0-aad4-566afd725d1b/2d206a39-8ed7-437e-a3be-862e0f06eea3';
+
+export function isBotIdPath(pathname: string): boolean {
+  return pathname === BOTID_PATH_PREFIX || pathname.startsWith(`${BOTID_PATH_PREFIX}/`);
+}
+
+/**
  * CA-5: sin sesión en ruta no pública -> redirige a login.
  * CA-7: tras cerrar sesión, la sesión efectiva es null -> vuelve a exigir login.
  */

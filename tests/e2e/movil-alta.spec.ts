@@ -1,5 +1,6 @@
 import { mkdirSync, writeFileSync } from 'node:fs';
 import { test, expect } from '@playwright/test';
+import { activarDesdeElBuzon, entrarConContrasena, esperarTiempoMinimo } from './alta';
 import {
   altoPara,
   describirViolaciones,
@@ -144,10 +145,17 @@ test('SPEC-040 CA-2: CE-1 entero en un teléfono de 360 px, sin desplazar la pá
   await page.goto('/');
   await pulsarSinDesplazar(page, page.getByRole('link', { name: /crear cuenta|registr/i }).first(), 'el enlace de registro');
   await page.waitForURL('**/register');
+  const pintado = Date.now();
 
   await page.fill('input[name="email"]', email);
   await page.fill('input[name="password"]', PWD);
+  await esperarTiempoMinimo(page, pintado);
   await pulsarSinDesplazar(page, page.locator('button[type="submit"]'), 'el botón de registro');
+  // ⚠️ SPEC-066 CA-25 pto. 2 (re-encuadre autorizado, anotado en su ledger): el alta ya no
+  // entra en la app; se activa desde el correo y se entra con la contraseña (CA-23).
+  await expect(page.getByTestId('alta-enviada')).toBeVisible();
+  await activarDesdeElBuzon(page, email);
+  await entrarConContrasena(page, email, PWD);
   await page.waitForURL('**/dashboard');
 
   // Al panel llega desde la navegación compartida, como llegaría una persona.

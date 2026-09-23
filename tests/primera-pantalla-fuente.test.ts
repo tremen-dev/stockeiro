@@ -244,6 +244,10 @@ describe('SPEC-050 CA-20: esto es presentación pura', () => {
   const DEPENDENCIAS = [
     '@neondatabase/serverless',
     'bcryptjs',
+    // SPEC-066 CA-25 pto. 4: `botid` entra con el permiso de ADR-042 (Vercel BotID en el
+    // alta). La lista sigue siendo de igualdad exacta: aquí es donde una dependencia pide
+    // permiso, y ésta lo tiene por escrito.
+    'botid',
     'decimal.js',
     'drizzle-orm',
     'next',

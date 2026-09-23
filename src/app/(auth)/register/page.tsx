@@ -6,6 +6,7 @@ import {
   REGISTRO_CERRADO_QUE_HACER,
   REGISTRO_CERRADO_TITULO,
 } from '@/lib/registration/messages';
+import { sealFormRender } from '@/lib/registration/form-guard';
 import { RegisterForm } from './register-form';
 
 /**
@@ -57,7 +58,11 @@ export default async function RegisterPage() {
   return (
     <main className="auth-wrap">
       <h1 className="headline">Crear cuenta</h1>
-      <RegisterForm />
+      {/*
+        SPEC-066 CA-3 — el instante de pintado, sellado AQUÍ, en el servidor y en la
+        petición (la página es dinámica). Es la mitad de ida del tiempo mínimo.
+      */}
+      <RegisterForm sello={sealFormRender(Date.now(), process.env.AUTH_SECRET ?? '')} />
       <p className="lede">
         ¿Ya tienes cuenta? <Link href="/login">Entra</Link>.
       </p>

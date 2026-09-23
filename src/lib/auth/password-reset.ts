@@ -84,6 +84,9 @@ export async function requestPasswordReset(
 
   const user = await getUserByEmail(db, email);
   if (!user) return nothing; // ni token ni correo, y sin decirlo (CA-1)
+  // SPEC-066 CA-18 (RN-19): una cuenta pendiente no recibe más correo que el de
+  // activación. Mismo acuse que cualquiera, sin token ni correo.
+  if (user.emailVerifiedAt === null) return nothing;
 
   // CA-12: límite por cuenta y ventana. Invisible en la respuesta a propósito.
   const [recent] = await db

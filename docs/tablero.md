@@ -110,6 +110,7 @@ Actualizado: 2026-09-23
 | SPEC-042 — la-limpieza-de-las-ramas-de-preview-de-neon-deja-de-ser-un-recordatorio | hecho | 2026-08-20 (sdd-verificador) |
 | SPEC-053 — la-version-vive-en-los-dos-ficheros-el-lock-deja-de-derivar-y-una-guardia-lo-mantiene | hecho | 2026-08-24 (sdd-verificador) |
 | SPEC-057 — enumerar-un-directorio-ajeno-y-congelar-el-resultado-es-criterio-de-gate | hecho | 2026-08-25 (sdd-verificador) |
+| SPEC-066 — el-registro-se-defiende-campo-trampa-botid-y-el-correo-verificado-antes-de-ocupar-plaza | hecho | 2026-09-23 (sdd-verificador) |
 
 ## EPIC-MEJORA (aprobada)
 
@@ -166,9 +167,10 @@ Actualizado: 2026-09-23
 | ADR-038 | aprobada | el-precio-se-pide-bajo-demanda-fuera-del-ciclo-el-disparo-y-el-aviso-siguen-siendo-del-ciclo | 2026-08-25 (humano (Alberto Fojo)) |
 | ADR-039 | aprobada | la-hora-del-ciclo-la-fija-cuando-publica-el-proveedor-no-el-cierre-de-mercado-precisa-adr-004-pto-1 | 2026-09-03 (Alberto Fojo) |
 | ADR-040 | aprobada | un-documento-de-verdad-no-copia-lo-que-otro-fichero-posee-se-deriva-o-se-delega-y-la-guardia-vigila-la-copia-no-la-prosa | 2026-09-03 (Alberto Fojo) |
+| ADR-042 | aprobada | la-cuenta-nace-pendiente-y-solo-ocupa-plaza-al-verificar-el-correo-el-alta-se-filtra-con-campo-trampa-tiempo-minimo-y-botid-basico | 2026-09-23 (Alberto Fojo (pre-autorizado: tres capas hasta el PR) |
 
 ## Resumen
 
-- hecho: 58
+- hecho: 59
 - aprobada: 1
 - bloqueada: 1

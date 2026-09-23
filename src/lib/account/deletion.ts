@@ -3,6 +3,7 @@ import type { PgDatabase } from 'drizzle-orm/pg-core';
 import {
   users,
   notifications,
+  emailVerificationTokens,
   passwordResetTokens,
   symbolAliases,
   symbolLinks,
@@ -101,6 +102,13 @@ export const ACCOUNT_DELETION_COVERAGE: readonly CoveredTable[] = [
     label: 'Los enlaces de recuperación de contraseña que tuvieras pendientes',
   },
   {
+    // SPEC-066: los enlaces de activación son de la cuenta y caen con ella (ADR-042 pto. 4).
+    // Es también lo que borra la purga de cuentas pendientes caducadas (pto. 11).
+    table: 'email_verification_tokens',
+    via: 'delete',
+    label: 'Los enlaces de activación de tu cuenta que se te enviaron al darte de alta',
+  },
+  {
     table: 'users',
     via: 'delete',
     label: 'Tu cuenta: la dirección de correo, la huella de tu contraseña y la fecha de alta',
@@ -167,6 +175,7 @@ function deleteStatements(d: Db, userId: string) {
     d.delete(symbolNotes).where(eq(symbolNotes.userId, userId)),
     d.delete(symbolLinks).where(eq(symbolLinks.userId, userId)),
     d.delete(passwordResetTokens).where(eq(passwordResetTokens.userId, userId)),
+    d.delete(emailVerificationTokens).where(eq(emailVerificationTokens.userId, userId)),
     d.delete(users).where(eq(users.id, userId)),
   ] as const;
 }

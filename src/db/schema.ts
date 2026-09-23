@@ -46,6 +46,15 @@ export const users = pgTable(
     // hace el despliegue autocontenido; su contrapartida es F-SPEC-034-5.
     role: text('role').$type<Role>().notNull().default(DEFAULT_ROLE),
     createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
+    // CUENTA PENDIENTE DE ACTIVAR (SPEC-066, ADR-042 pto. 1, RN-19): nula = pendiente;
+    // con fecha = activada. Sólo la activada entra, ocupa plaza y recibe correo.
+    //
+    // El DEFAULT now() es a propósito y va en la dirección SEGURA (ADR-042 pto. 2):
+    // durante la convivencia, el código anterior inserta sin nombrar la columna y su
+    // alta nace activada, que es lo que ese código le prometió a quien se registró. El
+    // camino de alta NUEVO escribe NULL explícitamente (`src/lib/registration/signup.ts`),
+    // y un test del camino de alta lo vigila (CA-8).
+    emailVerifiedAt: timestamp('email_verified_at', { withTimezone: true }).defaultNow(),
   },
   (t) => ({
     // El dominio se escribe UNA vez, en `ROLES` (src/lib/auth/sections.ts), y de ahí
@@ -86,6 +95,29 @@ export const passwordResetTokens = pgTable('password_reset_tokens', {
 });
 
 export type PasswordResetToken = typeof passwordResetTokens.$inferSelect;
+
+/**
+ * `email_verification_tokens` — enlaces de activación de cuenta (SPEC-066, ADR-042 pto. 4).
+ *
+ * Gemela de `password_reset_tokens` y por el mismo motivo: un token es un EVENTO (se
+ * emite, caduca, se consume) y el historial es lo que permite limitar los correos de
+ * activación por cuenta y ventana. Sólo guarda el digest (`tokenHash`, SHA-256 en hex);
+ * el consumo es un UPDATE condicional atómico. `expiresAt` nunca va más allá del
+ * **plazo de activación** de la cuenta (24 h desde su alta, ADR-042 pto. 5). Cae con la
+ * cuenta (ADR-022; `src/lib/account/deletion.ts`).
+ */
+export const emailVerificationTokens = pgTable('email_verification_tokens', {
+  id: uuid('id').defaultRandom().primaryKey(),
+  userId: uuid('user_id')
+    .notNull()
+    .references(() => users.id),
+  tokenHash: text('token_hash').notNull().unique(),
+  expiresAt: timestamp('expires_at', { withTimezone: true }).notNull(),
+  consumedAt: timestamp('consumed_at', { withTimezone: true }), // null = vivo
+  createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
+});
+
+export type EmailVerificationToken = typeof emailVerificationTokens.$inferSelect;
 export type NewPasswordResetToken = typeof passwordResetTokens.$inferInsert;
 
 /**

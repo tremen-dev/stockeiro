@@ -1,6 +1,7 @@
 import { test, expect, type Browser, type Page } from '@playwright/test';
 import { existsSync, readFileSync } from 'node:fs';
 import { ponerRol } from './roles';
+import { registrarYEntrar as recorridoDeAlta } from './alta';
 
 const SHOTS = '_qa/SPEC-023';
 const OUTBOX = './.e2e-outbox.jsonl'; // mismo path que tests/e2e/server.mjs
@@ -28,7 +29,11 @@ function outbox(): OutboxMessage[] {
   return readFileSync(OUTBOX, 'utf8')
     .split('\n')
     .filter(Boolean)
-    .map((l) => JSON.parse(l) as OutboxMessage);
+    .map((l) => JSON.parse(l) as OutboxMessage)
+    // SPEC-066 (CA-25 pto. 2, anotado en su ledger): desde que el alta manda un correo de
+    // activación, el buzón de una cuenta recién creada ya no está vacío. Este fichero mira
+    // los correos de RECUPERACIÓN, así que el buzón que lee son ésos; ningún `expect` cambia.
+    .filter((m) => /\/reset-password\//.test(m.body));
 }
 
 /** Espera al correo (el envío es diferido, CA-2) y devuelve el enlace recibido. */
@@ -45,11 +50,8 @@ async function waitForResetLink(recipient: string, since = 0): Promise<string> {
 const countTo = (recipient: string) => outbox().filter((m) => m.to === recipient).length;
 
 async function registrar(page: Page, email: string, password = PWD) {
-  await page.goto('/register');
-  await page.fill('input[name="email"]', email);
-  await page.fill('input[name="password"]', password);
-  await page.click('button[type="submit"]');
-  await page.waitForURL('**/dashboard');
+  // SPEC-066 CA-23: alta → buzón → activar → entrar (tests/e2e/alta.ts).
+  await recorridoDeAlta(page, email, password);
 }
 
 async function pedirEnlace(page: Page, email: string) {

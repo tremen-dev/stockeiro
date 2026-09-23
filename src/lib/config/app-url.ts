@@ -132,3 +132,12 @@ export function appBaseUrl(env: NodeJS.ProcessEnv = process.env): string {
 export function buildResetUrl(baseUrl: string, token: string): string {
   return new URL(`/reset-password/${encodeURIComponent(token)}`, `${baseUrl}/`).toString();
 }
+
+/**
+ * URL absoluta de la página de activación (SPEC-066, ADR-042 pto. 8). Mismo origen que el
+ * de recuperación —`APP_BASE_URL`, nunca la cabecera `Host` (ADR-015 pto. 8, SPEC-055)— y
+ * el token también en el path, con `Referrer-Policy: no-referrer` en esa ruta (D-2).
+ */
+export function buildActivationUrl(baseUrl: string, token: string): string {
+  return new URL(`/register/confirmar/${encodeURIComponent(token)}`, `${baseUrl}/`).toString();
+}

@@ -10,6 +10,7 @@ import {
   ponerVentana,
   type MedidaM1,
 } from './geometria';
+import { registrarYEntrar as recorridoDeAlta } from './alta';
 
 /**
  * SPEC-036 CA-15 (no degradar lo entregado) — la GEOMETRÍA de `/cuenta`, medida en
@@ -68,11 +69,8 @@ const FACTOR_MAXIMO_NAV = 3;
 const HOLGURA_PX = 40;
 
 async function registrarYEntrar(page: Page, email: string) {
-  await page.goto('/register');
-  await page.fill('input[name="email"]', email);
-  await page.fill('input[name="password"]', PWD);
-  await page.click('button[type="submit"]');
-  await page.waitForURL('**/dashboard');
+  // SPEC-066 CA-23: alta → buzón → activar → entrar (tests/e2e/alta.ts).
+  await recorridoDeAlta(page, email, PWD);
 }
 
 type Medida = {

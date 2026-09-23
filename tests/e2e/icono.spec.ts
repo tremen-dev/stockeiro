@@ -16,6 +16,7 @@ import {
   type Colores,
   type Raster,
 } from '../icono-raster';
+import { registrarYEntrar as recorridoDeAlta } from './alta';
 
 /**
  * SPEC-047 contra la app corriendo de verdad (`next start` + Postgres efímero).
@@ -82,11 +83,8 @@ const elIco = (enlaces: Enlace[]) => enlaces.filter((e) => /favicon\.ico/.test(e
 
 /** Entra con una cuenta nueva. Cada test usa su correo: la base es única por ejecución. */
 async function entrar(page: Page, email: string) {
-  await page.goto('/register');
-  await page.fill('input[name="email"]', email);
-  await page.fill('input[name="password"]', PWD);
-  await page.click('button[type="submit"]');
-  await page.waitForURL('**/dashboard');
+  // SPEC-066 CA-23: alta → buzón → activar → entrar (tests/e2e/alta.ts).
+  await recorridoDeAlta(page, email, PWD);
 }
 
 /**

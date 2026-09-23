@@ -268,6 +268,9 @@ describe('SPEC-051 CA-13: el PNG se reproduce, byte a byte, con el `icon:build` 
       [
         '@neondatabase/serverless',
         'bcryptjs',
+        // SPEC-066 CA-25 pto. 4: `botid` entra con el permiso de ADR-042 (Vercel BotID en
+        // el alta). Sigue siendo igualdad exacta; `devDependencies` no cambia.
+        'botid',
         'decimal.js',
         'drizzle-orm',
         'next',

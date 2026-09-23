@@ -1,6 +1,7 @@
 import postgres from 'postgres';
 import { type Page } from '@playwright/test';
 import { DB_URL, rolDe } from './roles';
+import { entrarORegistrar } from './alta';
 
 /**
  * SPEC-062 — cuenta, siembra y gestos de las guardias del **acercamiento a zona**.
@@ -175,11 +176,8 @@ export async function sembrar(email: string, filas: SembradoCercania[]): Promise
 /** Entra con la cuenta de esta spec; la registra la primera vez que se necesita. */
 export async function entrar(page: Page, email: string = CUENTA): Promise<void> {
   const yaExiste = (await rolDe(email)) !== null;
-  await page.goto(yaExiste ? '/login' : '/register');
-  await page.fill('input[name="email"]', email);
-  await page.fill('input[name="password"]', PWD);
-  await page.click('button[type="submit"]');
-  await page.waitForURL('**/dashboard');
+  // SPEC-066 CA-23: si no existe, el recorrido completo (tests/e2e/alta.ts).
+  await entrarORegistrar(page, email, yaExiste, PWD);
 }
 
 /** Entra, siembra y deja la página en `/vigiladas` con la tabla pintada. */

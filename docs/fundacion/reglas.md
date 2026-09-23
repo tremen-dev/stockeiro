@@ -138,6 +138,16 @@
   Fuente: sdd-mercados (dictamen del 2026-09-12); RN-10, RN-11, RN-12, RN-16; D-2, D-3, D-4;
   SPEC-062.
 
+- **RN-19** (La cuenta cuenta cuando su correo está verificado): una cuenta sólo es cuenta
+  **de pleno derecho** —puede iniciar sesión, ocupa plaza en el cupo del registro y recibe
+  correo de avisos o de recuperación— cuando su correo está **verificado**. Hasta entonces es
+  una **cuenta pendiente de activar**: no entra, no ocupa plaza y no recibe más correo que el
+  **de activación**. La cuenta pendiente **caduca** a las **24 h** de su alta: pasado ese
+  **plazo de activación** ya no se puede activar y el ciclo diario la borra con todo lo suyo,
+  igual que una baja (ADR-022). **RN-02 sigue intacta**: nunca hay dos cuentas con el mismo
+  correo, pendiente o activada; lo que el alta ya no hace es **decir** si un correo existe.
+  Fuente: ADR-042; SPEC-066.
+
 ## Reglas de ingeniería (RI-xx)
 
 > Serie aparte de la de dominio. Las **RN-xx** de arriba son reglas de negocio
