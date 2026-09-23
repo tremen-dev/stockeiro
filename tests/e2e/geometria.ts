@@ -1774,6 +1774,12 @@ export interface ContrasteDeControl {
   /** El fondo compuesto que tiene debajo, subiendo por ancestros hasta uno opaco. */
   fondo: string;
   contraste: number;
+  /** El lienzo del documento (`html`, o `body`), para comparar. */
+  lienzo: string;
+  /** Diferencia máxima por canal (0–255) entre `fondo` y `lienzo`: ~0 si no hay tinte. */
+  distanciaAlLienzo: number;
+  /** La clase `zone-*` del ancestro más cercano que la tenga (fila o tarjeta), o null. */
+  zona: string | null;
 }
 
 /**
@@ -1796,11 +1802,37 @@ export async function medirContrasteDeControl(
   selector: string,
 ): Promise<ContrasteDeControl[]> {
   return page.evaluate((selector) => {
-    const rgba = (css: string) => {
-      const n = (css.match(/[\d.]+/g) ?? []).map(Number);
-      return { r: n[0] ?? 0, g: n[1] ?? 0, b: n[2] ?? 0, a: n[3] ?? (n.length >= 3 ? 1 : 0) };
-    };
     type Color = { r: number; g: number; b: number; a: number };
+    /**
+     * Lee un color computado a 0–255 + alfa 0–1. Chromium serializa `rgb()/rgba()` en 0–255,
+     * pero un `color-mix(in srgb, …)` —los tintes `.zone-*`— sale como
+     * `color(srgb r g b / a)` con los canales en 0–1: hay que escalarlos ×255, o el tinte se
+     * lee como casi negro (F-V1 de SPEC-067). Cualquier otra forma se resuelve pintándola en
+     * un canvas de 1 px, que devuelve sRGB 0–255 sea cual sea la sintaxis.
+     */
+    const rgba = (css: string): Color => {
+      const s = css.trim();
+      const num = (t: string, escala: number) =>
+        t.endsWith('%') ? (parseFloat(t) / 100) * escala : parseFloat(t);
+      const alfa = (t: string | undefined) => (t === undefined ? 1 : num(t, 1));
+      if (s === 'transparent') return { r: 0, g: 0, b: 0, a: 0 };
+      const srgb = s.match(/^color\(\s*srgb\s+([^\s/)]+)\s+([^\s/)]+)\s+([^\s/)]+)\s*(?:\/\s*([^\s)]+))?\s*\)$/i);
+      if (srgb) {
+        const c = (t: string) => (t === 'none' ? 0 : num(t, 1) * 255);
+        return { r: c(srgb[1]), g: c(srgb[2]), b: c(srgb[3]), a: alfa(srgb[4]) };
+      }
+      const legacy = s.match(/^rgba?\(\s*([^\s,/)]+)[\s,]+([^\s,/)]+)[\s,]+([^\s,/)]+)\s*(?:[,/]\s*([^\s)]+))?\s*\)$/i);
+      if (legacy) {
+        const c = (t: string) => num(t, 255);
+        return { r: c(legacy[1]), g: c(legacy[2]), b: c(legacy[3]), a: alfa(legacy[4]) };
+      }
+      const lienzo2d = document.createElement('canvas').getContext('2d', { willReadFrequently: true })!;
+      lienzo2d.clearRect(0, 0, 1, 1);
+      lienzo2d.fillStyle = s;
+      lienzo2d.fillRect(0, 0, 1, 1);
+      const [r, g, b, a] = lienzo2d.getImageData(0, 0, 1, 1).data;
+      return { r, g, b, a: a / 255 };
+    };
     const sobre = (frente: Color, fondo: Color): Color => ({
       r: frente.r * frente.a + fondo.r * (1 - frente.a),
       g: frente.g * frente.a + fondo.g * (1 - frente.a),
@@ -1849,6 +1881,9 @@ export async function medirContrasteDeControl(
         const glifo = sobre(rgba(getComputedStyle(el).color), fondo);
         const clases = [...el.classList].slice(0, 2).join('.');
         const testid = el.getAttribute('data-testid');
+        const base = lienzo();
+        const conZona = el.closest('[class*="zone-"]');
+        const zona = conZona ? ([...conZona.classList].find((k) => /^zone-/.test(k)) ?? null) : null;
         return {
           selector:
             el.tagName.toLowerCase() +
@@ -1857,6 +1892,11 @@ export async function medirContrasteDeControl(
           color: getComputedStyle(el).color,
           fondo: aCss(fondo),
           contraste: Math.round(razon(glifo, fondo) * 100) / 100,
+          lienzo: aCss(base),
+          distanciaAlLienzo: Math.round(
+            Math.max(Math.abs(fondo.r - base.r), Math.abs(fondo.g - base.g), Math.abs(fondo.b - base.b)),
+          ),
+          zona,
         };
       });
   }, selector);

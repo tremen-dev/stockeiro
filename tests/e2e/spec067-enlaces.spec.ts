@@ -759,7 +759,24 @@ test('SPEC-067 CA-13: reposo, hover y foco se distinguen, el glifo contrasta, y 
     for (const c of contrastes) {
       expect(c.contraste, `${c.selector}: ${c.color} sobre ${c.fondo}`).toBeGreaterThanOrEqual(3);
     }
-    informe.push(`${forma} · contraste del glifo: ${contrastes.map((c) => `${c.contraste}:1 sobre ${c.fondo}`).join(' · ')}`);
+    // La medida tiene que VER el tinte de zona: Z9VARIOS está en zona, y el fondo compuesto
+    // bajo su señal no puede salir como el lienzo. Un tinte del 10–12 % de `--live` o
+    // `--amber` mueve algún canal ≥ 20 unidades; si la medida lo deja casi en el lienzo (el
+    // fallo de leer `color(srgb 0–1 …)` como 0–255 lo dejaba a ~2), el parser no ha
+    // entendido el `color-mix` y el 3:1 se está midiendo contra el fondo equivocado.
+    const enZona = contrastes.filter((c) => c.zona && c.zona !== 'zone-none' && c.zona !== 'zone-out');
+    expect(enZona.length, `en ${forma} ninguna señal medida está sobre una fila en zona`).toBeGreaterThanOrEqual(1);
+    for (const c of enZona) {
+      expect(
+        c.distanciaAlLienzo,
+        `${c.selector} (${c.zona}): fondo ${c.fondo} casi igual al lienzo ${c.lienzo}, no se ve el tinte`,
+      ).toBeGreaterThanOrEqual(10);
+    }
+    informe.push(
+      `${forma} · lienzo ${contrastes[0].lienzo} · contraste del glifo: ${contrastes
+        .map((c) => `${c.contraste}:1 sobre ${c.fondo}${c.zona ? ` (${c.zona})` : ''}`)
+        .join(' · ')}`,
+    );
 
     // Hover.
     await senalEnlaces(page, 'Z9VARIOS', forma).hover();
