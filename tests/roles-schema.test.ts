@@ -144,19 +144,27 @@ describe('SPEC-034 CA-1: la columna existe, con dominio cerrado y por migración
       ),
     ).resolves.toBeDefined();
     // Y las columnas de antes siguen ahí, con su forma (RN-02, ADR-016).
+    //
+    // ⚠️ RE-ENCUADRE AUTORIZADO por SPEC-066 CA-25 pto. 5 (anotado en su ledger). Antes era
+    // igualdad exacta, que además prohibía cualquier columna nueva —una foto del día de
+    // SPEC-034, no su propiedad—. Ahora es PERTENENCIA: estas seis siguen existiendo. Añadir
+    // columnas es justo lo que RI-01 permite; si falta cualquiera de las seis, rojo.
     const { rows } = await harness.client.query<{ column_name: string }>(`
       SELECT column_name FROM information_schema.columns
       WHERE table_schema = 'public' AND table_name = 'users'
       ORDER BY column_name
     `);
-    expect(rows.map((r) => r.column_name)).toEqual([
+    const columnas = rows.map((r) => r.column_name);
+    for (const deAntes of [
       'created_at',
       'email',
       'id',
       'password_changed_at',
       'password_hash',
       'role',
-    ]);
+    ]) {
+      expect(columnas, `falta la columna ${deAntes} de users`).toContain(deAntes);
+    }
   });
 });
 

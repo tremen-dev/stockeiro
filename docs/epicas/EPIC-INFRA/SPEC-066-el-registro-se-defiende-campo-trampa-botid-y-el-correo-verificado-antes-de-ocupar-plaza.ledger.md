@@ -129,6 +129,18 @@ Levantados por sdd-implementador (2026-09-23):
 
 Re-encuadres AUTORIZADOS por CA-25 hechos en la rama (qué vigilaban antes → qué vigilan ahora):
 
+- **Pto. 4** — `tests/primera-pantalla-fuente.test.ts` › *«las dependencias son EXACTAMENTE las
+  de siempre»* y `tests/tarjeta-frontera.test.ts` › *«no entra ninguna dependencia»*: antes,
+  igualdad exacta con 11 dependencias; ahora, igualdad exacta con esas 11 **más `botid`** (y sólo
+  `botid`), comentario citando ADR-042. `devDependencies` y `scripts` sin tocar. Mutante medido
+  (implementador, 2026-09-23): añadir una dependencia cualquiera a `package.json` → los dos casos
+  en rojo (2 failed / 48); restaurado, verde.
+- **Pto. 5** — `tests/roles-schema.test.ts` › *«RI-01: el código anterior…»*: antes, igualdad
+  exacta de las columnas de `users` (prohibía también cualquier columna nueva); ahora,
+  **pertenencia** de las seis previas (`created_at`, `email`, `id`, `password_changed_at`,
+  `password_hash`, `role`), un `toContain` por columna con su nombre en el mensaje. Mutante
+  medido: añadir al esperado una columna que la tabla no tiene → rojo con *«falta la columna …
+  de users»* (1 failed / 11); restaurado, verde. La columna nueva la vigila CA-20.
 - **Pto. 1 y 2** — `tests/registration-action.test.ts` › SPEC-037 CA-3: antes, alta abierta ⇒
   cuenta + `signIn` a `/dashboard`, y duplicado ⇒ mensaje de SPEC-001 CA-2; ahora, cuenta
   pendiente sin `signIn` y `{ sent: true }`, y duplicado ⇒ misma respuesta que un correo nuevo
