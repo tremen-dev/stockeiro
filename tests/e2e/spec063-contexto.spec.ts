@@ -163,36 +163,53 @@ test.describe('SPEC-063 CA-7: el contexto y las zonas no se pisan', () => {
     await cerrarPanel(page);
 
     const zonasDespues = await laFila(page, 'Z8NOTA').locator('td').allInnerTexts();
-    // La celda de Activo gana la señal de contexto; las de zona, precio y estado, no.
+    // La celda de Activo gana la señal de nota; las de zona, precio y estado, no.
     expect(zonasDespues.slice(1)).toEqual(zonasAntes.slice(1));
   });
 });
 
 test.describe('SPEC-063 CA-9/CA-10: la fila dice que hay contexto', () => {
+  /*
+    ── ADAPTACIÓN DE SPEC-067 (ADR-031, ADR-037) ───────────────────────────────────────
+    SPEC-063 fijaba UNA señal (`contexto-senal`) con UNA frase para nota y enlaces.
+    SPEC-067 la parte en dos —`nota-senal`, informativa, y `enlaces-senal`, un control—,
+    así que este test ya no puede buscar una sola marca con una sola frase. Lo que se
+    conserva, intacto, son las propiedades: sin contexto NO hay marca; con contexto la hay;
+    y ENTRE LAS DOS señales el nombre accesible dice que hay nota, que hay enlaces y
+    cuántos. Cada `expect` tocado está justificado en el ledger de SPEC-067.
+  */
   test('con contexto aparece la señal, sin contexto no hay marca — y la señal habla', async ({
     page,
   }) => {
     await preparar(page);
 
-    // Antes de escribir nada: ninguna de las dos filas tiene señal.
-    await expect(page.getByTestId('contexto-senal')).toHaveCount(0);
+    // Antes de escribir nada: ninguna de las dos filas tiene ninguna de las dos señales.
+    await expect(page.getByTestId('nota-senal')).toHaveCount(0);
+    await expect(page.getByTestId('enlaces-senal')).toHaveCount(0);
 
     await abrirPanel(page, 'Z8NOTA');
     await escribirNota(page, 'ahora sí');
     await cerrarPanel(page);
 
-    const senal = laFila(page, 'Z8NOTA').getByTestId('contexto-senal');
-    await expect(senal).toHaveCount(1);
-    await expect(senal).toHaveAttribute('aria-label', 'Tiene nota tuya');
+    const nota = laFila(page, 'Z8NOTA').getByTestId('nota-senal');
+    await expect(nota).toHaveCount(1);
+    await expect(nota).toHaveAttribute('aria-label', 'Tiene nota tuya');
     // La otra dirección, en la misma pantalla: la fila sin contexto sigue sin marca.
-    await expect(laFila(page, 'Z8PELADA').getByTestId('contexto-senal')).toHaveCount(0);
+    await expect(laFila(page, 'Z8PELADA').getByTestId('nota-senal')).toHaveCount(0);
+    await expect(laFila(page, 'Z8PELADA').getByTestId('enlaces-senal')).toHaveCount(0);
 
-    // Y al añadir un enlace, la frase cuenta las dos cosas.
+    // Y al añadir un enlace, entre las dos señales se cuentan las dos cosas, y cuántos.
     await abrirPanel(page, 'Z8NOTA');
     await page.getByTestId('contexto-url').fill('https://foro.example.com/hilo');
     await page.getByTestId('contexto-enlace-anadir').click();
     await cerrarPanel(page);
-    await expect(senal).toHaveAttribute('aria-label', 'Tiene nota tuya y 1 enlace');
+    const enlaces = laFila(page, 'Z8NOTA').getByTestId('enlaces-senal');
+    await expect(enlaces).toHaveCount(1);
+    await expect(nota).toHaveAttribute('aria-label', 'Tiene nota tuya');
+    const nombres = `${await nota.getAttribute('aria-label')} · ${await enlaces.getAttribute('aria-label')}`;
+    expect(nombres).toMatch(/nota/);
+    expect(nombres).toMatch(/\btu enlace\b/); // uno: en singular
+    expect(nombres).not.toMatch(/\benlaces\b/);
   });
 });
 
