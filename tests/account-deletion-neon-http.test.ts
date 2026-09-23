@@ -206,6 +206,8 @@ describe('SPEC-036 CA-7: el borrado entero viaja en UNA sola petición', () => {
       'symbol_notes',
       'symbol_links',
       'password_reset_tokens',
+      // SPEC-066 — los enlaces de activación, antes de `users` (ADR-042 pto. 4, ADR-022).
+      'email_verification_tokens',
       'users',
     ]);
     // Y el mismo orden que declara el módulo: si alguien reordena la cobertura,

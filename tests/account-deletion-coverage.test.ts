@@ -125,6 +125,8 @@ describe('SPEC-036 CA-5: el orden del borrado es el de ADR-022 pto. 4', () => {
       'symbol_notes',
       'symbol_links',
       'password_reset_tokens',
+      // SPEC-066 — los enlaces de activación, antes de `users` (ADR-042 pto. 4, ADR-022).
+      'email_verification_tokens',
       'users',
     ]);
   });

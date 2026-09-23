@@ -7,6 +7,7 @@ import {
   users,
   notifications,
   passwordResetTokens,
+  emailVerificationTokens,
   quoteDiagnostics,
   quotes,
   symbolAliases,
@@ -173,6 +174,13 @@ async function sembrar(email: string, ticker: string): Promise<Habitante> {
     userId: creado.id,
     tokenHash: `hash-${email}`,
     expiresAt: new Date(Date.now() + 30 * 60_000),
+  });
+
+  // Un enlace de activación (SPEC-066, ADR-042 pto. 4): cae con la cuenta.
+  await db().insert(emailVerificationTokens).values({
+    userId: creado.id,
+    tokenHash: `activacion-${email}`,
+    expiresAt: new Date(Date.now() + 24 * 3_600_000),
   });
 
   return { id: creado.id, email: creado.email, symbolId, watchedId: watched.id };
