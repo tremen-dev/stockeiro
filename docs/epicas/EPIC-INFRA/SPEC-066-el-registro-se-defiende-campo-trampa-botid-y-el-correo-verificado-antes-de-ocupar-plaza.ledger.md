@@ -238,3 +238,19 @@ Siguiente paso: sdd-verificador.
 Pendiente del humano, previsto por la spec: aprobar el texto legal de CA-22 en la PR y, tras
 mergear, la comprobación de `docs/despliegue.md` §15.3 (CA-24 c), pegando el resultado aquí.
 Sin push.
+
+**2026-09-23, Alberto Fojo (humano), anotado por el orquestador** — cierre de las dos salvedades
+previstas, sobre producción `0.9.0` (`1c24f0c`, PR #76):
+- **CA-22**: texto legal de `src/lib/legal/content.ts` aprobado en la PR #76.
+- **CA-24 c** (`docs/despliegue.md` §15.3), hecho por el humano y conforme:
+  1. alta real de punta a punta en `https://stockeiro.tremen.dev/register` (correo de
+     activación recibido, activación, login);
+  2. reto de BotID fuera del proxy: `curl` sin cookies → 200, sin 307 a `/login` (medido por el
+     orquestador);
+  3. OIDC habilitado, sin líneas `[BotID]` de fallo en Logs, y comprobaciones visibles en el
+     filtro BotID del Firewall;
+  4. cookies de `/register` en ventana privada, antes y después del alta, coherentes con
+     `/legal/privacidad`.
+- Humo del orquestador: `/api/version` → `0.9.0`; `/register` 200 sin `Set-Cookie`, con
+  `website` (trampa) y `sello`; `/register/confirmar/<token falso>` 200 sin redirigir.
+Las dos ⚠️ quedan resueltas; nada pendiente de esta spec salvo los follow-ups.
