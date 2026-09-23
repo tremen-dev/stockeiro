@@ -15,23 +15,43 @@ epica: EPIC-MEJORA
 <!-- Un CA está ✅ solo cuando Implementado + Test + Verif. aplicables están en verde. Una salvedad se marca ⚠️, nunca ✅. -->
 | CA | Implementado (fichero) | Test (fichero/caso) | Verif. | Estado |
 |---|---|---|---|---|
-| CA-1 | | | | ❌ |
-| CA-2 | | | | ❌ |
-| CA-3 | | | | ❌ |
-| CA-4 | | | | ❌ |
-| CA-5 | | | | ❌ |
-| CA-6 | | | | ❌ |
-| CA-7 | | | | ❌ |
-| CA-8 | | | | ❌ |
-| CA-9 | | | | ❌ |
-| CA-10 | | | | ❌ |
-| CA-11 | | | | ❌ |
-| CA-12 | | | | ❌ |
-| CA-13 | | | | ❌ |
-| CA-14 | | | | ❌ |
+| CA-1 | | | e2e CA-1 tabla/tarjeta verde (403/403); capturas fila-cuatro-combinaciones-{1280,390} revisadas | ⚠️ |
+| CA-2 | | | unit CA-2 + e2e CA-2 verdes; role=img, sin tabindex, clic inerte | ⚠️ |
+| CA-3 | | | e2e CA-3/CA-4 verde: `<a>` href/target/rel, pestaña interceptada, opener null, origen en /vigiladas | ⚠️ |
+| CA-4 | | | unit CA-4 (con/sin etiqueta, dominio 1 vez, sin URL) + e2e aria-label = title | ⚠️ |
+| CA-5 | | | unit + e2e CA-5: button aria-haspopup=dialog, «3», dialog :modal «Enlaces de Z9VARIOS · BME», 3 en orden, rel ok | ⚠️ |
+| CA-6 | | | e2e CA-6: Escape, Cerrar y activar enlace cierran y devuelven foco a la señal | ⚠️ |
+| CA-7 | | | e2e CA-7 ×2 verdes; geometria.txt y m4-lista-larga.txt (M4 3 posiciones × 8 anchos, M5 sin pequeños ni solapes, tabla 933=933). M1 de la señal no mide a 730–800 (tabla arrastrada, ADR-026 §4) | ⚠️ |
+| CA-8 | | | e2e CA-8: Tab llega a la señal antes que Editar, :focus-visible 2px, Enter abre capa con foco en 1er enlace / abre el enlace | ⚠️ |
+| CA-9 | | | e2e CA-9: 0 clics en manejadores nativos de fila/tarjeta; URL y orden intactos; sin capa de edición | ⚠️ |
+| CA-10 | | | unit CA-10 (9 no / 5 sí, orden, sin segunda lista) + e2e (Z9MALO sin señal, Z9MEZCLA 2 de 3, ningún href no-http) | ⚠️ |
+| CA-11 | | | unit (sin fetch/prefetch/favicon) + e2e CA-11: 0 peticiones a example.com hasta activar; sólo la navegación | ⚠️ |
+| CA-12 | | | `git diff --name-only origin/main...HEAD`: sin schema/migración/acción/ruta; `db:scan` = las 2 de siempre con waiver | ⚠️ |
+| CA-13 | | | FALLO de medida (F-V1): `medirContrasteDeControl` lee mal `color(srgb … / a)`; la fila en zona sale como rgb(15,15,14) en vez de ≈rgb(23,40,28). Estados reposo/hover/foco y suelo 12 px sí verdes | ❌ |
+| CA-14 | | | typecheck ✓, lint ✓, unit 143/2266 ✓, e2e 403/403 ✓ (build con VERCEL_ENV=development y APP_BASE_URL local), version:check 0.9.0→0.10.0 ✓; adaptación SPEC-063 revisada: no afloja | ⚠️ |
 
 ## Veredicto del verificador
 <!-- GREEN/RED + fecha + resumen. Lo escribe SOLO sdd-verificador. -->
+**RED — 2026-09-23 (sdd-verificador).** El comportamiento verifica en el flujo real (e2e completa
+403/403, unit 2266/2266, typecheck y lint verdes), pero se devuelve por dos findings:
+
+- **F-V1 (CA-13) — la medida de contraste no ve el tinte de zona.** `medirContrasteDeControl`
+  (`tests/e2e/geometria.ts`) extrae números con `/[\d.]+/g`; Chromium serializa
+  `color-mix(in srgb, …)` (los fondos `.zone-*`) como `color(srgb 0.29 0.87 0.50 / 0.11)`, en escala
+  0–1, así que el tinte verde se lee como casi negro. Evidencia: `estados-y-contraste.txt` da para la
+  fila de Z9VARIOS (en zona, «donde el contraste se juega de verdad») un fondo rgb(15,15,14), cuando
+  la captura `senales-foco-1280.png` la enseña verde (≈ rgb(23,40,28)). El contraste real estimado
+  (≈ 6,6:1) cumple, pero la guardia no mide el caso que dice medir y daría verde a un tinte que lo
+  rompiera. Acción: parsear `color(srgb r g b / a)` escalando ×255 (o resolver el color con un
+  canvas), afirmar que el fondo de la fila en zona NO es el del lienzo, y regenerar la evidencia.
+  (El mismo parser está en M6 `medirSuperficieDeTexto`: preexistente, fuera de esta spec.)
+- **F-V2 (todos los CA / proceso) — el ledger está roto.** Las filas del implementador se
+  escribieron en la línea 1, antes del `---` del frontmatter, en orden inverso y sin saltos de
+  línea; la matriz quedó con Implementado/Test vacíos. `valida.mjs` falla: «sin frontmatter o sin
+  'id'». Acción: mover esas celdas a sus filas de la matriz y dejar el `---` en la línea 1. Por eso
+  los CA verificados quedan ⚠️ y no ✅.
+
+Menor: el ledger dice 926/926 px de `.table-scroll` a 730–760 y `geometria.txt` dice 933/933.
 
 ## Evidencia visual
 <!-- Tabla CA → captura en _qa/SPEC-067/. Informe HTML opcional: _qa/SPEC-067/informe.html -->

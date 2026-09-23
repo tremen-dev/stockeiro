@@ -2,13 +2,14 @@
 id: SPEC-067
 tipo: spec
 epica: EPIC-MEJORA
-estado: en-revision
+estado: en-progreso
 aprobada-por: humano (Alberto Fojo)
 historial:
   - {estado: borrador, fecha: 2026-09-23, por: sdd-arquitecto}
   - {estado: aprobada, fecha: 2026-09-23, por: humano (Alberto Fojo)}
   - {estado: en-progreso, fecha: 2026-09-23, por: sdd-implementador}
   - {estado: en-revision, fecha: 2026-09-23, por: sdd-implementador}
+  - {estado: en-progreso, fecha: 2026-09-23, por: sdd-verificador}
 ---
 # SPEC-067 — El enlace se abre desde la fila: uno va directo, varios se eligen, y la nota tiene su propia señal
 
