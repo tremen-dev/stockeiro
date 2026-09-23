@@ -487,11 +487,138 @@ dialog.editar-vigilada .card:hover {
    nueve columnas no cabe a 730–760 px y la celda de activo ya es la que identifica la fila.
    Es un glifo pequeño y de bajo contraste a propósito — informa de que hay algo, no compite
    con el estado de zona, que es lo que la pantalla existe para decir. */
-.contexto-senal {
+.nota-senal {
   margin-left: 6px;
-  font-size: .8em;
+  /* SPEC-067 CA-13: `.8em` de los 14 px de la tabla eran 11,2 px, por debajo del suelo de
+     12 de ADR-034 §7. Se queda en `.8em` donde eso ya llega (la tarjeta) y en 12 donde no. */
+  font-size: max(12px, .8em);
   color: var(--fg-dim);
   cursor: default;
+}
+
+/* SPEC-067 — **la señal de enlaces es un CONTROL**, y por eso no hereda el trato de la de
+   nota. La de nota informa y conserva su bajo contraste deliberado; ésta se pulsa, así que
+   su glifo cumple el contraste no textual de 3:1 que WCAG 2.2 SC 1.4.11 pide a un control
+   (`--fg-muted` sobre el fondo más claro de fila da ≈ 6:1), y tiene tres estados que se
+   distinguen: reposo, hover y foco.
+
+   La caja visible es pequeña a propósito —vive pegada al ticker y no puede empujar la
+   tabla de nueve columnas a 730–760 px (CA-7)—, y la diana de 44 px que pide M5 por debajo
+   de 720 px se consigue con un `::after` absoluto (el idioma que M5 sabe medir), no
+   engordando la fila. */
+.enlaces-senal {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+  gap: 3px;
+  vertical-align: middle;
+  margin-left: 6px;
+  height: 22px;
+  min-width: 22px;
+  padding: 0 4px;
+  justify-content: center;
+  border: 1px solid transparent;
+  border-radius: 6px;
+  background: transparent;
+  color: var(--fg-muted);
+  font: 600 12px/1 var(--font-sans);
+  text-decoration: none;
+  cursor: pointer;
+  transition: color .12s ease, border-color .12s ease, background-color .12s ease;
+}
+.enlaces-senal .enlaces-glifo { flex: none; }
+.enlaces-senal:hover {
+  color: var(--accent);
+  border-color: var(--line-strong);
+  background: var(--bg-step);
+}
+/* El mismo anillo que los campos de los formularios (`.auth-form input:focus`): 2 px de
+   `--ember`. Sólo con teclado (`:focus-visible`): un clic no deja un anillo colgando. */
+.enlaces-senal:focus-visible,
+.enlaces-capa-enlace:focus-visible,
+.enlaces-capa .btn-sm:focus-visible {
+  outline: 2px solid var(--ember);
+  outline-offset: 2px;
+}
+
+/* SPEC-067 CA-5 — **la capa de enlaces**. Mismo vehículo y mismas medidas que la de edición
+   (ADR-030 §1): anclada al BORDE INFERIOR de la ventana, `min(520px, 100%)` de ancho, alto
+   acotado con desplazamiento propio, y el velo que atenúa sin ocultar. A diferencia de la
+   de edición, ésta no contiene una tarjeta que ponga la superficie, así que la pone ella
+   (lo que SPEC-064 aprendió a medir: nada se pinta sobre el vacío). */
+dialog.enlaces-capa {
+  position: fixed;
+  inset: auto 0 0 0;
+  width: min(520px, 100%);
+  max-width: 100%;
+  margin: 0 auto;
+  padding: 18px 20px 22px;
+  border: 1px solid var(--line);
+  border-bottom: 0;
+  border-radius: var(--radius-card) var(--radius-card) 0 0;
+  background: var(--bg-elev);
+  color: var(--fg);
+  min-width: 0;
+  max-height: 92dvh;
+  overflow-y: auto;
+  overscroll-behavior: contain;
+}
+dialog.enlaces-capa::backdrop {
+  background: rgba(10, 9, 8, 0.45);
+}
+.enlaces-capa-cabecera {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  flex-wrap: wrap;
+  margin-bottom: 10px;
+  min-width: 0;
+}
+.enlaces-capa-titulo {
+  margin: 0;
+  font: 600 var(--t-body)/1.3 var(--font-sans);
+  min-width: 0;
+  overflow-wrap: anywhere;
+}
+.enlaces-capa-lista {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  min-width: 0;
+}
+/* Cada enlace es una FILA de 44 px como mínimo (ADR-034 §6), con su rótulo y, debajo, su
+   dominio: el rótulo lo escribió el usuario, el dominio es adónde se va de verdad. */
+.enlaces-capa-enlace {
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  gap: 2px;
+  min-height: 44px;
+  padding: 8px 12px;
+  border: 1px solid var(--line);
+  border-radius: var(--radius);
+  color: var(--fg);
+  text-decoration: none;
+  min-width: 0;
+  transition: border-color .12s ease, background-color .12s ease;
+}
+.enlaces-capa-enlace:hover {
+  border-color: var(--line-strong);
+  background: var(--bg-step);
+}
+.enlaces-capa-rotulo {
+  font: 600 var(--t-body-sm)/1.3 var(--font-sans);
+  color: var(--accent);
+  overflow-wrap: anywhere;
+}
+.enlaces-capa-dominio {
+  font: 400 var(--t-caption)/1.3 var(--font-sans);
+  color: var(--fg-muted);
+  overflow-wrap: anywhere;
 }
 
 .contexto-bloque {
@@ -2070,5 +2197,22 @@ td.num .quote-fail, td.num .quote-stale { text-align: right; }
   .symbol-search-input {
     padding-block: 11px;
     font-size: 16px;
+  }
+}
+
+/* SPEC-067 CA-7 — **la diana de la señal de enlaces, por debajo del canto** (M5, ADR-034
+   §6). La caja visible mide 22 × ≥ 22 px; el `::after` la amplía hasta 46 de alto y ≥ 44 de
+   ancho sin mover ni un píxel de la tarjeta. Crece poco hacia la IZQUIERDA —sólo el hueco
+   que la separa de la señal de nota— y más hacia la derecha, donde no hay nada: así un
+   dedo sobre el lápiz no abre los enlaces. Sólo aquí: CE-5 de EPIC-007 dice que el
+   escritorio no paga la factura del móvil. */
+@media (max-width: 720px) {
+  .enlaces-senal::after {
+    content: '';
+    position: absolute;
+    top: -12px;
+    right: -16px;
+    bottom: -12px;
+    left: -6px;
   }
 }
