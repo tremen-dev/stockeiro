@@ -2,10 +2,11 @@
 id: SPEC-066
 tipo: spec
 epica: EPIC-INFRA
-estado: borrador
-aprobada-por:
+estado: aprobada
+aprobada-por: Alberto Fojo (pre-autorizado: tres capas hasta el PR, sin preguntas bloqueantes)
 historial:
   - {estado: borrador, fecha: 2026-09-23, por: sdd-arquitecto}
+  - {estado: aprobada, fecha: 2026-09-23, por: Alberto Fojo (pre-autorizado: tres capas hasta el PR, sin preguntas bloqueantes)}
 ---
 # SPEC-066 — El registro se defiende: campo trampa, BotID y el correo verificado antes de ocupar plaza
 

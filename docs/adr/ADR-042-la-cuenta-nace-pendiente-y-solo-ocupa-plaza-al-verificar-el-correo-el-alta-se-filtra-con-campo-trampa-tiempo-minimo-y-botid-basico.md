@@ -1,9 +1,11 @@
 ---
 id: ADR-042
 tipo: adr
-estado: borrador
+estado: aprobada
 historial:
   - {estado: borrador, fecha: 2026-09-23, por: sdd-arquitecto}
+  - {estado: aprobada, fecha: 2026-09-23, por: Alberto Fojo (pre-autorizado: tres capas hasta el PR, sin preguntas bloqueantes)}
+aprobada-por: Alberto Fojo (pre-autorizado: tres capas hasta el PR, sin preguntas bloqueantes)
 ---
 # ADR-042: La cuenta nace pendiente y solo ocupa plaza al verificar el correo; el alta se filtra con campo trampa, tiempo mínimo y BotID básico
 
