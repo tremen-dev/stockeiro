@@ -6,7 +6,7 @@ epica: EPIC-INFRA
 # Ledger — SPEC-066 El registro se defiende: campo trampa, BotID y el correo verificado antes de ocupar plaza
 
 ## Resumen
-- Fase: **en-revision** — implementada por sdd-implementador el 2026-09-23; pendiente del verificador y de **5 rojos ajenos escalados al gate** (ver handoff)
+- Fase: **en-revision** — implementada por sdd-implementador el 2026-09-23; F-SPEC-066-8/-9 resueltos por el arquitecto y aplicados; batería completa en verde (ver handoff)
 - Rama: `ft/SPEC-066-el-registro-se-defiende`
 
 ## Matriz de criterios de aceptación
@@ -201,4 +201,12 @@ Notas del arquitecto para quien implemente:
 - CA-22 (texto legal) y CA-24 (runbook §15) son **propuestas para el humano**; CA-24 c se mide
   tras mergear. Evidencia visual en `_qa/SPEC-066/` (8 capturas + el HTML del correo).
 - Siguiente paso: sdd-verificador; y el gate humano para F-SPEC-066-8.
+
+**2026-09-23, sdd-implementador (2.ª pasada, tras el refinamiento de CA-25 en `c115f05`)** —
+Aplicados los ptos. 4 y 5 en `8792ddc` (anotados arriba, con sus mutantes). Gates sobre el árbol
+commiteado `8792ddc`: `npm run typecheck` ✅; `npm run lint` ✅; `npm test` **2235/2235** (142
+ficheros); `npm run db:scan` ✅; `npm run build` con los valores de juguete de `ci.yml` ✅;
+`npx playwright test --forbid-only` pasada **completa** **383/383** (11,7 min);
+`npm run version:check` ✅ 0.8.0 → 0.9.0. Capturas ajenas restauradas con `git checkout -- _qa/`.
+Siguiente paso: sdd-verificador.
 
