@@ -9,6 +9,7 @@ historial:
   - {estado: aprobada, fecha: 2026-09-23, por: Alberto Fojo (pre-autorizado: tres capas hasta el PR}
   - {estado: en-progreso, fecha: 2026-09-23, por: sdd-implementador}
   - {estado: en-revision, fecha: 2026-09-23, por: sdd-implementador}
+  - {estado: en-revision, fecha: 2026-09-23, por: sdd-arquitecto (refinamiento post-aprobación: CA-25 ptos. 4 a 7 autorizan los re-encuadres de F-SPEC-066-8/9; ADR-042 sin cambios)}
 ---
 # SPEC-066 — El registro se defiende: campo trampa, BotID y el correo verificado antes de ocupar plaza
 
@@ -316,6 +317,33 @@ Convención de toda la spec: **«respuesta neutra»** es la pantalla de *«revis
   2. los que afirman que tras el alta se llega a `/dashboard` (SPEC-001 CA-1 y los ayudantes
      `registrarYEntrar` del e2e): pasan a afirmar el recorrido de CA-23;
   3. los que afirman que el cupo cuenta **toda** fila de `users` (SPEC-037): pasan a afirmar CA-15.
+  4. **Listas cerradas de dependencias**: `tests/primera-pantalla-fuente.test.ts` › *«las
+     dependencias son EXACTAMENTE las de siempre»* (SPEC-050 CA-20) y `tests/tarjeta-frontera.test.ts`
+     › *«no entra ninguna dependencia»* (SPEC-051): **se añade `botid` a la lista, y sólo
+     `botid`**, con un comentario que cite ADR-042. **Siguen siendo igualdad exacta**: la lista es
+     el sitio donde una dependencia pide permiso, y ADR-042 es ese permiso (mismo mecanismo que
+     SPEC-039 usó con `FEEDBACK_EMAIL` en la lista de `.env.example`). Pasarlas a pertenencia
+     **queda prohibido**: dejaría entrar cualquier dependencia futura sin gate, que es aflojar.
+     `devDependencies` y `scripts` no cambian.
+  5. **Columnas de `users`**: `tests/roles-schema.test.ts` › *«RI-01: el código anterior…»*
+     (SPEC-034): la aserción de columnas **pasa a pertenencia** —las seis de antes (`created_at`,
+     `email`, `id`, `password_changed_at`, `password_hash`, `role`) siguen existiendo—, que es lo
+     que su propio comentario declara vigilar (*«las columnas de antes siguen ahí, con su forma»*).
+     No se afloja nada: RI-01 protege que lo viejo **no se rompa**, y añadir columnas es
+     precisamente lo que RI-01 permite; lo que prohibía la igualdad exacta (*«no hay columna
+     nueva»*) era una foto del día de SPEC-034, no su propiedad. Debe seguir poniéndose rojo si
+     **falta** cualquiera de las seis (el ledger anota el mutante medido: quitar una del esperado
+     real → rojo). La columna nueva la vigila CA-20, no esta guardia.
+  6. **Serie de RN**: `tests/reglas-ingenieria.test.ts` y `tests/reglas-ingenieria-hecho-vivo.test.ts`
+     ganan `RN-19` al final de su lista, **abierto por sdd-arquitecto** en el gate (ADR-025), como
+     RN-16/17/18. No es re-encuadre de la implementación: ya está hecho en la rama.
+  7. **Guardias del borrado que están hechas para crecer** (`F-SPEC-066-9`):
+     `tests/account-deletion-coverage.test.ts` y `tests/account-deletion-neon-http.test.ts` ganan
+     `email_verification_tokens` en el orden del borrado, antes de `users`, y
+     `tests/account-deletion.test.ts` siembra un enlace de activación. **No es un re-encuadre**:
+     es la guardia pidiendo lo que tiene que pedir cuando nace una tabla con dueño (ADR-022),
+     con precedente en SPEC-063. Queda autorizado **siempre que sólo se añada** (ninguna tabla
+     sale del orden, ningún orden cambia, ninguna fila sembrada se quita).
   Cualquier otro `expect` ajeno que se ponga rojo **no se re-encuadra en la rama**: se escala al
   gate. Se comprueba en el gate con el diff (ADR-031/ADR-037), no con una guardia congelada.
 

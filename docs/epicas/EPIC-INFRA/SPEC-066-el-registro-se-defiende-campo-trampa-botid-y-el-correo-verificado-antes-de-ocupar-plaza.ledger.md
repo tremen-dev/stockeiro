@@ -94,12 +94,30 @@ Levantados por sdd-implementador (2026-09-23):
      precedente del propio fichero dice que *«el hueco lo abre el arquitecto al aprobar»*.
   *Destino*: gate humano / sdd-arquitecto. Propuesta: 1–3 re-encuadrar a pertenencia
   (*«éstas siguen»*) y 4–5 añadir `RN-19` como hicieron RN-16/17/18.
+  ↳ **Resuelto por sdd-arquitecto el 2026-09-23 (refinamiento post-aprobación de CA-25, pts.
+  4–6; ADR-042 sin cambios).** 1 y 2: **se añade `botid`** a las dos listas y siguen siendo
+  igualdad exacta —pertenencia dejaría entrar cualquier dependencia futura sin gate, que es
+  aflojar; la lista es el sitio donde se pide permiso y ADR-042 es el permiso—. 3: **pasa a
+  pertenencia** de las seis columnas previas, que es la propiedad que su comentario declara
+  (RI-01: lo viejo no se rompe; añadir columnas es lo que RI-01 permite). 4 y 5: **hueco de RN-19
+  abierto por el arquitecto** en los dos ficheros (hecho en la rama; los dos en verde). Queda al
+  implementador aplicar 1–3 y anotar aquí qué vigilaba antes y qué vigila ahora cada uno, con el
+  mutante de 3 (quitar una columna previa del esperado real → rojo).
 - **F-SPEC-066-9 — Extensiones de guardias ajenas diseñadas para crecer, hechas en la rama.**
   `tests/account-deletion-coverage.test.ts` y `tests/account-deletion-neon-http.test.ts` llevan
   el orden literal del borrado: se añade `email_verification_tokens` (antes vigilaban el orden
   de ADR-022 con 8 tablas; ahora, el mismo con 9). `tests/account-deletion.test.ts` siembra una
   fila más. Es lo que esos tests piden al añadir una tabla con dueño (precedente SPEC-063), pero
   no está en la lista de CA-25: el verificador decide si lo acepta o lo escala.
+  ↳ **Aceptado por sdd-arquitecto el 2026-09-23** (CA-25 pto. 7): no es un re-encuadre sino la
+  guardia funcionando —ADR-022 exige que todo lo propio caiga y la tabla nueva es propia—.
+  Revisado el diff: sólo añade (una tabla antes de `users` en los dos órdenes y una fila de
+  siembra); no quita ni reordena nada.
+- **F-SPEC-066-12 — Dos copias de la misma lista cerrada de dependencias.** SPEC-050
+  (`primera-pantalla-fuente`) y SPEC-051 (`tarjeta-frontera`) congelan cada una la lista entera
+  de `dependencies`: añadir una dependencia aprobada obliga a tocar dos tests de dos specs
+  ajenas, que es el arrastre de la 3.ª convención de FOUNDATION. *Destino*: EPIC-FIX, junto a
+  `F-SPEC-051-1` y `F-SPEC-066-4` (una sola lista, con un único dueño).
 - **F-SPEC-066-10 — Ruido en el log fuera de Vercel.** La vía de desarrollo de `checkBotId`
   escribe *«Possible misconfiguration of Vercel BotId»* por `console.error` en cada alta del
   e2e/local (la librería, no nuestro código). Inocuo; se ve en los logs del e2e. *Destino*:

@@ -216,6 +216,10 @@ describe('SPEC-028 CA-14.3: alcance estricto — nada más se mueve', () => {
       // arquitecto al aprobar (ADR-025)—, y con la cautela de que la medida NO dispara ni
       // recomienda: es una resta sobre RN-11 y RN-12, no un criterio (D-4).
       'RN-18',
+      // SPEC-066 / ADR-042, gate humano del 2026-09-23: «La cuenta cuenta cuando su correo
+      // está verificado». De dominio —define quién entra, ocupa plaza y recibe correo—, y su
+      // hueco lo abre el arquitecto al aprobar (ADR-025), como el de las tres de arriba.
+      'RN-19',
     ]);
   });
 
