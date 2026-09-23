@@ -1,5 +1,5 @@
 SPEC-067 CA-13
-tabla · contraste del glifo: 7.69:1 sobre rgb(17, 17, 16) · 7.69:1 sobre rgb(17, 17, 16) · 7.72:1 sobre rgb(15, 15, 14)
+tabla · lienzo rgb(17, 17, 16) · contraste del glifo: 7.43:1 sobre rgb(24, 24, 23) (zone-out) · 7.43:1 sobre rgb(24, 24, 23) (zone-out) · 6.56:1 sobre rgb(29, 43, 34) (zone-buy)
 tabla · reposo {"color":"rgba(245, 241, 234, 0.66)","background-color":"rgba(0, 0, 0, 0)","border-top-color":"rgba(0, 0, 0, 0)","outline-style":"none"} · hover {"color":"rgba(255, 107, 0, 1)","background-color":"rgba(34, 31, 26, 1)","border-top-color":"rgba(61, 54, 44, 1)","outline-style":"none"} · foco {"color":"rgba(254, 122, 27, 0.945)","background-color":"rgba(34, 31, 26, 0.835)","border-top-color":"rgba(61, 54, 44, 0.835)","outline-style":"solid"}
-tarjeta · contraste del glifo: 7.69:1 sobre rgb(17, 17, 16) · 7.69:1 sobre rgb(17, 17, 16) · 7.72:1 sobre rgb(15, 15, 14)
+tarjeta · lienzo rgb(17, 17, 16) · contraste del glifo: 7.43:1 sobre rgb(24, 24, 23) (zone-out) · 7.43:1 sobre rgb(24, 24, 23) (zone-out) · 6.56:1 sobre rgb(29, 43, 34) (zone-buy)
 tarjeta · reposo {"color":"rgba(245, 241, 234, 0.66)","background-color":"rgba(0, 0, 0, 0)","border-top-color":"rgba(0, 0, 0, 0)","outline-style":"none"} · hover {"color":"rgba(255, 107, 0, 1)","background-color":"rgba(34, 31, 26, 1)","border-top-color":"rgba(61, 54, 44, 1)","outline-style":"none"} · foco {"color":"rgb(255, 107, 0)","background-color":"rgb(34, 31, 26)","border-top-color":"rgb(61, 54, 44)","outline-style":"solid"}
