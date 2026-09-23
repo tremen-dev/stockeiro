@@ -6,7 +6,7 @@ epica: EPIC-MEJORA
 # Ledger — SPEC-065 Stockeiro se deja encontrar: la portada en buscadores, lo privado fuera
 
 ## Resumen
-- Fase: **en-revision** — implementada por sdd-implementador el 2026-09-23; pendiente de sdd-verificador
+- Fase: **hecho** — implementada por sdd-implementador y verificada GREEN por sdd-verificador el 2026-09-23
 - Rama: `ft/SPEC-065-stockeiro-se-deja-encontrar`
 
 ## Matriz de criterios de aceptación
@@ -15,23 +15,53 @@ epica: EPIC-MEJORA
 <!-- Un CA está ✅ solo cuando Implementado + Test + Verif. aplicables están en verde. Una salvedad se marca ⚠️, nunca ✅. -->
 | CA | Implementado (fichero) | Test (fichero/caso) | Verif. | Estado |
 |---|---|---|---|---|
-| CA-1 | `src/lib/seo/indexables.ts` (`RUTAS_INDEXABLES`, `metadatosIndexables`) | `tests/spec065-indexables.test.ts` — lista válida; especímenes `/dashboard`, `/cuenta`, vacía, sin `/` (cazan) y `[/, /ayuda]` (no caza); grafo de imports puro + mutación con `next` y `@/db/client` | | ❌ |
-| CA-2 | `src/app/layout.tsx` (`robots: { index: false, follow: true }`) | `tests/e2e/spec065-buscadores.spec.ts` «CA-2 y CA-4: páginas públicas fuera de la lista» (universo derivado de `src/app/`, sin cookies) y «páginas privadas, con sesión» (`RUTAS_CON_SESION` + `RUTAS_CON_POSICIONES`); centinela «CA-2: el universo…»; comprobación puesta roja en `tests/spec065-html.test.ts` (CA-2) | | ❌ |
-| CA-3 | `src/app/page.tsx`, `src/app/ayuda/page.tsx` (`...metadatosIndexables(ruta)`) | `tests/e2e/spec065-buscadores.spec.ts` «CA-3 y CA-4: lo que está en la lista»; especímenes en `tests/spec065-html.test.ts` (CA-3) | | ❌ |
-| CA-4 | `src/app/layout.tsx` (sin `canonical`), `src/lib/seo/indexables.ts` | `tests/e2e/spec065-buscadores.spec.ts` (los tres bloques CA-2/CA-3 aplican `problemasDeCanonical`); especímenes en `tests/spec065-html.test.ts` (CA-4: canonical del layout heredado caza; sin canonical no caza) | | ❌ |
-| CA-5 | `src/app/robots.ts` | `tests/spec065-robots.test.ts` — ruta real con identidad simulada: `production` y `preview`/`development`/`unknown`; identidad vs `VERCEL_ENV` en los dos sentidos; origen de `APP_BASE_URL`; fuente sin `process.env` ni `next/headers` | | ❌ |
-| CA-6 | `src/lib/auth/guard.ts` (`CRAWLER_PATHS`, `isCrawlerPath`), `src/proxy.ts`, `src/app/robots.ts`, `src/app/sitemap.ts` | `tests/e2e/spec065-buscadores.spec.ts` «CA-6» (200, tipo, sin `authjs.*`; cuerpo de no producción) | | ❌ |
-| CA-7 | `src/lib/auth/guard.ts`, `src/proxy.ts` (matcher y `PUBLIC_PREFIXES` intactos) | `tests/spec065-rutas-de-rastreador.test.ts` | | ❌ |
-| CA-8 | `src/app/sitemap.ts` | `tests/e2e/spec065-buscadores.spec.ts` «CA-8»; lectura de `<loc>` y campos inventados en `tests/spec065-html.test.ts` (CA-8) | | ❌ |
-| CA-9 | sin cambio de código: `src/app/page.tsx`, `src/app/app-footer.tsx` ya lo servían | `tests/e2e/spec065-buscadores.spec.ts` «CA-9» (`request`, sin JS; constantes importadas) | | ❌ |
-| CA-10 | `docs/despliegue.md` §14 | n-a — prosa, se verifica en el gate leyendo (ADR-040) | | ❌ |
-| CA-11 | `package.json` y `package-lock.json` 0.7.1 → 0.8.0 (MINOR) | `npm test` y `npx playwright test` completos; ningún `expect` ajeno tocado (ver handoff) | | ❌ |
+| CA-1 | `src/lib/seo/indexables.ts` (`RUTAS_INDEXABLES`, `metadatosIndexables`) | `tests/spec065-indexables.test.ts` — lista válida; especímenes `/dashboard`, `/cuenta`, vacía, sin `/` (cazan) y `[/, /ayuda]` (no caza); grafo de imports puro + mutación con `next` y `@/db/client` | Vitest verde; mutante (añadir `/dashboard` a la lista) → rojo en «la lista real es válida»; grafo puro con espécimen `next`/`@/db/client` que caza | ✅ |
+| CA-2 | `src/app/layout.tsx` (`robots: { index: false, follow: true }`) | `tests/e2e/spec065-buscadores.spec.ts` «CA-2 y CA-4: páginas públicas fuera de la lista» (universo derivado de `src/app/`, sin cookies) y «páginas privadas, con sesión» (`RUTAS_CON_SESION` + `RUTAS_CON_POSICIONES`); centinela «CA-2: el universo…»; comprobación puesta roja en `tests/spec065-html.test.ts` (CA-2) | e2e verde (11 públicas derivadas del árbol, incl. `/legal/*`, + privadas con sesión); mutante (quitar `robots` del layout) → 11 rojos «no lleva <meta name=robots>»; página pública nueva sin opt-in (`/legal/prueba-verificador`) entra sola en el universo y sale `noindex, follow`; `curl` a `/login` con UA Googlebot y curl: `noindex, follow` | ✅ |
+| CA-3 | `src/app/page.tsx`, `src/app/ayuda/page.tsx` (`...metadatosIndexables(ruta)`) | `tests/e2e/spec065-buscadores.spec.ts` «CA-3 y CA-4: lo que está en la lista»; especímenes en `tests/spec065-html.test.ts` (CA-3) | e2e verde; `curl` sobre `next start`: `/` → `index, follow` + un canonical `http://localhost:3200`, `/ayuda` → `index, follow` + canonical `…/ayuda`; espécimen «noindex heredado» y «otro origen» cazan en unitario | ✅ |
+| CA-4 | `src/app/layout.tsx` (sin `canonical`), `src/lib/seo/indexables.ts` | `tests/e2e/spec065-buscadores.spec.ts` (los tres bloques CA-2/CA-3 aplican `problemasDeCanonical`); especímenes en `tests/spec065-html.test.ts` (CA-4: canonical del layout heredado caza; sin canonical no caza) | mutante (`alternates.canonical: '/'` en el layout raíz) → 11 rojos «canonical apunta a …/ y la página es …» en públicas y privadas; `/ayuda` lo sustituye por el suyo (su espécimen heredado caza en `spec065-html.test.ts`) | ✅ |
+| CA-5 | `src/app/robots.ts` | `tests/spec065-robots.test.ts` — ruta real con identidad simulada: `production` y `preview`/`development`/`unknown`; identidad vs `VERCEL_ENV` en los dos sentidos; origen de `APP_BASE_URL`; fuente sin `process.env` ni `next/headers` | Vitest verde sobre `src/app/robots.ts` real; mutante (`!== 'production'` → `=== 'preview'`) → rojos en `development` y `unknown`; build de e2e prerenderiza `User-Agent: * / Disallow: /` | ✅ |
+| CA-6 | `src/lib/auth/guard.ts` (`CRAWLER_PATHS`, `isCrawlerPath`), `src/proxy.ts`, `src/app/robots.ts`, `src/app/sitemap.ts` | `tests/e2e/spec065-buscadores.spec.ts` «CA-6» (200, tipo, sin `authjs.*`; cuerpo de no producción) | e2e verde; `curl` sin cookies: `/robots.txt` 200 `text/plain`, `/sitemap.xml` 200 `application/xml`, sin `Set-Cookie`; mutante (quitar `isCrawlerPath` del proxy) → los dos 307 | ✅ |
+| CA-7 | `src/lib/auth/guard.ts`, `src/proxy.ts` (matcher y `PUBLIC_PREFIXES` intactos) | `tests/spec065-rutas-de-rastreador.test.ts` | Vitest verde; mutante (`includes` → `startsWith`) → rojos en `/robots.txtx`, `/sitemap.xml/x`, `/sitemap.xmlx`; en el build real `/robots.txtx`, `/sitemap.xml/x`, `/sitemap.xmlx`, `/robots`, `/ROBOTS.TXT` → 307 a `/login`; `/robots.txt/` → 308 a `/robots.txt`; matcher y `PUBLIC_PREFIXES` sin diff | ✅ |
+| CA-8 | `src/app/sitemap.ts` | `tests/e2e/spec065-buscadores.spec.ts` «CA-8»; lectura de `<loc>` y campos inventados en `tests/spec065-html.test.ts` (CA-8) | e2e verde; cuerpo real: dos `<loc>` absolutos (`/`, `/ayuda`) sobre `APP_BASE_URL`, nada más; mutante (`lastModified`) → rojo | ✅ |
+| CA-9 | sin cambio de código: `src/app/page.tsx`, `src/app/app-footer.tsx` ya lo servían | `tests/e2e/spec065-buscadores.spec.ts` «CA-9» (`request`, sin JS; constantes importadas) | e2e verde (`request`, sin JS, constantes importadas); guardias de SPEC-039/050 sin diff y en verde en `npm test` | ✅ |
+| CA-10 | `docs/despliegue.md` §14 | n-a — prosa, se verifica en el gate leyendo (ADR-040) | leído: §14.1 (a) curl de `/robots.txt`, `/sitemap.xml` y canonical de la portada; §14.2 (b) Preview SSO + `X-Robots-Tag: noindex` con fecha 2026-09-23; §14.3 (c) alias `stockeiro-lemon` y canonical; §14.4 (d) Search Console por DNS de `tremen.dev` + envío del sitemap como tarea humana | ✅ |
+| CA-11 | `package.json` y `package-lock.json` 0.7.1 → 0.8.0 (MINOR) | `npm test` y `npx playwright test` completos; ningún `expect` ajeno tocado (ver handoff) | `npm test` 132/2132 verde; build con variables de juguete del job E2E + `npx playwright test` 371/371 verde; `git diff origin/main...HEAD -- tests` sólo añade ficheros `spec065*` (0 expects ajenos tocados); `npm run version:check` 0.7.1 → 0.8.0 sobre árbol commiteado | ✅ |
 
 ## Veredicto del verificador
 <!-- GREEN/RED + fecha + resumen. Lo escribe SOLO sdd-verificador. -->
 
+**GREEN — 2026-09-23, sdd-verificador.** 11/11 CA cerrados, sobre el árbol commiteado de
+`ft/SPEC-065-stockeiro-se-deja-encontrar` (HEAD `b50c6de` al verificar).
+
+- Gates: `npm run typecheck` OK · `npm run lint` OK · `npm test` 132 ficheros / 2132 tests OK ·
+  `npm run build` con `DATABASE_URL`/`AUTH_SECRET`/`AUTH_TRUST_HOST`/`APP_BASE_URL` de juguete
+  del job E2E · `npx playwright test` 371/371 OK (19 de SPEC-065) · `npm run version:check`
+  0.7.1 → 0.8.0.
+- Mutaciones (todas revertidas, ninguna commiteada), cada una puso rojo su test:
+  `isCrawlerPath` por prefijo (CA-7); `robots.ts` sólo veta `preview` (CA-5); `/dashboard` en
+  `RUTAS_INDEXABLES` (CA-1); `canonical` en el layout raíz (CA-4, 11 rojos); `lastModified` en
+  el sitemap (CA-8); sin `robots` en el layout (CA-2, 11 rojos); sin `isCrawlerPath` en el
+  proxy (CA-6, 307 en los dos).
+- Caso borde medido en el build real (`next start`, sin cookies): `/robots.txtx`,
+  `/sitemap.xml/x`, `/sitemap.xmlx`, `/robots`, `/ROBOTS.TXT` → `307 → /login`;
+  `/robots.txt?x=1` → 200; `/robots.txt/` → `308 → /robots.txt` (normalización de Next).
+- Página pública nueva sin opt-in (`src/app/legal/prueba-verificador/page.tsx`, temporal): el
+  universo de CA-2 la recogió sola y se sirvió con `noindex, follow`.
+- Entorno no producción: el e2e (`unknown`) sirve `Disallow: /` sin `Allow` ni `Sitemap`; la
+  rama de producción, en unitario sobre la ruta real.
+
+Observación no bloqueante: `/robots.txt` y `/sitemap.xml` se prerenderizan en build (`○`), así
+que la identidad y `APP_BASE_URL` que sirven son las del build. Es coherente con D-4 (identidad
+horneada en build) y el layout ya exigía `APP_BASE_URL` en build (`metadataBase`), de modo que
+no añade requisito nuevo a los Preview.
+
 ## Evidencia visual
 <!-- Tabla CA → captura en _qa/SPEC-065/. Informe HTML opcional: _qa/SPEC-065/informe.html -->
+
+n-a: SPEC-065 no cambia nada visible en pantalla. La evidencia es de respuesta HTTP (estado,
+cabeceras, `<meta name="robots">`, `<link rel="canonical">`, cuerpos de `robots.txt` y
+`sitemap.xml`), recogida con `request` en el e2e y con `curl` contra `next start`; ver el
+veredicto.
 
 ## Salvedades / follow-ups
 <!-- IDs F-SPEC-065-1, F-SPEC-065-2… con destino (spec futura o EPIC-MEJORA). -->
