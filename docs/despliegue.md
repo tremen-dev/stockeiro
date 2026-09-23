@@ -1239,3 +1239,62 @@ Dos razones distintas, cada una con su paso:
 - **`ALLOW_MIGRATE` va antes de conectar** (#3 antes que #4) porque la guardia es *fail-closed*:
   conectar el repositorio sin esa variable deja **todas** las previews en rojo desde el primer
   minuto. Es el comportamiento correcto, pero conviene que sea una decisión y no una sorpresa.
+
+## 14. Buscadores: que la portada se deje encontrar (SPEC-065)
+
+Desde SPEC-065 la app sirve `/robots.txt` y `/sitemap.xml`, declara `noindex` **por defecto**
+en todas las páginas y sólo lo levanta —con su `<link rel="canonical">`— en las rutas de
+`RUTAS_INDEXABLES` (`src/lib/seo/indexables.ts`). Qué se indexa lo dice esa lista, no este
+documento: el sitemap sale de ella.
+
+### 14.1 Comprobación tras mergear (mergear es desplegar, ADR-018)
+
+Sin cookies, contra el dominio:
+
+```bash
+curl -sI https://stockeiro.tremen.dev/robots.txt   # 200, content-type text/plain
+curl -s  https://stockeiro.tremen.dev/robots.txt   # Allow: /, Disallow: /api/ y la línea Sitemap:
+curl -sI https://stockeiro.tremen.dev/sitemap.xml  # 200, content-type application/xml
+curl -s  https://stockeiro.tremen.dev/sitemap.xml  # un <loc> absoluto por ruta indexable, y nada más
+curl -s  https://stockeiro.tremen.dev/        # en el <head>: exactamente un <link rel="canonical">
+#   con href sobre https://stockeiro.tremen.dev (con o sin barra final) y robots "index, follow"
+curl -s  https://stockeiro.tremen.dev/login   # en el <head>: <meta name="robots" content="noindex, follow">
+```
+
+Si `/robots.txt` o `/sitemap.xml` responden `307 → /login`, el proxy las está tratando como
+privadas: la excepción vive en `CRAWLER_PATHS` de `src/lib/auth/guard.ts`. Si `/robots.txt`
+dice `Disallow: /` en producción, el build no se hizo con `VERCEL_ENV=production`: quien manda es
+la identidad del despliegue (`/api/version`, campo `environment`), no el dominio.
+
+El resultado de esta comprobación se pega en el ledger de SPEC-065.
+
+### 14.2 Los Preview ya se esconden solos (medido el 2026-09-23)
+
+Dos despliegues de Preview respondieron `302` al SSO de Vercel (*Deployment Protection*) **con**
+`X-Robots-Tag: noindex`, también en `/robots.txt`. Es Vercel, no código nuestro. SPEC-065 añade
+una tercera capa: fuera de `production`, `robots.txt` responde `Disallow: /`. Si un día se
+desactivara la protección de los Preview, seguirían sin dejarse rastrear.
+
+### 14.3 `stockeiro-lemon.vercel.app` sirve producción
+
+Es un alias de **producción** (`VERCEL_ENV=production`): medido el 2026-09-23, `200` y sin
+`X-Robots-Tag`. Recibe el mismo `robots.txt` permisivo que el dominio. Lo que lo neutraliza como
+duplicado es el `canonical`: cada página indexable declara como suya la URL sobre
+`APP_BASE_URL`, que es el dominio, así que el buscador consolida en `stockeiro.tremen.dev`.
+Quitarlo del todo es una acción **manual** en el panel de Vercel (redirigir el alias al dominio o
+retirarlo) → `F-SPEC-065-4`.
+
+### 14.4 Google Search Console — tarea humana (`F-SPEC-065-3`)
+
+Requiere acceso al DNS de `tremen.dev` y a la cuenta de Google del titular; no lo hace un agente.
+
+1. En Search Console, **Añadir propiedad → Dominio** → `tremen.dev`.
+2. Copiar el registro **TXT** que propone Google y crearlo en el DNS de `tremen.dev`. Esperar a
+   que propague y pulsar **Verificar**. La verificación es por DNS: no toca ninguna página ni
+   añade un `<meta>` ni un script (y por eso `/legal/privacidad` no cambia).
+3. **Sitemaps** → enviar `https://stockeiro.tremen.dev/sitemap.xml`.
+4. **Inspección de URLs** → `https://stockeiro.tremen.dev/` → **Solicitar indexación**.
+
+Orden recomendado en el gate de SPEC-065: hacer antes el anti-abuso del alta (`F-SPEC-065-1`);
+no es bloqueante —el cupo de cuentas limita el daño a *aforo*, no a coste—, pero es lo barato de
+hacer antes de que llegue tráfico.

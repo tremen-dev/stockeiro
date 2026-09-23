@@ -3,6 +3,7 @@ import Link from 'next/link';
 import { redirect } from 'next/navigation';
 import { tieneSesion } from '@/lib/auth/public-session';
 import { CADENCIA_LINEA, QUE_HACE, QUE_NO_HACE } from '@/lib/help/content';
+import { metadatosIndexables } from '@/lib/seo/indexables';
 
 /*
  * La descripción es `QUE_HACE`, la MISMA constante que se renderiza abajo, y no una
@@ -15,6 +16,9 @@ import { CADENCIA_LINEA, QUE_HACE, QUE_NO_HACE } from '@/lib/help/content';
 export const metadata: Metadata = {
   title: 'Stockeiro — vigila tus zonas de compra y venta',
   description: QUE_HACE,
+  // SPEC-065 D-1: la portada está en la lista de indexables; sustituye el `noindex` del
+  // layout y declara su `canonical`, derivados de la misma lista que el sitemap.
+  ...metadatosIndexables('/'),
 };
 
 /**

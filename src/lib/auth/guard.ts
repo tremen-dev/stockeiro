@@ -55,6 +55,26 @@ export function isPublicPath(pathname: string): boolean {
 }
 
 /**
+ * Rutas de rastreador (SPEC-065 D-5): `robots.txt` y `sitemap.xml`. Segunda lista de
+ * excepciones a RN-03, con una semántica distinta a la de arriba, y por eso separada:
+ *
+ * - **No son páginas.** `PUBLIC_PREFIXES` es la lista de páginas exentas de sesión; meter
+ *   aquí dos ficheros de texto la desdibujaría, igual que habría hecho con los estáticos.
+ * - **Emparejan EXACTO, no por prefijo.** Por prefijo, `/sitemap.xml/lo-que-sea` quedaría
+ *   abierto; aquí sólo abre la ruta tal cual.
+ *
+ * Quien las pide es un rastreador, sin cookies: dentro del `matcher` de `src/proxy.ts` y
+ * sin esta excepción saldrían redirigidas a `/login` —el mismo fallo silencioso que mordió
+ * al icono (SPEC-047) y a la tarjeta social (SPEC-051)— y estamparían `authjs.*`. Ninguna
+ * devuelve un dato de usuario. El matcher no se toca (`F-SPEC-051-1`).
+ */
+export const CRAWLER_PATHS: readonly string[] = ['/robots.txt', '/sitemap.xml'];
+
+export function isCrawlerPath(pathname: string): boolean {
+  return CRAWLER_PATHS.includes(pathname);
+}
+
+/**
  * CA-5: sin sesión en ruta no pública -> redirige a login.
  * CA-7: tras cerrar sesión, la sesión efectiva es null -> vuelve a exigir login.
  */

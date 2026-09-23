@@ -1,5 +1,6 @@
 import type { Metadata } from 'next';
 import Link from 'next/link';
+import { metadatosIndexables } from '@/lib/seo/indexables';
 import {
   AVISOS,
   CADENCIA,
@@ -19,6 +20,9 @@ export const metadata: Metadata = {
   description:
     'Qué es una zona, cuándo dispara, cuándo llega el aviso, cada cuánto se actualizan los ' +
     'precios y qué mercados hay detrás.',
+  // SPEC-065 D-1: la ayuda está en la lista de indexables; sustituye el `noindex` del
+  // layout y declara su `canonical`, derivados de la misma lista que el sitemap.
+  ...metadatosIndexables('/ayuda'),
 };
 
 /**
