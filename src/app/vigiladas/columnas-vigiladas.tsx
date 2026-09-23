@@ -9,8 +9,9 @@ import {
 } from '@/lib/watchlist/acercamiento';
 import type { ZoneStatusView, ZoneState } from '@/lib/watchlist/zone-status';
 import type { DireccionOrden } from '@/lib/watchlist/sort';
-import { textoDeContexto } from '@/lib/contexto/senal';
-import { tieneContexto, type ContextoDeSimbolo } from '@/lib/contexto/service';
+import { textoDeSenalDeNota } from '@/lib/contexto/senal';
+import type { ContextoDeSimbolo } from '@/lib/contexto/service';
+import { EnlacesSenal } from '../_components/enlaces-senal';
 import { asa, type Columna } from '../columnas';
 import { removeAction } from './actions';
 
@@ -81,30 +82,46 @@ export function columnasDeVigiladas(ctx: ContextoVigiladas): Columna<ZoneStatusV
         // ni el `exchange`, ni el ticker repetido: el elemento no se pinta.
         const nombre = (r.name ?? '').trim();
         const contexto = ctx.contextos?.[r.symbolId];
+        const notaSenal = contexto ? textoDeSenalDeNota(contexto) : null;
+        // El activo se nombra igual que en la capa de edición: ticker y mercado, porque el
+        // mismo ticker en dos mercados son dos filas (ADR-007).
+        const mercado = marketName(r.micCode);
+        const activo = mercado !== '' ? `${r.ticker} · ${mercado}` : r.ticker;
         return (
           <div className="activo-caja">
             <span className="ticker">
               {r.ticker}
               {/*
-                SPEC-063 CA-9/CA-10 — **la señal de que esta acción lleva contexto**, en la
-                celda que ya identifica la fila y NO en una columna nueva: la tabla de nueve
-                columnas no cabe a 730–760 px (mismo motivo que la barra de SPEC-062).
+                SPEC-063 CA-9/CA-10, partido en dos por SPEC-067 — **las señales de que esta
+                acción lleva contexto**, en la celda que ya identifica la fila y NO en una
+                columna nueva: la tabla de nueve columnas no cabe a 730–760 px (mismo motivo
+                que la barra de SPEC-062).
 
-                No la lleva el color ni la forma sola: es un `role="img"` con su frase
-                entera, y el glifo va `aria-hidden` porque quien escucha no ve un clip.
+                La de NOTA es información: un `role="img"` con su frase entera, fuera del
+                orden de tabulación y sin manejador. El glifo va `aria-hidden` porque quien
+                escucha no ve un lápiz.
+
+                La de ENLACES es un control (`EnlacesSenal`): con uno, abre ese enlace; con
+                varios, la lista. Va DESPUÉS de la nota y, en el orden del documento, antes
+                de *Editar* (SPEC-067 CA-8).
               */}
-              {contexto && tieneContexto(contexto) && (
+              {notaSenal !== null && (
                 <span
-                  className="contexto-senal"
-                  data-testid={asa('contexto-senal', forma)}
-                  data-nota={contexto.note !== null ? 'true' : undefined}
-                  data-enlaces={contexto.enlaces.length}
+                  className="nota-senal"
+                  data-testid={asa('nota-senal', forma)}
                   role="img"
-                  aria-label={textoDeContexto(contexto)}
-                  title={textoDeContexto(contexto)}
+                  aria-label={notaSenal}
+                  title={notaSenal}
                 >
                   <span aria-hidden="true">✎</span>
                 </span>
+              )}
+              {contexto && (
+                <EnlacesSenal
+                  enlaces={contexto.enlaces}
+                  activo={activo}
+                  testid={asa('enlaces-senal', forma)}
+                />
               )}
             </span>
             {nombre !== '' && (

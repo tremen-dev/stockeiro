@@ -1,0 +1,25 @@
+SPEC-067 CA-7 — M4 en lista larga
+360 px · fila primera (0) de 25 → dialog.enlaces-capa[data-testid="enlaces-capa"]: top=534 bottom=800 (alto 266) sobre una ventana de 800 px · dentro de la ventana · desplazamiento del documento 0 → 0
+360 px · fila intermedia (12) de 25 → dialog.enlaces-capa[data-testid="enlaces-capa"]: top=534 bottom=800 (alto 266) sobre una ventana de 800 px · dentro de la ventana · desplazamiento del documento 4201 → 4201
+360 px · fila última (24) de 25 → dialog.enlaces-capa[data-testid="enlaces-capa"]: top=534 bottom=800 (alto 266) sobre una ventana de 800 px · dentro de la ventana · desplazamiento del documento 8268 → 8268
+390 px · fila primera (0) de 25 → dialog.enlaces-capa[data-testid="enlaces-capa"]: top=578 bottom=844 (alto 266) sobre una ventana de 844 px · dentro de la ventana · desplazamiento del documento 0 → 0
+390 px · fila intermedia (12) de 25 → dialog.enlaces-capa[data-testid="enlaces-capa"]: top=578 bottom=844 (alto 266) sobre una ventana de 844 px · dentro de la ventana · desplazamiento del documento 4185 → 4185
+390 px · fila última (24) de 25 → dialog.enlaces-capa[data-testid="enlaces-capa"]: top=578 bottom=844 (alto 266) sobre una ventana de 844 px · dentro de la ventana · desplazamiento del documento 8252 → 8252
+640 px · fila primera (0) de 25 → dialog.enlaces-capa[data-testid="enlaces-capa"]: top=634 bottom=900 (alto 266) sobre una ventana de 900 px · dentro de la ventana · desplazamiento del documento 0 → 0
+640 px · fila intermedia (12) de 25 → dialog.enlaces-capa[data-testid="enlaces-capa"]: top=634 bottom=900 (alto 266) sobre una ventana de 900 px · dentro de la ventana · desplazamiento del documento 3989 → 3989
+640 px · fila última (24) de 25 → dialog.enlaces-capa[data-testid="enlaces-capa"]: top=634 bottom=900 (alto 266) sobre una ventana de 900 px · dentro de la ventana · desplazamiento del documento 8056 → 8056
+700 px · fila primera (0) de 25 → dialog.enlaces-capa[data-testid="enlaces-capa"]: top=634 bottom=900 (alto 266) sobre una ventana de 900 px · dentro de la ventana · desplazamiento del documento 0 → 0
+700 px · fila intermedia (12) de 25 → dialog.enlaces-capa[data-testid="enlaces-capa"]: top=634 bottom=900 (alto 266) sobre una ventana de 900 px · dentro de la ventana · desplazamiento del documento 3989 → 3989
+700 px · fila última (24) de 25 → dialog.enlaces-capa[data-testid="enlaces-capa"]: top=634 bottom=900 (alto 266) sobre una ventana de 900 px · dentro de la ventana · desplazamiento del documento 8056 → 8056
+730 px · fila primera (0) de 25 → dialog.enlaces-capa[data-testid="enlaces-capa"]: top=649 bottom=900 (alto 251) sobre una ventana de 900 px · dentro de la ventana · desplazamiento del documento 0 → 0
+730 px · fila intermedia (12) de 25 → dialog.enlaces-capa[data-testid="enlaces-capa"]: top=649 bottom=900 (alto 251) sobre una ventana de 900 px · dentro de la ventana · desplazamiento del documento 1166 → 1166
+730 px · fila última (24) de 25 → dialog.enlaces-capa[data-testid="enlaces-capa"]: top=649 bottom=900 (alto 251) sobre una ventana de 900 px · dentro de la ventana · desplazamiento del documento 2322 → 2322
+760 px · fila primera (0) de 25 → dialog.enlaces-capa[data-testid="enlaces-capa"]: top=649 bottom=900 (alto 251) sobre una ventana de 900 px · dentro de la ventana · desplazamiento del documento 0 → 0
+760 px · fila intermedia (12) de 25 → dialog.enlaces-capa[data-testid="enlaces-capa"]: top=649 bottom=900 (alto 251) sobre una ventana de 900 px · dentro de la ventana · desplazamiento del documento 1168 → 1168
+760 px · fila última (24) de 25 → dialog.enlaces-capa[data-testid="enlaces-capa"]: top=649 bottom=900 (alto 251) sobre una ventana de 900 px · dentro de la ventana · desplazamiento del documento 2324 → 2324
+800 px · fila primera (0) de 25 → dialog.enlaces-capa[data-testid="enlaces-capa"]: top=649 bottom=900 (alto 251) sobre una ventana de 900 px · dentro de la ventana · desplazamiento del documento 0 → 0
+800 px · fila intermedia (12) de 25 → dialog.enlaces-capa[data-testid="enlaces-capa"]: top=649 bottom=900 (alto 251) sobre una ventana de 900 px · dentro de la ventana · desplazamiento del documento 1172 → 1172
+800 px · fila última (24) de 25 → dialog.enlaces-capa[data-testid="enlaces-capa"]: top=649 bottom=900 (alto 251) sobre una ventana de 900 px · dentro de la ventana · desplazamiento del documento 2327 → 2327
+1280 px · fila primera (0) de 25 → dialog.enlaces-capa[data-testid="enlaces-capa"]: top=649 bottom=900 (alto 251) sobre una ventana de 900 px · dentro de la ventana · desplazamiento del documento 0 → 0
+1280 px · fila intermedia (12) de 25 → dialog.enlaces-capa[data-testid="enlaces-capa"]: top=649 bottom=900 (alto 251) sobre una ventana de 900 px · dentro de la ventana · desplazamiento del documento 896 → 896
+1280 px · fila última (24) de 25 → dialog.enlaces-capa[data-testid="enlaces-capa"]: top=649 bottom=900 (alto 251) sobre una ventana de 900 px · dentro de la ventana · desplazamiento del documento 1779 → 1779

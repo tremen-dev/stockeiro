@@ -1,0 +1,21 @@
+SPEC-067 CA-7 — geometría
+360 px · tarjeta · M1 fila=0 (testigos señal 3) capa=0 (testigos capa 1) · M2 0 · M3 textos=6
+  M5 capa · suelo 44x44 · controles medidos=4 · por debajo=0 · solapes=0
+  M5 tarjetas · suelo 44x44 · controles medidos=15 · por debajo=0 · solapes=0
+390 px · tarjeta · M1 fila=0 (testigos señal 3) capa=0 (testigos capa 1) · M2 0 · M3 textos=6
+  M5 capa · suelo 44x44 · controles medidos=4 · por debajo=0 · solapes=0
+  M5 tarjetas · suelo 44x44 · controles medidos=15 · por debajo=0 · solapes=0
+640 px · tarjeta · M1 fila=0 (testigos señal 3) capa=0 (testigos capa 1) · M2 0 · M3 textos=6
+  M5 capa · suelo 44x44 · controles medidos=4 · por debajo=0 · solapes=0
+  M5 tarjetas · suelo 44x44 · controles medidos=15 · por debajo=0 · solapes=0
+700 px · tarjeta · M1 fila=0 (testigos señal 3) capa=0 (testigos capa 1) · M2 0 · M3 textos=6
+  M5 capa · suelo 44x44 · controles medidos=4 · por debajo=0 · solapes=0
+  M5 tarjetas · suelo 44x44 · controles medidos=15 · por debajo=0 · solapes=0
+730 px · tabla · M1 fila=0 (testigos señal 0, tabla arrastrada: mide el contenedor) capa=0 (testigos capa 1) · M2 0 · M3 textos=6
+  tabla · contenido sin señales=933 con señales=933
+760 px · tabla · M1 fila=0 (testigos señal 0, tabla arrastrada: mide el contenedor) capa=0 (testigos capa 1) · M2 0 · M3 textos=6
+  tabla · contenido sin señales=933 con señales=933
+800 px · tabla · M1 fila=0 (testigos señal 0, tabla arrastrada: mide el contenedor) capa=0 (testigos capa 1) · M2 0 · M3 textos=6
+  tabla · contenido sin señales=933 con señales=933
+1280 px · tabla · M1 fila=0 (testigos señal 3) capa=0 (testigos capa 1) · M2 0 · M3 textos=6
+  tabla · contenido sin señales=1184 con señales=1184

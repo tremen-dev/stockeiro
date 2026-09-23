@@ -123,6 +123,7 @@ Actualizado: 2026-09-23
 | SPEC-056 — los-tres-correos-diseno-propio-la-marca-en-cabecera-y-pie-y-el-texto-plano-como-alternativa | hecho | 2026-08-25 (sdd-verificador) |
 | SPEC-062 — lo-cerca-que-esta-la-barra-de-acercamiento-a-la-zona-y-el-orden-por-cercania | hecho | 2026-09-13 (sdd-verificador) |
 | SPEC-065 — stockeiro-se-deja-encontrar-la-portada-en-buscadores-lo-privado-fuera | hecho | 2026-09-23 (sdd-verificador) |
+| SPEC-067 — el-enlace-se-abre-desde-la-fila-uno-va-directo-varios-se-eligen-y-la-nota-tiene-su-propia-senal | hecho | 2026-09-23 (sdd-verificador) |
 
 ## ADRs
 
@@ -171,6 +172,6 @@ Actualizado: 2026-09-23
 
 ## Resumen
 
-- hecho: 59
+- hecho: 60
 - aprobada: 1
 - bloqueada: 1

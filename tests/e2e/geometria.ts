@@ -1761,3 +1761,143 @@ export const describirSuperficie = (m: MedidaM6): string =>
 
 /** El defecto de SPEC-064, para la prueba de eficacia (ADR-026 §7). */
 export const DEFECTO_SIN_SUPERFICIE = `.contexto-bloque { background: transparent !important }`;
+
+/* ────────────────────────────────────────────────────────────────────────────
+   Contraste NO textual de un control (SPEC-067 CA-13, WCAG 2.2 SC 1.4.11)
+   ──────────────────────────────────────────────────────────────────────────── */
+
+/** Un control cuyo glifo se ha medido contra lo que tiene debajo. */
+export interface ContrasteDeControl {
+  selector: string;
+  /** El color con el que se pinta el glifo (`color`, que el SVG hereda como `currentColor`). */
+  color: string;
+  /** El fondo compuesto que tiene debajo, subiendo por ancestros hasta uno opaco. */
+  fondo: string;
+  contraste: number;
+  /** El lienzo del documento (`html`, o `body`), para comparar. */
+  lienzo: string;
+  /** Diferencia máxima por canal (0–255) entre `fondo` y `lienzo`: ~0 si no hay tinte. */
+  distanciaAlLienzo: number;
+  /** La clase `zone-*` del ancestro más cercano que la tenga (fila o tarjeta), o null. */
+  zona: string | null;
+}
+
+/**
+ * **El contraste no textual de un control**: el color de su glifo contra el fondo real que
+ * tiene debajo, ya compuesto.
+ *
+ * Hermana de M6 (`medirSuperficieDeTexto`) y con **la misma fórmula** de WCAG; se separa
+ * porque M6 sólo mira elementos con **texto propio**, y un control que es sólo un icono
+ * (la señal de un enlace, SPEC-067) no tiene texto que medir. Lo que se mide aquí es lo que
+ * SC 1.4.11 pide a un componente de interfaz: que lo que lo identifica se distinga de lo
+ * que lo rodea, con 3:1.
+ *
+ * El glifo se pinta con `currentColor`, así que su color es el `color` computado del
+ * control. El fondo se compone subiendo por los ancestros —los fondos de fila de
+ * `/vigiladas` son tintes con alfa (`.zone-*`)— hasta el primero opaco; si no aparece
+ * ninguno, se toma el lienzo del documento (`html`, y si tampoco, `body`).
+ */
+export async function medirContrasteDeControl(
+  page: Page,
+  selector: string,
+): Promise<ContrasteDeControl[]> {
+  return page.evaluate((selector) => {
+    type Color = { r: number; g: number; b: number; a: number };
+    /**
+     * Lee un color computado a 0–255 + alfa 0–1. Chromium serializa `rgb()/rgba()` en 0–255,
+     * pero un `color-mix(in srgb, …)` —los tintes `.zone-*`— sale como
+     * `color(srgb r g b / a)` con los canales en 0–1: hay que escalarlos ×255, o el tinte se
+     * lee como casi negro (F-V1 de SPEC-067). Cualquier otra forma se resuelve pintándola en
+     * un canvas de 1 px, que devuelve sRGB 0–255 sea cual sea la sintaxis.
+     */
+    const rgba = (css: string): Color => {
+      const s = css.trim();
+      const num = (t: string, escala: number) =>
+        t.endsWith('%') ? (parseFloat(t) / 100) * escala : parseFloat(t);
+      const alfa = (t: string | undefined) => (t === undefined ? 1 : num(t, 1));
+      if (s === 'transparent') return { r: 0, g: 0, b: 0, a: 0 };
+      const srgb = s.match(/^color\(\s*srgb\s+([^\s/)]+)\s+([^\s/)]+)\s+([^\s/)]+)\s*(?:\/\s*([^\s)]+))?\s*\)$/i);
+      if (srgb) {
+        const c = (t: string) => (t === 'none' ? 0 : num(t, 1) * 255);
+        return { r: c(srgb[1]), g: c(srgb[2]), b: c(srgb[3]), a: alfa(srgb[4]) };
+      }
+      const legacy = s.match(/^rgba?\(\s*([^\s,/)]+)[\s,]+([^\s,/)]+)[\s,]+([^\s,/)]+)\s*(?:[,/]\s*([^\s)]+))?\s*\)$/i);
+      if (legacy) {
+        const c = (t: string) => num(t, 255);
+        return { r: c(legacy[1]), g: c(legacy[2]), b: c(legacy[3]), a: alfa(legacy[4]) };
+      }
+      const lienzo2d = document.createElement('canvas').getContext('2d', { willReadFrequently: true })!;
+      lienzo2d.clearRect(0, 0, 1, 1);
+      lienzo2d.fillStyle = s;
+      lienzo2d.fillRect(0, 0, 1, 1);
+      const [r, g, b, a] = lienzo2d.getImageData(0, 0, 1, 1).data;
+      return { r, g, b, a: a / 255 };
+    };
+    const sobre = (frente: Color, fondo: Color): Color => ({
+      r: frente.r * frente.a + fondo.r * (1 - frente.a),
+      g: frente.g * frente.a + fondo.g * (1 - frente.a),
+      b: frente.b * frente.a + fondo.b * (1 - frente.a),
+      a: 1,
+    });
+    const luminancia = (c: Color) => {
+      const canal = (v: number) => {
+        const s = v / 255;
+        return s <= 0.03928 ? s / 12.92 : ((s + 0.055) / 1.055) ** 2.4;
+      };
+      return 0.2126 * canal(c.r) + 0.7152 * canal(c.g) + 0.0722 * canal(c.b);
+    };
+    const razon = (a: Color, b: Color) => {
+      const [x, y] = [luminancia(a), luminancia(b)].sort((p, q) => q - p);
+      return (x + 0.05) / (y + 0.05);
+    };
+    const aCss = (c: Color) => `rgb(${Math.round(c.r)}, ${Math.round(c.g)}, ${Math.round(c.b)})`;
+
+    const lienzo = (): Color => {
+      for (const el of [document.documentElement, document.body]) {
+        const c = rgba(getComputedStyle(el).backgroundColor);
+        if (c.a >= 0.999) return c;
+      }
+      return { r: 255, g: 255, b: 255, a: 1 };
+    };
+    const fondoDebajo = (desde: Element): Color => {
+      const capas: Color[] = [];
+      let n: Element | null = desde;
+      while (n) {
+        const bg = rgba(getComputedStyle(n).backgroundColor);
+        if (bg.a > 0) capas.push(bg);
+        if (bg.a >= 0.999) return capas.reduceRight((acc, capa) => sobre(capa, acc), bg);
+        n = n.parentElement;
+      }
+      return capas.reduceRight((acc, capa) => sobre(capa, acc), lienzo());
+    };
+
+    return [...document.querySelectorAll(selector)]
+      .filter((el) => {
+        const r = el.getBoundingClientRect();
+        return r.width > 0 && r.height > 0;
+      })
+      .map((el) => {
+        const fondo = fondoDebajo(el);
+        const glifo = sobre(rgba(getComputedStyle(el).color), fondo);
+        const clases = [...el.classList].slice(0, 2).join('.');
+        const testid = el.getAttribute('data-testid');
+        const base = lienzo();
+        const conZona = el.closest('[class*="zone-"]');
+        const zona = conZona ? ([...conZona.classList].find((k) => /^zone-/.test(k)) ?? null) : null;
+        return {
+          selector:
+            el.tagName.toLowerCase() +
+            (clases ? `.${clases}` : '') +
+            (testid ? `[data-testid="${testid}"]` : ''),
+          color: getComputedStyle(el).color,
+          fondo: aCss(fondo),
+          contraste: Math.round(razon(glifo, fondo) * 100) / 100,
+          lienzo: aCss(base),
+          distanciaAlLienzo: Math.round(
+            Math.max(Math.abs(fondo.r - base.r), Math.abs(fondo.g - base.g), Math.abs(fondo.b - base.b)),
+          ),
+          zona,
+        };
+      });
+  }, selector);
+}

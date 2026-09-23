@@ -5,7 +5,12 @@ import {
   LIMITE_ENLACES_POR_SIMBOLO,
   LIMITE_NOTA_CARACTERES,
 } from '@/lib/config/limites-contexto';
-import { textoDeContexto } from '@/lib/contexto/senal';
+import {
+  destinoDeEnlace,
+  nombreDeSenalDeEnlaces,
+  textoDeContexto,
+  textoDeSenalDeNota,
+} from '@/lib/contexto/senal';
 import { afirmacionesProhibidasEn } from './ayuda-afirmaciones-prohibidas';
 
 /**
@@ -82,6 +87,22 @@ describe('SPEC-063 CA-10: la señal se dice con una frase, no con un glifo', () 
     expect(
       textoDeContexto({ note: 'x', enlaces: [{ id: '1', url: 'u', label: null }] }),
     ).toBe('Tiene nota tuya y 1 enlace');
+  });
+
+  /*
+    ADAPTACIÓN DE SPEC-067: la fila ya no pinta UNA señal con `textoDeContexto` —que queda
+    como resumen del bloque de contexto de la capa de edición—, sino DOS. La propiedad de
+    CA-10 se conserva sobre las dos: entre ambas, quien escucha oye que hay nota, que hay
+    enlaces y cuántos. Ningún `expect` de arriba se ha tocado.
+  */
+  it('desde SPEC-067, entre las DOS señales de la fila se dice lo mismo', () => {
+    const nota = textoDeSenalDeNota({ note: 'x', enlaces: [] });
+    expect(nota).toBe('Tiene nota tuya');
+    expect(textoDeSenalDeNota({ note: null, enlaces: [] })).toBeNull();
+    // Un enlace: en singular.
+    expect(destinoDeEnlace({ url: 'https://foro.example.com/h', label: null })).toMatch(/\btu enlace\b/);
+    // Varios: cuántos.
+    expect(nombreDeSenalDeEnlaces(2, 'Z · BME')).toMatch(/\b2 enlaces\b/);
   });
 
   it('la frase no depende de ver un color ni un icono: es texto', () => {
