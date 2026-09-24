@@ -2,10 +2,11 @@
 id: SPEC-068
 tipo: spec
 epica: EPIC-FIX
-estado: borrador
+estado: bloqueada
 aprobada-por:
 historial:
   - {estado: borrador, fecha: 2026-09-24, por: sdd-arquitecto}
+  - {estado: bloqueada, fecha: 2026-09-24, por: Alberto Fojo}
 ---
 # SPEC-068 — El icono en Google: un PNG que el buscador acepta y el nombre del sitio que no es el dominio
 
